@@ -22,6 +22,12 @@ module.exports = defineConfig([
     languageOptions: { globals: { __dirname: 'readonly', module: 'writable', require: 'readonly', process: 'readonly', console: 'readonly' } },
   },
   {
+    // React Three Fiber JSX uses three.js props (position, args, castShadow...).
+    // R3F mutates three.js objects inside useFrame by design.
+    files: ['src/three/**/*.tsx'],
+    rules: { 'react/no-unknown-property': 'off', 'react-hooks/immutability': 'off', 'react-hooks/purity': 'off' },
+  },
+  {
     files: ['src/sim/**/*.ts'],
     rules: {
       // The sim must stay pure: no React, rendering or I/O (CLAUDE.md).

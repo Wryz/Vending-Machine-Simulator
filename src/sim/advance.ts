@@ -59,6 +59,8 @@ export interface AdvanceReport {
   driverRuns: number;
   chaptersCompleted: number[];
   events: string[];
+  /** Sales per machine during this advance (ticker, receipts). */
+  perMachine: Record<string, { units: number; cents: number }>;
 }
 
 const EMPTY_CELL: CellData = {
@@ -91,6 +93,7 @@ function newReport(from: number): AdvanceReport {
     driverRuns: 0,
     chaptersCompleted: [],
     events: [],
+    perMachine: {},
   };
 }
 
@@ -244,6 +247,9 @@ function sellStep(
   state.ledger.recentPlayerCents += revenue;
   report.salesCents += revenue;
   report.units += sold;
+  const pm = (report.perMachine[m.id] ??= { units: 0, cents: 0 });
+  pm.units += sold;
+  pm.cents += revenue;
   if (m.cashBoxCents >= cap && !report.cashBoxFull.includes(m.id)) {
     report.cashBoxFull.push(m.id);
     log(state, 'cash-full', 'Cash box full', m.id);

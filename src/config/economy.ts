@@ -49,6 +49,20 @@ export const PRICE_RESPONSE = {
  */
 export const DEMAND_SCALE = 1.6;
 
+/**
+ * Per-city traffic calibration. Open map data is much denser in some cities
+ * (Paris) than others (Tokyo), so raw traffic isn't comparable. Each city's
+ * cells are scaled so its downtown (district 1) 75th-percentile noon traffic
+ * hits this target: pacing is the same everywhere, while spots within a city
+ * keep their real relative differences.
+ */
+export const CALIBRATION = {
+  targetP75NoonTraffic: 380,
+  districtRadiusKm: 1.2,
+  minScale: 0.03,
+  maxScale: 8,
+} as const;
+
 /** How much of an "interested" customer's choice is product fit vs. random. */
 export const FIT = {
   /** Base purchase propensity once a customer stops at a machine. */

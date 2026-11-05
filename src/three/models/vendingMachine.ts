@@ -53,27 +53,6 @@ function mat(
   });
 }
 
-/** Box with a single 45° chamfer on the vertical edges (8-sided prism). */
-function chamferedBox(w: number, h: number, d: number, c: number): THREE.BufferGeometry {
-  const s = new THREE.Shape();
-  const x = w / 2;
-  const z = d / 2;
-  s.moveTo(-x + c, -z);
-  s.lineTo(x - c, -z);
-  s.lineTo(x, -z + c);
-  s.lineTo(x, z - c);
-  s.lineTo(x - c, z);
-  s.lineTo(-x + c, z);
-  s.lineTo(-x, z - c);
-  s.lineTo(-x, -z + c);
-  s.closePath();
-  const g = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false, steps: 1 });
-  // Extrude runs along +z; stand it up so height is +y.
-  g.rotateX(-Math.PI / 2);
-  g.computeVertexNormals();
-  return g;
-}
-
 function box(
   w: number,
   h: number,
@@ -134,13 +113,34 @@ export function createVendingMachine(opts: VendingMachineOptions): VendingMachin
     { material: header, base: 1.3 },
   );
 
-  // Cabinet (chamfered), plinth and top cap.
+  // Cabinet: a chamfered rear body recessed behind the front face, plus four
+  // front panels framing an open window bay, so the lit interior and products
+  // behind the glass are actually visible.
   const plinthH = 0.08;
-  const cabinet = new THREE.Mesh(chamferedBox(W, H - plinthH, D, 0.03), body);
-  cabinet.position.y = plinthH;
-  cabinet.castShadow = true;
-  cabinet.receiveShadow = true;
-  group.add(cabinet);
+  const recess = 0.14;
+  const c = 0.03;
+  {
+    const sh = new THREE.Shape();
+    const x = W / 2;
+    const yf = -(D / 2 - recess);
+    const yb = D / 2;
+    sh.moveTo(-x, yf);
+    sh.lineTo(x, yf);
+    sh.lineTo(x, yb - c);
+    sh.lineTo(x - c, yb);
+    sh.lineTo(-x + c, yb);
+    sh.lineTo(-x, yb - c);
+    sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, { depth: H - plinthH, bevelEnabled: false, steps: 1 });
+    g.rotateX(-Math.PI / 2);
+    g.computeVertexNormals();
+    const cabinet = new THREE.Mesh(g, body);
+    cabinet.position.y = plinthH;
+    cabinet.name = 'cabinet';
+    cabinet.castShadow = true;
+    cabinet.receiveShadow = true;
+    group.add(cabinet);
+  }
   group.add(box(W - 0.04, plinthH, D - 0.06, trim, [0, plinthH / 2, 0]));
 
   const frontZ = D / 2;
@@ -151,6 +151,17 @@ export function createVendingMachine(opts: VendingMachineOptions): VendingMachin
   const bayTop = H - 0.2;
   const bayH = bayTop - bayBottom;
   const bayY = bayBottom + bayH / 2;
+  {
+    const zc = D / 2 - recess / 2;
+    const bayLeft = bayX - bayW / 2;
+    const bayRight = bayX + bayW / 2;
+    const panel = (x0: number, x1: number, y0: number, y1: number, name: string) =>
+      group.add(box(x1 - x0, y1 - y0, recess, body, [(x0 + x1) / 2, (y0 + y1) / 2, zc], name));
+    panel(-W / 2, bayLeft, plinthH, H, 'front-left');
+    panel(bayRight, W / 2, plinthH, H, 'front-column');
+    panel(bayLeft, bayRight, bayTop, H, 'front-top');
+    panel(bayLeft, bayRight, plinthH, bayBottom, 'front-bottom');
+  }
   group.add(box(bayW, bayH, 0.02, interior, [bayX, bayY, frontZ - 0.12], 'interior-back'));
 
   // Shelves + products (one block per slot keeps triangles low).

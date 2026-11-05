@@ -9,6 +9,7 @@ import type { Palette } from '@/config/timeOfDay';
 import { MAP_STYLE } from '@/config/map';
 
 import type { SunState } from './sun';
+import { mixColors } from './timeOfDay';
 
 /**
  * Custom MapLibre style (SPEC §3.5) over the Protomaps v4 basemap schema
@@ -202,7 +203,11 @@ export function buildMapLight(sun: SunState, p: Palette): LightSpecification {
   return {
     anchor: 'map',
     position: [1.15, sun.bearingDeg, polar],
-    color: p.sunColor,
+    // Tint toward white: a fully saturated sun color turns every building orange at dusk.
+    color: mixColors([
+      [p.sunColor, 0.3],
+      ['#FFFFFF', 0.7],
+    ]),
     intensity: p.mapLightIntensity,
   };
 }

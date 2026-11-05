@@ -1,5 +1,10 @@
-import { ADS, CONTRACT, SERVICE, STAFF } from '@/config/economy';
-import { getMachineType, type MachineFamily, type MachineTypeId } from '@/config/machines';
+import { ADS, CONTRACT, PURCHASES, SERVICE, STAFF } from '@/config/economy';
+import {
+  ALCOHOL_ALLOWED_COUNTRIES,
+  getMachineType,
+  type MachineFamily,
+  type MachineTypeId,
+} from '@/config/machines';
 import {
   COLLECTION_PULL,
   COLLECTIONS,
@@ -474,7 +479,7 @@ export const LIQUOR_PERMIT_CENTS = 1_500_000;
 export function buyLiquorPermit(state: GameState, world: World): ActionResult {
   if (state.liquorPermit) return fail('You already hold a liquor permit.');
   if (state.chapter < 5) return fail('Unlocks in chapter 5.');
-  if (!['JP', 'KR', 'US', 'GB', 'FR', 'AU'].includes(world.city.countryCode))
+  if (!ALCOHOL_ALLOWED_COUNTRIES.includes(world.city.countryCode))
     return fail('Not available in this city.');
   if (!spend(state, LIQUOR_PERMIT_CENTS, 'Permits')) return fail('Not enough cash.');
   state.liquorPermit = true;
@@ -641,4 +646,15 @@ export function headingFacing(
       Math.cos((to.lat * Math.PI) / 180) *
       Math.cos(((to.lng - from.lng) * Math.PI) / 180);
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+/** Starter Pack (one-time purchase, SPEC §9): van upgrade, 2 snack machines, cash. */
+export function applyStarterPack(state: GameState): ActionResult {
+  state.vanLevel = Math.max(state.vanLevel, 1);
+  for (let i = 0; i < 2; i++)
+    state.machines.push(storedMachine(nextId(state, 'm'), 'snack', state.now));
+  state.cashCents += PURCHASES.starterPackCashCents;
+  addLedger(state, 'Starter Pack', PURCHASES.starterPackCashCents);
+  log(state, 'info', 'Starter Pack: van upgrade, two snack machines and cash');
+  return { ok: true };
 }

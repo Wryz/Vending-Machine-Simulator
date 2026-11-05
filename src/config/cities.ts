@@ -73,8 +73,10 @@ export const FALLBACK_CITIES: readonly City[] = [
     id: 'tokyo',
     name: 'Tokyo',
     countryCode: 'JP',
-    lat: 35.6762,
-    lng: 139.6503,
+    // Game center: Shinjuku. SPEC §6.3 lists 35.6762, 139.6503 (a generic
+    // geocode in residential Setagaya); downtown makes a better district 1.
+    lat: 35.6896,
+    lng: 139.7006,
     timeZone: 'Asia/Tokyo',
     notes: 'Vending capital; beer machines allowed',
   },
@@ -91,8 +93,10 @@ export const FALLBACK_CITIES: readonly City[] = [
     id: 'singapore',
     name: 'Singapore',
     countryCode: 'SG',
-    lat: 1.3521,
-    lng: 103.8198,
+    // Game center: Downtown Core. SPEC §6.3 lists 1.3521, 103.8198 (the
+    // island's centroid, inside the central nature reserve: almost no places).
+    lat: 1.2834,
+    lng: 103.851,
     timeZone: 'Asia/Singapore',
     notes: 'Hot all year; strict rules (alcohol limits)',
   },

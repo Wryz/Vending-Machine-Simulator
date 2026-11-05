@@ -42,6 +42,7 @@ import {
   SaveError,
   playerShare,
   quotePlacement,
+  applyStarterPack,
 } from './index';
 import { decentSpot, deadSpot, NOON_NY, testWorld } from './__fixtures__/world';
 import { offsetPoint } from './geo';
@@ -279,6 +280,7 @@ describe('pacing (SPEC §4.8: chapter 1 in ~20–30 minutes of play)', () => {
       s = advance(s, world, s.now + MIN).state;
       minutes++;
       const m = s.machines[0];
+      if (m.broken) s = withClone(s, (d) => repairMachine(d, m.id)).state;
       const units = m.slots.reduce((a, x) => a + x.qty, 0);
       if (units < 40) {
         s = withClone(s, (d) => collectCash(d, m.id)).state;
@@ -580,6 +582,17 @@ describe('misc actions', () => {
     expect(hidePlace(s, 'x').ok).toBe(true);
     expect(s.hiddenPlaces).toContain('x');
     expect(getMachineType(s.machines[0].typeId).name).toBe('Snack Machine');
+  });
+});
+
+describe('starter pack', () => {
+  it('adds a van, two stored snack machines and cash', () => {
+    const s = newGame({ cityId: 'new-york', now: NOON_NY, seed: 1 });
+    const cash = s.cashCents;
+    expect(applyStarterPack(s).ok).toBe(true);
+    expect(s.vanLevel).toBe(1);
+    expect(s.machines.filter((m) => m.typeId === 'snack' && m.status === 'stored')).toHaveLength(2);
+    expect(s.cashCents).toBe(cash + 200_000);
   });
 });
 

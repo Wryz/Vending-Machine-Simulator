@@ -1,0 +1,356 @@
+import Constants from 'expo-constants';
+import * as DocumentPicker from 'expo-document-picker';
+import { router } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
+import { useState } from 'react';
+import { Alert, Pressable, Switch, View } from 'react-native';
+
+import { track } from '@/services/analytics';
+import { haptic } from '@/services/haptics';
+import { requestNotificationPermission, rescheduleNotifications } from '@/services/notifications';
+import { readUri, writeShareFile } from '@/services/storage';
+import { SaveError, exportSave, importSave } from '@/sim';
+import { useGame } from '@/store/game';
+import { useProfile, type Settings } from '@/store/profile';
+import { useTheme } from '@/ui/ThemeProvider';
+import { Button, Divider, Mono, Paper, Row, Screen, Section, T } from '@/ui/kit';
+import { FlashToast, useFlash } from '@/ui/objects/Flash';
+import { SPACE, TOUCH } from '@/ui/theme';
+
+function Toggle({
+  label,
+  detail,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  detail?: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  const theme = useTheme();
+  return (
+    <Row
+      style={{ minHeight: TOUCH + 8, paddingVertical: SPACE.xs, opacity: disabled ? 0.5 : 1 }}
+      gap={SPACE.m}
+    >
+      <View style={{ flex: 1 }}>
+        <T weight="medium">{label}</T>
+        {detail ? (
+          <T size={13} muted>
+            {detail}
+          </T>
+        ) : null}
+      </View>
+      <Switch
+        accessibilityLabel={label}
+        accessibilityHint={detail}
+        value={value}
+        disabled={disabled}
+        onValueChange={onChange}
+        trackColor={{ true: theme.signal, false: theme.line }}
+      />
+    </Row>
+  );
+}
+
+function Choice({
+  label,
+  detail,
+  selected,
+  onPress,
+}: {
+  label: string;
+  detail: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected }}
+      accessibilityLabel={label}
+      accessibilityHint={detail}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        minHeight: TOUCH + 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACE.m,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 10,
+          borderWidth: 1.5,
+          borderColor: selected ? theme.ink : theme.line,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {selected ? (
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.ink }} />
+        ) : null}
+      </View>
+      <View style={{ flex: 1 }}>
+        <T weight="medium">{label}</T>
+        <T size={13} muted>
+          {detail}
+        </T>
+      </View>
+    </Pressable>
+  );
+}
+
+/** Settings (SPEC §8, §10, §11). */
+export default function SettingsScreen() {
+  const settings = useProfile((s) => s.settings);
+  const setSettings = useProfile((s) => s.setSettings);
+  const game = useGame((s) => s.game);
+  const city = useGame((s) => s.city);
+  const { flash, show } = useFlash();
+  const [busy, setBusy] = useState<'export' | 'import' | null>(null);
+
+  const setNotifications = (patch: Partial<Settings['notifications']>) => {
+    setSettings({ notifications: { ...useProfile.getState().settings.notifications, ...patch } });
+    const { game: g, world } = useGame.getState();
+    rescheduleNotifications(g, world).catch(() => undefined);
+  };
+
+  const toggleNotifications = async (on: boolean) => {
+    if (!on) {
+      setNotifications({ enabled: false });
+      return;
+    }
+    const granted = await requestNotificationPermission().catch(() => false);
+    if (granted) {
+      setNotifications({ enabled: true });
+      track('notifications', { ok: true });
+    } else {
+      show('Notifications are turned off for Coinline in the Settings app.', 'info');
+    }
+  };
+
+  const togglePersonalizedAds = async (on: boolean) => {
+    if (!on) {
+      setSettings({ personalizedAds: false });
+      return;
+    }
+    const res = await requestTrackingPermissionsAsync().catch(() => null);
+    if (res?.granted) setSettings({ personalizedAds: true });
+    else show('Tracking not allowed. Ads stay non-personalized.', 'info');
+  };
+
+  const doExport = async () => {
+    if (!game) return;
+    setBusy('export');
+    try {
+      const date = new Date().toISOString().slice(0, 10);
+      const uri = writeShareFile(`coinline-${game.cityId}-${date}.json`, exportSave(game));
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/json',
+          UTI: 'public.json',
+          dialogTitle: 'Export save',
+        });
+      } else {
+        show('Sharing is not available on this device.', 'error');
+      }
+    } catch {
+      show('Could not export the save.', 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const doImport = async () => {
+    const current = useGame.getState().city;
+    if (!current || !useGame.getState().game) {
+      show('Open a city first, then import its save.', 'info');
+      return;
+    }
+    setBusy('import');
+    try {
+      const picked = await DocumentPicker.getDocumentAsync({
+        type: ['application/json', 'text/plain'],
+        copyToCacheDirectory: true,
+      });
+      if (picked.canceled || !picked.assets[0]) return;
+      const imported = importSave(await readUri(picked.assets[0].uri));
+      if (imported.cityId !== current.id) {
+        show('That save is for another city. Switch to it first.', 'error');
+        return;
+      }
+      Alert.alert(
+        'Replace this save?',
+        `Your business in ${current.name} will be replaced by the imported save.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Replace',
+            style: 'destructive',
+            onPress: () => {
+              useGame.getState().replaceGame(imported);
+              haptic.success();
+              show('Save imported.', 'success');
+            },
+          },
+        ],
+      );
+    } catch (e) {
+      haptic.error();
+      show(e instanceof SaveError ? e.message : 'Could not read that file.', 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const version = Constants.expoConfig?.version ?? '1.0.0';
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Screen title="Settings">
+        <Section title="Feel">
+          <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
+            <Toggle
+              label="Sound"
+              detail="Clicks, coins and city ambience"
+              value={settings.sound}
+              onChange={(v) => setSettings({ sound: v })}
+            />
+            <Divider />
+            <Toggle
+              label="Haptics"
+              detail="Coin ticks and product thunks"
+              value={settings.haptics}
+              onChange={(v) => setSettings({ haptics: v })}
+            />
+          </Paper>
+        </Section>
+
+        <Section title="Notifications">
+          <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
+            <Toggle
+              label="Notifications"
+              detail="At most 3 a day, never 22:00–08:00"
+              value={settings.notifications.enabled}
+              onChange={toggleNotifications}
+            />
+            <Divider />
+            <Toggle
+              label="Machine empty"
+              value={settings.notifications.empty}
+              disabled={!settings.notifications.enabled}
+              onChange={(v) => setNotifications({ empty: v })}
+            />
+            <Toggle
+              label="Cash box full"
+              value={settings.notifications.cashFull}
+              disabled={!settings.notifications.enabled}
+              onChange={(v) => setNotifications({ cashFull: v })}
+            />
+            <Toggle
+              label="Local events nearby"
+              value={settings.notifications.events}
+              disabled={!settings.notifications.enabled}
+              onChange={(v) => setNotifications({ events: v })}
+            />
+          </Paper>
+        </Section>
+
+        <Section title="Look">
+          <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
+            <View accessibilityRole="radiogroup">
+              <Choice
+                label="Follow city time"
+                detail="Night colors after dark in your city"
+                selected={settings.theme === 'city'}
+                onPress={() => setSettings({ theme: 'city' })}
+              />
+              <Choice
+                label="System"
+                detail="Match your phone's light or dark setting"
+                selected={settings.theme === 'system'}
+                onPress={() => setSettings({ theme: 'system' })}
+              />
+            </View>
+          </Paper>
+        </Section>
+
+        <Section title="Privacy">
+          <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
+            <Toggle
+              label="Personalized ads"
+              detail="Off by default. Asks for tracking permission."
+              value={settings.personalizedAds}
+              onChange={togglePersonalizedAds}
+            />
+            <Divider />
+            <Toggle
+              label="Anonymous usage stats"
+              detail="Event counts only. No location, no place names."
+              value={settings.analytics}
+              onChange={(v) => setSettings({ analytics: v })}
+            />
+          </Paper>
+          <T size={13} muted>
+            Your location is used once, approximately, to build your city. It is never stored on a
+            server. Saves stay on this device. Ads are optional rewards you choose to watch.
+          </T>
+        </Section>
+
+        <Section title="Save">
+          <T size={13} muted>
+            {city ? `Current save: ${city.name}.` : 'No city open.'} Export a copy for support or as
+            a backup.
+          </T>
+          <Row gap={SPACE.s}>
+            <Button
+              style={{ flex: 1 }}
+              kind="secondary"
+              label="Export"
+              busy={busy === 'export'}
+              disabled={!game || busy !== null}
+              onPress={doExport}
+            />
+            <Button
+              style={{ flex: 1 }}
+              kind="secondary"
+              label="Import"
+              busy={busy === 'import'}
+              disabled={!game || busy !== null}
+              onPress={doImport}
+            />
+          </Row>
+        </Section>
+
+        <Section title="About">
+          <Button
+            kind="secondary"
+            label="Credits and licenses"
+            onPress={() => router.push('/credits')}
+          />
+          <Row style={{ justifyContent: 'space-between' }}>
+            <T muted>Coinline · Vending Machine Simulator</T>
+            <Mono
+              muted
+              suppressHighlighting
+              accessibilityHint="Long press for diagnostics"
+              onLongPress={() => router.push('/diagnostics')}
+            >
+              v{version}
+            </Mono>
+          </Row>
+        </Section>
+      </Screen>
+      <FlashToast flash={flash} />
+    </View>
+  );
+}

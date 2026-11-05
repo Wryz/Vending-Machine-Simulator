@@ -17,6 +17,16 @@ export const FAMILY_ACCENT: Record<MachineFamily, string> = {
   alcohol: '#5E1F24', // oxblood
 };
 
+/** Display names per machine family. */
+export const FAMILY_LABEL: Record<MachineFamily, string> = {
+  snacks: 'Snacks & drinks',
+  drinks: 'Drinks & coffee',
+  capsules: 'Capsules & collectibles',
+  tech: 'Tech & essentials',
+  hotFood: 'Hot food & specialty',
+  alcohol: 'Beer & wine',
+};
+
 export interface MachineDimensions {
   heightM: number;
   widthM: number;
@@ -32,9 +42,9 @@ export const SNACK_MACHINE_DIMENSIONS: MachineDimensions = {
 
 /** Close-up camera framing for the 3D scene. */
 export const CLOSEUP_CAMERA = {
-  distanceM: 2.6,
-  eyeHeightM: 1.55,
-  fovDeg: 40,
+  distanceM: 3.4,
+  eyeHeightM: 1.5,
+  fovDeg: 46,
   /** Dolly from the matched map frame into the close-up. */
   dollyMs: 900,
 } as const;

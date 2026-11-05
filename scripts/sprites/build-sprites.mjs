@@ -1,0 +1,176 @@
+#!/usr/bin/env node
+/**
+ * `npm run sprites` — pre-rendered machine sprites for the map (SPEC §7.3).
+ *
+ * Pipeline (all in headless Chromium via Playwright):
+ *   procedural three.js model (src/three/models/vendingMachine.ts)
+ *   -> GLB (GLTFExporter)            -> assets/models/machine-{model}.glb
+ *   -> GLTFLoader (round-trip)       -> orthographic renders, 8 headings × 2 pitches × 3 lights
+ *   -> assets/sprites/{name}.png     (individual images, bundled via require())
+ *   -> assets/sprites/atlas.png/json (MapLibre sprite format, pixelRatio 2, for an R2 `sprite` URL)
+ *   -> src/map/spriteImages.ts       (generated)
+ *
+ * Options: --only=snacks,rival  (render a subset; skips the atlas + generated module)
+ */
+import { Buffer } from 'node:buffer';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+import prettier from 'prettier';
+
+import { b64ToBuf, bundle, launchWithBundle, ROOT } from './lib/harness.mjs';
+import { encodePNG } from './lib/png.mjs';
+
+/** Rendered pixels per meter at pixelRatio 2 (orthographic camera). */
+const SPRITE_PX_PER_METER = 48;
+const PIXEL_RATIO = 2;
+const SPRITE = { width: 96, height: 144 };
+/** Machine base center sits this many px above the image bottom. */
+const SPRITE_ANCHOR_OFFSET_PX = 40;
+const SUPERSAMPLE = 4;
+
+const SPRITES_DIR = path.join(ROOT, 'assets/sprites');
+const MODELS_DIR = path.join(ROOT, 'assets/models');
+const GENERATED = path.join(ROOT, 'src/map/spriteImages.ts');
+
+const only = process.argv
+  .find((a) => a.startsWith('--only='))
+  ?.slice(7)
+  .split(',');
+
+async function main() {
+  const t0 = Date.now();
+  await mkdir(SPRITES_DIR, { recursive: true });
+  await mkdir(MODELS_DIR, { recursive: true });
+
+  const code = await bundle('scripts/sprites/render-entry.ts', 'Sprites');
+  const { browser, page } = await launchWithBundle(code);
+  const ids = only ?? (await page.evaluate(() => window.Sprites.modelIds()));
+
+  if (!only) {
+    for (const f of await readdir(SPRITES_DIR)) {
+      if (f.startsWith('machine-') || f.startsWith('atlas')) await rm(path.join(SPRITES_DIR, f));
+    }
+  }
+
+  const all = [];
+  const stats = [];
+  for (const id of ids) {
+    const { glb, triangles } = await page.evaluate((m) => window.Sprites.exportModel(m), id);
+    const glbBuf = b64ToBuf(glb);
+    await writeFile(path.join(MODELS_DIR, `machine-${id}.glb`), glbBuf);
+    const res = await page.evaluate(
+      ([m, g, cfg]) => window.Sprites.renderModel(m, g, cfg),
+      [
+        id,
+        glb,
+        {
+          width: SPRITE.width,
+          height: SPRITE.height,
+          pxPerMeter: SPRITE_PX_PER_METER,
+          anchorOffsetPx: SPRITE_ANCHOR_OFFSET_PX,
+          supersample: SUPERSAMPLE,
+        },
+      ],
+    );
+    let bytes = 0;
+    for (const s of res.sprites) {
+      const rgba = b64ToBuf(s.rgba);
+      const png = encodePNG({ width: SPRITE.width, height: SPRITE.height, data: rgba });
+      bytes += png.length;
+      await writeFile(path.join(SPRITES_DIR, `${s.name}.png`), png);
+      all.push({ name: s.name, rgba });
+    }
+    stats.push({
+      id,
+      triangles,
+      roundTrip: res.triangles,
+      glbKB: +(glbBuf.length / 1024).toFixed(1),
+      spritesKB: +(bytes / 1024).toFixed(1),
+      size: res.size.map((v) => +v.toFixed(2)),
+    });
+    console.log(
+      `  ${id}: ${res.sprites.length} sprites, ${triangles} tris, ${(bytes / 1024).toFixed(0)} KB`,
+    );
+  }
+  await browser.close();
+
+  if (!only) {
+    await writeAtlas(all);
+    await writeModule(all.map((s) => s.name));
+  }
+  console.table(stats);
+  const total = stats.reduce((s, x) => s + x.spritesKB, 0);
+  console.log(
+    `${all.length} sprites, ${(total / 1024).toFixed(2)} MB of PNGs, ${((Date.now() - t0) / 1000).toFixed(1)} s`,
+  );
+}
+
+/** Uniform grid atlas (all sprites share one size) in MapLibre sprite JSON format. */
+async function writeAtlas(sprites) {
+  const { width: w, height: h } = SPRITE;
+  const cols = Math.floor(2048 / w);
+  const rows = Math.ceil(sprites.length / cols);
+  const W = cols * w;
+  const H = rows * h;
+  if (H > 4096) throw new Error(`atlas too tall: ${H}px`);
+  const data = Buffer.alloc(W * H * 4);
+  const index = {};
+  sprites.forEach((s, i) => {
+    const x0 = (i % cols) * w;
+    const y0 = Math.floor(i / cols) * h;
+    for (let y = 0; y < h; y++)
+      s.rgba.copy(data, ((y0 + y) * W + x0) * 4, y * w * 4, (y + 1) * w * 4);
+    index[s.name] = { x: x0, y: y0, width: w, height: h, pixelRatio: PIXEL_RATIO };
+  });
+  const png = encodePNG({ width: W, height: H, data });
+  await writeFile(path.join(SPRITES_DIR, 'atlas.png'), png);
+  await writeFile(path.join(SPRITES_DIR, 'atlas.json'), JSON.stringify(index));
+  console.log(`  atlas: ${W}×${H}px, ${(png.length / 1024).toFixed(0)} KB`);
+}
+
+async function writeModule(names) {
+  const lines = [
+    '/* eslint-disable */',
+    '// GENERATED by scripts/sprites/build-sprites.mjs (`npm run sprites`). Do not edit by hand.',
+    '//',
+    '// Pre-rendered machine sprites (SPEC §7.3). Orthographic renders of the GLB models,',
+    '// transparent background, soft baked contact shadow. Images are @2x (pixelRatio 2).',
+    '',
+    '/** Sprite scale: map points per meter at icon-size 1 (pixels per meter ÷ pixelRatio). */',
+    `export const SPRITE_PTS_PER_METER = ${SPRITE_PX_PER_METER / PIXEL_RATIO};`,
+    '',
+    '/** Image pixel ratio of every sprite (and of the atlas). */',
+    `export const SPRITE_PIXEL_RATIO = ${PIXEL_RATIO};`,
+    '',
+    '/** Every sprite has this size in pixels (points = px ÷ SPRITE_PIXEL_RATIO). */',
+    `export const SPRITE_SIZE = { width: ${SPRITE.width}, height: ${SPRITE.height} } as const;`,
+    '',
+    '/**',
+    ' * The machine base center sits this many pixels above the image bottom. With',
+    " * `icon-anchor: 'bottom'`, use `icon-offset: SPRITE_ICON_OFFSET` (points; MapLibre",
+    ' * scales icon-offset by icon-size) so the base lands on the feature coordinate.',
+    ' */',
+    `export const SPRITE_ANCHOR_OFFSET_PX = ${SPRITE_ANCHOR_OFFSET_PX};`,
+    `export const SPRITE_ICON_OFFSET: [number, number] = [0, ${SPRITE_ANCHOR_OFFSET_PX / PIXEL_RATIO}];`,
+    '',
+    `/** Models rendered (machine-{model}-h{0..7}-p{30|60}-{day|dusk|night}). */`,
+    `export const SPRITE_MODELS = ${JSON.stringify([...new Set(names.map((n) => n.split('-')[1]))])} as const;`,
+    '',
+    'export const SPRITE_IMAGES: Record<string, number> = {',
+    ...names.map((n) => `  '${n}': require('../../assets/sprites/${n}.png'),`),
+    '};',
+    '',
+  ];
+  const options = (await prettier.resolveConfig(GENERATED)) ?? {};
+  await writeFile(
+    GENERATED,
+    await prettier.format(lines.join('\n'), { ...options, filepath: GENERATED }),
+  );
+  console.log(`  wrote ${path.relative(ROOT, GENERATED)} (${names.length} images)`);
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

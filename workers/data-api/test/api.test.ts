@@ -108,7 +108,7 @@ describe('/area/check', () => {
       playable: true,
       cityName: 'Tokyo',
       reason: 'ok',
-      centroid: { lat: 35.6762, lng: 139.6503 },
+      centroid: { lat: 35.6896, lng: 139.7006 },
       cityId: 'tokyo',
     });
   });

@@ -8,7 +8,8 @@ import { metersPerPoint } from './cameraMatch';
  *
  * Name format: `machine-{model}-h{0..7}-p{pitch}-{light}`
  *   h = heading bucket *relative to the viewer*: 0 = front faces the camera,
- *       2 = front faces the viewer's right (rotated 90° clockwise seen from above), ...
+ *       2 = front faces the viewer's left (machine rotated 90° clockwise seen from
+ *       above, i.e. facing west when the camera looks north), ...
  *   p = camera pitch the sprite was rendered at (degrees from vertical).
  *
  * MapLibre expressions can't read the camera bearing, so the layer's

@@ -15,7 +15,7 @@ export const MAP_STYLE = {
     font: ['Noto Sans Regular'] as const,
     districtMinZoom: 12,
     districtMaxZoom: 16,
-    roadMinZoom: 15,
+    roadMinZoom: 16.5,
   },
 } as const;
 
@@ -35,7 +35,7 @@ export const MACHINE_SPRITES = {
 
 export const CAMERA = {
   /** Zoom/pitch the map flies to before crossfading into the close-up. */
-  closeupZoom: 19.2,
+  closeupZoom: 20.5,
   closeupPitch: 60,
   flyDurationMs: 1200,
   crossfadeMs: 350,
