@@ -22,6 +22,12 @@ const PMTILES_JS = 'https://unpkg.com/pmtiles@4.5.0/dist/pmtiles.js';
 
 const arg = (k, d) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1] ?? d;
 const PMTILES = arg('pmtiles', process.env.PMTILES_PATH);
+/** --tiles=openfreemap renders against OpenFreeMap's public instance (OpenMapTiles schema). */
+const TILES_MODE = arg('tiles', 'pmtiles');
+const TILES_OVERRIDE =
+  TILES_MODE === 'openfreemap'
+    ? { kind: 'tilejson', url: 'https://tiles.openfreemap.org/planet', schema: 'openmaptiles' }
+    : null;
 const ONLY = arg('only');
 const SHOTS_FILTER = arg('shots')?.split(',');
 /**
@@ -91,7 +97,8 @@ function serve(files) {
 }
 
 async function renderMaps(browser) {
-  if (!PMTILES) throw new Error('pass --pmtiles=<file> (or PMTILES_PATH)');
+  if (!PMTILES && !TILES_OVERRIDE)
+    throw new Error('pass --pmtiles=<file> (or PMTILES_PATH), or --tiles=openfreemap');
   const code = await bundle('scripts/preview/map-entry.ts', 'Preview');
   const spritesDir = path.join(ROOT, 'assets/sprites');
   const html = `<!doctype html><html><head><meta charset="utf-8">
@@ -113,7 +120,9 @@ window.mapReady = true;
   const server = await serve({
     '/': { body: html, type: 'text/html' },
     '/bundle.js': { body: code, type: 'text/javascript' },
-    '/tiles/nyc.pmtiles': { file: PMTILES, type: 'application/octet-stream' },
+    ...(PMTILES
+      ? { '/tiles/nyc.pmtiles': { file: PMTILES, type: 'application/octet-stream' } }
+      : {}),
     '/sprites/atlas.json': json,
     '/sprites/atlas@2x.json': json,
     '/sprites/atlas.png': png,
@@ -137,12 +146,13 @@ window.mapReady = true;
       [date, shot],
     );
     const result = await page.evaluate(
-      async ({ when, CENTER, CAMERA, MACHINES, origin, iconOffset, LIGHT_MIX }) => {
+      async ({ when, CENTER, CAMERA, MACHINES, origin, iconOffset, LIGHT_MIX, TILES_OVERRIDE }) => {
         const { style, tod } = window.Preview.buildPreviewStyle({
           date: new Date(when),
           lat: CENTER.lat,
           lng: CENTER.lng,
           tilesUrl: `${origin}/tiles/nyc.pmtiles`,
+          tiles: TILES_OVERRIDE ?? undefined,
           spriteUrl: `${origin}/sprites/atlas`,
           bearing: CAMERA.bearing,
           pitch: CAMERA.pitch,
@@ -190,11 +200,12 @@ window.mapReady = true;
           labels: [...new Set(labels)],
         };
       },
-      { when, CENTER, CAMERA, MACHINES, origin, iconOffset, LIGHT_MIX },
+      { when, CENTER, CAMERA, MACHINES, origin, iconOffset, LIGHT_MIX, TILES_OVERRIDE },
     );
     const suffix =
       (CAMERA.zoom === 15.5 ? '' : `-z${CAMERA.zoom}`) +
-      (LIGHT_MIX > 0 ? `-lightmix${LIGHT_MIX}` : '');
+      (LIGHT_MIX > 0 ? `-lightmix${LIGHT_MIX}` : '') +
+      (TILES_OVERRIDE ? '-openfreemap' : '');
     const file = path.join(OUT, `map-${shot.name}${suffix}.png`);
     await page.screenshot({ path: file });
     const ny = await page.evaluate(

@@ -6,10 +6,12 @@ export const ENV = {
   /** Data API Worker base URL, e.g. https://data.coinline.app (no trailing slash). */
   dataApiUrl: process.env.EXPO_PUBLIC_DATA_API_URL ?? '',
   /**
-   * Basemap tiles. Either a PMTiles URL (native pmtiles://) or an XYZ template
-   * with {name}. Defaults to the Worker's PMTiles route for the city.
+   * Basemap tiles override (self-hosting). Empty = OpenFreeMap's free public
+   * instance. See src/map/tiles.ts.
    */
   tilesUrl: process.env.EXPO_PUBLIC_TILES_URL ?? '',
+  /** 'protomaps' (default for self-hosted URLs) or 'openmaptiles'. */
+  tilesSchema: process.env.EXPO_PUBLIC_TILES_SCHEMA ?? '',
   revenueCatIosKey: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '',
   revenueCatAndroidKey: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '',
   /** AdMob rewarded unit ids; empty = Google's test ids in dev, ads disabled in release. */

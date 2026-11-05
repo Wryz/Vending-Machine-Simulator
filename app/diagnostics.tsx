@@ -6,7 +6,7 @@ import { CLOSEUP_CAMERA, FAMILY_ACCENT, SNACK_MACHINE_DIMENSIONS } from '@/confi
 import { cellOf, neighbors } from '@/data/h3';
 import { ENV } from '@/data/env';
 import { closeupCamera } from '@/map/cameraMatch';
-import { tileSourceFor } from '@/map/CityMap';
+import { tileSourceFor } from '@/map/tiles';
 import { getTimeOfDay } from '@/map/timeOfDay';
 import { advance, cloneState, placeMachine, restockMachine, suggestRestock } from '@/sim';
 import { offsetPoint } from '@/sim/geo';

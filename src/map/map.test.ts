@@ -175,3 +175,69 @@ describe('machine sprites', () => {
     expect(JSON.stringify(iconImageExpression(0, 60, 'day'))).toContain('-p60-day');
   });
 });
+
+describe('tile hosting', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { tileSourceFor } = require('./tiles') as typeof import('./tiles');
+  it('defaults to OpenFreeMap (free, no key) with the OpenMapTiles schema', () => {
+    expect(tileSourceFor('tokyo', { tilesUrl: '', tilesSchema: '' })).toEqual({
+      kind: 'tilejson',
+      url: 'https://tiles.openfreemap.org/planet',
+      schema: 'openmaptiles',
+    });
+  });
+  it('self-hosted PMTiles / XYZ overrides use the Protomaps schema', () => {
+    expect(
+      tileSourceFor('paris', {
+        tilesUrl: 'https://data.example/pmtiles/{name}.pmtiles',
+        tilesSchema: '',
+      }),
+    ).toEqual({
+      kind: 'pmtiles',
+      url: 'https://data.example/pmtiles/paris.pmtiles',
+      schema: 'protomaps',
+    });
+    const xyz = tileSourceFor('area-85283473fffffff', {
+      tilesUrl: 'https://d/tiles/{name}/{z}/{x}/{y}.mvt',
+      tilesSchema: '',
+    });
+    expect(xyz).toEqual({
+      kind: 'xyz',
+      urlTemplate: 'https://d/tiles/planet/{z}/{x}/{y}.mvt',
+      schema: 'protomaps',
+    });
+  });
+  it('builds the same layer ids over OpenMapTiles, with OMT fields', () => {
+    const tod = getTimeOfDay(new Date(Date.UTC(2026, 5, 10, 16)), NYC.lat, NYC.lng);
+    const omt = buildMapStyle({
+      tiles: tileSourceFor('new-york', { tilesUrl: '', tilesSchema: '' }),
+      palette: tod.palette,
+      sun: tod.sun,
+    });
+    const pm = buildMapStyle({
+      tiles: { kind: 'pmtiles', url: 'x' },
+      palette: tod.palette,
+      sun: tod.sun,
+    });
+    const ids = (s: typeof omt) => new Set(s.layers.map((l) => l.id));
+    for (const id of [
+      'background',
+      'water',
+      'roads-minor',
+      'roads-major',
+      'buildings',
+      'label-districts',
+    ]) {
+      expect(ids(omt).has(id)).toBe(true);
+      expect(ids(pm).has(id)).toBe(true);
+    }
+    const b = omt.layers.find((l) => l.id === 'buildings') as {
+      'source-layer': string;
+      paint: Record<string, unknown>;
+    };
+    expect(b['source-layer']).toBe('building');
+    expect(JSON.stringify(b.paint['fill-extrusion-height'])).toContain('render_height');
+    expect((omt.sources.basemap as { attribution: string }).attribution).toContain('OpenFreeMap');
+    expect(omt.glyphs).toContain('openfreemap');
+  });
+});

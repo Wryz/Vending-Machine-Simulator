@@ -14,7 +14,6 @@ import { getMachineType } from '@/config/machines';
 import { DISTRICTS } from '@/config/progression';
 import { cellPolygon } from '@/data/h3';
 import { offsetPoint } from '@/sim/geo';
-import { ENV } from '@/data/env';
 import type { CellData } from '@/data/types';
 import { baseTraffic, localTime, type GameState, type LocalEvent, type World } from '@/sim';
 import type { Theme } from '@/ui/theme';
@@ -29,7 +28,8 @@ import {
   spriteLightFor,
 } from './machineSprites';
 import { SPRITE_IMAGES, SPRITE_PTS_PER_METER } from './spriteImages';
-import { buildBaseLayers, buildMapLight, buildMapStyle, type TileSource } from './style';
+import { tileSourceFor } from './tiles';
+import { buildBaseLayers, schemaOf, buildMapLight, buildMapStyle } from './style';
 import type { TimeOfDay } from './timeOfDay';
 
 /**
@@ -49,14 +49,6 @@ export interface MapCameraState {
 export interface CityMapHandle {
   flyTo(c: Partial<MapCameraState> & { center: [number, number] }, durationMs: number): void;
   getCamera(): MapCameraState;
-}
-
-export function tileSourceFor(cityId: string): TileSource {
-  const url = ENV.tilesUrl || (ENV.dataApiUrl ? `${ENV.dataApiUrl}/pmtiles/{name}.pmtiles` : '');
-  const name = cityId.startsWith('area-') ? 'planet' : cityId;
-  const resolved = url.replace('{name}', name);
-  if (resolved.includes('{z}')) return { kind: 'xyz', urlTemplate: resolved };
-  return { kind: 'pmtiles', url: resolved || 'https://build.protomaps.com/20261104.pmtiles' };
 }
 
 const STATUS_RING: Record<string, keyof Pick<Theme, 'amber' | 'signal' | 'alert'> | null> = {
@@ -121,7 +113,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [tiles],
   );
-  const baseLayers = buildBaseLayers(tod.palette);
+  const baseLayers = buildBaseLayers(tod.palette, schemaOf(tiles));
   const light = buildMapLight(tod.sun, tod.palette);
   const spriteLight = spriteLightFor(tod.dominant);
 

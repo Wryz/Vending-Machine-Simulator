@@ -6,14 +6,19 @@ import type {
 } from '@maplibre/maplibre-react-native';
 
 import type { Palette } from '@/config/timeOfDay';
-import { MAP_STYLE } from '@/config/map';
+import { MAP_STYLE, TILES } from '@/config/map';
 
 import type { SunState } from './sun';
 import { mixColors } from './timeOfDay';
 
 /**
- * Custom MapLibre style (SPEC §3.5) over the Protomaps v4 basemap schema
- * (layers: earth, water, landuse, roads, buildings, places, ...).
+ * Custom MapLibre style (SPEC §3.5). Two tile schemas, one look:
+ * - OpenMapTiles (OpenFreeMap, the free default): water, landcover, landuse,
+ *   park, transportation, building, place, transportation_name.
+ * - Protomaps v4 (self-hosted PMTiles): earth, water, landuse, roads,
+ *   buildings, places.
+ * Layer ids are identical in both, so the rest of the app (heat overlay
+ * `beforeId`, street-life road queries) doesn't care which is in use.
  *
  * Everything colored comes from a `Palette`, so the same builder serves every
  * time-of-day blend. No default POI icons are ever rendered.
@@ -21,14 +26,29 @@ import { mixColors } from './timeOfDay';
 
 export const BASEMAP_SOURCE_ID = 'basemap';
 
+export type TileSchema = 'openmaptiles' | 'protomaps';
+
 export type TileSource =
+  /** TileJSON URL (OpenFreeMap: https://tiles.openfreemap.org/planet). */
+  | { kind: 'tilejson'; url: string; schema: TileSchema }
   /** Native PMTiles (MapLibre Native iOS >= 6.10 / Android >= 11.8). */
-  | { kind: 'pmtiles'; url: string }
+  | { kind: 'pmtiles'; url: string; schema?: TileSchema }
   /** XYZ vector tiles, e.g. the data-api Worker's /tiles/{city}/{z}/{x}/{y}.mvt route. */
-  | { kind: 'xyz'; urlTemplate: string; maxzoom?: number };
+  | { kind: 'xyz'; urlTemplate: string; maxzoom?: number; schema?: TileSchema };
+
+export function schemaOf(tiles: TileSource): TileSchema {
+  return tiles.schema ?? 'protomaps';
+}
+
+export function attributionFor(tiles: TileSource): string {
+  return schemaOf(tiles) === 'openmaptiles'
+    ? TILES.openFreeMapAttribution
+    : TILES.protomapsAttribution;
+}
 
 export function buildBasemapSource(tiles: TileSource): VectorSourceSpecification {
-  const attribution = '© OpenStreetMap contributors';
+  const attribution = attributionFor(tiles);
+  if (tiles.kind === 'tilejson') return { type: 'vector', url: tiles.url, attribution };
   if (tiles.kind === 'pmtiles') {
     const url = tiles.url.startsWith('pmtiles://') ? tiles.url : `pmtiles://${tiles.url}`;
     return { type: 'vector', url, attribution };
@@ -57,7 +77,11 @@ const PARK_KINDS = [
   'cemetery',
 ];
 
-export function buildBaseLayers(p: Palette): LayerSpecification[] {
+export function buildBaseLayers(
+  p: Palette,
+  schema: TileSchema = 'protomaps',
+): LayerSpecification[] {
+  if (schema === 'openmaptiles') return buildOpenMapTilesLayers(p);
   const src = BASEMAP_SOURCE_ID;
   const { building, label } = MAP_STYLE;
   return [
@@ -192,6 +216,149 @@ export function buildBaseLayers(p: Palette): LayerSpecification[] {
   ];
 }
 
+const OMT_PARK_LANDCOVER = ['grass', 'wood', 'farmland', 'wetland'];
+const OMT_PARK_LANDUSE = ['cemetery', 'pitch', 'playground', 'stadium', 'garden'];
+const OMT_MINOR = ['minor', 'service', 'track', 'raceway'];
+const OMT_MAJOR = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
+const NOT_TUNNEL: ExpressionLike = ['!=', ['get', 'brunnel'], 'tunnel'];
+type ExpressionLike = unknown[];
+
+/** Same look over the OpenMapTiles schema (OpenFreeMap). */
+function buildOpenMapTilesLayers(p: Palette): LayerSpecification[] {
+  const src = BASEMAP_SOURCE_ID;
+  const { building, label } = MAP_STYLE;
+  const name = ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
+  const layers = [
+    // No land layer in OpenMapTiles: the background is land, water sits on top.
+    { id: 'background', type: 'background', paint: { 'background-color': p.land } },
+    {
+      id: 'landuse-park',
+      type: 'fill',
+      source: src,
+      'source-layer': 'landcover',
+      filter: ['in', ['get', 'class'], ['literal', OMT_PARK_LANDCOVER]],
+      paint: { 'fill-color': p.park },
+    },
+    {
+      id: 'landuse-park-2',
+      type: 'fill',
+      source: src,
+      'source-layer': 'landuse',
+      filter: ['in', ['get', 'class'], ['literal', OMT_PARK_LANDUSE]],
+      paint: { 'fill-color': p.park },
+    },
+    {
+      id: 'parks',
+      type: 'fill',
+      source: src,
+      'source-layer': 'park',
+      paint: { 'fill-color': p.park },
+    },
+    {
+      id: 'water',
+      type: 'fill',
+      source: src,
+      'source-layer': 'water',
+      filter: NOT_TUNNEL,
+      paint: { 'fill-color': p.water },
+    },
+    {
+      id: 'roads-minor',
+      type: 'line',
+      source: src,
+      'source-layer': 'transportation',
+      minzoom: 12,
+      filter: ['all', ['in', ['get', 'class'], ['literal', OMT_MINOR]], NOT_TUNNEL],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': p.road,
+        'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 12, 0.5, 15, 3, 18, 14],
+      },
+    },
+    {
+      id: 'roads-major-casing',
+      type: 'line',
+      source: src,
+      'source-layer': 'transportation',
+      filter: ['all', ['in', ['get', 'class'], ['literal', OMT_MAJOR]], NOT_TUNNEL],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': p.roadCasing,
+        'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 0.8, 15, 7, 18, 26],
+      },
+    },
+    {
+      id: 'roads-major',
+      type: 'line',
+      source: src,
+      'source-layer': 'transportation',
+      filter: ['all', ['in', ['get', 'class'], ['literal', OMT_MAJOR]], NOT_TUNNEL],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': p.roadMajor,
+        'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 0.5, 15, 5.5, 18, 22],
+      },
+    },
+    {
+      id: 'buildings',
+      type: 'fill-extrusion',
+      source: src,
+      'source-layer': 'building',
+      minzoom: building.minZoom,
+      filter: ['!=', ['get', 'hide_3d'], true],
+      paint: {
+        'fill-extrusion-color': p.building,
+        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], building.defaultHeightM],
+        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+        'fill-extrusion-vertical-gradient': true,
+        'fill-extrusion-opacity': [
+          'interpolate',
+          ['linear'],
+          ['zoom'],
+          building.minZoom,
+          0,
+          building.minZoom + 0.5,
+          building.opacity,
+        ],
+      },
+    },
+    {
+      id: 'label-districts',
+      type: 'symbol',
+      source: src,
+      'source-layer': 'place',
+      minzoom: label.districtMinZoom,
+      maxzoom: label.districtMaxZoom,
+      filter: ['in', ['get', 'class'], ['literal', ['neighbourhood', 'quarter', 'suburb']]],
+      layout: {
+        'text-field': name,
+        'text-font': [...label.font],
+        'text-size': 12,
+        'text-letter-spacing': 0.12,
+        'text-transform': 'uppercase',
+        'text-max-width': 8,
+      },
+      paint: { 'text-color': p.label, 'text-halo-color': p.labelHalo, 'text-halo-width': 1.2 },
+    },
+    {
+      id: 'label-major-roads',
+      type: 'symbol',
+      source: src,
+      'source-layer': 'transportation_name',
+      minzoom: label.roadMinZoom,
+      filter: ['in', ['get', 'class'], ['literal', OMT_MAJOR]],
+      layout: {
+        'symbol-placement': 'line',
+        'text-field': name,
+        'text-font': [...label.font],
+        'text-size': 11,
+      },
+      paint: { 'text-color': p.label, 'text-halo-color': p.labelHalo, 'text-halo-width': 1 },
+    },
+  ];
+  return layers as LayerSpecification[];
+}
+
 /**
  * MapLibre `light` for fill-extrusions, driven by the real sun.
  * position = [radial, azimuthal (bearing, 0 = north), polar (0 = overhead)].
@@ -225,6 +392,6 @@ export function buildMapStyle(opts: {
     glyphs: MAP_STYLE.glyphsUrl,
     sources: { [BASEMAP_SOURCE_ID]: buildBasemapSource(opts.tiles) },
     light: buildMapLight(opts.sun, opts.palette),
-    layers: opts.includeLayers === false ? [] : buildBaseLayers(opts.palette),
+    layers: opts.includeLayers === false ? [] : buildBaseLayers(opts.palette, schemaOf(opts.tiles)),
   };
 }

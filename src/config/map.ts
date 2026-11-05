@@ -1,10 +1,11 @@
 /** Map tuning (SPEC §3.5, §7.3, §7.4). Data only. */
 export const MAP_STYLE = {
   /**
-   * SDF glyphs. Spike uses Protomaps' hosted Noto Sans. For launch we should
-   * build Instrument Sans glyph PBFs (SPEC §3.7) and host them on R2.
+   * SDF glyphs (Noto Sans). OpenFreeMap hosts them for free alongside its
+   * tiles. Instrument Sans glyphs (SPEC §3.7) would need to be generated and
+   * self-hosted.
    */
-  glyphsUrl: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
+  glyphsUrl: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   building: {
     /** ~3 floors when OSM has no height (SPEC §3.5). */
     defaultHeightM: 10,
@@ -39,4 +40,17 @@ export const CAMERA = {
   closeupPitch: 60,
   flyDurationMs: 1200,
   crossfadeMs: 350,
+} as const;
+
+/**
+ * Basemap tile hosting (free options, see docs/hosting.md).
+ * - Default: OpenFreeMap public instance — free, no key, no request limits,
+ *   commercial use allowed, OpenMapTiles schema. No SLA.
+ * - Self-host fallback: Protomaps PMTiles on Cloudflare R2 (free tier: 10 GB,
+ *   no egress fees) served by workers/data-api, via EXPO_PUBLIC_TILES_URL.
+ */
+export const TILES = {
+  openFreeMapTileJson: 'https://tiles.openfreemap.org/planet',
+  openFreeMapAttribution: '© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors',
+  protomapsAttribution: '© Protomaps © OpenStreetMap contributors',
 } as const;

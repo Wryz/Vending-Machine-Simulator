@@ -4,7 +4,7 @@
  */
 import { MACHINE_SPRITES } from '@/config/map';
 import { iconImageExpression, spriteLightFor } from '@/map/machineSprites';
-import { buildMapStyle } from '@/map/style';
+import { buildMapStyle, type TileSource } from '@/map/style';
 import { getTimeOfDay, mixColors } from '@/map/timeOfDay';
 
 export { getTimeOfDay };
@@ -69,6 +69,8 @@ export function buildPreviewStyle(opts: {
   lat: number;
   lng: number;
   tilesUrl: string;
+  /** Overrides tilesUrl, e.g. OpenFreeMap TileJSON (OpenMapTiles schema). */
+  tiles?: TileSource;
   spriteUrl: string;
   bearing: number;
   pitch: number;
@@ -77,7 +79,7 @@ export function buildPreviewStyle(opts: {
 }) {
   const tod = getTimeOfDay(opts.date, opts.lat, opts.lng);
   const style = buildMapStyle({
-    tiles: { kind: 'pmtiles', url: opts.tilesUrl },
+    tiles: opts.tiles ?? { kind: 'pmtiles', url: opts.tilesUrl },
     palette: tod.palette,
     sun: tod.sun,
   }) as unknown as Record<string, unknown> & {
