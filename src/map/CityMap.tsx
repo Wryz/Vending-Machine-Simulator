@@ -11,7 +11,9 @@ import {
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 import { getMachineType } from '@/config/machines';
+import { DISTRICTS } from '@/config/progression';
 import { cellPolygon } from '@/data/h3';
+import { offsetPoint } from '@/sim/geo';
 import { ENV } from '@/data/env';
 import type { CellData } from '@/data/types';
 import { baseTraffic, localTime, type GameState, type LocalEvent, type World } from '@/sim';
@@ -214,6 +216,23 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
     };
   }, [selected]);
 
+  // Outline of the furthest unlocked district (SPEC §2.1: unlock districts, then cities).
+  const district = useMemo(() => {
+    const unlocked = DISTRICTS.filter((d) => d.unlockChapter <= game.chapter);
+    const d = unlocked[unlocked.length - 1];
+    if (!d || d.radiusKm >= 30) return null;
+    const ring: [number, number][] = [];
+    for (let i = 0; i <= 64; i++) {
+      const p = offsetPoint(world.city, (i / 64) * 360, d.radiusKm * 1000);
+      ring.push([p.lng, p.lat]);
+    }
+    return {
+      type: 'Feature' as const,
+      geometry: { type: 'LineString' as const, coordinates: ring },
+      properties: {},
+    };
+  }, [game.chapter, world.city]);
+
   const sizeStops = iconSizeStops(world.city.lat, SPRITE_PTS_PER_METER, 0.32).flat();
   const iconImage = iconImageExpression(buckets.bearing, buckets.pitch, spriteLight);
 
@@ -273,6 +292,21 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
       {baseLayers.map((l) => (
         <Layer key={l.id} {...(l as LayerSpecification)} />
       ))}
+
+      {district ? (
+        <GeoJSONSource id="district" data={district}>
+          <Layer
+            id="district-line"
+            type="line"
+            paint={{
+              'line-color': tod.palette.label,
+              'line-width': 1.5,
+              'line-dasharray': [2, 3],
+              'line-opacity': 0.6,
+            }}
+          />
+        </GeoJSONSource>
+      ) : null}
 
       {heatData ? (
         <GeoJSONSource id="heat" data={heatData}>

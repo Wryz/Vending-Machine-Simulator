@@ -10,7 +10,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CONTRACT, SERVICE } from '@/config/economy';
-import { CLOSEUP_CAMERA, getMachineType } from '@/config/machines';
+import { CLOSEUP_CAMERA, WRAPS, getMachineType } from '@/config/machines';
 import { CAMERA } from '@/config/map';
 import { getProduct } from '@/config/products';
 import { RESEARCH } from '@/config/progression';
@@ -64,6 +64,7 @@ export default function MachineCloseup() {
   const game = useGame((s) => s.game)!;
   const world = useGame((s) => s.world)!;
   const removeAds = useProfile((s) => s.entitlements.removeAds);
+  const ownedWraps = useProfile((s) => s.entitlements.wraps).filter((w) => w in WRAPS);
   const machine = game.machines.find((m) => m.id === id);
   const { tod } = useCityClock(world.city.lat, world.city.lng);
   const [selected, setSelected] = useState<number | null>(null);
@@ -249,7 +250,11 @@ export default function MachineCloseup() {
       <View style={{ height: height * 0.46 }}>
         <MachineScene
           typeId={machine.typeId}
-          accent={theme.family[type.family]}
+          accent={
+            machine.wrap && WRAPS[machine.wrap]
+              ? WRAPS[machine.wrap].color
+              : theme.family[type.family]
+          }
           slots={slotViews}
           sun={tod.sun}
           palette={tod.palette}
@@ -548,6 +553,20 @@ export default function MachineCloseup() {
 
         <Section title="Machine">
           <Row style={{ flexWrap: 'wrap' }}>
+            {ownedWraps.map((w) => (
+              <Chip
+                key={w}
+                label={`Wrap: ${WRAPS[w].name}`}
+                active={machine.wrap === w}
+                onPress={() =>
+                  useGame.getState().act((d) => {
+                    const m = d.machines.find((x) => x.id === machine.id);
+                    if (m) m.wrap = m.wrap === w ? null : w;
+                    return { ok: true };
+                  })
+                }
+              />
+            ))}
             <Chip
               label="Rotate 90°"
               onPress={() =>

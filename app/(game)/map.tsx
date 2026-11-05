@@ -162,6 +162,10 @@ export default function MapScreen() {
     );
   };
 
+  const weather = world.weatherAt(game.now);
+  const weatherLabel = weather
+    ? `${Math.round(weather.tempC)}° ${weather.condition}`
+    : tod.dominant;
   const progress = chapterProgress(game);
   const chapter = CHAPTERS.find((c) => c.n === game.chapter) ?? CHAPTERS[CHAPTERS.length - 1];
   const last = ticker[ticker.length - 1];
@@ -207,7 +211,7 @@ export default function MapScreen() {
               {money(game.cashCents)}
             </Mono>
             <T size={12} muted numberOfLines={1}>
-              {world.city.name} · {clock(game.now, world.city.timeZone)} · {tod.dominant}
+              {world.city.name} · {clock(game.now, world.city.timeZone)} · {weatherLabel}
             </T>
           </View>
           <Pressable
