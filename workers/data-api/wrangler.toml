@@ -1,0 +1,20 @@
+name = "coinline-data-api"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+# Stateless, read-only. Data lives in R2:
+#   cells/{res5}.json.gz, cells/{res5}.meta.json   region packs + summaries
+#   city/{cityId}.json.gz                          fallback city packs
+#   tiles/{name}.pmtiles                           Protomaps basemap archives
+[[r2_buckets]]
+binding = "DATA"
+bucket_name = "coinline-data"
+
+# Privacy (SPEC §6.6 / §11): strip query strings (coarse lat/lng) from request
+# URLs in Workers Logs and traces. Our own logs contain counts/res-5 only.
+[observability]
+enabled = true
+redact_query_string = true
+
+# Optional secret for commercial Open-Meteo (customer-api.open-meteo.com):
+#   npx wrangler secret put OPEN_METEO_API_KEY

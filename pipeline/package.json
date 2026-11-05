@@ -1,0 +1,22 @@
+{
+  "name": "coinline-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline data pipeline: OSM (Protomaps) -> H3 res-9 RegionPacks. Not shipped in the app.",
+  "type": "module",
+  "scripts": {
+    "build-city": "tsx build-city.ts",
+    "build-all": "tsx build-city.ts --all",
+    "inspect": "tsx inspect-kinds.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@mapbox/vector-tile": "^3.0.0",
+    "@types/node": "^26.6.6",
+    "h3-js": "^4.5.0",
+    "pbf": "^5.1.2",
+    "pmtiles": "^4.5.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3"
+  }
+}

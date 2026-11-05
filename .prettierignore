@@ -1,0 +1,9 @@
+node_modules
+.expo
+dist
+ios
+android
+assets
+workers/data-api/.wrangler
+package-lock.json
+*.md
