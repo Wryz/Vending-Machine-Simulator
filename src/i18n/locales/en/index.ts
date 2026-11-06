@@ -28,6 +28,7 @@ import objects from './objects';
 import onboarding from './onboarding';
 import orders from './orders';
 import place from './place';
+import rankings from './rankings';
 import report from './report';
 import routes from './routes';
 import services from './services';
@@ -65,6 +66,7 @@ const en = {
   onboarding,
   orders,
   place,
+  rankings,
   report,
   routes,
   services,

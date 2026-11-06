@@ -245,6 +245,7 @@ Each machine has:
 
 - New cities can be the player's other real nearby city (if data is sufficient) or any of the 9 fallback cities.
 - The economy is tuned so chapter 1 takes about 20–30 minutes and chapter 3 is reached around day 2–3 of casual play. Prestige becomes attractive around week 2–4.
+- **City ranking board** ("Top operators in <City>", unlocks with Company after the first collect): the player, Brightvend (its real simulated sales) and 7 fictional AI operators with city-flavored names, ranked by this week's sales. It updates nightly at the city's local midnight; weeks start on the local Monday. AI sales are seeded per city, week and day (`src/sim/rankings.ts`, tunables in `src/config/rankings.ts`) and scale with the chapter and the player's last week (~0.3× to ~3×, the top tiers softening in later chapters), so there is always someone to pass. Passing an operator overnight is a moment ("You passed Night Owl Snacks! #4 in London"); a rank chip on the money panel opens the board. `weeklyScore(state)` is the same number a Game Center weekly leaderboard submits.
 
 ---
 
@@ -431,6 +432,7 @@ pipeline/                # offline data pipeline (Python/DuckDB), not shipped in
 | Machine close-up (3D) | From the machine sheet's 3D key. Machine front, slot grid, drag-to-restock from van crate, price tags editable, cash box → coin tray, repair interaction, upgrade spec tag |
 | Route clipboard | Restock route builder, van capacity, drivers and their routes, auto-reorder rules |
 | Company | Chapter progress, finances (receipt-style P&L), staff, warehouse, permits, research (global upgrades), prestige |
+| Ranking board | "Top operators in <City>": your place in a big LED with the overnight move, this week's sales, the gap to the next operator, the nightly board (you, Brightvend, 7 AI operators), last week's result. From Company and the rank chip on the map's money panel |
 | Collections binder | Series pages, rarity, completion perks |
 | City switcher | Current city, other unlocked cities, 9-city fallback list |
 | Shop | Double Profits, remove ads, starter pack (non-pay-to-win) |

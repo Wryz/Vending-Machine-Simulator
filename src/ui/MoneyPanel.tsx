@@ -1,10 +1,11 @@
+import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { CHAPTERS } from '@/config/progression';
 import { useT } from '@/i18n';
 import { content } from '@/i18n/content';
-import { activeMachines, type GameState } from '@/sim';
+import { activeMachines, featureUnlocked, rankChange, type GameState } from '@/sim';
 import { useProfile } from '@/store/profile';
 
 import { chapterProgress } from './chapter';
@@ -92,6 +93,7 @@ export function MoneyPanel({
               </Mono>
             </>
           ) : null}
+          <RankChip game={game} />
         </View>
       </Pressable>
       {sales.slice(-3).map((s) => (
@@ -111,6 +113,27 @@ export function MoneyPanel({
         </Animated.View>
       ))}
     </View>
+  );
+}
+
+/** City rank from the nightly board ("#4 ▲"); tapping opens the ranking board. */
+function RankChip({ game }: { game: GameState }) {
+  const t = useT();
+  const change = rankChange(game);
+  if (!change || !featureUnlocked(game, 'rankings')) return null;
+  const color = change.rank === 1 ? SKIN.ledAmber : change.delta < 0 ? SKIN.ledRed : SKIN.ledGreen;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('rankings.a11y.chip', { rank: change.rank, n: change.of })}
+      hitSlop={8}
+      onPress={() => router.push('/rankings')}
+      style={({ pressed }) => [styles.rank, { opacity: pressed ? 0.6 : 1 }]}
+    >
+      <Mono size={12} weight="bold" color={color} style={LED_GLOW(color)}>
+        {`#${change.rank}${change.delta > 0 ? '▲' : change.delta < 0 ? '▼' : ''}`}
+      </Mono>
+    </Pressable>
   );
 }
 
@@ -134,6 +157,14 @@ const styles = StyleSheet.create({
     ...shadow,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  rank: {
+    marginLeft: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#3A3F66',
+  },
   chapter: {
     width: 20,
     height: 20,

@@ -3,6 +3,7 @@ import type { ResearchId } from '@/config/progression';
 import type { CellData, PlaceCategory, WeatherHour } from '@/data/types';
 
 import type { GoalsState } from './goals';
+import type { RankingsState } from './rankings';
 
 /**
  * Game state. Plain JSON (no classes, Maps or Dates) so it can be saved,
@@ -10,7 +11,7 @@ import type { GoalsState } from './goals';
  * epoch ms (real time).
  */
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 5;
 
 export interface Slot {
   productId: string | null;
@@ -195,6 +196,8 @@ export interface GameState {
   goals: GoalsState;
   /** Trophy id -> unlocked at (schema v2). */
   achievements: Record<string, number>;
+  /** City ranking board: this week's standings, nightly boards (schema v5). */
+  rankings: RankingsState;
   ledger: Ledger;
   log: LogEntry[];
   nextId: number;

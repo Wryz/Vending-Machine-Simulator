@@ -58,7 +58,15 @@ describe('feature unlocks', () => {
   it('chapter 2 opens everything (older saves)', () => {
     const s = fresh();
     s.chapter = 2;
-    expect(unlockedFeatures(s)).toEqual(['locate', 'orders', 'company', 'keys', 'routes', 'topDown']);
+    expect(unlockedFeatures(s)).toEqual([
+      'locate',
+      'orders',
+      'company',
+      'rankings',
+      'keys',
+      'routes',
+      'topDown',
+    ]);
   });
 });
 

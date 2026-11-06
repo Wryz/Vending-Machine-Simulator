@@ -29,6 +29,7 @@ import {
 } from '@/sim';
 
 import { useCelebrations } from './celebrations';
+import { announceRanking } from './rankMoments';
 import { cityKey, useProfile, type CityInfo } from './profile';
 
 export interface TickerEntry {
@@ -405,6 +406,7 @@ function announceMoments(state: GameState, report: AdvanceReport): void {
           : t('celebrate.moment.startsHours', { n: Math.round(mins / 60) }),
     });
   }
+  announceRanking(state, report, useGame.getState().world?.city.name);
   for (const g of state.goals.items) {
     const key = `${state.goals.dateKey}|${g.id}`;
     if (g.claimed || readyOrders.has(key) || goalProgress(state, g) < 1) continue;

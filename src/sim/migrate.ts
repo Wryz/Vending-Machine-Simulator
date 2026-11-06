@@ -1,4 +1,5 @@
 import { emptyGoals } from './goals';
+import { emptyRankings } from './rankings';
 import { SCHEMA_VERSION, type GameState } from './state';
 
 /**
@@ -18,6 +19,8 @@ const MIGRATIONS: Record<number, Migration> = {
       : s.machines,
     schemaVersion: 3,
   }),
+  // v5: city ranking board (SPEC §4.8). The first week starts at the next step.
+  4: (s) => ({ ...s, rankings: emptyRankings(), schemaVersion: 5 }),
 };
 
 export class SaveError extends Error {}

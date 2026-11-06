@@ -20,6 +20,7 @@ import { maintainEvents } from './events';
 import { bump, checkAchievements, rollGoalsDay } from './goals';
 import { orderStops } from './geo';
 import { addLedger, log, rollLedgerDay } from './ledger';
+import { rankingsStep, type RankBoard } from './rankings';
 import { happens, nextRandom, poisson } from './rng';
 import { playerShare, rivalDecide, rivalRevenue } from './rival';
 import {
@@ -67,6 +68,8 @@ export interface AdvanceReport {
   perMachine: Record<string, { units: number; cents: number }>;
   /** Trophies unlocked during this advance. */
   achievements: string[];
+  /** The latest nightly ranking board taken during this advance (one per advance). */
+  rankUpdate?: RankBoard;
 }
 
 const EMPTY_CELL: CellData = {
@@ -719,7 +722,11 @@ export function beginAdvance(
         );
       }
     }
-    s.ledger.recentRivalCents += rivalRevenue(s, world, local, bh, comp);
+    const rivalCents = rivalRevenue(s, world, local, bh, comp);
+    s.ledger.recentRivalCents += rivalCents;
+    // City ranking board: credit the week, take the nightly board at local midnight.
+    const board = rankingsStep(s, local, rivalCents);
+    if (board) report.rankUpdate = board;
     const decay = 0.5 ** bd;
     s.ledger.recentPlayerCents *= decay;
     s.ledger.recentRivalCents *= decay;

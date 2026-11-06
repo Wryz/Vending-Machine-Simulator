@@ -43,6 +43,7 @@ import { useTheme } from '@/ui/ThemeProvider';
 import { money, moneyShort, pct } from '@/ui/format';
 import { Button, Mono, Paper, ProgressBar, Row, Screen, Section, Spacer, T } from '@/ui/kit';
 import { GlobalRankingButton } from '@/ui/GameCenter';
+import { RankingCard } from '@/ui/RankingCard';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { Receipt, type ReceiptLine } from '@/ui/objects/Receipt';
 import { LockedCard, StatChip } from '@/ui/hud';
@@ -575,6 +576,9 @@ export default function Company() {
             );
           })}
         </Section>
+
+        {/* City ranking board */}
+        <RankingCard game={game} />
 
         {/* Market share */}
         <Section title={t('company.market.section')}>

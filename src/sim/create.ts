@@ -2,6 +2,7 @@ import { START } from '@/config/economy';
 import { getMachineType, type MachineTypeId } from '@/config/machines';
 
 import { emptyGoals } from './goals';
+import { emptyRankings } from './rankings';
 import { perkLevel } from './rules';
 import { SCHEMA_VERSION, type GameState, type Machine } from './state';
 
@@ -86,6 +87,7 @@ export function newGame(opts: NewGameOptions): GameState {
     tutorial: { step: 0, done: false },
     goals: emptyGoals(),
     achievements: {},
+    rankings: emptyRankings(),
     ledger: {
       lifetimeSalesCents: 0,
       lifetimeNetCents: 0,

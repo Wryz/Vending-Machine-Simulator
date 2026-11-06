@@ -11,6 +11,7 @@ export * from './rules';
 export * from './calibrate';
 export * from './goals';
 export * from './unlocks';
+export * from './rankings';
 export { playerShare } from './rival';
 export { visibleEvents } from './events';
 export { localTime, businessDaysToMs, businessHoursToMs } from './time';

@@ -640,7 +640,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
  * only what's needed (place a machine, stock it, watch a sale). A feature opens
  * when ANY of its conditions is met; `chapter` also opens it for older saves.
  */
-export type Feature = 'orders' | 'company' | 'keys' | 'routes' | 'topDown' | 'locate';
+export type Feature = 'orders' | 'company' | 'rankings' | 'keys' | 'routes' | 'topDown' | 'locate';
 
 export interface FeatureRule {
   /** Opens at this chapter. */
@@ -659,6 +659,8 @@ export const FEATURE_UNLOCKS: Record<Feature, FeatureRule> = {
   locate: { chapter: 2, placed: 1 },
   orders: { chapter: 2, sales: 1 },
   company: { chapter: 2, collected: true },
+  /** City ranking board: with the Company key, after the first collect. */
+  rankings: { chapter: 2, collected: true },
   keys: { chapter: 2, machines: 2 },
   routes: { chapter: 2 },
   topDown: { chapter: 2 },

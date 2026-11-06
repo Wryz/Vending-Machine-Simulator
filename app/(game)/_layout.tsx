@@ -112,6 +112,7 @@ export default function GameLayout() {
         <Stack.Screen name="collections" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="cities" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="shop" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="rankings" options={{ animation: 'slide_from_right' }} />
       </Stack>
       <CatchUpOverlay />
     </>
