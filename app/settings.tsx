@@ -375,8 +375,8 @@ export default function SettingsScreen() {
           <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
             <View accessibilityRole="radiogroup">
               <Choice
-                label="Follow city time"
-                detail="Night colors after dark in your city"
+                label="Bright"
+                detail="Bright menus all day; the map still follows your city's time"
                 selected={settings.theme === 'city'}
                 onPress={() => setSettings({ theme: 'city' })}
               />

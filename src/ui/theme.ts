@@ -1,8 +1,8 @@
 import { FAMILY_ACCENT } from '@/config/machines';
 
 /**
- * Color tokens (SPEC §3.7): bright, sunny, flat. Night variants are a cozy
- * indigo, never charcoal, so the city stays readable and warm after dark.
+ * Color tokens (SPEC §3.7): bright, sunny, flat. The UI stays bright at all
+ * hours; DARK is only for players who choose "System" with a dark phone.
  */
 export const TOKENS = {
   ink: '#23264A',
@@ -62,31 +62,32 @@ export const LIGHT: Theme = {
 
 export const DARK: Theme = {
   dark: true,
-  bg: '#1E2250',
-  surface: '#2A2F66',
-  raised: '#343A78',
-  ink: '#F3F1FF',
-  muted: '#B4B8E6',
-  line: '#3C4284',
+  bg: '#2B2733',
+  surface: '#37323F',
+  raised: '#433D4C',
+  ink: '#FFF6EC',
+  muted: '#C9BFCF',
+  line: '#4C4555',
   paper: '#FFF8EE',
   paperInk: TOKENS.ink,
   brand: '#FF8A4C',
   onBrand: '#FFFFFF',
-  brandSoft: '#4A3D6E',
+  brandSoft: '#5A4450',
   signal: '#3CD68A',
   amber: '#FFC247',
   alert: '#FF7066',
-  hud: 'rgba(42,47,102,0.96)',
-  shadow: 'rgba(8,10,40,0.45)',
+  hud: 'rgba(55,50,63,0.96)',
+  shadow: 'rgba(0,0,0,0.4)',
   family: FAMILY_ACCENT,
 };
 
+/** Nunito everywhere (rounded and friendly); numbers use its tabular figures. */
 export const FONTS = {
-  ui: 'InstrumentSans_400Regular',
-  uiMedium: 'InstrumentSans_500Medium',
-  uiBold: 'InstrumentSans_600SemiBold',
-  mono: 'JetBrainsMono_400Regular',
-  monoBold: 'JetBrainsMono_600SemiBold',
+  ui: 'Nunito_600SemiBold',
+  uiMedium: 'Nunito_700Bold',
+  uiBold: 'Nunito_800ExtraBold',
+  mono: 'Nunito_700Bold',
+  monoBold: 'Nunito_800ExtraBold',
 } as const;
 
 export const SPACE = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 } as const;

@@ -24,7 +24,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const OUT = path.join(ROOT, 'assets/images');
 const FONT = path.join(
   ROOT,
-  'node_modules/@expo-google-fonts/instrument-sans/700Bold/InstrumentSans_700Bold.ttf',
+  'node_modules/@expo-google-fonts/nunito/900Black/Nunito_900Black.ttf',
 );
 
 export const BRAND = '#FF6B2C';

@@ -1,9 +1,7 @@
-// Import single weights so only these five font files ship in the bundle.
-import { InstrumentSans_400Regular } from '@expo-google-fonts/instrument-sans/400Regular';
-import { InstrumentSans_500Medium } from '@expo-google-fonts/instrument-sans/500Medium';
-import { InstrumentSans_600SemiBold } from '@expo-google-fonts/instrument-sans/600SemiBold';
-import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono/400Regular';
-import { JetBrainsMono_600SemiBold } from '@expo-google-fonts/jetbrains-mono/600SemiBold';
+// Import single weights so only these font files ship in the bundle.
+import { Nunito_600SemiBold } from '@expo-google-fonts/nunito/600SemiBold';
+import { Nunito_700Bold } from '@expo-google-fonts/nunito/700Bold';
+import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useFonts } from 'expo-font';
 import { router, Stack } from 'expo-router';
@@ -48,11 +46,9 @@ function Navigator() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    InstrumentSans_400Regular,
-    InstrumentSans_500Medium,
-    InstrumentSans_600SemiBold,
-    JetBrainsMono_400Regular,
-    JetBrainsMono_600SemiBold,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
   });
   const loaded = useProfile((s) => s.loaded);
 

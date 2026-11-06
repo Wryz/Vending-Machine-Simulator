@@ -125,8 +125,7 @@ Physical objects remain as themes for specific moments, drawn in the same bright
 
 ### 3.7 Typography & color tokens (proposal)
 - **Type** (Google Fonts, OFL licensed; bundle the fonts):
-  - UI: **Instrument Sans** (fallback: system).
-  - Receipts, prices, numbers: **JetBrains Mono** (tabular figures).
+  - Everything: **Nunito** (rounded and friendly; fallback: system). Numbers use its tabular figures so counters don't jitter.
 - **Color tokens** (`src/ui/theme.ts`):
   - `brand` #FF6B2C (tangerine: primary actions, splash, icon)
   - `ink` #23264A

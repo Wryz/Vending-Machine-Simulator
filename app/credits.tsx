@@ -54,16 +54,10 @@ const DATA: Credit[] = [
 
 const SOFTWARE: Credit[] = [
   {
-    name: 'Instrument Sans',
-    detail: 'Interface typeface.',
+    name: 'Nunito',
+    detail: 'Typeface.',
     license: 'SIL Open Font License 1.1',
-    url: 'https://github.com/Instrument/instrument-sans',
-  },
-  {
-    name: 'JetBrains Mono',
-    detail: 'Receipts and numbers.',
-    license: 'SIL Open Font License 1.1',
-    url: 'https://github.com/JetBrains/JetBrainsMono',
+    url: 'https://github.com/googlefonts/nunito',
   },
   {
     name: 'MapLibre',

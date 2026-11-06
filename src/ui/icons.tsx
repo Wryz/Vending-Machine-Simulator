@@ -19,7 +19,15 @@ export type IconName =
   | 'shop'
   | 'coin'
   | 'globe'
-  | 'chevron';
+  | 'chevron'
+  | 'sun'
+  | 'moon'
+  | 'twilight'
+  | 'cloud'
+  | 'rain'
+  | 'snow'
+  | 'storm'
+  | 'fog';
 
 export function Icon({
   name,
@@ -138,6 +146,70 @@ export function Icon({
             />
           </>
         );
+      case 'sun':
+        return (
+          <>
+            <Circle cx={12} cy={12} r={4.2} {...s} fill={c} />
+            <Path
+              d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"
+              {...s}
+            />
+          </>
+        );
+      case 'moon':
+        return <Path d="M19.5 14.6A8 8 0 019.4 4.5a8 8 0 1010.1 10.1z" {...s} fill={c} />;
+      case 'twilight':
+        return (
+          <>
+            <Path d="M7.5 16a4.5 4.5 0 019 0" {...s} fill={c} />
+            <Path
+              d="M3 19.5h18M12 6v2.4M5.6 9.6l1.6 1.6M18.4 9.6l-1.6 1.6M2.8 16h1.8M19.4 16h1.8"
+              {...s}
+            />
+          </>
+        );
+      case 'cloud':
+        return (
+          <Path
+            d="M7 18.5h10.2a3.8 3.8 0 00.5-7.6 5.6 5.6 0 00-10.8 1.4A3.1 3.1 0 007 18.5z"
+            {...s}
+            fill={c}
+          />
+        );
+      case 'rain':
+        return (
+          <>
+            <Path
+              d="M7 14.5h10.2a3.6 3.6 0 00.5-7.2 5.4 5.4 0 00-10.4 1.3A3 3 0 007 14.5z"
+              {...s}
+            />
+            <Path d="M8.5 17.5l-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5" {...s} />
+          </>
+        );
+      case 'snow':
+        return (
+          <>
+            <Path
+              d="M7 14.5h10.2a3.6 3.6 0 00.5-7.2 5.4 5.4 0 00-10.4 1.3A3 3 0 007 14.5z"
+              {...s}
+            />
+            <Circle cx={8.5} cy={18.5} r={1} fill={c} />
+            <Circle cx={12.5} cy={19.5} r={1} fill={c} />
+            <Circle cx={16.5} cy={18.5} r={1} fill={c} />
+          </>
+        );
+      case 'storm':
+        return (
+          <>
+            <Path
+              d="M7 14.5h10.2a3.6 3.6 0 00.5-7.2 5.4 5.4 0 00-10.4 1.3A3 3 0 007 14.5z"
+              {...s}
+            />
+            <Path d="M12.5 15l-2 3.5h3l-2 3.5" {...s} />
+          </>
+        );
+      case 'fog':
+        return <Path d="M4 9h14M6 13h14M4 17h12" {...s} />;
       case 'chevron':
         return <Path d="M9 5l7 7-7 7" {...s} />;
     }

@@ -55,7 +55,7 @@ export function T({ size = 15, weight = 'regular', color, muted, center, style, 
   );
 }
 
-/** Receipts, prices and numbers: JetBrains Mono with tabular figures. */
+/** Prices and numbers: Nunito with tabular figures, so digits don't jitter as they count. */
 export function Mono({
   size = 14,
   weight = 'regular',
