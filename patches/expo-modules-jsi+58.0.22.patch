@@ -1,0 +1,18 @@
+diff --git a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift
+--- a/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift
++++ b/node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift
+@@ -941,9 +941,13 @@ private func withEncodedValue(
+     }
+     // The runtime can't be deallocated during a call on its JavaScript thread, so it's borrowed without
+     // a retain.
++    // Swift 6.2 (Xcode 26) rejects sending the `nonisolated(unsafe)` local into the isolated closure
++    // ("sending 'slot' risks causing data races"); pass it through `UncheckedSendable` like the host
++    // function path in JavaScriptRuntime.swift does. Drop this patch once expo-modules-jsi fixes it.
++    let sendableSlot = UncheckedSendable(slot)
+     try runtime._withUnsafeGuaranteedRef { runtime in
+       try JavaScriptActor.assumeIsolated {
+-        try encode(JavaScriptValue.Slot(slot), runtime)
++        try encode(JavaScriptValue.Slot(sendableSlot.value), runtime)
+       }
+     }
+     body(slot.pointee)
