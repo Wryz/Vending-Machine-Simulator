@@ -5,10 +5,9 @@ import {
   activeWalkerCount,
   emptyCycle,
   emptyWalker,
+  LEG_M,
   legHeight,
   lerpAngle,
-  SHIN_M,
-  THIGH_M,
   walkCycle,
   walkerAt,
   walkerSlot,
@@ -112,7 +111,7 @@ describe('walkers', () => {
 
   it('settles the walk cycle when standing and repeats every stride', () => {
     const c = walkCycle(emptyCycle(), 3.3, 0);
-    expect([c.hipL, c.hipR, c.kneeL, c.kneeR, c.arm, c.bob].every((v) => v === 0)).toBe(true);
+    expect([c.hipL, c.hipR, c.arm, c.bob, c.roll].every((v) => v === 0)).toBe(true);
     for (let d = 0; d < 3; d += 0.05) {
       const a = { ...walkCycle(emptyCycle(), d, 1) };
       const b = walkCycle(emptyCycle(), d + PEDESTRIANS.strideM, 1);
@@ -120,14 +119,14 @@ describe('walkers', () => {
       expect(b.bob).toBeCloseTo(a.bob, 6);
       expect(a.hipR).toBeCloseTo(-a.hipL, 9);
       if (Math.abs(a.hipL) > 1e-3) expect(Math.sign(a.arm)).toBe(-Math.sign(a.hipL));
-      expect(a.kneeL).toBeGreaterThanOrEqual(0);
-      expect(a.kneeR).toBeGreaterThanOrEqual(0);
-      // Only the swing leg bends.
-      expect(Math.min(a.kneeL, a.kneeR)).toBe(0);
+      expect(b.roll).toBeCloseTo(a.roll, 6);
+      // A gentle waddle, a few degrees at most.
+      expect(Math.abs(a.roll)).toBeLessThan(0.1);
       // Natural, not bouncy: hips move a few centimeters at most.
       expect(a.bob).toBeLessThanOrEqual(0);
       expect(a.bob).toBeGreaterThan(-0.04);
     }
-    expect(legHeight(0, 0)).toBeCloseTo(THIGH_M + SHIN_M);
+    expect(legHeight(0)).toBeCloseTo(LEG_M);
+    expect(legHeight(0.5, 0.4)).toBeLessThan(legHeight(0.5));
   });
 });

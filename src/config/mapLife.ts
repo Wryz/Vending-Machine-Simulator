@@ -146,7 +146,7 @@ export const MAP_LIFE = {
 } as const;
 
 /** Pedestrian sprite variants. */
-export const LIFE_PEOPLE_MODELS = ['navy', 'camel', 'olive', 'charcoal'] as const;
+export const LIFE_PEOPLE_MODELS = ['coral', 'sky', 'mint', 'sun'] as const;
 
 /** Walk-cycle frames rendered per pedestrian (0 = passing pose, 1/2 = left/right stride). */
 export const LIFE_WALK_FRAMES = 3;

@@ -1,4 +1,4 @@
-import { PEDESTRIANS } from '@/config/streetLife';
+import { PEDESTRIANS, PERSON_SHAPE } from '@/config/streetLife';
 
 import type { StreetLayout } from './layout';
 import { hash01 } from './random';
@@ -221,52 +221,48 @@ export function walkerAt(
   return out;
 }
 
-/** Leg segments at the 1.75 m reference height (hip at 0.92 m, ankle at 0.075 m). */
-export const THIGH_M = 0.44;
-export const SHIN_M = 0.405;
+/** Leg length (hip to ground) at the 1.75 m reference height: one stubby segment, no knee. */
+export const LEG_M = PERSON_SHAPE.legM;
 
 export interface WalkCycle {
-  /** Hip angles (radians, + = thigh forward). */
+  /** Hip angles (radians, + = leg forward). */
   hipL: number;
   hipR: number;
-  /** Knee flexion (radians, ≥ 0, shin folds back). */
-  kneeL: number;
-  kneeR: number;
   /** Arm swing (radians, opposite to the same-side leg). */
   arm: number;
-  /** Hip drop so the stance foot stays on the ground (m, ≤ 0). */
+  /** Hip drop so the stance leg stays on the ground (m, ≤ 0). */
   bob: number;
+  /** Side-to-side body roll (radians, toy waddle; + leans toward the walker's left). */
+  roll: number;
 }
 
 export function emptyCycle(): WalkCycle {
-  return { hipL: 0, hipR: 0, kneeL: 0, kneeR: 0, arm: 0, bob: 0 };
+  return { hipL: 0, hipR: 0, arm: 0, bob: 0, roll: 0 };
 }
 
-/** Height of the hip above the ankle for a leg pose. */
-export function legHeight(hip: number, knee: number): number {
-  return THIGH_M * Math.cos(hip) + SHIN_M * Math.cos(hip - knee);
+/** Height of the hip above the ground for a straight leg swung `hip` forward and `splay` out. */
+export function legHeight(hip: number, splay = 0): number {
+  return LEG_M * Math.cos(hip) * Math.cos(splay);
 }
 
 /**
  * Walk cycle from distance walked (no foot skating) and speed fraction
- * (settles to a neutral stance as they stop). The swing leg bends at the
- * knee; the hips ride on the stance leg, damped so it stays natural, not
- * bouncy (~3 cm).
+ * (settles to a neutral stance as they stop). Straight stubby legs swing from
+ * the hip; the hips ride on the stance leg (damped) and the body rolls a
+ * little toward it, a gentle toy waddle.
  */
 export function walkCycle(out: WalkCycle, distance: number, speedFrac: number): WalkCycle {
   const P = PEDESTRIANS;
   const amp = Math.min(1, Math.max(0, speedFrac * 1.4));
   const phase = (distance / P.strideM) * Math.PI * 2;
   const s = Math.sin(phase);
-  const c = Math.cos(phase);
   const hip = ((P.legSwingDeg * Math.PI) / 180) * amp;
-  const knee = ((P.kneeBendDeg * Math.PI) / 180) * amp;
   out.hipL = hip * s;
   out.hipR = -hip * s;
-  out.kneeL = knee * Math.max(0, c) ** 2;
-  out.kneeR = knee * Math.max(0, -c) ** 2;
   out.arm = ((-P.armSwingDeg * Math.PI) / 180) * s * amp;
-  const stance = Math.max(legHeight(out.hipL, out.kneeL), legHeight(out.hipR, out.kneeR));
-  out.bob = (stance - (THIGH_M + SHIN_M)) * P.bobDamping;
+  const stance = Math.max(legHeight(out.hipL), legHeight(out.hipR));
+  out.bob = (stance - LEG_M) * P.bobDamping;
+  // Lean toward the stance leg: the left leg is under the body at phase π/2 ± π/2.
+  out.roll = ((P.waddleDeg * Math.PI) / 180) * Math.cos(phase) * amp;
   return out;
 }

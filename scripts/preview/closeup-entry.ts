@@ -323,7 +323,7 @@ export function budgetReport(typeId: 'snack' | 'combo' = 'combo') {
         const n = o.name;
         if (n.endsWith('-mirror')) return; // reflections counted ×2 below
         if (n.startsWith('people-')) {
-          const k = n === 'people-limbs' ? 6 : n === 'people-shoes' ? 2 : 1;
+          const k = n === 'people-legs' || n === 'people-arms' ? 2 : 1;
           personTris += t * k;
           per[n] = t * k;
         }

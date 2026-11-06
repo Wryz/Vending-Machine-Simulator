@@ -47,12 +47,13 @@ export const PEDESTRIANS = {
   startJitterS: 10,
   /** Two steps; the walk cycle is driven by distance so feet never skate. */
   strideM: 1.42,
-  legSwingDeg: 22,
-  /** Peak knee flexion in the swing phase. */
-  kneeBendDeg: 50,
-  armSwingDeg: 13,
+  /** Stubby toy legs have no knee: a wider swing reads as a waddling stride. */
+  legSwingDeg: 28,
+  armSwingDeg: 22,
+  /** Side-to-side body roll per step (toy waddle). */
+  waddleDeg: 3,
   /** Share of the stance-leg hip drop kept (1 = rigid-leg bob, 0 = none). */
-  bobDamping: 0.6,
+  bobDamping: 0.45,
   heightM: [1.6, 1.86],
   shoulderScale: [0.88, 1.08],
   customer: {
@@ -71,6 +72,28 @@ export const PEDESTRIANS = {
   },
   /** Reaching into the pickup bin after a sale. */
   reach: { delayS: 0.45, inS: 0.5, holdS: 0.35, outS: 0.5, minStopLeftS: 1.7 },
+} as const;
+
+/**
+ * Simple toy-figure people (SPEC §3.3): a round head, a rounded bean body and
+ * stubby rounded limbs, no hands, feet or hair. Meters at the 1.75 m reference
+ * height (each person is scaled to their own height). Shared by the close-up
+ * crowd (src/three/life/people.ts) and the map sprites (scripts/sprites/life).
+ */
+export const PERSON_SHAPE = {
+  refHeightM: 1.75,
+  /** Hip pivot height = leg length (hip to the rounded leg tip on the ground). */
+  legM: 0.6,
+  legRadiusM: 0.088,
+  hipXM: 0.105,
+  /** Bean body: bottom and top heights, widest radius, depth / width ratio. */
+  body: { bottomM: 0.47, topM: 1.31, radiusM: 0.235, depth: 0.8 },
+  head: { centerYM: 1.535, radiusM: 0.215 },
+  arm: { shoulderYM: 1.17, shoulderXM: 0.235, lengthM: 0.44, radiusM: 0.066, splayRad: 0.16 },
+  /** Share of people in short sleeves (skin-colored arms). */
+  bareArmsShare: 0.3,
+  /** Squatting at the pickup bin: legs forward and out, body leans, small step back. */
+  crouch: { hipRad: 0.95, splayRad: 0.32, leanRad: 0.5, stepBackM: 0.14 },
 } as const;
 
 /** Real foot traffic (baseTraffic total) → 0..1 crowd, square-root response. */

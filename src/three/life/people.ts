@@ -1,54 +1,42 @@
 import * as THREE from 'three';
 
-import { PEDESTRIANS } from '@/config/streetLife';
+import { PEDESTRIANS, PERSON_SHAPE } from '@/config/streetLife';
 
 import { dynamicInstances, mirrorInstances } from './geometry';
 import { hash01, pick } from './random';
-import { emptyCycle, legHeight, SHIN_M, THIGH_M, walkCycle, type WalkerState } from './walkers';
+import { emptyCycle, LEG_M, legHeight, walkCycle, type WalkerState } from './walkers';
 
 /**
- * Low-poly pedestrians (SPEC §3.3): real proportions, faceted, muted
- * clothes. One InstancedMesh per body part (torso, head, hair, limbs, shoes)
- * for the whole crowd, ~210 triangles a person; legs bend at the knee. A second set of meshes shares
- * the same instance buffers to draw the shop-window reflection for free.
+ * Simple toy-figure pedestrians (SPEC §3.3): a round head, a rounded bean
+ * body and stubby rounded arms and legs, no hands, feet or hair; matte,
+ * friendly clothing colors. One InstancedMesh per part (body, head, legs,
+ * arms) for the whole crowd: 6 instances and ~180 triangles a person. Legs
+ * swing straight from the hip. A second set of meshes shares the same
+ * instance buffers to draw the shop-window reflection for free.
  */
 
-const REF_H = 1.75;
-const HIP_Y = 0.92;
-const HIP_X = 0.088;
-const THIGH_R = 0.078;
-const SHIN_R = 0.058;
-const TORSO_H = 0.56;
-const SHOULDER_Y = HIP_Y + TORSO_H - 0.045;
-const SHOULDER_X = 0.188;
-const ARM_L = 0.6;
-const ARM_R = 0.048;
-const HEAD_Y = 1.6;
-const ARM_SPLAY = 0.07;
+const S = PERSON_SHAPE;
+const HIP_Y = S.legM;
+const ARM_L = S.arm.lengthM;
 const WALK_LEAN = (3 * Math.PI) / 180;
-/** Limb instances per person: thighs, shins, arms. */
-const LIMBS = 6;
-/** Crouching at the pickup bin: [hip, knee] per leg, torso lean, step back. */
-const CROUCH = { hipL: 1.1, kneeL: 1.75, hipR: 0.95, kneeR: 1.7, lean: 0.5, stepBack: 0.12 };
+const CROUCH = S.crouch;
 
 const TOPS = [
-  '#3B4A5C', // navy
-  '#3A3D42', // charcoal
-  '#5E6248', // olive
-  '#A88B63', // camel
-  '#6E3B3B', // oxblood
-  '#5A6E85', // slate blue
-  '#D8D2C4', // cream
-  '#3F5446', // forest
-  '#8A8C8E', // gray
-  '#B39A55', // muted mustard
-  '#E6E3DC', // white
-  '#7B5E57', // brown
+  '#F0785E', // coral
+  '#F4BE4A', // sunflower
+  '#5EA6E6', // sky
+  '#4FC39C', // mint
+  '#A88AE0', // lilac
+  '#E85A50', // tomato
+  '#2FA6A0', // teal
+  '#F6A673', // peach
+  '#F2EBDA', // cream
+  '#4E68BE', // cobalt
+  '#EE8EB2', // pink
+  '#8DC462', // leaf
 ];
-const PANTS = ['#2F3A4C', '#25272A', '#9C8F74', '#6B6E72', '#2B3242', '#4A4540', '#3E4A3E'];
+const PANTS = ['#3F5C93', '#545B6C', '#C8A878', '#3A3F4D', '#7A5C9E', '#4E8060', '#6E8FB8'];
 const SKIN = ['#F1D3BC', '#E5BFA0', '#D1A07A', '#B07B57', '#8A5A3C', '#5E3D2A'];
-const HAIR = ['#2A211C', '#3D2C21', '#5B4330', '#A88A5C', '#8F8F8F', '#1C1A19', '#6E3F2A'];
-const SHOES = ['#2A2A2C', '#E8E5DF', '#5A4434', '#1E1F21', '#7A7C80'];
 
 interface Look {
   scale: number;
@@ -56,8 +44,7 @@ interface Look {
   top: THREE.Color;
   pants: THREE.Color;
   skin: THREE.Color;
-  hair: THREE.Color;
-  shoes: THREE.Color;
+  arms: THREE.Color;
 }
 
 function lookFor(out: Look, look: number): Look {
@@ -66,42 +53,81 @@ function lookFor(out: Look, look: number): Look {
   const [w0, w1] = PEDESTRIANS.shoulderScale;
   // Height and build loosely correlated (taller people a bit broader).
   const hr = hash01(s, 1);
-  out.scale = (h0 + (h1 - h0) * hr) / REF_H;
+  out.scale = (h0 + (h1 - h0) * hr) / S.refHeightM;
   out.width = w0 + (w1 - w0) * (0.6 * hr + 0.4 * hash01(s, 2));
   out.top.set(pick(TOPS, hash01(s, 3)));
   out.pants.set(pick(PANTS, hash01(s, 4)));
   out.skin.set(pick(SKIN, hash01(s, 5)));
-  out.hair.set(pick(HAIR, hash01(s, 6)));
-  out.shoes.set(pick(SHOES, hash01(s, 7)));
+  out.arms.copy(hash01(s, 6) < S.bareArmsShare ? out.skin : out.top);
   return out;
 }
 
-function geometries() {
-  const torso = new THREE.CylinderGeometry(0.2, 0.152, TORSO_H, 6, 1);
-  torso.rotateY(Math.PI / 6); // flat chest, not a ridge
-  torso.scale(1, 1, 0.6);
-  torso.translate(0, TORSO_H / 2, 0);
-  const head = new THREE.DodecahedronGeometry(0.104);
-  head.scale(0.9, 1.13, 0.98);
-  // Hair shell: covers the crown, sides and back; the face stays clear in front.
-  const hair = new THREE.DodecahedronGeometry(0.112);
-  hair.scale(1, 1, 0.95);
-  hair.translate(0, 0.018, -0.03);
-  // Unit limb hanging from its top (pivot), tapered.
-  const limb = new THREE.CylinderGeometry(1, 0.72, 1, 5, 1);
-  limb.translate(0, -0.5, 0);
-  const shoe = new THREE.BoxGeometry(0.098, 0.075, 0.25);
-  shoe.translate(0, -0.0375, 0.045);
-  for (const g of [torso, head, hair, limb, shoe]) {
-    // Polyhedra are already non-indexed (toNonIndexed would return `g` itself).
-    if (g.index) {
-      const n = g.toNonIndexed();
-      g.copy(n);
-      n.dispose();
-    }
-    g.computeVertexNormals();
+/** Non-indexed copy without zero-area triangles (lathe and capsule poles). */
+function flatFaces(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const src = g.index ? g.toNonIndexed() : g;
+  const pos = src.attributes.position;
+  const keep: number[] = [];
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i += 3) {
+    a.fromBufferAttribute(pos, i);
+    b.fromBufferAttribute(pos, i + 1);
+    c.fromBufferAttribute(pos, i + 2);
+    if (b.sub(a).cross(c.sub(a)).lengthSq() < 1e-12) continue;
+    for (let k = 0; k < 3; k++) keep.push(pos.getX(i + k), pos.getY(i + k), pos.getZ(i + k));
   }
-  return { torso, head, hair, limb, shoe };
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(keep, 3));
+  out.computeVertexNormals();
+  if (src !== g) src.dispose();
+  g.dispose();
+  return out;
+}
+
+/** Squash of a limb's end cap: a blunt, rounded stub instead of a pointy cone. */
+const TIP_SQUASH = 0.5;
+
+/** Rounded limb hanging from its pivot (y = 0) down to its blunt tip at y = -length. */
+function limb(radius: number, length: number, radial: number) {
+  const tipY = -(length - radius * TIP_SQUASH); // center of the end cap
+  const g = new THREE.CapsuleGeometry(radius, -tipY, 1, radial);
+  g.translate(0, tipY / 2, 0);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    if (y < tipY) pos.setY(i, tipY + (y - tipY) * TIP_SQUASH);
+  }
+  return g;
+}
+
+/**
+ * Part geometries in the person's frame at the reference height: body and
+ * head relative to the hip pivot, legs and arms hanging from their pivots.
+ * `headScale` enlarges the head (the tiny map sprites read better with it).
+ */
+export function personGeometries(headScale = 1) {
+  const { bottomM, topM, radiusM: r, depth } = S.body;
+  const h = topM - bottomM;
+  const profile = [
+    [0, 0],
+    [0.72 * r, 0.05 * h],
+    [r, 0.24 * h],
+    [0.93 * r, 0.66 * h],
+    [0.62 * r, 0.95 * h],
+    [0, h],
+  ].map(([x, y]) => new THREE.Vector2(x, y));
+  const body = new THREE.LatheGeometry(profile, 7);
+  body.scale(1, 1, depth);
+  body.translate(0, bottomM - HIP_Y, 0);
+  const head = new THREE.IcosahedronGeometry(S.head.radiusM * headScale, 1);
+  head.translate(0, S.head.centerYM - HIP_Y + (headScale - 1) * S.head.radiusM * 0.6, 0);
+  return {
+    body: flatFaces(body),
+    head: flatFaces(head),
+    leg: flatFaces(limb(S.legRadiusM, S.legM, 6)),
+    arm: flatFaces(limb(S.arm.radiusM, ARM_L, 5)),
+  };
 }
 
 export interface Crowd {
@@ -122,19 +148,18 @@ export interface Crowd {
 }
 
 export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
-  const g = geometries();
+  const g = personGeometries();
   const material = new THREE.MeshStandardMaterial({
     color: '#ffffff',
-    roughness: 0.86,
+    roughness: 0.92,
     metalness: 0,
     flatShading: true,
   });
-  const torso = dynamicInstances(g.torso, material, capacity, 'people-torso');
+  const body = dynamicInstances(g.body, material, capacity, 'people-body');
   const head = dynamicInstances(g.head, material, capacity, 'people-head');
-  const hair = dynamicInstances(g.hair, material, capacity, 'people-hair');
-  const limbs = dynamicInstances(g.limb, material, capacity * LIMBS, 'people-limbs');
-  const shoes = dynamicInstances(g.shoe, material, capacity * 2, 'people-shoes');
-  const meshes = [torso, head, hair, limbs, shoes];
+  const legs = dynamicInstances(g.leg, material, capacity * 2, 'people-legs');
+  const arms = dynamicInstances(g.arm, material, capacity * 2, 'people-arms');
+  const meshes = [body, head, legs, arms];
   const white = new THREE.Color('#ffffff');
   for (const m of meshes) {
     for (let i = 0; i < m.instanceMatrix.count; i++) m.setColorAt(i, white);
@@ -156,15 +181,13 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
     top: new THREE.Color(),
     pants: new THREE.Color(),
     skin: new THREE.Color(),
-    hair: new THREE.Color(),
-    shoes: new THREE.Color(),
+    arms: new THREE.Color(),
   }));
   const lookTrip = new Array<number>(capacity).fill(Number.NaN);
   const hands = Array.from({ length: capacity }, () => new THREE.Vector3());
   const cycle = emptyCycle();
   const root = new THREE.Matrix4();
   const upper = new THREE.Matrix4();
-  const hipM = new THREE.Matrix4();
   const m = new THREE.Matrix4();
   const tmp = new THREE.Matrix4();
   const q = new THREE.Quaternion();
@@ -172,7 +195,6 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
   const p = new THREE.Vector3();
   const s = new THREE.Vector3();
   const handLocal = new THREE.Vector3();
-  const LEG = THIGH_M + SHIN_M;
 
   const compose = (
     out: THREE.Matrix4,
@@ -209,16 +231,15 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
       }
       walkCycle(cycle, w.distance, w.cruise > 0 ? w.speed / w.cruise : 0);
       const r = reach[i] ?? 0;
-      // Crouching at the pickup bin blends over the (standing) walk pose.
-      const hipL = lerp(cycle.hipL, CROUCH.hipL, r);
-      const hipR = lerp(cycle.hipR, CROUCH.hipR, r);
-      const kneeL = lerp(cycle.kneeL, CROUCH.kneeL, r);
-      const kneeR = lerp(cycle.kneeR, CROUCH.kneeR, r);
-      const crouchDrop = Math.max(legHeight(hipL, kneeL), legHeight(hipR, kneeR)) - LEG;
+      // Squatting at the pickup bin blends over the (standing) walk pose.
+      const hipL = lerp(cycle.hipL, CROUCH.hipRad, r);
+      const hipR = lerp(cycle.hipR, CROUCH.hipRad, r);
+      const splay = CROUCH.splayRad * r;
+      const crouchDrop = legHeight(CROUCH.hipRad, CROUCH.splayRad) - LEG_M;
       const drop = lerp(cycle.bob, crouchDrop, r);
-      const lean = WALK_LEAN * (w.speed > 0 ? 1 : 0.3) + r * CROUCH.lean;
+      const lean = WALK_LEAN * (w.speed > 0 ? 1 : 0.3) + r * CROUCH.leanRad;
       const sc = lk.scale;
-      const back = r * CROUCH.stepBack;
+      const back = r * CROUCH.stepBackM;
       compose(
         root,
         w.x - Math.sin(w.yaw) * back,
@@ -231,62 +252,49 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
         sc,
         sc,
       );
-      compose(upper, 0, HIP_Y, 0, lean, 0, 0, 1, 1, 1);
+      compose(upper, 0, HIP_Y, 0, lean, 0, cycle.roll * (1 - r), 1, 1, 1);
       upper.premultiply(root);
 
-      // Torso, head, hair.
+      // Body and head.
       compose(m, 0, 0, 0, 0, 0, 0, lk.width, 1, 1);
-      torso.setMatrixAt(n, tmp.multiplyMatrices(upper, m));
-      torso.setColorAt(n, lk.top);
-      compose(m, 0, HEAD_Y - HIP_Y, 0.012, -lean * 0.6, 0, 0, 1, 1, 1);
-      tmp.multiplyMatrices(upper, m);
-      head.setMatrixAt(n, tmp);
-      hair.setMatrixAt(n, tmp);
+      body.setMatrixAt(n, tmp.multiplyMatrices(upper, m));
+      body.setColorAt(n, lk.top);
+      // The head stays a little more upright than the leaning body.
+      const headY = S.head.centerYM - HIP_Y;
+      compose(m, 0, headY, 0, -lean * 0.35, 0, 0, 1, 1, 1);
+      m.multiply(tmp.makeTranslation(0, -headY, 0));
+      head.setMatrixAt(n, tmp.multiplyMatrices(upper, m));
       head.setColorAt(n, lk.skin);
-      hair.setColorAt(n, lk.hair);
 
-      // Legs: thigh from the hip, shin from the knee (+x is the walker's left).
+      // Legs swing straight from the hip (+x is the walker's left).
       for (let side = 0; side < 2; side++) {
         const sign = side === 0 ? 1 : -1;
         const hip = side === 0 ? hipL : hipR;
-        const knee = side === 0 ? kneeL : kneeR;
-        compose(hipM, sign * HIP_X * lk.width, HIP_Y, 0, -hip, 0, 0, 1, 1, 1);
-        hipM.premultiply(root);
-        m.makeScale(THIGH_R, THIGH_M, THIGH_R);
-        limbs.setMatrixAt(n * LIMBS + side, tmp.multiplyMatrices(hipM, m));
-        limbs.setColorAt(n * LIMBS + side, lk.pants);
-        // Knee: down the thigh, then fold the shin back.
-        compose(m, 0, -THIGH_M, 0, knee, 0, 0, 1, 1, 1);
-        hipM.multiply(m);
-        m.makeScale(SHIN_R, SHIN_M, SHIN_R);
-        limbs.setMatrixAt(n * LIMBS + 2 + side, tmp.multiplyMatrices(hipM, m));
-        limbs.setColorAt(n * LIMBS + 2 + side, lk.pants);
-        // Shoe stays level-ish: undo most of the leg's net angle.
-        compose(m, 0, -SHIN_M, 0, (hip - knee) * 0.85, 0, 0, 1, 1, 1);
-        shoes.setMatrixAt(n * 2 + side, tmp.multiplyMatrices(hipM, m));
-        shoes.setColorAt(n * 2 + side, lk.shoes);
+        compose(m, sign * S.hipXM * lk.width, HIP_Y, 0, -hip, 0, sign * splay, 1, 1, 1);
+        legs.setMatrixAt(n * 2 + side, tmp.multiplyMatrices(root, m));
+        legs.setColorAt(n * 2 + side, lk.pants);
       }
       // Arms swing against the legs; the right arm reaches down to the bin.
       for (let side = 0; side < 2; side++) {
         const sign = side === 0 ? 1 : -1;
         const swing = side === 0 ? cycle.arm : -cycle.arm;
-        const a = side === 1 ? lerp(swing, lean + 0.3, r) : lerp(swing, lean * 0.6, r);
+        const a = side === 1 ? lerp(swing, lean + 0.45, r) : lerp(swing, lean * 0.5, r);
         compose(
           m,
-          sign * SHOULDER_X * lk.width,
-          SHOULDER_Y - HIP_Y,
+          sign * S.arm.shoulderXM * lk.width,
+          S.arm.shoulderYM - HIP_Y,
           0,
           -a,
           0,
-          sign * ARM_SPLAY * (1 - r * 0.6),
-          ARM_R,
-          ARM_L,
-          ARM_R,
+          sign * S.arm.splayRad * (1 - r * 0.6),
+          1,
+          1,
+          1,
         );
         tmp.multiplyMatrices(upper, m);
-        limbs.setMatrixAt(n * LIMBS + 4 + side, tmp);
-        limbs.setColorAt(n * LIMBS + 4 + side, lk.top);
-        if (side === 1) hands[i].copy(handLocal.set(0, -1, 0)).applyMatrix4(tmp);
+        arms.setMatrixAt(n * 2 + side, tmp);
+        arms.setColorAt(n * 2 + side, lk.arms);
+        if (side === 1) hands[i].copy(handLocal.set(0, -ARM_L, 0)).applyMatrix4(tmp);
       }
       n++;
     }
@@ -294,9 +302,8 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
-    torso.count = head.count = hair.count = n;
-    limbs.count = n * LIMBS;
-    shoes.count = n * 2;
+    body.count = head.count = n;
+    legs.count = arms.count = n * 2;
     mirrors.forEach((mm, j) => (mm.count = meshes[j].count));
     return n;
   }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * `npm run life-sprites` — pre-rendered street-life sprites for the map:
- * low-poly pedestrians (4 outfits × 3 walk frames), 8 viewer-relative
+ * toy-figure pedestrians (4 outfits × 3 walk frames), 8 viewer-relative
  * headings × 2 pitches × day/night, rendered in headless Chromium with the machine sprites' harness.
  *
  *   procedural three.js models (scripts/sprites/life/models.ts)
