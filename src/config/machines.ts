@@ -27,12 +27,6 @@ export const FAMILY_LABEL: Record<MachineFamily, string> = {
   alcohol: 'Beer & wine',
 };
 
-/** Cosmetic wraps (one-time purchases, SPEC §9). Body color override; null = family accent. */
-export const WRAPS: Record<string, { name: string; color: string }> = {
-  wrapNight: { name: 'Night Shift', color: '#2B2E33' },
-  wrapLinen: { name: 'Linen', color: '#E3DCCB' },
-};
-
 export interface MachineDimensions {
   heightM: number;
   widthM: number;

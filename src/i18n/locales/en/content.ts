@@ -103,11 +103,6 @@ export default {
     hotFood: 'Hot food & specialty',
     alcohol: 'Beer & wine',
   },
-  // Cosmetic machine wraps (paint schemes).
-  wraps: {
-    wrapNight: 'Night Shift',
-    wrapLinen: 'Linen',
-  },
   research: {
     telemetry: {
       name: 'Telemetry',

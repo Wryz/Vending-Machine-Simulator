@@ -6,5 +6,7 @@ export default {
       'Cash {cash}. Chapter {n}, {title}: {progress}. Today {today} in sales, {waiting} waiting in your machines.',
     /** The rolling cash readout. */
     cash: 'Cash {amount}',
+    /** Appended when Double Profits is owned. */
+    doubleProfits: 'Double Profits on: every sale pays double.',
   },
 } as const;

@@ -58,7 +58,7 @@ export default {
     clearHint: 'Effacer le plan de réassort',
     more: 'Plus',
     less: 'Moins',
-    moreHint: 'Voir les caractéristiques, habillages et actions',
+    moreHint: 'Voir les caractéristiques et actions',
     rotate: 'Tourner',
     renegotiate: 'Renégocier',
     pickUp: 'Retirer',

@@ -9,7 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CLOSEUP_CAMERA, WRAPS, getMachineType } from '@/config/machines';
+import { CLOSEUP_CAMERA, getMachineType } from '@/config/machines';
 import { CAMERA } from '@/config/map';
 import { getProduct } from '@/config/products';
 import { useCityClock } from '@/hooks/useCityClock';
@@ -20,7 +20,6 @@ import { weatherTrafficFactor } from '@/sim/demand';
 import { sound, soundscape } from '@/services/audio';
 import { haptic } from '@/services/haptics';
 import { useGame } from '@/store/game';
-import { useProfile } from '@/store/profile';
 import { transition } from '@/store/transition';
 import { CLOSEUP_MOTION } from '@/config/streetLife';
 import { streetCrowd } from '@/three/life/density';
@@ -44,8 +43,6 @@ export default function MachineCloseup() {
   const { height } = useWindowDimensions();
   const game = useGame((s) => s.game)!;
   const world = useGame((s) => s.world)!;
-  // Warm lighting pack (shop cosmetic) is stored with the owned looks.
-  const warmLighting = useProfile((s) => s.entitlements.wraps.includes('lightingWarm'));
   const machine = game.machines.find((m) => m.id === id);
   const { now, tod } = useCityClock(world.city.lat, world.city.lng);
   const [selected, setSelected] = useState<number | null>(null);
@@ -235,11 +232,7 @@ export default function MachineCloseup() {
       <View style={{ height: height * 0.46 }}>
         <MachineScene
           typeId={machine.typeId}
-          accent={
-            machine.wrap && WRAPS[machine.wrap]
-              ? WRAPS[machine.wrap].color
-              : theme.family[type.family]
-          }
+          accent={theme.family[type.family]}
           slots={slotViews}
           sun={tod.sun}
           palette={tod.palette}
@@ -248,7 +241,6 @@ export default function MachineCloseup() {
           to={path.to}
           durationMs={CLOSEUP_CAMERA.dollyMs}
           broken={!!machine.broken}
-          warmLighting={warmLighting}
           selectedSlot={selected}
           crowd={crowd}
           seed={seedFrom(machine.id)}

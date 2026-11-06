@@ -13,10 +13,9 @@ import { useProfile } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
 import { duration } from '@/ui/format';
 import { Button, Mono, Paper, Row, Screen, Section, T } from '@/ui/kit';
+import { Led, SKIN } from '@/ui/skin';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { SPACE } from '@/ui/theme';
-
-const COSMETICS = ['wrapNight', 'wrapLinen', 'lightingWarm'] as const;
 
 /** Our own product copy, translated; the price stays as the store delivers it. */
 function productTitle(key: ProductKey): string {
@@ -69,6 +68,51 @@ function Offer({
           busy={busy}
           onPress={onBuy}
         />
+      )}
+    </Paper>
+  );
+}
+
+/** Double Profits: the headline offer. A big LED ×2, the promise in one line, the price. */
+function DoubleProfitsOffer({
+  owned,
+  disabled,
+  busy,
+  onBuy,
+}: {
+  owned: boolean;
+  disabled: boolean;
+  busy: boolean;
+  onBuy: () => void;
+}) {
+  const theme = useTheme();
+  const t = useT();
+  const price = PRODUCTS.doubleProfits.price;
+  return (
+    <Paper tone="surface" style={{ gap: SPACE.s }}>
+      <Row style={{ alignItems: 'center', gap: SPACE.m }}>
+        <Led color={SKIN.ledAmber} size={34}>
+          ×2
+        </Led>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <T weight="bold" size={17} style={{ flex: 1 }}>
+              {productTitle('doubleProfits')}
+            </T>
+            <Mono>{price}</Mono>
+          </Row>
+          <T size={14}>{productDetail('doubleProfits')}</T>
+        </View>
+      </Row>
+      <T size={12} muted>
+        {t('shop.doubleProfitsNote')}
+      </T>
+      {owned ? (
+        <T size={13} color={theme.signal}>
+          {t('shop.owned')}
+        </T>
+      ) : (
+        <Button label={t('shop.buy', { price })} disabled={disabled} busy={busy} onPress={onBuy} />
       )}
     </Paper>
   );
@@ -167,6 +211,12 @@ export default function Shop() {
         ) : null}
 
         <Section title={t('shop.section.purchases')}>
+          <DoubleProfitsOffer
+            owned={entitlements.doubleProfits}
+            disabled={!store || busy !== null}
+            busy={busy === 'doubleProfits'}
+            onBuy={() => purchase('doubleProfits')}
+          />
           <Offer
             title={productTitle('removeAds')}
             detail={productDetail('removeAds')}
@@ -187,24 +237,6 @@ export default function Shop() {
               onBuy={() => purchase('starterPack')}
             />
           ) : null}
-        </Section>
-
-        <Section title={t('shop.section.looks')}>
-          {COSMETICS.map((key) => (
-            <Offer
-              key={key}
-              title={productTitle(key)}
-              detail={productDetail(key)}
-              price={PRODUCTS[key].price}
-              owned={entitlements.wraps.includes(key)}
-              disabled={!store || busy !== null}
-              busy={busy === key}
-              onBuy={() => purchase(key)}
-            />
-          ))}
-          <T size={13} muted>
-            {t('shop.looksNote')}
-          </T>
         </Section>
 
         {showAds && game ? (

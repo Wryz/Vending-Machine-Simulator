@@ -431,7 +431,7 @@ pipeline/                # offline data pipeline (Python/DuckDB), not shipped in
 | Company | Chapter progress, finances (receipt-style P&L), staff, warehouse, permits, research (global upgrades), prestige |
 | Collections binder | Series pages, rarity, completion perks |
 | City switcher | Current city, other unlocked cities, 9-city fallback list |
-| Shop | Remove ads, starter pack, cosmetic machine wraps, premium machines (non-pay-to-win) |
+| Shop | Double Profits, remove ads, starter pack (non-pay-to-win) |
 | Settings | Sound, haptics, notifications, UI theme (follow city time or system), data credits, save export and import, privacy |
 
 ---
@@ -446,7 +446,8 @@ pipeline/                # offline data pipeline (Python/DuckDB), not shipped in
 - **One-time purchases** (prices indicative):
   - Remove Ads + permanent ×1.25 offline cap: $4.99;
   - Starter Pack (van upgrade, 2 machines, cash): $2.99, offered once after chapter 1;
-  - Cosmetic machine wraps and lighting packs: $0.99–$2.99;
+  - Double Profits: every sale pays a bonus equal to its revenue (permanent ×2 income from sales, every city): $4.99. Paid as a 'Bonus' ledger line, not as sales, so sales goals (chapter 1, daily orders) still count real sales only; stacks additively with the ad boost (×3 while both run);
+  - No cosmetics: machine wraps and lighting packs were dropped (owner decision 2026-11-06: cosmetics don't sell in a single-player game);
   - Premium machine models: cosmetic or slightly better stats, never required.
 - No subscriptions, no energy systems, no paywalled automation.
 

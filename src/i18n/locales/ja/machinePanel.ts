@@ -58,7 +58,7 @@ export default {
     clearHint: '補充計画をクリア',
     more: '詳細',
     less: '閉じる',
-    moreHint: '仕様、ラッピング、自販機の操作を表示',
+    moreHint: '仕様と自販機の操作を表示',
     rotate: '回転',
     renegotiate: '再交渉',
     pickUp: '撤去',

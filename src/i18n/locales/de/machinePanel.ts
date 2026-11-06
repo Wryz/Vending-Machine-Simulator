@@ -58,7 +58,7 @@ export default {
     clearHint: 'Auffüllplan leeren',
     more: 'Mehr',
     less: 'Weniger',
-    moreHint: 'Daten, Folierungen und Automaten-Aktionen zeigen',
+    moreHint: 'Daten und Automaten-Aktionen zeigen',
     rotate: 'Drehen',
     renegotiate: 'Verhandeln',
     pickUp: 'Abbauen',

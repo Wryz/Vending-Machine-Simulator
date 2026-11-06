@@ -1,5 +1,5 @@
 import { FALLBACK_CITIES } from '@/config/cities';
-import { FAMILY_LABEL, MACHINE_TYPES, WRAPS, type MachineFamily } from '@/config/machines';
+import { FAMILY_LABEL, MACHINE_TYPES, type MachineFamily } from '@/config/machines';
 import { CATEGORY_LABEL } from '@/config/places';
 import {
   ACHIEVEMENTS,
@@ -53,7 +53,7 @@ describe('content catalog covers src/config', () => {
     }
   });
 
-  it('districts, machines, families, wraps', () => {
+  it('districts, machines, families', () => {
     for (const d of DISTRICTS) check(() => content.district(d.id, d.name), d.name);
     for (const m of MACHINE_TYPES) {
       check(() => content.machineType(m.id, m.name), m.name);
@@ -61,7 +61,6 @@ describe('content catalog covers src/config', () => {
     }
     for (const f of Object.keys(FAMILY_LABEL) as MachineFamily[])
       check(() => content.family(f), FAMILY_LABEL[f]);
-    for (const [id, w] of Object.entries(WRAPS)) check(() => content.wrap(id, w.name), w.name);
   });
 
   it('research, goals, achievements, perks', () => {

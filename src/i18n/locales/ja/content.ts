@@ -96,10 +96,6 @@ export default {
     hotFood: 'ホットフード・専門',
     alcohol: 'ビール・ワイン',
   },
-  wraps: {
-    wrapNight: 'ナイトシフト',
-    wrapLinen: 'リネン',
-  },
   research: {
     telemetry: {
       name: '遠隔監視',

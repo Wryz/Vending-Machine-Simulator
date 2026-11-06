@@ -15,20 +15,14 @@ export default {
       detail:
         'Mejora de camioneta, dos máquinas de snacks y $2,000 en efectivo. Se ofrece una vez tras el capítulo 1.',
     },
-    wrapNight: {
-      title: 'Vinilo Turno de noche',
-      detail: 'Un vinilo oscuro y discreto para la máquina. Cosmético.',
-    },
-    wrapLinen: {
-      title: 'Vinilo Lino',
-      detail: 'Vinilo blanco roto y cálido. Cosmético.',
-    },
-    lightingWarm: {
-      title: 'Pack de luz cálida',
-      detail: 'Luz cálida de sodio para los productos de noche. Cosmético.',
+    doubleProfits: {
+      title: 'Ganancias dobles',
+      detail: 'Cada venta paga el doble, para siempre.',
     },
   },
   owned: 'Tuyo',
+  doubleProfitsNote:
+    'Todas las máquinas, todas las ciudades. Los objetivos de capítulo cuentan las ventas normales.',
   buy: 'Comprar · {price}',
   starterAdded: 'Pack inicial añadido. Hay dos máquinas de snacks en el depósito.',
   starterPending: 'Compra registrada. Abre una ciudad para recibir el Pack inicial.',
@@ -44,10 +38,8 @@ export default {
   noStoreBody: 'Todo lo del juego se puede conseguir jugando.',
   section: {
     purchases: 'Compras',
-    looks: 'Estilos',
     rewards: 'Recompensas gratis',
   },
-  looksNote: 'Aplica vinilos y luces desde la vista de cerca de una máquina. Solo cosmético.',
   doubleTitle: {
     one: 'Duplica las ganancias durante {n} minuto',
     other: 'Duplica las ganancias durante {n} minutos',

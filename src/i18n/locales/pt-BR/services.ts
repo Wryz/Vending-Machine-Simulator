@@ -13,17 +13,9 @@ export default {
       detail:
         'Melhoria de van, duas máquinas de lanches e $2,000 em dinheiro. Oferecido uma vez após o capítulo 1.',
     },
-    wrapNight: {
-      title: 'Adesivo Turno da Noite',
-      detail: 'Um adesivo escuro e discreto para a máquina. Cosmético.',
-    },
-    wrapLinen: {
-      title: 'Adesivo Linho',
-      detail: 'Adesivo branco quente. Cosmético.',
-    },
-    lightingWarm: {
-      title: 'Pacote de luz quente',
-      detail: 'Luz amarelada de rua nos produtos à noite. Cosmético.',
+    doubleProfits: {
+      title: 'Lucro em dobro',
+      detail: 'Cada venda paga o dobro, para sempre.',
     },
   },
   errors: {

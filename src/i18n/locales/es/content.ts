@@ -96,10 +96,6 @@ export default {
     hotFood: 'Comida caliente y especial',
     alcohol: 'Cerveza y vino',
   },
-  wraps: {
-    wrapNight: 'Turno de noche',
-    wrapLinen: 'Lino',
-  },
   research: {
     telemetry: {
       name: 'Telemetría',

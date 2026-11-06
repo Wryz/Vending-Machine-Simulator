@@ -14,20 +14,13 @@ export default {
       title: 'スターターパック',
       detail: 'バンの強化、スナック自販機2台、所持金$2,000。第1章クリア後に1回だけ販売。',
     },
-    wrapNight: {
-      title: 'ナイトシフト・ラッピング',
-      detail: 'ダークで落ち着いたラッピング。見た目のみ。',
-    },
-    wrapLinen: {
-      title: 'リネン・ラッピング',
-      detail: 'あたたかみのあるオフホワイト。見た目のみ。',
-    },
-    lightingWarm: {
-      title: '暖色ライトパック',
-      detail: '夜の商品照明をナトリウム灯の暖色に。見た目のみ。',
+    doubleProfits: {
+      title: '利益2倍',
+      detail: 'すべての売上がずっと2倍。',
     },
   },
   owned: '購入済み',
+  doubleProfitsNote: 'すべての自販機、すべての都市で。章の目標は通常の売上で数えます。',
   buy: '購入 · {price}',
   starterAdded: 'スターターパックを追加しました。スナック自販機2台が倉庫にあります。',
   starterPending: '購入を記録しました。都市を開くとスターターパックを受け取れます。',
@@ -43,10 +36,8 @@ export default {
   noStoreBody: 'ゲーム内のすべてはプレイで手に入ります。',
   section: {
     purchases: '購入',
-    looks: '見た目',
     rewards: '無料報酬',
   },
-  looksNote: 'ラッピングとライトは自販機のクローズアップから適用できます。見た目のみ。',
   doubleTitle: {
     one: '{n}分間 収益2倍',
     other: '{n}分間 収益2倍',

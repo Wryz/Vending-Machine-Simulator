@@ -166,6 +166,8 @@ function sellStep(
     t: number;
     bh: number;
     cache: StepCache;
+    /** Purchased bonus as a share of revenue (Double Profits = 1). */
+    salesBonus: number;
   },
   report: AdvanceReport,
 ): number {
@@ -294,9 +296,13 @@ function sellStep(
     addLedger(state, 'Commission', -commission);
     addLedger(state, 'Card fees', -fee);
   }
-  if (ctx.t < state.boosts.doubleEarningsUntil) {
-    state.cashCents += revenue;
-    addLedger(state, 'Bonus', revenue);
+  // Bonuses are paid on top of sales (ad boost + Double Profits stack additively).
+  // They are ledger 'Bonus', not sales: lifetime sales and chapter goals ignore them.
+  const bonusShare = (ctx.t < state.boosts.doubleEarningsUntil ? 1 : 0) + ctx.salesBonus;
+  if (bonusShare > 0) {
+    const bonus = Math.round(revenue * bonusShare);
+    state.cashCents += bonus;
+    addLedger(state, 'Bonus', bonus);
   }
   addLedger(state, 'Sales', revenue);
   m.stats.unitsTotal += sold;
@@ -596,6 +602,7 @@ export function beginAdvance(
   if (to <= s.now)
     return { state: s, report, run: () => true, progress: () => 1, done: () => true };
   const cap = maxOfflineMs(s, opts.offlineCapMultiplier ?? 1);
+  const salesBonus = Math.max(0, opts.salesBonus ?? 0);
   if (to - s.now > cap) {
     report.skippedMs = to - s.now - cap;
     s.now = to - cap;
@@ -644,7 +651,7 @@ export function beginAdvance(
 
     let powerCents = 0;
     // One context per step (only `competitors` changes per machine): no allocation per machine.
-    const sellCtx = { local, weather, competitors: 0, t: tMid, bh, cache };
+    const sellCtx = { local, weather, competitors: 0, t: tMid, bh, cache, salesBonus };
     for (const m of s.machines) {
       if (m.status !== 'active') continue;
       const type = getMachineType(m.typeId);

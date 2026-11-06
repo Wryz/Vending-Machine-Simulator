@@ -12,17 +12,9 @@ export default {
       title: 'Starter Pack',
       detail: 'Van upgrade, two snack machines and $2,000 cash. Offered once after chapter 1.',
     },
-    wrapNight: {
-      title: 'Night Shift wrap',
-      detail: 'A dark, quiet machine wrap. Cosmetic.',
-    },
-    wrapLinen: {
-      title: 'Linen wrap',
-      detail: 'Warm off-white wrap. Cosmetic.',
-    },
-    lightingWarm: {
-      title: 'Warm lighting pack',
-      detail: 'Sodium-warm product lighting at night. Cosmetic.',
+    doubleProfits: {
+      title: 'Double Profits',
+      detail: 'Every sale pays double, forever.',
     },
   },
   errors: {

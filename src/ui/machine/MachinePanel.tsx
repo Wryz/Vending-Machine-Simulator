@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { CONTRACT, SERVICE } from '@/config/economy';
-import { WRAPS, getMachineType } from '@/config/machines';
+import { getMachineType } from '@/config/machines';
 import { getProduct } from '@/config/products';
 import { RESEARCH } from '@/config/progression';
 import { t as tg, useT } from '@/i18n';
@@ -38,7 +38,7 @@ import { useProfile } from '@/store/profile';
 import { money, moneyShort, pct } from '../format';
 import { StatChip } from '../hud';
 import { Icon, type IconName } from '../icons';
-import { Button, Chip, Mono, Paper, Row, T } from '../kit';
+import { Button, Mono, Paper, Row, T } from '../kit';
 import { hasTelemetry, machineStatus } from '../machineStatus';
 import { CoinTray } from '../objects/CoinTray';
 import { statusLabel } from '../objects/KeyTag';
@@ -87,7 +87,6 @@ export function MachinePanel({
   const t = useT();
   const game = useGame((s) => s.game)!;
   const removeAds = useProfile((s) => s.entitlements.removeAds);
-  const ownedWraps = useProfile((s) => s.entitlements.wraps).filter((w) => w in WRAPS);
   const machine = game.machines.find((m) => m.id === machineId);
   const [ownSelected, setOwnSelected] = useState<number | null>(null);
   const selected = selectedProp !== undefined ? selectedProp : ownSelected;
@@ -617,21 +616,6 @@ export function MachinePanel({
           </Row>
 
           <Row style={{ flexWrap: 'wrap' }}>
-            {ownedWraps.map((w) => (
-              <Chip
-                key={w}
-                label={content.wrap(w, WRAPS[w].name)}
-                color={WRAPS[w].color}
-                active={machine.wrap === w}
-                onPress={() =>
-                  useGame.getState().act((d) => {
-                    const m = d.machines.find((x) => x.id === machine.id);
-                    if (m) m.wrap = m.wrap === w ? null : w;
-                    return { ok: true };
-                  })
-                }
-              />
-            ))}
             <IconChip
               icon="rotate"
               label={t('machinePanel.actions.rotate')}

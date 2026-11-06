@@ -20,7 +20,6 @@ export const content = {
     t.or(`content.chapters.c${n}.unlocks.u${i}`, en),
   district: (id: number, en: string) => t.or(`content.districts.d${id}`, en),
   machineType: (id: string, en: string) => t.or(`content.machines.${id}`, en),
-  wrap: (id: string, en: string) => t.or(`content.wraps.${id}`, en),
   researchName: (id: string, en: string) => t.or(`content.research.${id}.name`, en),
   researchDesc: (id: string, en: string) => t.or(`content.research.${id}.desc`, en),
   /** Daily order title; `{n}` is the target (pass it already formatted, e.g. "$45"). */

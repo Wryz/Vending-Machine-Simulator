@@ -13,17 +13,9 @@ export default {
       detail:
         'Van-Upgrade, zwei Snackautomaten und $2,000 Bargeld. Einmalig nach Kapitel 1 angeboten.',
     },
-    wrapNight: {
-      title: 'Folierung Nachtschicht',
-      detail: 'Eine dunkle, ruhige Automatenfolierung. Nur Optik.',
-    },
-    wrapLinen: {
-      title: 'Folierung Leinen',
-      detail: 'Warmes Cremeweiß. Nur Optik.',
-    },
-    lightingWarm: {
-      title: 'Warmes Lichtpaket',
-      detail: 'Warmes Natriumlicht für die Waren bei Nacht. Nur Optik.',
+    doubleProfits: {
+      title: 'Doppelter Gewinn',
+      detail: 'Jeder Verkauf bringt das Doppelte, für immer.',
     },
   },
   errors: {

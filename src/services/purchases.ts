@@ -33,34 +33,14 @@ export const PRODUCTS = {
       return t('services.products.starterPack.detail');
     },
   },
-  wrapNight: {
-    id: 'coinline.wrap_night',
+  doubleProfits: {
+    id: 'coinline.double_profits',
     get title() {
-      return t('services.products.wrapNight.title');
+      return t('services.products.doubleProfits.title');
     },
-    price: '$0.99',
+    price: '$4.99',
     get detail() {
-      return t('services.products.wrapNight.detail');
-    },
-  },
-  wrapLinen: {
-    id: 'coinline.wrap_linen',
-    get title() {
-      return t('services.products.wrapLinen.title');
-    },
-    price: '$0.99',
-    get detail() {
-      return t('services.products.wrapLinen.detail');
-    },
-  },
-  lightingWarm: {
-    id: 'coinline.lighting_warm',
-    get title() {
-      return t('services.products.lightingWarm.title');
-    },
-    price: '$1.99',
-    get detail() {
-      return t('services.products.lightingWarm.detail');
+      return t('services.products.doubleProfits.detail');
     },
   },
 } as const;
@@ -97,10 +77,7 @@ export async function syncEntitlements(): Promise<void> {
     // Bought on another install: the pack is owed to this one (the shop delivers it).
     if (owned.has(PRODUCTS.starterPack.id) && !p.entitlements.starterPackClaimed)
       p.entitlements.starterPackOwed = true;
-    for (const key of ['wrapNight', 'wrapLinen', 'lightingWarm'] as const) {
-      if (owned.has(PRODUCTS[key].id) && !p.entitlements.wraps.includes(key))
-        p.entitlements.wraps.push(key);
-    }
+    if (owned.has(PRODUCTS.doubleProfits.id)) p.entitlements.doubleProfits = true;
   });
 }
 
@@ -117,9 +94,7 @@ export async function buy(key: ProductKey): Promise<{ ok: boolean; error?: strin
     track('purchase', { product: key });
     useProfile.getState().update((p) => {
       if (key === 'removeAds') p.entitlements.removeAds = true;
-      if (key === 'wrapNight' || key === 'wrapLinen' || key === 'lightingWarm') {
-        if (!p.entitlements.wraps.includes(key)) p.entitlements.wraps.push(key);
-      }
+      if (key === 'doubleProfits') p.entitlements.doubleProfits = true;
     });
     return { ok: true };
   } catch (e) {

@@ -69,3 +69,39 @@ describe('chunked catch-up', () => {
     expect(job.run(1)).toBe(true);
   });
 });
+
+describe('Double Profits (salesBonus, SPEC §9)', () => {
+  it('pays every sale twice in cash but leaves lifetime sales untouched', () => {
+    const { s, world } = fleet(6);
+    const to = s.now + 6 * 3_600_000;
+    const plain = advance(s, world, to);
+    const doubled = advance(s, world, to, { salesBonus: 1 });
+    const sales = plain.report.salesCents;
+    expect(sales).toBeGreaterThan(0);
+    // Same customers, same sales, same progression.
+    expect(doubled.report.salesCents).toBe(sales);
+    expect(doubled.state.ledger.lifetimeSalesCents).toBe(plain.state.ledger.lifetimeSalesCents);
+    expect(doubled.state.ledger.lifetimeUnits).toBe(plain.state.ledger.lifetimeUnits);
+    // The bonus is the sales revenue again, paid straight to cash.
+    expect(doubled.state.cashCents - plain.state.cashCents).toBe(sales);
+  });
+
+  it('stacks additively with the rewarded-ad ×2 boost', () => {
+    const { s, world } = fleet(4);
+    const to = s.now + 3 * 3_600_000;
+    const plain = advance(s, world, to);
+    const boosted = { ...s, boosts: { doubleEarningsUntil: to + 1 } };
+    const both = advance(boosted, world, to, { salesBonus: 1 });
+    expect(both.state.cashCents - plain.state.cashCents).toBe(2 * plain.report.salesCents);
+  });
+
+  it('chunked catch-up matches one-shot with the bonus on', () => {
+    const { s, world } = fleet(5);
+    const to = s.now + 20 * 3_600_000;
+    const once = advance(s, world, to, { salesBonus: 1 });
+    const job = beginAdvance(s, world, to, { salesBonus: 1 });
+    while (!job.run(2));
+    expect(job.state).toEqual(once.state);
+    expect(job.report).toEqual(once.report);
+  });
+});

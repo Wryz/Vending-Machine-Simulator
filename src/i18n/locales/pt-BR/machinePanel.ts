@@ -58,7 +58,7 @@ export default {
     clearHint: 'Limpar o plano de reposição',
     more: 'Mais',
     less: 'Menos',
-    moreHint: 'Mostrar specs, adesivos e ações da máquina',
+    moreHint: 'Mostrar specs e ações da máquina',
     rotate: 'Girar',
     renegotiate: 'Renegociar',
     pickUp: 'Recolher',

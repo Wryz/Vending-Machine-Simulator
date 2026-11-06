@@ -15,20 +15,14 @@ export default {
       detail:
         'Camionnette améliorée, deux distributeurs de snacks et $2,000. Proposé une seule fois après le chapitre 1.',
     },
-    wrapNight: {
-      title: 'Habillage Équipe de nuit',
-      detail: 'Un habillage sombre et discret. Cosmétique.',
-    },
-    wrapLinen: {
-      title: 'Habillage Lin',
-      detail: 'Habillage blanc cassé chaleureux. Cosmétique.',
-    },
-    lightingWarm: {
-      title: 'Pack éclairage chaud',
-      detail: 'Éclairage chaud façon lampadaire la nuit. Cosmétique.',
+    doubleProfits: {
+      title: 'Profits doublés',
+      detail: 'Chaque vente rapporte le double, pour toujours.',
     },
   },
   owned: 'Acheté',
+  doubleProfitsNote:
+    'Toutes les machines, toutes les villes. Les objectifs de chapitre comptent les ventes normales.',
   buy: 'Acheter · {price}',
   starterAdded: 'Pack de départ ajouté. Deux distributeurs de snacks sont en stock.',
   starterPending: 'Achat enregistré. Ouvre une ville pour recevoir le Pack de départ.',
@@ -44,11 +38,8 @@ export default {
   noStoreBody: 'Tout dans le jeu peut se gagner en jouant.',
   section: {
     purchases: 'Achats',
-    looks: 'Style',
     rewards: 'Récompenses gratuites',
   },
-  looksNote:
-    'Applique habillages et éclairages depuis la vue rapprochée d’un distributeur. Purement cosmétique.',
   doubleTitle: {
     one: 'Gains doublés pendant {n} minute',
     other: 'Gains doublés pendant {n} minutes',

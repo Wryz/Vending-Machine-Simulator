@@ -5,6 +5,7 @@ import { CHAPTERS } from '@/config/progression';
 import { useT } from '@/i18n';
 import { content } from '@/i18n/content';
 import { activeMachines, type GameState } from '@/sim';
+import { useProfile } from '@/store/profile';
 
 import { chapterProgress } from './chapter';
 import { money, moneyShort } from './format';
@@ -42,18 +43,19 @@ export function MoneyPanel({
   const chapter = CHAPTERS.find((c) => c.n === game.chapter) ?? CHAPTERS[CHAPTERS.length - 1];
   const today = game.ledger.day.lines.Sales ?? 0;
   const inBoxes = activeMachines(game).reduce((a, m) => a + m.cashBoxCents, 0);
+  const doubleProfits = useProfile((s) => s.entitlements.doubleProfits);
   return (
     <View style={{ gap: SPACE.xs + 2, alignItems: 'flex-start' }}>
       <Pressable
         accessibilityRole={onPress ? 'button' : 'summary'}
-        accessibilityLabel={t('money.a11y.panel', {
+        accessibilityLabel={`${t('money.a11y.panel', {
           cash: money(game.cashCents),
           n: chapter.n,
           title: content.chapterTitle(chapter.n, chapter.title),
           progress: progress.text,
           today: money(today),
           waiting: money(inBoxes),
-        })}
+        })}${doubleProfits ? ` ${t('money.a11y.doubleProfits')}` : ''}`}
         onPress={onPress}
         disabled={!onPress}
         style={({ pressed }) => [styles.panel, { transform: [{ scale: pressed ? 0.97 : 1 }] }]}
@@ -69,6 +71,12 @@ export function MoneyPanel({
           <View style={{ width: 92 }}>
             <LedBar value={Math.min(1, progress.value)} segments={10} color={SKIN.ledAmber} />
           </View>
+          {/* Double Profits owned: a tiny ×2 tag, every sale pays double. */}
+          {doubleProfits ? (
+            <Mono size={11} weight="bold" color={SKIN.ledAmber} style={LED_GLOW(SKIN.ledAmber)}>
+              ×2
+            </Mono>
+          ) : null}
         </View>
         {/* Money coming in: today's sales, and cash waiting in the machines. */}
         <View style={styles.row}>

@@ -55,7 +55,7 @@ export default {
     clearHint: 'Clear the restock plan',
     more: 'More', // fold-out toggle
     less: 'Less', // fold-out toggle
-    moreHint: 'Show specs, wraps and machine actions',
+    moreHint: 'Show specs and machine actions',
     rotate: 'Rotate', // one-word chip
     renegotiate: 'Renegotiate', // one-word chip
     pickUp: 'Pick up', // one-word chip: take the machine back to storage

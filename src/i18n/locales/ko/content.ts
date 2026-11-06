@@ -96,10 +96,6 @@ export default {
     hotFood: '따뜻한 음식·특산품',
     alcohol: '맥주·와인',
   },
-  wraps: {
-    wrapNight: '야간 근무',
-    wrapLinen: '리넨',
-  },
   research: {
     telemetry: {
       name: '원격 모니터링',

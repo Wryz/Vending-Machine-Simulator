@@ -15,20 +15,13 @@ export default {
       detail:
         'Van-Upgrade, zwei Snackautomaten und $2,000 Bargeld. Einmalig nach Kapitel 1 angeboten.',
     },
-    wrapNight: {
-      title: 'Folierung Nachtschicht',
-      detail: 'Eine dunkle, ruhige Automatenfolierung. Nur Optik.',
-    },
-    wrapLinen: {
-      title: 'Folierung Leinen',
-      detail: 'Warmes Cremeweiß. Nur Optik.',
-    },
-    lightingWarm: {
-      title: 'Warmes Lichtpaket',
-      detail: 'Warmes Natriumlicht für die Waren bei Nacht. Nur Optik.',
+    doubleProfits: {
+      title: 'Doppelter Gewinn',
+      detail: 'Jeder Verkauf bringt das Doppelte, für immer.',
     },
   },
   owned: 'Gekauft',
+  doubleProfitsNote: 'Jeder Automat, jede Stadt. Kapitelziele zählen normale Verkäufe.',
   buy: 'Kaufen · {price}',
   starterAdded: 'Starterpaket erhalten. Zwei Snackautomaten sind im Lager.',
   starterPending: 'Kauf gespeichert. Öffne eine Stadt, um das Starterpaket zu erhalten.',
@@ -44,10 +37,8 @@ export default {
   noStoreBody: 'Alles im Spiel lässt sich auch erspielen.',
   section: {
     purchases: 'Käufe',
-    looks: 'Optik',
     rewards: 'Gratis-Belohnungen',
   },
-  looksNote: 'Folierungen und Licht wendest du in der Nahansicht eines Automaten an. Nur Optik.',
   doubleTitle: {
     one: 'Doppelte Einnahmen für {n} Minute',
     other: 'Doppelte Einnahmen für {n} Minuten',

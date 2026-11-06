@@ -34,7 +34,8 @@ export interface Entitlements {
   /** Bought (restored) but not yet delivered to a game on this install. */
   starterPackOwed?: boolean;
   starterPackOffered: boolean;
-  wraps: string[];
+  /** Double Profits (one-time): every sale pays a bonus equal to its revenue. */
+  doubleProfits: boolean;
 }
 
 export interface Profile {
@@ -75,7 +76,7 @@ const DEFAULT: Profile = {
     removeAds: false,
     starterPackClaimed: false,
     starterPackOffered: false,
-    wraps: [],
+    doubleProfits: false,
   },
 };
 
@@ -108,6 +109,8 @@ export const useProfile = create<ProfileStore>((set, get) => ({
       },
       entitlements: { ...DEFAULT.entitlements, ...(saved?.entitlements ?? {}) },
     };
+    // Old profiles carried cosmetic `wraps` (dropped 2026-11); keep only known fields.
+    delete (merged.entitlements as Partial<Entitlements> & { wraps?: unknown }).wraps;
     if (!merged.installId) merged.installId = randomId();
     set({ ...merged, loaded: true });
     writeJson('profile', merged);

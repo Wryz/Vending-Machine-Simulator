@@ -14,20 +14,13 @@ export default {
       title: '스타터 팩',
       detail: '밴 업그레이드, 스낵 자판기 2대, 현금 $2,000. 챕터 1 이후 한 번만 제공.',
     },
-    wrapNight: {
-      title: '야간 근무 래핑',
-      detail: '어둡고 차분한 자판기 래핑. 외형 전용.',
-    },
-    wrapLinen: {
-      title: '리넨 래핑',
-      detail: '따뜻한 아이보리 래핑. 외형 전용.',
-    },
-    lightingWarm: {
-      title: '따뜻한 조명 팩',
-      detail: '밤에 나트륨등처럼 따뜻한 상품 조명. 외형 전용.',
+    doubleProfits: {
+      title: '수익 2배',
+      detail: '모든 판매 수익이 영구히 2배.',
     },
   },
   owned: '보유',
+  doubleProfitsNote: '모든 자판기, 모든 도시에서. 챕터 목표는 일반 판매로 계산해요.',
   buy: '구매 · {price}',
   starterAdded: '스타터 팩 지급 완료. 스낵 자판기 2대가 보관함에 있어요.',
   starterPending: '구매가 기록됐어요. 도시를 열면 스타터 팩을 받아요.',
@@ -43,10 +36,8 @@ export default {
   noStoreBody: '게임 속 모든 것은 플레이로 얻을 수 있어요.',
   section: {
     purchases: '구매',
-    looks: '외형',
     rewards: '무료 보상',
   },
-  looksNote: '래핑과 조명은 자판기 클로즈업에서 적용해요. 외형 전용.',
   doubleTitle: {
     one: '{n}분 동안 수익 두 배',
     other: '{n}분 동안 수익 두 배',

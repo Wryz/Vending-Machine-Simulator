@@ -12,20 +12,13 @@ export default {
       title: 'Starter Pack',
       detail: 'Van upgrade, two snack machines and $2,000 cash. Offered once after chapter 1.',
     },
-    wrapNight: {
-      title: 'Night Shift wrap',
-      detail: 'A dark, quiet machine wrap. Cosmetic.',
-    },
-    wrapLinen: {
-      title: 'Linen wrap',
-      detail: 'Warm off-white wrap. Cosmetic.',
-    },
-    lightingWarm: {
-      title: 'Warm lighting pack',
-      detail: 'Sodium-warm product lighting at night. Cosmetic.',
+    doubleProfits: {
+      title: 'Double Profits',
+      detail: 'Every sale pays double, forever.',
     },
   },
   owned: 'Owned',
+  doubleProfitsNote: 'Every machine, every city. Chapter goals count regular sales.',
   buy: 'Buy · {price}', // button
   starterAdded: 'Starter Pack added. Two snack machines are in storage.',
   starterPending: 'Purchase recorded. Open a city to receive the Starter Pack.',
@@ -41,10 +34,8 @@ export default {
   noStoreBody: 'Everything in the game can be earned by playing.',
   section: {
     purchases: 'Purchases',
-    looks: 'Looks', // cosmetics (wraps, lighting)
     rewards: 'Free rewards',
   },
-  looksNote: "Apply wraps and lighting from a machine's close-up. Cosmetic only.",
   doubleTitle: {
     one: 'Double earnings for {n} minute',
     other: 'Double earnings for {n} minutes',

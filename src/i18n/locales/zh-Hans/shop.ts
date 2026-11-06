@@ -14,20 +14,13 @@ export default {
       title: '新手礼包',
       detail: '货车升级、两台零食机和 $2,000 现金。第 1 章后限购一次。',
     },
-    wrapNight: {
-      title: '夜班外观',
-      detail: '低调深色的售货机外观。仅装饰。',
-    },
-    wrapLinen: {
-      title: '亚麻外观',
-      detail: '温暖的米白色外观。仅装饰。',
-    },
-    lightingWarm: {
-      title: '暖光灯光包',
-      detail: '夜间钠灯般的暖色商品照明。仅装饰。',
+    doubleProfits: {
+      title: '双倍利润',
+      detail: '每笔销售永久翻倍。',
     },
   },
   owned: '已拥有',
+  doubleProfitsNote: '所有售货机、所有城市通用。章节目标按普通销售计算。',
   buy: '购买 · {price}',
   starterAdded: '新手礼包已到账。两台零食机已放入库存。',
   starterPending: '购买已记录。打开一座城市即可领取新手礼包。',
@@ -43,10 +36,8 @@ export default {
   noStoreBody: '游戏里的一切都可以通过游玩获得。',
   section: {
     purchases: '购买',
-    looks: '外观',
     rewards: '免费奖励',
   },
-  looksNote: '在售货机特写中应用外观和灯光。仅装饰。',
   doubleTitle: {
     one: '收入翻倍 {n} 分钟',
     other: '收入翻倍 {n} 分钟',

@@ -7,5 +7,7 @@ export default {
     panel:
       'Bargeld {cash}. Kapitel {n}, {title}: {progress}. Heute {today} Umsatz, {waiting} warten in deinen Automaten.',
     cash: 'Bargeld {amount}',
+    /** Appended when Double Profits is owned. */
+    doubleProfits: 'Doppelter Gewinn aktiv: Jeder Verkauf bringt das Doppelte.',
   },
 } satisfies Shape<typeof en>;

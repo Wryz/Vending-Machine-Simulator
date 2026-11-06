@@ -58,7 +58,7 @@ export default {
     clearHint: 'Borrar el plan de reposición',
     more: 'Más',
     less: 'Menos',
-    moreHint: 'Ver ficha, vinilos y acciones de la máquina',
+    moreHint: 'Ver ficha y acciones de la máquina',
     rotate: 'Girar',
     renegotiate: 'Renegociar',
     pickUp: 'Retirar',

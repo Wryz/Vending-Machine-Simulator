@@ -10,6 +10,14 @@ type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 const MIGRATIONS: Record<number, Migration> = {
   // v2: daily orders, streaks and trophies.
   1: (s) => ({ ...s, goals: emptyGoals(), achievements: {}, schemaVersion: 2 }),
+  // v3: cosmetic wraps were dropped (SPEC §9, 2026-11); machines lose `wrap`.
+  2: (s) => ({
+    ...s,
+    machines: Array.isArray(s.machines)
+      ? (s.machines as Record<string, unknown>[]).map(({ wrap: _wrap, ...m }) => m)
+      : s.machines,
+    schemaVersion: 3,
+  }),
 };
 
 export class SaveError extends Error {}

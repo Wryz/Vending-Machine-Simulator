@@ -2,8 +2,6 @@ import * as THREE from 'three';
 
 import { CLOSEUP_MOTION } from '@/config/streetLife';
 
-import { productGlow as warmGlow } from './warmLighting';
-
 import {
   clamp01,
   coinGlintsMs,
@@ -35,8 +33,6 @@ export interface MachineFx {
   collect(nowMs: number): void;
   setBroken(broken: boolean): void;
   setSelected(slot: number | null): void;
-  /** Warm lighting pack (shop cosmetic): night product glow turns sodium-warm. */
-  setWarmLighting(on: boolean): void;
   /** `glow` is the time-of-day glow already applied to the model. */
   update(nowMs: number, glow: number): void;
   dispose(): void;
@@ -142,7 +138,6 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
   let broken = false;
   let stuck = -1;
   let selected: number | null = null;
-  let warm = false;
 
   const m4 = new THREE.Matrix4();
   const q = new THREE.Quaternion();
@@ -200,9 +195,6 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
     setSelected(slot) {
       selected = slot;
     },
-    setWarmLighting(on) {
-      warm = on;
-    },
     update(nowMs, glow) {
       const tS = nowMs / 1000;
       const productGlow = PRODUCT_GLOW * glow * (broken ? 0.5 : 1);
@@ -233,10 +225,9 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
           sl.material.emissive.copy(WARM);
           sl.material.emissiveIntensity = 0.5 * flash + productGlow;
         } else {
-          // Product lighting behind the glass after dusk (LED strips; sodium-warm with the pack).
-          const g = warmGlow(sl.material.color, productGlow, warm);
-          sl.material.emissive.setRGB(g.color.r, g.color.g, g.color.b);
-          sl.material.emissiveIntensity = g.intensity;
+          // Product lighting behind the glass after dusk (LED strips).
+          sl.material.emissive.copy(sl.material.color);
+          sl.material.emissiveIntensity = productGlow;
         }
       }
 

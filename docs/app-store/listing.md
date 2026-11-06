@@ -121,11 +121,16 @@ Create these under **Monetization › In-App Purchases** (all **Non-Consumable**
 |---|---|---|---|---|
 | `coinline.remove_ads` | Remove Ads | Remove Ads + Longer Breaks | No ad offers, 25% longer offline earnings | $4.99 |
 | `coinline.starter_pack` | Starter Pack | Starter Pack | Van upgrade, 2 snack machines and $2,000 | $2.99 |
-| `coinline.wrap_night` | Night Shift Wrap | Night Shift Wrap | A dark, quiet machine wrap. Cosmetic. | $0.99 |
-| `coinline.wrap_linen` | Linen Wrap | Linen Wrap | A warm off-white machine wrap. Cosmetic. | $0.99 |
-| `coinline.lighting_warm` | Warm Lighting | Warm Lighting Pack | Warm product lighting at night. Cosmetic. | $1.99 |
+| `coinline.double_profits` | Double Profits | Double Profits | Every sale pays double, forever | $4.99 |
 
-Description lengths: 41, 40, 37, 40, 41 (all ≤ 45).
+Description lengths: 41, 40, 31 (all ≤ 45).
+
+The cosmetic products (`coinline.wrap_night`, `coinline.wrap_linen`, `coinline.lighting_warm`) were dropped on 2026-11-06 and are no longer in the app. If they were created in App Store Connect, remove them before submission (or leave them unsubmitted so they never go to review).
+
+**Double Profits review note:**
+```
+Double Profits is a one-time, non-consumable upgrade. After purchase, every in-game sale in every city also pays a bonus equal to the sale (in-game money only, so income from sales is doubled). It shows as "x2" on the cash display and "Owned" in the Shop, and is restored with Restore purchases. Everything in the game can still be reached without buying it.
+```
 
 ## App Review information
 
@@ -137,7 +142,7 @@ Coinline is a single-player vending business game on a real map. No account or l
 
 - On first launch the game offers a list of cities to start in (location is not requested in this version).
 - Ads are optional rewarded ads only (for example, "x2 earnings"). They are requested as non-personalized. The App Tracking Transparency prompt appears only if the player turns on "Personalized ads" in Settings.
-- In-app purchases are in Company tab › Shop, with a Restore purchases button.
+- In-app purchases are in Company tab › Shop, with a Restore purchases button. Double Profits (one-time) doubles in-game income from sales.
 - The Starter Pack appears after chapter 1 (about 10 minutes of play: place the first machine, stock it, collect $1,000 in sales).
 - Map data © OpenStreetMap contributors (ODbL), credited in Settings › Credits and licenses.
 ```

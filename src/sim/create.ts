@@ -45,7 +45,6 @@ export function storedMachine(id: string, typeId: MachineTypeId, now: number): M
     lastVisitAt: now,
     seen: { at: now, qty: Array.from({ length: type.slots }, () => 0), cashBoxCents: 0 },
     stats: { unitsTotal: 0, revenueTotalCents: 0, revenueRecentCents: 0, lastSaleAt: null },
-    wrap: null,
   };
 }
 

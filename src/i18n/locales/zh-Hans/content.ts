@@ -96,10 +96,6 @@ export default {
     hotFood: '热食和特色',
     alcohol: '啤酒和葡萄酒',
   },
-  wraps: {
-    wrapNight: '夜班',
-    wrapLinen: '亚麻',
-  },
   research: {
     telemetry: {
       name: '远程监控',

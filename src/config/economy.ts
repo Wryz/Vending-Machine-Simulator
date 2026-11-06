@@ -237,6 +237,8 @@ export const ADS = {
 export const PURCHASES = {
   removeAdsOfflineCapMultiplier: 1.25,
   starterPackCashCents: 200_000,
+  /** Double Profits (one-time): every sale pays this share of its revenue on top. */
+  doubleProfitsSalesBonus: 1,
 } as const;
 
 export const NOTIFICATIONS = {

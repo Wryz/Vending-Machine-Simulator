@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import { getCity, type CityId } from '@/config/cities';
-import { SAVE, TIME } from '@/config/economy';
+import { PURCHASES, SAVE, TIME } from '@/config/economy';
 import { loadCityPack, loadRegionPack } from '@/data/cityPack';
 import { cellOf, neighbors } from '@/data/h3';
 import { fetchWeather } from '@/data/api';
@@ -24,6 +24,7 @@ import {
   newGame,
   type AdvanceReport,
   type GameState,
+  type SimOptions,
   type World,
 } from '@/sim';
 
@@ -114,8 +115,13 @@ function saveKey(city: CityInfo) {
   return `save-${cityKey(city)}`;
 }
 
-function offlineCapMultiplier(): number {
-  return useProfile.getState().entitlements.removeAds ? 1.25 : 1;
+/** Sim options from what the player bought (Remove Ads cap, Double Profits bonus). */
+function simOptions(): SimOptions {
+  const e = useProfile.getState().entitlements;
+  return {
+    offlineCapMultiplier: e.removeAds ? PURCHASES.removeAdsOfflineCapMultiplier : 1,
+    salesBonus: e.doubleProfits ? PURCHASES.doubleProfitsSalesBonus : 0,
+  };
 }
 
 export const useGame = create<GameStore>((set, get) => {
@@ -189,9 +195,7 @@ export const useGame = create<GameStore>((set, get) => {
             seed: opts.seed ?? Math.floor(Math.random() * 2 ** 31),
           });
         } else if (now - game.now > 0) {
-          const { state, report } = advance(game, world, now, {
-            offlineCapMultiplier: offlineCapMultiplier(),
-          });
+          const { state, report } = advance(game, world, now, simOptions());
           if (now - game.now >= OFFLINE_REPORT_MIN_MS) offlineReport = report;
           game = state;
         }
@@ -225,9 +229,7 @@ export const useGame = create<GameStore>((set, get) => {
           .then((w) => weatherBook.load(w.hours))
           .catch(() => undefined);
       }
-      const { state, report } = advance(game, world, now, {
-        offlineCapMultiplier: offlineCapMultiplier(),
-      });
+      const { state, report } = advance(game, world, now, simOptions());
       return commitAdvance(now, now - game.now, state, report);
     },
     resume() {
@@ -240,7 +242,7 @@ export const useGame = create<GameStore>((set, get) => {
       }
       // Long absence: run the catch-up a slice at a time so the "while you were away"
       // overlay paints and its meter moves. Same result as one advance() call.
-      const job = beginAdvance(game, world, now, { offlineCapMultiplier: offlineCapMultiplier() });
+      const job = beginAdvance(game, world, now, simOptions());
       set({ catchingUp: true, catchUpProgress: 0 });
       const slice = () => {
         // The city was closed or replaced meanwhile: drop this catch-up.
@@ -274,9 +276,7 @@ export const useGame = create<GameStore>((set, get) => {
       // Bring the sim up to date first so actions happen "now".
       let current: GameState;
       if (Date.now() > game.now) {
-        const caught = advance(game, world, Date.now(), {
-          offlineCapMultiplier: offlineCapMultiplier(),
-        });
+        const caught = advance(game, world, Date.now(), simOptions());
         announceMoments(caught.state, caught.report);
         current = caught.state;
       } else current = cloneState(game);

@@ -13,17 +13,9 @@ export default {
       detail:
         'Camionnette améliorée, deux distributeurs de snacks et $2,000. Proposé une seule fois après le chapitre 1.',
     },
-    wrapNight: {
-      title: 'Habillage Équipe de nuit',
-      detail: 'Un habillage sombre et discret. Cosmétique.',
-    },
-    wrapLinen: {
-      title: 'Habillage Lin',
-      detail: 'Habillage blanc cassé chaleureux. Cosmétique.',
-    },
-    lightingWarm: {
-      title: 'Pack éclairage chaud',
-      detail: 'Éclairage chaud façon lampadaire la nuit. Cosmétique.',
+    doubleProfits: {
+      title: 'Profits doublés',
+      detail: 'Chaque vente rapporte le double, pour toujours.',
     },
   },
   errors: {

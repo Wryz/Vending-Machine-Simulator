@@ -7,5 +7,7 @@ export default {
     panel:
       'Dinero {cash}. Capítulo {n}, {title}: {progress}. Hoy {today} en ventas, {waiting} esperando en tus máquinas.',
     cash: 'Dinero {amount}',
+    /** Appended when Double Profits is owned. */
+    doubleProfits: 'Ganancias dobles activas: cada venta paga el doble.',
   },
 } satisfies Shape<typeof en>;

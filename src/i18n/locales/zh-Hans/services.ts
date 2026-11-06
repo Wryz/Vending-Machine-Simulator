@@ -12,17 +12,9 @@ export default {
       title: '新手礼包',
       detail: '货车升级、两台零食机和 $2,000 现金。第 1 章后限购一次。',
     },
-    wrapNight: {
-      title: '夜班外观',
-      detail: '低调深色的售货机外观。仅装饰。',
-    },
-    wrapLinen: {
-      title: '亚麻外观',
-      detail: '温暖的米白色外观。仅装饰。',
-    },
-    lightingWarm: {
-      title: '暖光灯光包',
-      detail: '夜间钠灯般的暖色商品照明。仅装饰。',
+    doubleProfits: {
+      title: '双倍利润',
+      detail: '每笔销售永久翻倍。',
     },
   },
   errors: {

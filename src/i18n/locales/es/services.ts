@@ -13,17 +13,9 @@ export default {
       detail:
         'Mejora de camioneta, dos máquinas de snacks y $2,000 en efectivo. Se ofrece una vez tras el capítulo 1.',
     },
-    wrapNight: {
-      title: 'Vinilo Turno de noche',
-      detail: 'Un vinilo oscuro y discreto para la máquina. Cosmético.',
-    },
-    wrapLinen: {
-      title: 'Vinilo Lino',
-      detail: 'Vinilo blanco roto y cálido. Cosmético.',
-    },
-    lightingWarm: {
-      title: 'Pack de luz cálida',
-      detail: 'Luz cálida de sodio para los productos de noche. Cosmético.',
+    doubleProfits: {
+      title: 'Ganancias dobles',
+      detail: 'Cada venta paga el doble, para siempre.',
     },
   },
   errors: {

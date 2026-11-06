@@ -12,17 +12,9 @@ export default {
       title: 'スターターパック',
       detail: 'バンの強化、スナック自販機2台、所持金$2,000。第1章クリア後に1回だけ販売。',
     },
-    wrapNight: {
-      title: 'ナイトシフト・ラッピング',
-      detail: 'ダークで落ち着いたラッピング。見た目のみ。',
-    },
-    wrapLinen: {
-      title: 'リネン・ラッピング',
-      detail: 'あたたかみのあるオフホワイト。見た目のみ。',
-    },
-    lightingWarm: {
-      title: '暖色ライトパック',
-      detail: '夜の商品照明をナトリウム灯の暖色に。見た目のみ。',
+    doubleProfits: {
+      title: '利益2倍',
+      detail: 'すべての売上がずっと2倍。',
     },
   },
   errors: {

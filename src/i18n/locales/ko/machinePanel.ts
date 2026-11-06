@@ -58,7 +58,7 @@ export default {
     clearHint: '보충 계획 지우기',
     more: '더 보기',
     less: '접기',
-    moreHint: '사양, 래핑, 자판기 동작 보기',
+    moreHint: '사양과 자판기 동작 보기',
     rotate: '회전',
     renegotiate: '재협상',
     pickUp: '회수',

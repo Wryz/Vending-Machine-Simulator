@@ -58,7 +58,7 @@ export default {
     clearHint: '清除补货计划',
     more: '更多',
     less: '收起',
-    moreHint: '显示参数、外观和售货机操作',
+    moreHint: '显示参数和售货机操作',
     rotate: '旋转',
     renegotiate: '重谈',
     pickUp: '收回',

@@ -120,6 +120,20 @@ describe('trophies', () => {
   });
 });
 
+describe('save migration v2 -> v3', () => {
+  it('drops the old cosmetic wrap from machines', () => {
+    const s = JSON.parse(
+      JSON.stringify(newGame({ cityId: 'new-york', now: NOON_NY, seed: 1 })),
+    ) as Record<string, unknown>;
+    const machine = { id: 'm1', wrap: 'wrapNight', typeId: 'snack' };
+    s.machines = [machine];
+    s.schemaVersion = 2;
+    const m = migrateSave(s);
+    expect(m.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(m.machines[0]).toEqual({ id: 'm1', typeId: 'snack' });
+  });
+});
+
 describe('save migration v1 -> v2', () => {
   it('adds goals and achievements to old saves', () => {
     const s = newGame({ cityId: 'new-york', now: NOON_NY, seed: 1 }) as unknown as Record<

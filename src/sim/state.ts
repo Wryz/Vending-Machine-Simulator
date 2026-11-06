@@ -10,7 +10,7 @@ import type { GoalsState } from './goals';
  * epoch ms (real time).
  */
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export interface Slot {
   productId: string | null;
@@ -80,7 +80,6 @@ export interface Machine {
   /** What the player last saw (used without telemetry). */
   seen: { at: number; qty: number[]; cashBoxCents: number };
   stats: MachineStats;
-  wrap: string | null;
 }
 
 export interface Driver {
@@ -223,4 +222,9 @@ export interface World {
 export interface SimOptions {
   /** Offline cap multiplier from purchases (Remove Ads + ×1.25). */
   offlineCapMultiplier?: number;
+  /**
+   * Extra cash per sale as a share of its revenue (Double Profits = 1, SPEC §9).
+   * Paid as ledger 'Bonus'; it does not count toward lifetime sales.
+   */
+  salesBonus?: number;
 }
