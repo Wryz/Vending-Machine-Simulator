@@ -8,8 +8,8 @@ Mobile game: **Vending Machine Simulator** (working brand "Coinline"). A real-wo
 - TypeScript strict. No `any` without a comment explaining why.
 - Game logic lives in `src/sim/` as pure, deterministic functions with unit tests. No React, rendering or I/O imports there.
 - All tunable numbers (prices, rates, costs, thresholds) live in `src/config/`. Never hard-code them in components or the sim.
-- Art direction is **calm, premium, low-poly realism** (SPEC §3). No cartoon proportions, outlines or bouncy UI. The map style and 3D lighting must follow the city's real local time.
-- UI elements are physical objects (receipts, clipboard, key ring, coin tray, contract sheet). Build them as reusable components in `src/ui/`.
+- Art direction is **bright, flat-shaded low-poly** (SPEC §3): saturated and sunny, real proportions, no outlines, lively but restrained motion. The map style and 3D lighting follow the city's real local time; nights are cozy, not dark.
+- The map is always the screen: floating round buttons and pills, details in `@gorhom/bottom-sheet` sheets, pill buttons, rounded borderless cards, little text (SPEC §3.6). Build them as reusable components in `src/ui/`.
 - No real brands or logos on products or machines. Real place names come from open map data, without logos.
 - Privacy: approximate location only, never stored server-side; saves are local only in v1.
 - Ads are opt-in rewarded only. Never add interstitials or forced ads.

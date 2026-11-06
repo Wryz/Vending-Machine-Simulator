@@ -71,20 +71,22 @@ You start a vending side hustle with one used $250 machine and grow it into a ci
   - **Slotwise**
 
 ### 3.2 Brand personality
-Calm and premium, like a beautifully made city utility with a quiet sense of humor. Confident, never loud. Copy is short and plain ("Cash box full", "Restocked 14 items").
+Fun, bright and lively, like a sunny toy-town version of your own city, with a warm sense of humor. Cheerful but never noisy. Copy is short and plain ("Cash box full", "Restocked 14 items"); the screen shows numbers and icons before sentences.
 
-### 3.3 Visual style: low-poly realism
-- **Proportions are real.** A snack machine is about 1.83 m tall, 0.9 m wide, 0.9 m deep. No chibi or bobble proportions, no thick outlines, no bouncy squash-and-stretch on objects.
+### 3.3 Visual style: bright flat-shaded low-poly
+*(Revised 2026-11-05: from "calm, premium, low-poly realism" to bright and flat, at the owner's request.)*
+- **Proportions stay real.** A snack machine is about 1.83 m tall, 0.9 m wide, 0.9 m deep. No chibi or bobble proportions, no thick outlines. Motion is lively but restrained: springy pop-ins on UI, no squash-and-stretch on objects.
+- **Flat and saturated.** Sunny, candy-but-harmonious colors; flat shading over subtle gradients.
 - **Geometry:** flat-shaded low-poly. Hero machines run 800–3,000 triangles; small props 50–400. Chamfers are suggested by single bevels.
 - **Materials:** simple PBR (base color, roughness, light metalness), baked ambient occlusion. Color comes from material, not textures. Small texture atlases only for labels, product faces and screens.
-- **Machines are the color.** The city is muted; machines carry saturated accents by product family:
+- **Machines are the color.** The city is bright but soft; machines carry the most saturated accents, by product family:
   - snacks: warm red;
   - drinks: deep blue;
   - capsules: teal;
   - tech: graphite and white;
   - hot food: amber;
   - alcohol: oxblood.
-- **Night:** machine fronts become emissive (screens, product lighting) with subtle bloom. Streets get warm sodium and cool LED pools. Night should feel quietly beautiful, not neon-arcade.
+- **Night:** cozy, not dark. The city turns indigo and lavender and stays readable; machine fronts glow warm. Not neon-arcade.
 
 ### 3.4 Lighting tied to real time
 - Compute the sun's position from the city's latitude, longitude and real local time (e.g., `suncalc`).
@@ -94,14 +96,17 @@ Calm and premium, like a beautifully made city utility with a quiet sense of hum
 
 ### 3.5 Map style (must match the 3D)
 Custom MapLibre style, not a default basemap:
-- **Base:** warm-gray land, slightly cooler asphalt roads, muted sage parks, desaturated slate water.
-- **Buildings:** `fill-extrusion` using building height where available (default about 3 floors, 10 m). Soft off-white or concrete tones, with vertical gradient and shading tinted by the time-of-day preset. They read as an architect's model of the city.
+- **Base:** warm cream land, white streets with butter-yellow main roads, fresh green parks, candy-blue water.
+- **Buildings:** `fill-extrusion` using building height where available (default about 3 floors, 10 m). Soft near-white pastel blocks tinted by the time-of-day preset.
 - **Labels:** minimal. Districts and major roads only at mid zoom; place names appear only near selected spots. Typeface matches the UI (§3.7).
 - **POIs:** never use default POI icons. When a spot is selected, nearby places appear as small, consistent low-poly-style category glyphs (school, gym, office, hospital, station, café, park, stadium, university, nightlife).
-- **Machines on the map:** rendered as pre-rendered low-poly sprites of the actual 3D models (§7.3), pitch-aligned, with a soft contact shadow. Status rings are subtle: low stock is amber, cash full is green, broken is red.
+- **Machines on the map:** rendered as pre-rendered low-poly sprites of the actual 3D models (§7.3) with a soft glowing pad in the family color. They never shrink below a readable size (about 32 pt tall), so machines are always the stars of the map. Status rings: low stock is amber, cash full is green, broken is red.
+- **Views:** a tilted 3D view and a straight top-down view (one toggle). Zooming far out hands off to a low-poly globe showing every city and machine (MapLibre Native has no globe projection yet, so the globe is a three.js scene).
 
-### 3.6 UI: physical objects
-UI elements are physical things a vending operator handles, rendered flat-but-dimensional (paper grain, slight shadow, real proportions). Never skeuomorphic kitsch.
+### 3.6 UI: soft, rounded, map-first
+The map is always the screen. Controls float over it as round buttons and pills; details open in bottom sheets (`@gorhom/bottom-sheet`) instead of new pages. Buttons are pills, cards are rounded and borderless with soft shadows; no boxy panels, no all-caps labels. Show numbers and icons before text.
+
+Physical objects remain as themes for specific moments, drawn in the same bright flat style:
 
 | Object | Used for |
 |---|---|
@@ -122,16 +127,15 @@ UI elements are physical things a vending operator handles, rendered flat-but-di
 - **Type** (Google Fonts, OFL licensed; bundle the fonts):
   - UI: **Instrument Sans** (fallback: system).
   - Receipts, prices, numbers: **JetBrains Mono** (tabular figures).
-- **Color tokens:**
-  - `ink` #1B1F23
-  - `paper` #F3F1EC
-  - `concrete` #C9C6BF
-  - `asphalt` #5C6066
-  - `signal` #2E7D5B (success, money)
-  - `amber` #D9932B (warnings, low stock)
-  - `alert` #B5473A (broken, theft)
+- **Color tokens** (`src/ui/theme.ts`):
+  - `brand` #FF6B2C (tangerine: primary actions, splash, icon)
+  - `ink` #23264A
+  - `paper` #FFF8EE
+  - `signal` #1FB36B (success, money)
+  - `amber` #FFB020 (warnings, low stock)
+  - `alert` #FF4F45 (broken, theft)
   - machine family accents as in §3.3
-- Dark (night) UI variants derive from the same tokens. The UI theme follows the city's real time, not the phone's setting (configurable in Settings).
+- The night UI is a cozy indigo built from the same tokens. The UI theme follows the city's real time, not the phone's setting (configurable in Settings).
 
 ---
 
@@ -411,8 +415,8 @@ pipeline/                # offline data pipeline (Python/DuckDB), not shipped in
 | Screen | Contents |
 |---|---|
 | Onboarding | Cold open → location explanation → permission → area check → city or picker → first machine tutorial (place, stock, price, first sale) |
-| Map (home) | Real map with time-of-day style, machine sprites with status rings, heat overlay toggle, event pins, rival machines, top receipt-ticker of live sales, key ring button, route clipboard, company button |
-| Spot Card | Address-level area name, nearby places (real names + category glyphs + distance), hourly traffic sparkline, best families, competition, contract terms, Place button |
+| Map (home) | Full-screen map with time-of-day style; machine sprites with family pads and status rings; event pins; rival machines. Floating: cash pill, one status pill (clock and weather, or the latest sale), round buttons for settings, 3D/top-down, busy streets (heat) and locate. One persistent bottom sheet: chapter goal and actions (keys, routes, orders, company, shop) when collapsed, the fleet when pulled up. Zoom far out to the globe |
+| Spot Card | A bottom sheet over the map: place name and rating, customers per hour and sales per day, hourly sparkline, the top reasons, machine choice, Place button; nearby places further down |
 | Machine close-up (3D) | Machine front, slot grid, drag-to-restock from van crate, price tags editable, cash box → coin tray, repair interaction, upgrade spec tag |
 | Route clipboard | Restock route builder, van capacity, drivers and their routes, auto-reorder rules |
 | Company | Chapter progress, finances (receipt-style P&L), staff, warehouse, permits, research (global upgrades), prestige |
