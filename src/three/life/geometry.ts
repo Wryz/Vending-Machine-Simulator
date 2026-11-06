@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 /**
  * Small three.js helpers for the street set: merge flat-shaded parts into one
- * geometry (one draw call), generated alpha textures (no canvas on device),
- * and an instance-aware triangle counter for the §7.4 budget.
+ * geometry (one draw call), instanced meshes for moving people, and an
+ * instance-aware triangle counter for the §7.4 budget.
  */
 
 export interface Part {
@@ -65,53 +65,6 @@ export function boxPart(
     matrix: new THREE.Matrix4().makeTranslation(x, y, z),
     color,
   };
-}
-
-/** Extrude a side profile (x forward, y up) to width `w` centered on z. */
-export function profilePart(
-  pts: readonly (readonly [number, number])[],
-  w: number,
-  color?: THREE.ColorRepresentation,
-  zOffset = 0,
-): Part {
-  const sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)));
-  const geo = new THREE.ExtrudeGeometry(sh, { depth: w, bevelEnabled: false, steps: 1 });
-  return { geo, matrix: new THREE.Matrix4().makeTranslation(0, 0, -w / 2 + zOffset), color };
-}
-
-/**
- * Generated alpha masks (green channel used by `alphaMap`):
- * - 'round': soft disc (light pools, contact shadows)
- * - 'beam': a headlight throw that widens and fades along +u
- */
-export function maskTexture(kind: 'round' | 'beam', size = 64): THREE.DataTexture {
-  const data = new Uint8Array(size * size * 4);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const u = (x + 0.5) / size;
-      const v = ((y + 0.5) / size) * 2 - 1;
-      let a: number;
-      if (kind === 'round') {
-        const r = Math.hypot(u * 2 - 1, v);
-        a = Math.max(0, 1 - r * r) ** 2;
-      } else {
-        const width = 0.3 + 0.7 * u;
-        const lateral = Math.max(0, 1 - Math.abs(v) / width);
-        a = lateral * lateral * (1 - u) ** 1.4 * Math.min(1, u / 0.06);
-      }
-      const b = Math.round(255 * Math.min(1, a));
-      const i = (y * size + x) * 4;
-      data[i] = b;
-      data[i + 1] = b;
-      data[i + 2] = b;
-      data[i + 3] = 255;
-    }
-  }
-  const t = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
-  t.magFilter = THREE.LinearFilter;
-  t.minFilter = THREE.LinearFilter;
-  t.needsUpdate = true;
-  return t;
 }
 
 /** Triangles actually submitted: visible meshes only, instanced meshes × their count. */

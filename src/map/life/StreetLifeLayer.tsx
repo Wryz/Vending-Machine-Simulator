@@ -26,21 +26,20 @@ import { LIFE_SPRITE_IMAGES, LIFE_SPRITE_PTS_PER_METER } from '../lifeSprites';
 import type { TimeOfDay } from '../timeOfDay';
 
 import {
-  lifeBeamLayer,
+  busyLevel,
   lifeGeoJSON,
   lifeLightFor,
   lifeSymbolLayer,
   lifeViewRadiusM,
   roadsFromFeatures,
   StreetLife,
-  trafficLevel,
   type LifeConditions,
   type LifeView,
   type LifeWeather,
 } from './index';
 
 /**
- * Cars and pedestrians on the map at close zoom (RN side of src/map/life).
+ * Pedestrians and customers on the map at close zoom (RN side of src/map/life).
  *
  * - Roads: queried from the rendered road layers when the camera settles
  *   (debounced), so the sim always matches what is drawn.
@@ -53,9 +52,8 @@ import {
 
 export interface LifeStats {
   /** 0..1, how busy the city is right now around the camera. */
-  traffic: number;
+  busy: number;
   zoom: number;
-  cars: number;
   people: number;
 }
 
@@ -72,7 +70,7 @@ interface Props {
   now: number;
   tod: TimeOfDay;
   paused?: boolean;
-  /** Draw under this layer (default: under the buildings, so towers occlude traffic). */
+  /** Draw under this layer (default: under the buildings, so towers occlude people). */
   beforeId?: string;
   onLifeStats?: (s: LifeStats) => void;
   /**
@@ -180,9 +178,8 @@ export const StreetLifeLayer = memo(
         const z = cameraRef.current?.zoom ?? 0;
         const live = z >= MAP_LIFE.minZoom;
         cb({
-          traffic: trafficLevel(cond.current),
+          busy: busyLevel(cond.current),
           zoom: z,
-          cars: live ? sim.cars.length : 0,
           people: live ? sim.people.length : 0,
         });
       },
@@ -281,13 +278,14 @@ export const StreetLifeLayer = memo(
     }, [running, light, cameraRef, emitStats]);
 
     const lat = world.city.lat;
-    const layers = useMemo(() => {
-      const band = { minZoom: MAP_LIFE.minZoom, fadeInEndZoom: MAP_LIFE.fadeInEndZoom };
-      return {
-        sprites: lifeSymbolLayer(lat, LIFE_SPRITE_PTS_PER_METER, band),
-        beams: lifeBeamLayer(lat, MAP_LIFE.beams, band),
-      };
-    }, [lat]);
+    const sprites = useMemo(
+      () =>
+        lifeSymbolLayer(lat, LIFE_SPRITE_PTS_PER_METER, {
+          minZoom: MAP_LIFE.minZoom,
+          fadeInEndZoom: MAP_LIFE.fadeInEndZoom,
+        }),
+      [lat],
+    );
 
     // Only the current lighting set is registered (half the image memory).
     const images = useMemo(() => {
@@ -310,21 +308,12 @@ export const StreetLifeLayer = memo(
           tolerance={0}
         >
           <Layer
-            id="life-beams"
-            type="circle"
-            beforeId={beforeId}
-            minzoom={MAP_LIFE.minZoom}
-            filter={layers.beams.filter as never}
-            paint={layers.beams.paint as never}
-          />
-          <Layer
             id="life-sprites"
             type="symbol"
             beforeId={beforeId}
             minzoom={MAP_LIFE.minZoom}
-            filter={layers.sprites.filter as never}
-            layout={layers.sprites.layout as never}
-            paint={layers.sprites.paint as never}
+            layout={sprites.layout as never}
+            paint={sprites.paint as never}
           />
         </GeoJSONSource>
       </>

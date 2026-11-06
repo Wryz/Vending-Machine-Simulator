@@ -15,8 +15,6 @@ export interface StreetLayout {
   curbZ: number;
   /** Road surface height (below the sidewalk by the curb). */
   roadY: number;
-  /** Car lane centers: [near, far]. */
-  carLaneZ: [number, number];
   roadFarZ: number;
   /** Pedestrian lane centers by walking direction (+x east, -x west). */
   walkEastZ: number;
@@ -37,16 +35,10 @@ export function streetLayout(machineDepthM: number): StreetLayout {
     glassZ: wallZ - L.shopWindow.recessM,
     curbZ,
     roadY: -L.curbHeightM,
-    carLaneZ: [curbZ + L.laneWidthM / 2, curbZ + L.laneWidthM * 1.5],
     roadFarZ: curbZ + L.laneWidthM * 2,
     walkEastZ: frontZ + PEDESTRIANS.laneFromFrontM.east,
     walkWestZ: frontZ + PEDESTRIANS.laneFromFrontM.west,
     standX: PEDESTRIANS.customer.standX,
     standZ: frontZ + PEDESTRIANS.customer.standOffM,
   };
-}
-
-/** Near-lane travel direction along x: right-hand traffic keeps the sidewalk on the right. */
-export function nearLaneDir(leftHandTraffic: boolean): 1 | -1 {
-  return leftHandTraffic ? 1 : -1;
 }

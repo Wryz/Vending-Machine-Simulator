@@ -16,8 +16,7 @@ import { hash01 } from './random';
  *
  * The shop windows look like glass because a mirrored copy of the street
  * (and the life on it) sits behind them inside a closed building box: a cheap
- * planar reflection with no render targets. Cars on the road behind the
- * close-up camera show up there.
+ * planar reflection with no render targets.
  */
 
 export interface StreetSet {

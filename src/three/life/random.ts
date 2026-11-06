@@ -1,6 +1,6 @@
 /**
  * Stateless deterministic noise for street life: the same (seed, keys) always
- * gives the same number, so walkers and cars can be evaluated at any time
+ * gives the same number, so walkers can be evaluated at any time
  * without carrying state between frames. Pure; no three.js.
  */
 export function hash01(seed: number, a = 0, b = 0, c = 0): number {

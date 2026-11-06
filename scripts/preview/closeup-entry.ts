@@ -11,9 +11,8 @@ import {
 import { bearingToVector, closeupCamera, headingToRotationY } from '@/map/cameraMatch';
 import { getTimeOfDay } from '@/map/timeOfDay';
 import { countSceneTriangles } from '@/three/life/geometry';
-import { CARS, PEDESTRIANS } from '@/config/streetLife';
+import { PEDESTRIANS } from '@/config/streetLife';
 import { streetLayout } from '@/three/life/layout';
-import { carsAt, emptyCar } from '@/three/life/traffic';
 import { createStreetScene } from '@/three/life/streetScene';
 import { activeWalkerCount, emptyWalker, walkerAt } from '@/three/life/walkers';
 import { sceneLighting } from '@/three/lightingRig';
@@ -121,7 +120,7 @@ export async function renderCloseup(opts: {
 
 // ---------------------------------------------------------------------------
 // Street life close-up: the procedural machine as the app builds it, with
-// pedestrians, cars, the street set and the shop-window reflection, framed by
+// pedestrians, the street set and the shop-window reflection, framed by
 // the app's own close-up camera (optionally orbited) or a wide establishing view.
 
 export interface LifeShot {
@@ -132,7 +131,6 @@ export interface LifeShot {
   height: number;
   supersample: number;
   crowd: number;
-  traffic: number;
   /** Seconds on the street-life clock (pick with `pickLifeTime`). */
   tS: number;
   view: 'closeup' | 'wide';
@@ -181,19 +179,15 @@ export function pickLifeTime(seed: number, crowd: number, from = 0, to = 900): n
   return best;
 }
 
-/** For the wide view: a moment with a car passing in front and people on the sidewalk. */
-export function pickWideTime(seed: number, crowd: number, traffic: number, around: number): number {
+/** For the wide view: a moment with people on the sidewalk near the machine. */
+export function pickWideTime(seed: number, crowd: number, around: number): number {
   const layout = streetLayout(SNACK_MACHINE_DIMENSIONS.depthM);
-  const cars = Array.from({ length: CARS.capacity }, emptyCar);
   const n = activeWalkerCount(crowd);
   const w = emptyWalker();
   let best = around;
   let bestScore = -1;
   for (let t = around - 40; t < around + 40; t += 0.2) {
     let score = 0;
-    const k = carsAt(cars, seed, t, traffic, layout, false);
-    for (let i = 0; i < k; i++)
-      if (Math.abs(cars[i].x - 2) < 4) score += cars[i].lane === 1 ? 3 : 2;
     for (let i = 0; i < n; i++) {
       walkerAt(w, seed, i, t, layout);
       if (w.active && Math.abs(w.x) < 6) score += w.atMachine ? 2 : 1;
@@ -236,7 +230,7 @@ export function renderCloseupLife(o: LifeShot) {
     glowAt: new THREE.Vector3(0, 1.15, 0),
   });
 
-  const params = { crowd: o.crowd, traffic: o.traffic, night };
+  const params = { crowd: o.crowd };
   const nowMs = o.tS * 1000;
   if (o.saleAgoMs !== undefined) {
     // Replay the sale a little before the shot so the customer is mid-reach.
@@ -268,7 +262,7 @@ export function renderCloseupLife(o: LifeShot) {
     );
     cam.lookAt(...c.target);
   } else {
-    // From across the road, a little above eye level: people, machine and traffic.
+    // From across the road, a little above eye level: people and machine.
     const r = (o.orbitDeg * Math.PI) / 180;
     cam.fov = 38;
     cam.position.set(Math.sin(r) * 16, 6.5, Math.cos(r) * 16);
@@ -302,8 +296,7 @@ export function renderCloseupLife(o: LifeShot) {
 
 /**
  * Worst-case triangles for the close-up (SPEC §7.4 budget ~30K): every
- * static mesh, plus the full crowd and the heaviest cars at capacity, each
- * drawn twice (street + shop-window reflection). Shadow pass not included.
+ * static mesh, plus the full crowd, each drawn twice (street + shop-window reflection). Shadow pass not included.
  */
 export function budgetReport(typeId: 'snack' | 'combo' = 'combo') {
   const type = getMachineType(typeId);
@@ -321,9 +314,6 @@ export function budgetReport(typeId: 'snack' | 'combo' = 'combo') {
     (g.index ? g.index.count : (g.attributes.position?.count ?? 0)) / 3;
   let staticTris = 0;
   let personTris = 0;
-  const carTris = [0, 0, 0];
-  let wheelTris = 0;
-  let beamTris = 0;
   const per: Record<string, number> = {};
   const visit = (root: THREE.Object3D) =>
     root.traverse((o) => {
@@ -336,9 +326,7 @@ export function budgetReport(typeId: 'snack' | 'combo' = 'combo') {
           const k = n === 'people-limbs' ? 6 : n === 'people-shoes' ? 2 : 1;
           personTris += t * k;
           per[n] = t * k;
-        } else if (n.startsWith('car-wheels')) wheelTris = t * 4;
-        else if (n.startsWith('car-beams')) beamTris = t;
-        else if (n.startsWith('car-')) carTris[Number(n.slice(-1))] += t;
+        }
         return;
       }
       if (o.name === 'falling-product') return;
@@ -346,18 +334,13 @@ export function budgetReport(typeId: 'snack' | 'combo' = 'combo') {
     });
   visit(model.group);
   visit(life.root);
-  const perCar = Math.max(...carTris) + wheelTris + beamTris;
   const crowd = personTris * PEDESTRIANS.max;
-  const cars = perCar * 4;
   return {
     machine: countTriangles(model.group),
     staticTris,
     perPerson: personTris,
     perPart: per,
-    perCar,
-    carKinds: carTris.map((t) => t + wheelTris),
     crowd: crowd * 2,
-    cars: cars * 2,
-    total: staticTris + crowd * 2 + cars * 2,
+    total: staticTris + crowd * 2,
   };
 }

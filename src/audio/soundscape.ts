@@ -4,29 +4,21 @@ import { SOUNDSCAPE } from '@/config/audio';
  * Pure soundscape mixer (no React Native imports; unit-tested).
  *
  * Far out the city is a soft bed. Zooming in towards the street (MapLibre zoom
- * 14.5 → 17.5) brings in traffic, people and birds, and occasional one-shot
- * "spice" (a car passing, a bird, steps). Birds belong to dawn and day,
+ * 14.5 → 17.5) brings in people and birds, and occasional one-shot
+ * "spice" (a bird, steps). Birds belong to dawn and day,
  * crickets to warm nights, the crowd to busy daytime areas; rain and wind
  * follow the weather. The machine close-up adds the compressor hum and keeps
  * the street present but lower. Menus get the beds only.
  */
 
 export type LayerName =
-  'cityDay' | 'cityNight' | 'traffic' | 'crowd' | 'birds' | 'crickets' | 'rain' | 'wind' | 'hum';
+  'cityDay' | 'cityNight' | 'crowd' | 'birds' | 'crickets' | 'rain' | 'wind' | 'hum';
 
-export type SpiceName =
-  | 'carPass'
-  | 'carPass2'
-  | 'hornDistant'
-  | 'birdChirp'
-  | 'birdChirp2'
-  | 'footsteps'
-  | 'sirenDistant';
+export type SpiceName = 'birdChirp' | 'birdChirp2' | 'footsteps';
 
 export const LAYER_NAMES: readonly LayerName[] = [
   'cityDay',
   'cityNight',
-  'traffic',
   'crowd',
   'birds',
   'crickets',
@@ -35,15 +27,7 @@ export const LAYER_NAMES: readonly LayerName[] = [
   'hum',
 ];
 
-export const SPICE_NAMES: readonly SpiceName[] = [
-  'carPass',
-  'carPass2',
-  'hornDistant',
-  'birdChirp',
-  'birdChirp2',
-  'footsteps',
-  'sirenDistant',
-];
+export const SPICE_NAMES: readonly SpiceName[] = ['birdChirp', 'birdChirp2', 'footsteps'];
 
 /** Time-of-day preset weights (src/map/timeOfDay.ts); expected to sum to 1. */
 export interface TodWeights {
@@ -61,7 +45,7 @@ export interface SoundscapeInput {
   tod: TodWeights;
   weather: { condition: WeatherCondition; tempC: number } | null;
   /** 0..1: how busy the area in view is. */
-  traffic: number;
+  busy: number;
   scene: 'map' | 'closeup' | 'menu';
 }
 
@@ -116,7 +100,6 @@ function zeroLayers(): Record<LayerName, number> {
   return {
     cityDay: 0,
     cityNight: 0,
-    traffic: 0,
     crowd: 0,
     birds: 0,
     crickets: 0,
@@ -127,15 +110,7 @@ function zeroLayers(): Record<LayerName, number> {
 }
 
 function zeroSpice(): Record<SpiceName, number> {
-  return {
-    carPass: 0,
-    carPass2: 0,
-    hornDistant: 0,
-    birdChirp: 0,
-    birdChirp2: 0,
-    footsteps: 0,
-    sirenDistant: 0,
-  };
+  return { birdChirp: 0, birdChirp2: 0, footsteps: 0 };
 }
 
 /** Target volumes and one-shot rates for the current view. Cheap: call it as often as needed. */
@@ -157,7 +132,7 @@ export function soundscapeMix(input: SoundscapeInput): SoundscapeMix {
   const spiceGate = closeup
     ? S.closeup.spice
     : smoothstep(S.spiceZoom[0], S.spiceZoom[1], Number.isFinite(input.zoom) ? input.zoom : 0);
-  const busy = clamp01(input.traffic);
+  const busy = clamp01(input.busy);
   const cond = input.weather?.condition ?? 'clear';
   const tempC = Number.isFinite(input.weather?.tempC) ? (input.weather?.tempC ?? 15) : 15;
   const rain = S.rainByCondition[cond] ?? 0;
@@ -169,7 +144,6 @@ export function soundscapeMix(input: SoundscapeInput): SoundscapeMix {
   layers.cityDay = bed * (1 - dark);
   layers.cityNight = bed * dark;
 
-  layers.traffic = near * (0.2 + 0.8 * busy) * (0.45 + 0.55 * activity) + (1 - near) * 0.08 * busy;
   layers.crowd =
     near ** 1.3 * (0.15 + 0.85 * busy) * activity ** 1.2 * (1 - S.rainSuppress.crowd * rain);
 
@@ -194,7 +168,6 @@ export function soundscapeMix(input: SoundscapeInput): SoundscapeMix {
   layers.wind = wind * (0.55 + 0.45 * (1 - near)) + 0.06 * (1 - near);
 
   if (closeup) {
-    layers.traffic *= S.closeup.traffic;
     layers.crowd *= S.closeup.crowd;
     layers.birds *= S.closeup.birds;
     layers.crickets *= S.closeup.crickets;
@@ -202,10 +175,6 @@ export function soundscapeMix(input: SoundscapeInput): SoundscapeMix {
   }
 
   const r = S.spicePerMin;
-  const cars = spiceGate * near ** 1.5 * (0.15 + 0.85 * busy) * (0.3 + 0.7 * activity);
-  spice.carPass = r.carPass * cars;
-  spice.carPass2 = r.carPass2 * cars;
-  spice.hornDistant = r.hornDistant * spiceGate * busy * activity * (1 - 0.8 * tod.night);
   const birdRate = spiceGate * clamp01(layers.birds / (closeup ? S.closeup.birds : 1));
   spice.birdChirp = r.birdChirp * birdRate;
   spice.birdChirp2 = r.birdChirp2 * birdRate;
@@ -217,8 +186,6 @@ export function soundscapeMix(input: SoundscapeInput): SoundscapeMix {
     (0.3 + 0.7 * busy) *
     (1 - 0.5 * rain) *
     (closeup ? S.closeup.footsteps : 1);
-  spice.sirenDistant =
-    r.sirenDistant * spiceGate * (tod.night + 0.3 * tod.dusk) * (0.3 + 0.7 * busy);
 
   for (const k of SPICE_NAMES) spice[k] = Number.isFinite(spice[k]) ? Math.max(0, spice[k]) : 0;
   return { layers: floored(layers), spiceRatePerMin: spice };

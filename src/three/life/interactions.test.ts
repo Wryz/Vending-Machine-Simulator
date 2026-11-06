@@ -1,7 +1,7 @@
 import { CLOSEUP_MOTION } from '@/config/streetLife';
 
 import { clampOrbit, dragOrbit, follow, idleCamera, orbitWeight, rotateY } from './camera';
-import { isLeftHandTraffic, streetDensity } from './density';
+import { streetCrowd } from './density';
 import {
   coinGlintsMs,
   dropPose,
@@ -107,20 +107,14 @@ describe('camera motion', () => {
   });
 });
 
-describe('street density', () => {
-  it('maps real traffic to 0..1, fewer people at quiet hours', () => {
-    const quiet = streetDensity(10);
-    const busy = streetDensity(400);
-    expect(quiet.crowd).toBeLessThan(0.2);
-    expect(busy.crowd).toBeGreaterThan(0.8);
-    expect(streetDensity(1e6).crowd).toBe(1);
-    expect(streetDensity(0).traffic).toBeGreaterThan(0);
-    expect(streetDensity(400, 0.5).crowd).toBeLessThan(busy.crowd);
-  });
-
-  it('knows which side of the road cars drive on', () => {
-    expect(isLeftHandTraffic('GB')).toBe(true);
-    expect(isLeftHandTraffic('jp')).toBe(true);
-    expect(isLeftHandTraffic('US')).toBe(false);
+describe('street crowd', () => {
+  it('maps real foot traffic to 0..1, fewer people at quiet hours', () => {
+    const quiet = streetCrowd(10);
+    const busy = streetCrowd(400);
+    expect(quiet).toBeLessThan(0.2);
+    expect(busy).toBeGreaterThan(0.8);
+    expect(streetCrowd(1e6)).toBe(1);
+    expect(streetCrowd(0)).toBe(0);
+    expect(streetCrowd(400, 0.5)).toBeLessThan(busy);
   });
 });

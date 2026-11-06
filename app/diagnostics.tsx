@@ -138,7 +138,7 @@ export default function Diagnostics() {
     const last = fps.slice(-10);
     log(
       `3D fps (busy street): avg ${(last.reduce((a, b) => a + b, 0) / last.length).toFixed(1)}, min ${Math.min(...last).toFixed(1)} over the last ${last.length} s` +
-        (stats ? ` · walkers ${stats.walkers} · cars ${stats.cars} · ${stats.triangles} tris` : ''),
+        (stats ? ` · walkers ${stats.walkers} · ${stats.triangles} tris` : ''),
     );
     log('auto: done');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fires once
@@ -195,7 +195,6 @@ export default function Diagnostics() {
               to={to}
               durationMs={0}
               crowd={busy ? 1 : 0.15}
-              traffic={busy ? 1 : 0.15}
               onFps={(f) => setFps((x) => [...x.slice(-59), f])}
               onStats={setStats}
             />
@@ -204,8 +203,8 @@ export default function Diagnostics() {
         <Mono>{`fps: ${avg ? avg.toFixed(1) : '—'} (avg of last ${Math.min(10, fps.length)} s)`}</Mono>
         <Mono>
           {stats
-            ? `walkers ${stats.walkers} · cars ${stats.cars} · ${stats.triangles.toLocaleString()} tris (budget 30,000)`
-            : 'walkers — · cars — · tris —'}
+            ? `walkers ${stats.walkers} · ${stats.triangles.toLocaleString()} tris (budget 30,000)`
+            : 'walkers — · tris —'}
         </Mono>
       </Section>
       <Paper>

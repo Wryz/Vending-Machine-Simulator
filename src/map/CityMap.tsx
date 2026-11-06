@@ -116,8 +116,8 @@ interface Props {
   /** `byUser` is true when a gesture moved the camera (not a fly-to or the initial load). */
   onCameraChanged?(c: MapCameraState, byUser: boolean): void;
   /**
-   * Street-life stats (≤ 2×/s): traffic 0..1 for the soundscape, current
-   * zoom, and how many cars / people are on screen (0 below zoom 16).
+   * Street-life stats (≤ 2×/s): busy level 0..1 for the soundscape, current
+   * zoom, and how many people are on screen (0 below zoom 16).
    */
   onLifeStats?: (s: LifeStats) => void;
   /** Recent sales (already rate-limited): a receipt chip rises over the machine. */
@@ -533,7 +533,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             />
           </GeoJSONSource>
 
-          {/* Cars and pedestrians at close zoom, under the buildings and machines. */}
+          {/* Pedestrians at close zoom, under the buildings and machines. */}
           <StreetLifeLayer
             ref={lifeRef}
             mapRef={mapRef}

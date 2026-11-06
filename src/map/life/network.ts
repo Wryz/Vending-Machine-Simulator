@@ -17,7 +17,6 @@ const GRID_M = 30;
 
 export interface Road {
   kind: RoadKind;
-  oneway: -1 | 0 | 1;
   xs: Float64Array;
   ys: Float64Array;
   /** Cumulative length at each vertex. */
@@ -83,7 +82,6 @@ export class RoadNetwork {
     const idx = this.roads.length;
     this.roads.push({
       kind: r.kind,
-      oneway: r.oneway ?? 0,
       xs: Float64Array.from(xs),
       ys: Float64Array.from(ys),
       cum,
@@ -147,7 +145,7 @@ export class RoadNetwork {
 
   /**
    * Smoothed unit tangent (road coordinate order) at `s`: the chord over
-   * ±`halfSpan` meters, so headings and lane offsets turn smoothly through
+   * ±`halfSpan` meters, so headings and sidewalk offsets turn smoothly through
    * polyline vertices instead of snapping.
    */
   tangentAt(road: Road, s: number, halfSpan: number, out: { x: number; y: number }): void {
@@ -235,7 +233,7 @@ export class RoadNetwork {
     cy: number,
     radius: number,
   ): Record<RoadKind, number> {
-    const out: Record<RoadKind, number> = { highway: 0, major: 0, minor: 0, service: 0 };
+    const out: Record<RoadKind, number> = { major: 0, minor: 0 };
     const r2 = radius * radius;
     for (const r of this.roads) {
       for (let i = 0; i < r.xs.length - 1; i++) {
@@ -252,8 +250,8 @@ export class RoadNetwork {
 
 /**
  * Basemap road features (OpenMapTiles or Protomaps schema, as returned by
- * `queryRenderedFeatures`) -> sim roads. Tunnels are already filtered out by
- * the road layers.
+ * `queryRenderedFeatures`) -> sim roads: only streets with sidewalks.
+ * Tunnels are already filtered out by the road layers.
  */
 export function roadsFromFeatures(features: readonly GeoJSON.Feature[]): RoadInput[] {
   const out: RoadInput[] = [];
@@ -263,40 +261,25 @@ export function roadsFromFeatures(features: readonly GeoJSON.Feature[]): RoadInp
     const p = (f.properties ?? {}) as Record<string, unknown>;
     const kind = roadKindOf(p);
     if (!kind) continue;
-    const oneway = onewayOf(p);
-    if (g.type === 'LineString')
-      out.push({ coords: g.coordinates as [number, number][], kind, oneway });
+    if (g.type === 'LineString') out.push({ coords: g.coordinates as [number, number][], kind });
     else if (g.type === 'MultiLineString')
-      for (const line of g.coordinates)
-        out.push({ coords: line as [number, number][], kind, oneway });
+      for (const line of g.coordinates) out.push({ coords: line as [number, number][], kind });
   }
   return out;
 }
 
-const OMT_HIGHWAY = new Set(['motorway', 'trunk']);
 const OMT_MAJOR = new Set(['primary', 'secondary', 'tertiary']);
-const OMT_SERVICE = new Set(['service', 'track', 'raceway']);
 
+/** Street kind of a road feature, or null where nobody walks (highways, service roads, paths, rail). */
 export function roadKindOf(p: Record<string, unknown>): RoadKind | null {
   const cls = typeof p.class === 'string' ? p.class : null;
   if (cls) {
-    if (OMT_HIGHWAY.has(cls)) return 'highway';
     if (OMT_MAJOR.has(cls)) return 'major';
-    if (OMT_SERVICE.has(cls)) return 'service';
     if (cls === 'minor') return 'minor';
-    return null; // paths, rail, ferries...
+    return null;
   }
   const kind = typeof p.kind === 'string' ? p.kind : null; // Protomaps v4
-  if (kind === 'highway') return 'highway';
   if (kind === 'major_road') return 'major';
-  if (kind === 'minor_road') return p.kind_detail === 'service' ? 'service' : 'minor';
-  if (kind === 'other') return 'service';
+  if (kind === 'minor_road' && p.kind_detail !== 'service') return 'minor';
   return null;
-}
-
-function onewayOf(p: Record<string, unknown>): -1 | 0 | 1 {
-  const v = p.oneway;
-  if (v === 1 || v === '1' || v === true || v === 'yes' || v === 'true') return 1;
-  if (v === -1 || v === '-1') return -1;
-  return 0;
 }

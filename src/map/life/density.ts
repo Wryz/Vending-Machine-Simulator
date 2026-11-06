@@ -13,13 +13,13 @@ export function hourCurve(curve: readonly number[], hour: number): number {
   return curve[i] * (1 - t) + curve[(i + 1) % 24] * t;
 }
 
-/** 0..1 relative car traffic for the hour (rush hours ≈ 1, 3 am ≈ 0.06). */
-export function carActivity(c: LifeConditions): number {
-  const curve = c.restDay ? D.carsByHourRestDay : D.carsByHourWeekday;
+/** 0..1 bustle of the city for the hour (rush hours ≈ 1, 3 am ≈ 0.06). */
+export function cityActivity(c: LifeConditions): number {
+  const curve = c.restDay ? D.busyByHourRestDay : D.busyByHourWeekday;
   let a = hourCurve(curve, c.hour);
-  // Busy districts have more traffic, quiet ones a little less.
+  // Busy districts are livelier, quiet ones a little calmer.
   a *= 0.75 + 0.35 * footShare(c);
-  if (c.weather === 'rain' || c.weather === 'storm' || c.weather === 'snow') a *= D.rainCars;
+  if (c.weather === 'rain' || c.weather === 'storm' || c.weather === 'snow') a *= D.rainBusy;
   return clamp01(a);
 }
 
@@ -33,7 +33,7 @@ export function peopleActivity(c: LifeConditions): number {
   // Square-root response: a modest block still has people; downtown is full.
   let a = Math.sqrt(footShare(c));
   // Late at night streets empty out even where the data has residents.
-  const night = hourCurve(D.carsByHourWeekday, c.hour);
+  const night = hourCurve(D.busyByHourWeekday, c.hour);
   a = Math.max(a, D.minPeopleShare) * (0.35 + 0.65 * Math.min(1, night * 1.6));
   switch (c.weather) {
     case 'rain':
@@ -58,30 +58,15 @@ export function peopleActivity(c: LifeConditions): number {
  * How busy the city sounds/looks right now, 0..1 (soundscape input). Depends
  * only on the hour, foot traffic and weather, so it works at any zoom.
  */
-export function trafficLevel(c: LifeConditions): number {
-  return clamp01(0.6 * carActivity(c) + 0.4 * peopleActivity(c));
+export function busyLevel(c: LifeConditions): number {
+  return clamp01(0.6 * cityActivity(c) + 0.4 * peopleActivity(c));
 }
 
-/** Target agent counts for the roads in view (meters of road per kind). */
-export function lifeTargets(
-  c: LifeConditions,
-  roadM: Record<RoadKind, number>,
-): { cars: number; people: number } {
-  const ca = carActivity(c);
-  const pa = peopleActivity(c);
-  const carsKm = MAP_LIFE.cars.perKm;
-  const pplKm = MAP_LIFE.people.perKm;
-  const cars =
-    ((roadM.highway * carsKm.highway +
-      roadM.major * carsKm.major +
-      roadM.minor * carsKm.minor +
-      roadM.service * carsKm.service) /
-      1000) *
-    ca;
+/** Target number of people for the streets in view (meters of street per kind). */
+export function peopleTarget(c: LifeConditions, roadM: Record<RoadKind, number>): number {
+  const perKm = MAP_LIFE.people.perKm;
   // Two sidewalks per street.
-  const people = ((2 * (roadM.major * pplKm.major + roadM.minor * pplKm.minor)) / 1000) * pa;
-  return {
-    cars: Math.min(MAP_LIFE.caps.cars, Math.round(cars)),
-    people: Math.min(MAP_LIFE.caps.people, Math.round(people)),
-  };
+  const people =
+    ((2 * (roadM.major * perKm.major + roadM.minor * perKm.minor)) / 1000) * peopleActivity(c);
+  return Math.min(MAP_LIFE.maxPeople, Math.round(people));
 }

@@ -14,7 +14,7 @@ export const MAP_STYLE = {
   },
   /**
    * Road widths reach true scale from `trueScaleFromZoom` (the street-life
-   * cars and pedestrians are true scale and must fit their lanes/sidewalks).
+   * pedestrians are true scale and must fit their sidewalks).
    * Typical roadway widths (curb to curb), meters.
    */
   roads: {

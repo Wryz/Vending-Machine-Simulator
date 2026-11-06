@@ -21,7 +21,7 @@ import { haptic } from '@/services/haptics';
 import { useGame } from '@/store/game';
 import { transition } from '@/store/transition';
 import { CLOSEUP_MOTION } from '@/config/streetLife';
-import { isLeftHandTraffic, streetDensity } from '@/three/life/density';
+import { streetCrowd } from '@/three/life/density';
 import { coinGlintsMs, restockPlan, soldSlots } from '@/three/life/interactions';
 import { seedFrom } from '@/three/life/random';
 import { MachineScene, type SlotView, type SlotsEvent } from '@/three/MachineScene';
@@ -109,13 +109,13 @@ export default function MachineCloseup() {
   const fade = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   // Street life from the sim: real foot traffic at this cell and local hour (SPEC §5.2).
-  const street = useMemo(() => {
-    if (!machine) return { crowd: 0.3, traffic: 0.3 };
+  const crowd = useMemo(() => {
+    if (!machine) return 0.3;
     const local = localTime(now, world.city.timeZone, world.city.countryCode);
     const cell = world.cells.get(machine.cellId);
-    if (!cell) return streetDensity(0);
+    if (!cell) return streetCrowd(0);
     const t = baseTraffic(cell, local.hour, local.restDay);
-    return streetDensity(t.total, weatherTrafficFactor(t, world.weatherAt(now)));
+    return streetCrowd(t.total, weatherTrafficFactor(t, world.weatherAt(now)));
   }, [machine?.cellId, now, world]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close-up soundscape: compressor hum up front, the street around it at the
@@ -126,10 +126,10 @@ export default function MachineCloseup() {
       zoom: 20,
       tod: tod.weights,
       weather: w ? { condition: w.condition, tempC: w.tempC } : null,
-      traffic: Math.max(street.crowd, street.traffic),
+      busy: crowd,
       scene: 'closeup',
     });
-  }, [street.crowd, street.traffic, tod.weights, now, world]);
+  }, [crowd, tod.weights, now, world]);
 
   // A sale while you watch: a product drops into the bin. The snapshot follows
   // every stock change (restocks too); only a rise in units sold plays a drop.
@@ -244,9 +244,7 @@ export default function MachineCloseup() {
           durationMs={CLOSEUP_CAMERA.dollyMs}
           broken={!!machine.broken}
           selectedSlot={selected}
-          crowd={street.crowd}
-          traffic={street.traffic}
-          leftHandTraffic={isLeftHandTraffic(world.city.countryCode)}
+          crowd={crowd}
           seed={seedFrom(machine.id)}
           restockEvent={restockEvent}
           saleEvent={saleEvent}

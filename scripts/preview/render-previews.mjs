@@ -41,7 +41,7 @@ const SHOTS_FILTER = arg('shots', process.argv.includes('--life') ? 'day,night' 
 const LIGHT_MIX = Number(arg('light-mix', 0));
 const OUT = path.join(ROOT, 'docs/spikes/images');
 /**
- * --life: street life (cars, pedestrians) from the real sim on the rendered
+ * --life: street life (pedestrians) from the real sim on the rendered
  * roads, at zoom 17.5 by default, day + night -> map-life-{day,night}.png.
  * Needs `npm run life-sprites` first. --life-above draws it above buildings.
  */
@@ -345,7 +345,7 @@ async function renderCloseups(browser) {
   await page.close();
 }
 
-/** Street life (pedestrians, cars, reflection) in the app's close-up framing, day and night. */
+/** Street life (pedestrians, reflection) in the app's close-up framing, day and night. */
 async function renderLife(browser) {
   const code = await bundle('scripts/preview/closeup-entry.ts', 'Closeup');
   const page = await browser.newPage({ viewport: { width: 400, height: 400 } });
@@ -364,12 +364,12 @@ async function renderLife(browser) {
     const b = await page.evaluate((t) => window.Closeup.budgetReport(t), typeId);
     console.log(
       `  budget (${typeId}): worst case ${Math.round(b.total)} tris = static ${Math.round(b.staticTris)} (machine ${b.machine}, ×2 with reflection) + ` +
-        `10 people × ${b.perPerson} × 2 + 4 cars × ${b.perCar} × 2 (kinds ${b.carKinds.join('/')})`,
+        `10 people × ${b.perPerson} × 2`,
     );
   }
   const shots = [
-    { name: 'day', hh: 13, mm: 0, crowd: 0.8, traffic: 0.75, orbitDeg: 14, sale: 900 },
-    { name: 'night', hh: 22, mm: 0, crowd: 0.55, traffic: 0.6, orbitDeg: -16 },
+    { name: 'day', hh: 13, mm: 0, crowd: 0.8, orbitDeg: 14, sale: 900 },
+    { name: 'night', hh: 22, mm: 0, crowd: 0.55, orbitDeg: -16 },
   ];
   for (const shot of shots.filter((s) => !SHOTS_FILTER || SHOTS_FILTER.includes(s.name))) {
     const dateIso = await page.evaluate(
@@ -381,8 +381,8 @@ async function renderLife(browser) {
       [SEED, shot.crowd],
     );
     const tWide = await page.evaluate(
-      ([seed, crowd, traffic, around]) => window.Closeup.pickWideTime(seed, crowd, traffic, around),
-      [SEED, shot.crowd, shot.traffic, tS],
+      ([seed, crowd, around]) => window.Closeup.pickWideTime(seed, crowd, around),
+      [SEED, shot.crowd, tS],
     );
     for (const view of ['closeup', 'wide']) {
       const r = await page.evaluate((o) => window.Closeup.renderCloseupLife(o), {
@@ -393,7 +393,6 @@ async function renderLife(browser) {
         height: view === 'closeup' ? H : 520 * 2,
         supersample: 2,
         crowd: shot.crowd,
-        traffic: shot.traffic,
         tS: view === 'closeup' ? tS : tWide,
         view,
         orbitDeg: view === 'closeup' ? shot.orbitDeg : 18,
@@ -406,7 +405,7 @@ async function renderLife(browser) {
       const file = `closeup-life-${shot.name}${view === 'wide' ? '-wide' : ''}.png`;
       await writeFile(path.join(OUT, file), png);
       console.log(
-        `  ${file}: preset ${r.preset}, night ${r.night.toFixed(2)}, t=${view === 'closeup' ? tS : tWide.toFixed(1)}s, walkers ${r.stats.walkers}, cars ${r.stats.cars}, ` +
+        `  ${file}: preset ${r.preset}, night ${r.night.toFixed(2)}, t=${view === 'closeup' ? tS : tWide.toFixed(1)}s, walkers ${r.stats.walkers}, ` +
           `street tris ${r.stats.triangles}, machine tris ${r.stats.machineTriangles}, scene tris ${r.stats.sceneTriangles}, ` +
           `drawn ${r.stats.drawn.triangles} tris / ${r.stats.drawn.calls} calls (incl. shadow pass)`,
       );

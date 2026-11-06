@@ -22,7 +22,7 @@ export const SOUNDSCAPE = {
   /** City bed level far out, fully zoomed in, in the close-up and in menus. */
   bed: { far: 0.9, near: 0.55, closeup: 0.45, menu: 0.5 },
   /** Close-up scales the street layers down (the machine is the focus). */
-  closeup: { traffic: 0.6, crowd: 0.55, birds: 0.7, crickets: 0.8, spice: 0.5, footsteps: 2 },
+  closeup: { crowd: 0.55, birds: 0.7, crickets: 0.8, spice: 0.5, footsteps: 2 },
   /** How much rain (0..1) suppresses birds and the crowd. */
   rainSuppress: { birds: 0.75, crowd: 0.35 },
   rainByCondition: { clear: 0, cloudy: 0, fog: 0, rain: 0.7, storm: 1, snow: 0 },
@@ -35,13 +35,9 @@ export const SOUNDSCAPE = {
   floor: 0.03,
   /** Average events per minute at full strength. */
   spicePerMin: {
-    carPass: 5,
-    carPass2: 2.5,
-    hornDistant: 0.5,
     birdChirp: 2,
     birdChirp2: 1.6,
     footsteps: 1.2,
-    sirenDistant: 0.12,
   },
 } as const;
 
@@ -52,7 +48,6 @@ export const AUDIO_MIX = {
   layerTrim: {
     cityDay: 0.3,
     cityNight: 0.28,
-    traffic: 0.3,
     crowd: 0.28,
     birds: 0.3,
     crickets: 0.22,
@@ -62,13 +57,9 @@ export const AUDIO_MIX = {
   },
   /** Spice one-shot volume (randomized down to ×spiceJitter per play). */
   spiceTrim: {
-    carPass: 0.3,
-    carPass2: 0.28,
-    hornDistant: 0.1,
     birdChirp: 0.12,
     birdChirp2: 0.13,
     footsteps: 0.35,
-    sirenDistant: 0.1,
   },
   spiceJitter: 0.55,
   /** UI / machine one-shots at sfxVolume 1. */

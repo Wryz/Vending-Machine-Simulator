@@ -117,26 +117,26 @@ export default function MapScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Living soundscape: city bed, traffic, crowd, birds/crickets, rain/wind,
+  // Living soundscape: city bed, crowd, birds/crickets, rain/wind,
   // richer as you zoom in; driven by zoom, real time of day, weather and how
   // busy the streets in view are (street-life stats when available).
   const cameraNow = useRef<MapCameraState>(initial);
-  const lifeTraffic = useRef<number | null>(null);
+  const lifeBusy = useRef<number | null>(null);
   const feedSoundscape = useCallback(() => {
     const cam = cameraNow.current;
     const [lng, lat] = cam.center;
-    let traffic = lifeTraffic.current;
-    if (traffic === null) {
+    let level = lifeBusy.current;
+    if (level === null) {
       const cell = world.cells.get(world.cellOf(lat, lng));
       const lt = localTime(Date.now(), world.city.timeZone, world.city.countryCode);
-      traffic = cell ? Math.min(1, baseTraffic(cell, lt.hour, lt.restDay).total / 600) : 0.1;
+      level = cell ? Math.min(1, baseTraffic(cell, lt.hour, lt.restDay).total / 600) : 0.1;
     }
     const w = world.weatherAt(Date.now());
     soundscape.update({
       zoom: cam.zoom,
       tod: tod.weights,
       weather: w ? { condition: w.condition, tempC: w.tempC } : null,
-      traffic,
+      busy: level,
       scene: 'map',
     });
   }, [world, tod.weights]);
@@ -402,9 +402,9 @@ export default function MapScreen() {
         }}
         onLifeStats={(st) => {
           // Street life in view (zoom >= 16) makes the soundscape busier or quieter.
-          const next = st.cars + st.people > 0 ? st.traffic : null;
-          if (next === lifeTraffic.current) return;
-          lifeTraffic.current = next;
+          const next = st.people > 0 ? st.busy : null;
+          if (next === lifeBusy.current) return;
+          lifeBusy.current = next;
           feedSoundscape();
         }}
         salePops={salePops}

@@ -22,7 +22,7 @@ import { createVendingMachine, setMachineGlow } from './models/vendingMachine';
 
 /**
  * R3F close-up scene (SPEC §7.3): one low-poly machine on a real-feeling
- * street (pedestrians, cars, lamp, tree, shop windows that reflect the road),
+ * street (pedestrians, lamp, tree, shop windows that reflect the street),
  * lit by the city's real sun; fronts glow after dusk. Budget (§7.4): ~30K
  * tris, at most 2 shadow-casting lights (we use 1).
  */
@@ -40,7 +40,6 @@ export interface SlotsEvent {
 
 export interface SceneStats {
   walkers: number;
-  cars: number;
   /** Triangles submitted per frame (visible meshes, instanced × count; no shadow pass). */
   triangles: number;
 }
@@ -63,10 +62,8 @@ export interface MachineSceneProps {
   onFps?: (fps: number) => void;
   onReady?: () => void;
   transparent?: boolean;
-  /** 0..1 pedestrians and cars (real traffic at this spot and hour). */
+  /** 0..1 pedestrians (real foot traffic at this spot and hour). */
   crowd?: number;
-  traffic?: number;
-  leftHandTraffic?: boolean;
   /** Stable per machine so its street looks the same on every visit. */
   seed?: number;
   /** Restock committed: these slots slide in. */
@@ -169,8 +166,6 @@ function World(props: MachineSceneProps) {
     selectedSlot,
     onSlotPress,
     crowd = 0.5,
-    traffic = 0.5,
-    leftHandTraffic = false,
     seed = 1,
     restockEvent,
     saleEvent,
@@ -194,11 +189,10 @@ function World(props: MachineSceneProps) {
     const street = createStreetScene({
       dims: type.dims,
       seed,
-      leftHandTraffic,
       reflect: [mirror.group],
     });
     return { model, mirror, fx, street };
-  }, [accent, type, seed, leftHandTraffic]);
+  }, [accent, type, seed]);
   useEffect(
     () => () => {
       world.street.dispose();
@@ -242,12 +236,10 @@ function World(props: MachineSceneProps) {
     if (collectEvent) world.fx.collect(Date.now());
   }, [world, collectEvent]);
 
-  const density = useMemo(() => ({ crowd: 0, traffic: 0, night: 0 }), []);
+  const density = useMemo(() => ({ crowd: 0 }), []);
   useEffect(() => {
     density.crowd = crowd;
-    density.traffic = traffic;
-    density.night = night;
-  }, [density, crowd, traffic, night]);
+  }, [density, crowd]);
   const lastStats = useRef(0);
   useFrame(() => {
     const now = Date.now();
@@ -257,7 +249,7 @@ function World(props: MachineSceneProps) {
     if (onStats && now - lastStats.current > 1000) {
       lastStats.current = now;
       const s = world.street.stats();
-      onStats({ walkers: s.walkers, cars: s.cars, triangles: countSceneTriangles(scene) });
+      onStats({ walkers: s.walkers, triangles: countSceneTriangles(scene) });
     }
   });
 

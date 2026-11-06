@@ -1,14 +1,12 @@
 /** Street-life simulation types (pure; no React Native). */
 
-/** Road classes the sim distinguishes (from the basemap's road layers). */
-export type RoadKind = 'highway' | 'major' | 'minor' | 'service';
+/** Streets with sidewalks people walk (from the basemap's road layers). */
+export type RoadKind = 'major' | 'minor';
 
 export interface RoadInput {
   /** [lng, lat] vertices. */
   coords: readonly (readonly [number, number])[];
   kind: RoadKind;
-  /** 1: one-way along `coords`, -1: one-way against, 0/undefined: two-way. */
-  oneway?: -1 | 0 | 1;
 }
 
 export interface LngLatBox {
@@ -39,35 +37,6 @@ export interface LifeConditions {
   /** Average `baseTraffic(cell).total` of the cells in view. */
   footTraffic: number;
   weather?: LifeWeather | null;
-}
-
-export interface Car {
-  id: number;
-  /** Index into LIFE_CAR_MODELS. */
-  model: number;
-  road: number;
-  /** Distance along the road centerline, meters. */
-  s: number;
-  dir: 1 | -1;
-  /** Lateral offset to the right of the direction of travel, meters. */
-  lane: number;
-  cruise: number;
-  speed: number;
-  /** Local meters (east, north). */
-  x: number;
-  y: number;
-  /** Displayed heading unit vector (east, north). */
-  hx: number;
-  hy: number;
-  /** Positional smoothing offset after switching roads, decays to 0. */
-  bx: number;
-  by: number;
-  alpha: number;
-  dying: boolean;
-  lng: number;
-  lat: number;
-  /** Compass heading in degrees (0 = north, clockwise). */
-  heading: number;
 }
 
 export interface Person {

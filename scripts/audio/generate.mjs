@@ -10,7 +10,7 @@
  *   peaks about -14..-22 dBFS; the engine sets per-sound volume).
  * - Ambience loops -> assets/audio/<name>.m4a (AAC mono, ~-20 LUFS, built
  *   circularly so the seam is continuous; the engine plays them far quieter).
- * - Spice one-shots (cars, birds, horn, steps, siren) -> .m4a.
+ * - Spice one-shots (birds, steps) -> .m4a.
  *
  * Deterministic (seeded noise); prints size, loudness, peaks and seam checks.
  */
@@ -38,7 +38,6 @@ import {
   noise,
   normalize,
   onePole,
-  peak,
   pink,
   range,
   rng,
@@ -412,37 +411,6 @@ function cityBed({ seed, lp, rumbleLp, swell, hiss }) {
   return x;
 }
 
-/** Distant road: steady rumble + overlapping soft car swells + a little tire hiss. */
-function traffic() {
-  const L = 20;
-  const N = L * SR;
-  const r = rng(301);
-  const base = unit(
-    loopNoise(N, 302, (x) => (biquad(x, 'lowpass', 260), biquad(x, 'highpass', 35)), 'brown'),
-  );
-  const mid = unit(loopNoise(N, 303, (x) => biquad(x, 'bandpass', 450, 0.5), 'pink'));
-  const cars = new Float64Array(N);
-  for (let k = 0; k < 17; k++) {
-    const tc = r() * L;
-    const w = range(r, 1.2, 3.8);
-    const a = 0.25 + 0.75 * r() ** 2;
-    const len = Math.round(4 * w * SR);
-    const env = (i) => Math.exp(-((((i / SR - 2 * w) / w) * 1.7) ** 2));
-    const src = unit(pink(len, 400 + k));
-    biquadTV(src, 'lowpass', (i) => 220 + 1700 * env(i), 0.6);
-    const tire = biquad(noise(len, 500 + k), 'bandpass', range(r, 1800, 2800), 0.8);
-    const sig = new Float64Array(len);
-    for (let i = 0; i < len; i++) sig[i] = env(i) * (src[i] + 0.12 * env(i) * tire[i]);
-    addAt(cars, sig, (tc - 2 * w) * SR, a);
-  }
-  const x = new Float64Array(N);
-  for (let i = 0; i < N; i++) {
-    const t = i / SR;
-    x[i] = base[i] * 0.55 + mid[i] * 0.22 * (1 + 0.3 * Math.sin((TAU * t * 2) / L)) + cars[i] * 0.6;
-  }
-  return circular(x, (y) => (biquad(y, 'lowpass', 3500, 0.6), biquad(y, 'highpass', 30)));
-}
-
 // Formants (F1, F2, F3) for a handful of vowels.
 const VOWELS = [
   [730, 1090, 2440],
@@ -759,7 +727,6 @@ function wind() {
 const BEDS = {
   'city-day': () => cityBed({ seed: 101, lp: 1100, rumbleLp: 140, swell: 0.25, hiss: 0.08 }),
   'city-night': () => cityBed({ seed: 202, lp: 520, rumbleLp: 110, swell: 0.18, hiss: 0.02 }),
-  'amb-traffic': traffic,
   'amb-crowd': crowd,
   'amb-birds': birds,
   'amb-crickets': crickets,
@@ -768,80 +735,6 @@ const BEDS = {
 };
 
 // ---------- spice one-shots (m4a) ----------
-/**
- * A vehicle passing at `dist` m and `speed` m/s: the source is resampled with
- * its propagation delay (true doppler), 1/r level and distance air absorption.
- */
-function carPass({ seed, speed, dist, engineHz, tire, dur }) {
-  const r = rng(seed);
-  const n = Math.round(dur * SR);
-  const srcLen = n + SR;
-  const src = new Float64Array(srcLen);
-  let ph = 0;
-  const jitter = biquad(noise(srcLen, seed + 1), 'lowpass', 8);
-  const jm = peak(jitter) || 1;
-  for (let i = 0; i < srcLen; i++) {
-    ph += (engineHz * (1 + (0.04 * jitter[i]) / jm)) / SR;
-    let s = 0;
-    for (let h = 1; h <= 14; h++) s += Math.sin(TAU * h * ph + h * 0.7) / h ** 1.1;
-    src[i] = s * 0.25;
-  }
-  biquad(src, 'lowpass', 900, 0.6);
-  const tires = biquad(
-    biquad(pink(srcLen, seed + 2), 'bandpass', range(r, 700, 1000), 0.5),
-    'highpass',
-    200,
-  );
-  const windN = biquad(noise(srcLen, seed + 3), 'bandpass', 2600, 0.6);
-  unit(src);
-  unit(tires);
-  unit(windN);
-  for (let i = 0; i < srcLen; i++) src[i] = src[i] * 0.6 + tires[i] * tire + windN[i] * 0.1;
-  const c = 343;
-  const tc = dur / 2;
-  const y = new Float64Array(n);
-  const rAt = (i) => Math.hypot(speed * (i / SR - tc), dist);
-  for (let i = 0; i < n; i++) {
-    const t = i / SR;
-    const rr = rAt(i);
-    const p = (t + 0.5 - rr / c) * SR; // 0.5 s head start in the source buffer
-    const k = Math.floor(p);
-    const fr = p - k;
-    const v = src[k] * (1 - fr) + src[k + 1] * fr;
-    y[i] = (v * dist) / rr;
-  }
-  biquadTV(y, 'lowpass', (i) => 1200 + 9000 * (dist / rAt(i)) ** 1.5, 0.6);
-  for (let i = 0; i < n; i++) {
-    const u = i / n;
-    y[i] *= Math.min(1, u / 0.15) * Math.min(1, (1 - u) / 0.15);
-  }
-  addReverb(y, 0.15, { size: 0.5, damp: 0.5 });
-  return y;
-}
-
-function hornDistant() {
-  const x = buf(2.4);
-  for (const [t0, d] of [
-    [0.05, 0.16],
-    [0.33, 0.42],
-  ]) {
-    const n = Math.round(d * SR);
-    const o = Math.round(t0 * SR);
-    for (let i = 0; i < n; i++) {
-      const t = i / SR;
-      const env = Math.min(1, t / 0.012) * Math.min(1, (d - t) / 0.03);
-      let s = 0;
-      for (const f of [415, 520])
-        for (let h = 1; h <= 9; h += 2) s += Math.sin(TAU * f * h * t) / h;
-      x[o + i] += env * s;
-    }
-  }
-  biquad(x, 'bandpass', 900, 0.6);
-  biquad(x, 'lowpass', 1500, 0.7);
-  addReverb(x, 0.9, { size: 0.75, damp: 0.6, predelayMs: 40 });
-  return fadeOut(x, 0.3);
-}
-
 function birdOneShot(seed, kinds) {
   const r = rng(seed);
   const x = buf(2.6);
@@ -887,33 +780,10 @@ function footsteps() {
   return fadeOut(x, 0.2);
 }
 
-function sirenDistant() {
-  const dur = 7.5;
-  const x = buf(dur);
-  let ph = 0;
-  for (let i = 0; i < x.length; i++) {
-    const t = i / SR;
-    const f = 950 + 300 * Math.sin((TAU * t) / 3.2 - Math.PI / 2);
-    ph += f / SR;
-    const env = Math.min(1, t / 2) ** 2 * Math.min(1, (dur - t) / 2.5) ** 2;
-    x[i] =
-      env * (Math.sin(TAU * ph) + 0.3 * Math.sin(TAU * 2 * ph) + 0.15 * Math.sin(TAU * 3 * ph));
-  }
-  biquad(x, 'lowpass', 1400, 0.7);
-  biquad(x, 'highpass', 300);
-  addReverb(x, 1.0, { size: 0.85, damp: 0.6, predelayMs: 60 });
-  return x;
-}
-
 const SPICE = {
-  'car-pass': () => carPass({ seed: 1201, speed: 14, dist: 9, engineHz: 38, tire: 0.7, dur: 3.6 }),
-  'car-pass-2': () =>
-    carPass({ seed: 1301, speed: 10, dist: 14, engineHz: 27, tire: 1.0, dur: 4.2 }),
-  'horn-distant': hornDistant,
   'bird-chirp': () => birdOneShot(1401, ['whistle']),
   'bird-chirp-2': () => birdOneShot(1402, ['sparrow', 'teeoo']),
   footsteps,
-  'siren-distant': sirenDistant,
 };
 
 // ---------- main ----------

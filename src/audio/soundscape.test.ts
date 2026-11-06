@@ -20,7 +20,7 @@ const base = (over: Partial<SoundscapeInput> = {}): SoundscapeInput => ({
   zoom: 17.5,
   tod: DAY,
   weather: { condition: 'clear', tempC: 18 },
-  traffic: 0.7,
+  busy: 0.7,
   scene: 'map',
   ...over,
 });
@@ -43,8 +43,8 @@ describe('soundscapeMix', () => {
   it('keeps every value in range, even for odd input', () => {
     const odd: SoundscapeInput[] = [
       base({ zoom: Number.NaN }),
-      base({ traffic: 5 }),
-      base({ traffic: -1 }),
+      base({ busy: 5 }),
+      base({ busy: -1 }),
       base({ tod: { night: 0, dawn: 0, day: 0, dusk: 0 } }),
       base({ tod: { night: 3, dawn: 0, day: 3, dusk: 0 } }),
       base({ weather: null }),
@@ -71,16 +71,15 @@ describe('soundscapeMix', () => {
     expect(m.layers.cityNight).toBe(0);
     expect(m.layers.crowd).toBe(0);
     expect(m.layers.birds).toBe(0);
-    expect(m.layers.traffic).toBeLessThan(0.1);
     expect(m.layers.hum).toBe(0);
     expect(totalSpice(m)).toBe(0);
   });
 
-  it('brings in traffic, crowd and birds as you zoom in, and spice appears', () => {
+  it('brings in crowd and birds as you zoom in, and spice appears', () => {
     let prev = soundscapeMix(base({ zoom: 14 }));
     for (let z = 14.5; z <= 18; z += 0.5) {
       const m = soundscapeMix(base({ zoom: z }));
-      for (const k of ['traffic', 'crowd', 'birds'] as const) {
+      for (const k of ['crowd', 'birds'] as const) {
         expect(m.layers[k]).toBeGreaterThanOrEqual(prev.layers[k]);
       }
       expect(totalSpice(m)).toBeGreaterThanOrEqual(totalSpice(prev));
@@ -88,11 +87,10 @@ describe('soundscapeMix', () => {
       prev = m;
     }
     const close = soundscapeMix(base({ zoom: 18 }));
-    expect(close.layers.traffic).toBeGreaterThan(0.4);
     expect(close.layers.crowd).toBeGreaterThan(0.3);
     expect(close.layers.birds).toBeGreaterThan(0.3);
-    expect(close.spiceRatePerMin.carPass).toBeGreaterThan(1);
     expect(close.spiceRatePerMin.birdChirp).toBeGreaterThan(0);
+    expect(close.spiceRatePerMin.footsteps).toBeGreaterThan(0.5);
   });
 
   it('puts birds at dawn and day, crickets on warm nights', () => {
@@ -108,17 +106,15 @@ describe('soundscapeMix', () => {
     expect(night.layers.cityDay).toBe(0);
     const cold = soundscapeMix(base({ tod: NIGHT, weather: { condition: 'clear', tempC: 2 } }));
     expect(cold.layers.crickets).toBe(0);
-    expect(night.spiceRatePerMin.sirenDistant).toBeGreaterThan(0);
-    expect(day.spiceRatePerMin.sirenDistant).toBe(0);
   });
 
   it('scales the crowd with how busy the area is and with daytime', () => {
-    const quiet = soundscapeMix(base({ traffic: 0 }));
-    const busy = soundscapeMix(base({ traffic: 1 }));
-    const night = soundscapeMix(base({ traffic: 1, tod: NIGHT }));
+    const quiet = soundscapeMix(base({ busy: 0 }));
+    const busy = soundscapeMix(base({ busy: 1 }));
+    const night = soundscapeMix(base({ busy: 1, tod: NIGHT }));
     expect(busy.layers.crowd).toBeGreaterThan(quiet.layers.crowd * 2);
     expect(night.layers.crowd).toBeLessThan(busy.layers.crowd * 0.3);
-    expect(busy.layers.traffic).toBeGreaterThan(quiet.layers.traffic);
+    expect(busy.spiceRatePerMin.footsteps).toBeGreaterThan(quiet.spiceRatePerMin.footsteps);
   });
 
   it('follows the weather: rain and wind, rain quiets birds and the crowd', () => {
@@ -142,12 +138,12 @@ describe('soundscapeMix', () => {
     const close = soundscapeMix(base({ zoom: 18, scene: 'closeup' }));
     expect(close.layers.hum).toBe(1);
     expect(street.layers.hum).toBe(0);
-    for (const k of ['traffic', 'crowd'] as const) {
+    for (const k of ['crowd', 'birds'] as const) {
       expect(close.layers[k]).toBeGreaterThan(0);
       expect(close.layers[k]).toBeLessThan(street.layers[k]);
     }
     // The close-up is street level even if the map camera was far out.
-    expect(soundscapeMix(base({ zoom: 10, scene: 'closeup' })).layers.traffic).toBeGreaterThan(0.2);
+    expect(soundscapeMix(base({ zoom: 10, scene: 'closeup' })).layers.crowd).toBeGreaterThan(0.2);
   });
 
   it('menu: beds only', () => {
@@ -232,8 +228,8 @@ describe('pickSpice', () => {
     const total = totalSpice(close);
     const expected = seconds * (1 - Math.exp(-total / 60));
     expect(Math.abs(n - expected) / expected).toBeLessThan(0.08);
-    const carShare = (counts.carPass ?? 0) / n;
-    expect(Math.abs(carShare - close.spiceRatePerMin.carPass / total)).toBeLessThan(0.05);
+    const stepShare = (counts.footsteps ?? 0) / n;
+    expect(Math.abs(stepShare - close.spiceRatePerMin.footsteps / total)).toBeLessThan(0.05);
     for (const k of SPICE_NAMES) {
       if (close.spiceRatePerMin[k] === 0) expect(counts[k] ?? 0).toBe(0);
     }
@@ -242,15 +238,7 @@ describe('pickSpice', () => {
   it('only returns sounds with a positive rate', () => {
     const m: SoundscapeMix = {
       layers: soundscapeMix(base()).layers,
-      spiceRatePerMin: {
-        carPass: 0,
-        carPass2: 0,
-        hornDistant: 0,
-        birdChirp: 0,
-        birdChirp2: 0,
-        footsteps: 3,
-        sirenDistant: 0,
-      },
+      spiceRatePerMin: { birdChirp: 0, birdChirp2: 0, footsteps: 3 },
     };
     expect(pickSpice(m, () => 0.999999, 1e6)).toBe('footsteps');
     expect(pickSpice(m, () => 0, 1)).toBe('footsteps');

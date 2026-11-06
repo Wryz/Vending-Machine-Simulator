@@ -1,5 +1,5 @@
 /**
- * Street life around the 3D close-up (SPEC §3.3, §7.4): pedestrians, cars,
+ * Street life around the 3D close-up (SPEC §3.3, §7.4): pedestrians,
  * street furniture and the small machine animations. Units: meters, seconds,
  * milliseconds where named. The street is laid out in the machine's local
  * frame: the machine faces +z, the facade is behind it (-z), the sidewalk is
@@ -73,44 +73,9 @@ export const PEDESTRIANS = {
   reach: { delayS: 0.45, inS: 0.5, holdS: 0.35, outS: 0.5, minStopLeftS: 1.7 },
 } as const;
 
-export const CARS = {
-  /** Each lane repeats on this cycle; at most `maxPerCycle` cars enter per cycle. */
-  cycleS: 12,
-  maxPerCycle: 2,
-  /** Minimum time between two cars entering a lane (no overtaking on screen). */
-  minHeadwayS: 4,
-  speedMps: [8, 12],
-  halfSpanM: 32,
-  /** Simultaneous cars rendered (2 lanes × 2 + slack). */
-  capacity: 6,
-  wheelRadiusM: 0.32,
-} as const;
-
-/** Countries that drive on the left (near lane flows the other way). */
-export const LEFT_HAND_TRAFFIC = [
-  'GB',
-  'IE',
-  'JP',
-  'AU',
-  'NZ',
-  'SG',
-  'HK',
-  'MO',
-  'IN',
-  'ZA',
-  'TH',
-  'MY',
-  'ID',
-  'KE',
-  'MT',
-  'CY',
-] as const;
-
-/** Real foot/car traffic (baseTraffic total) → 0..1 density, square-root response. */
+/** Real foot traffic (baseTraffic total) → 0..1 crowd, square-root response. */
 export const STREET_DENSITY = {
   crowdFullTraffic: 500,
-  carsFullTraffic: 600,
-  carsFloor: 0.1,
 } as const;
 
 export const CLOSEUP_MOTION = {

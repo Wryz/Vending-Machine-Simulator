@@ -1,21 +1,19 @@
 import * as THREE from 'three';
 
 import type { MachineDimensions } from '@/config/machines';
-import { CARS, PEDESTRIANS } from '@/config/streetLife';
+import { PEDESTRIANS } from '@/config/streetLife';
 import type { Palette } from '@/config/timeOfDay';
 
-import { createCars } from './cars';
 import { countSceneTriangles } from './geometry';
 import { clamp01, smoothstep } from './interactions';
 import { streetLayout, type StreetLayout } from './layout';
 import { createCrowd } from './people';
 import { createStreet } from './street';
-import { carsAt, emptyCar, type CarState } from './traffic';
 import { activeWalkerCount, emptyWalker, walkerAt, type WalkerState } from './walkers';
 
 /**
  * Street life around the close-up machine (SPEC §3.3, §7.4), as one plain
- * three.js object: the street set, pedestrians, cars and the shop-window
+ * three.js object: the street set, pedestrians and the shop-window
  * reflection. Add `root` under the heading-rotated group next to the machine
  * and call `update` once per frame. Allocation-free per frame.
  */
@@ -23,10 +21,6 @@ import { activeWalkerCount, emptyWalker, walkerAt, type WalkerState } from './wa
 export interface StreetLifeParams {
   /** 0..1 pedestrians (from real foot traffic at this spot and hour). */
   crowd: number;
-  /** 0..1 cars. */
-  traffic: number;
-  /** 0..1 how dark it is (drives lamps, headlights, lit windows). */
-  night: number;
 }
 
 export interface StreetScene {
@@ -40,14 +34,13 @@ export interface StreetScene {
    * long enough, they bend down and walk off with it. Returns true if so.
    */
   offerProduct(color: THREE.Color, tS: number): boolean;
-  stats(): { walkers: number; cars: number; triangles: number };
+  stats(): { walkers: number; triangles: number };
   dispose(): void;
 }
 
 export interface StreetSceneOptions {
   dims: MachineDimensions;
   seed: number;
-  leftHandTraffic?: boolean;
   /** Extra objects to show in the shop-window reflection (the machine copy). */
   reflect?: THREE.Object3D[];
 }
@@ -56,7 +49,6 @@ export function createStreetScene(opts: StreetSceneOptions): StreetScene {
   const layout = streetLayout(opts.dims.depthM);
   const street = createStreet(layout, opts.dims.widthM);
   const crowd = createCrowd(PEDESTRIANS.max);
-  const fleet = createCars(layout.roadY, CARS.capacity);
 
   // Carried product: a small box in a customer's right hand.
   const carryMat = new THREE.MeshStandardMaterial({ roughness: 0.55, flatShading: true });
@@ -68,14 +60,14 @@ export function createStreetScene(opts: StreetSceneOptions): StreetScene {
 
   const root = new THREE.Group();
   root.name = 'street-life';
-  root.add(street.group, crowd.group, fleet.group, carry);
+  root.add(street.group, crowd.group, carry);
 
   // Mirror about the shop-window glass plane: z' = 2·glassZ − z.
   const mirror = new THREE.Group();
   mirror.name = 'reflection';
   mirror.position.z = 2 * layout.glassZ;
   mirror.scale.z = -1;
-  mirror.add(street.mirror, crowd.mirror, fleet.mirror, carryMirror, ...(opts.reflect ?? []));
+  mirror.add(street.mirror, crowd.mirror, carryMirror, ...(opts.reflect ?? []));
   mirror.traverse((o) => {
     o.castShadow = false;
     o.receiveShadow = false;
@@ -85,10 +77,8 @@ export function createStreetScene(opts: StreetSceneOptions): StreetScene {
   const walkers: WalkerState[] = Array.from({ length: PEDESTRIANS.max }, emptyWalker);
   const enabled: boolean[] = new Array<boolean>(PEDESTRIANS.max).fill(false);
   const reach = new Float32Array(PEDESTRIANS.max);
-  const cars: CarState[] = Array.from({ length: CARS.capacity }, emptyCar);
   let first = true;
   let nWalkers = 0;
-  let nCars = 0;
   // Pickup in progress.
   const pickup = { walker: -1, trip: 0, t0: 0, holding: false };
   const R = PEDESTRIANS.reach;
@@ -130,9 +120,6 @@ export function createStreetScene(opts: StreetSceneOptions): StreetScene {
     carryMirror.visible = carry.visible;
     carryMirror.position.copy(carry.position);
     carryMirror.rotation.copy(carry.rotation);
-
-    nCars = carsAt(cars, opts.seed, tS, p.traffic, layout, !!opts.leftHandTraffic);
-    fleet.update(cars, nCars, p.night);
   }
 
   return {
@@ -153,11 +140,10 @@ export function createStreetScene(opts: StreetSceneOptions): StreetScene {
       }
       return false;
     },
-    stats: () => ({ walkers: nWalkers, cars: nCars, triangles: countSceneTriangles(root) }),
+    stats: () => ({ walkers: nWalkers, triangles: countSceneTriangles(root) }),
     dispose() {
       street.dispose();
       crowd.dispose();
-      fleet.dispose();
       carryGeo.dispose();
       carryMat.dispose();
     },

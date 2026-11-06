@@ -64,7 +64,6 @@ export type SoundName = SfxName;
 const LAYER_SOURCES: Record<LayerName, number> = {
   cityDay: require('../../assets/audio/city-day.m4a'),
   cityNight: require('../../assets/audio/city-night.m4a'),
-  traffic: require('../../assets/audio/amb-traffic.m4a'),
   crowd: require('../../assets/audio/amb-crowd.m4a'),
   birds: require('../../assets/audio/amb-birds.m4a'),
   crickets: require('../../assets/audio/amb-crickets.m4a'),
@@ -74,13 +73,9 @@ const LAYER_SOURCES: Record<LayerName, number> = {
 };
 
 const SPICE_SOURCES: Record<SpiceName, number> = {
-  carPass: require('../../assets/audio/car-pass.m4a'),
-  carPass2: require('../../assets/audio/car-pass-2.m4a'),
-  hornDistant: require('../../assets/audio/horn-distant.m4a'),
   birdChirp: require('../../assets/audio/bird-chirp.m4a'),
   birdChirp2: require('../../assets/audio/bird-chirp-2.m4a'),
   footsteps: require('../../assets/audio/footsteps.m4a'),
-  sirenDistant: require('../../assets/audio/siren-distant.m4a'),
 };
 
 type Mood = 'day' | 'night';
@@ -371,7 +366,7 @@ export const sound = {
       zoom: 15.5,
       tod: { night: night ? 1 : 0, dawn: 0, day: night ? 0 : 1, dusk: 0 },
       weather: null,
-      traffic: 0.5,
+      busy: 0.5,
       scene: 'map',
     });
     scape.paused = false;

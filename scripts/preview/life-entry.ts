@@ -6,7 +6,7 @@
 import { LIFE_WALK_FRAMES, MAP_LIFE } from '@/config/mapLife';
 import {
   allLifeSpriteNames,
-  lifeBeamLayer,
+  busyLevel,
   lifeGeoJSON,
   lifeLightFor,
   lifePitchBucket,
@@ -14,7 +14,6 @@ import {
   lifeViewRadiusM,
   roadsFromFeatures,
   StreetLife,
-  trafficLevel,
   type LifeConditions,
 } from '@/map/life';
 import { getTimeOfDay } from '@/map/timeOfDay';
@@ -90,8 +89,6 @@ export async function addLife(
   ) as GeoJSON.FeatureCollection;
   map.addSource('life', { type: 'geojson', data });
   const band = { minZoom: MAP_LIFE.minZoom, fadeInEndZoom: MAP_LIFE.fadeInEndZoom };
-  const beam = lifeBeamLayer(c.lat, MAP_LIFE.beams, band);
-  map.addLayer({ id: 'life-beams', type: 'circle', source: 'life', ...beam }, opts.beforeId);
   const sym = lifeSymbolLayer(c.lat, LIFE_PTS_PER_METER, band);
   map.addLayer({ id: 'life-sprites', type: 'symbol', source: 'life', ...sym }, opts.beforeId);
 
@@ -100,10 +97,9 @@ export async function addLife(
     hour,
     roads: roads.length,
     roadPieces: life.net?.roads.length ?? 0,
-    targets: life.targets,
-    cars: life.cars.length,
+    targetPeople: life.targetPeople,
     people: life.people.length,
-    traffic: +trafficLevel(cond).toFixed(2),
+    busy: +busyLevel(cond).toFixed(2),
     radiusM: Math.round(view.radiusM),
   };
 }
