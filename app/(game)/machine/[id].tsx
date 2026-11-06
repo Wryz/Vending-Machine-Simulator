@@ -19,6 +19,7 @@ import { weatherTrafficFactor } from '@/sim/demand';
 import { sound, soundscape } from '@/services/audio';
 import { haptic } from '@/services/haptics';
 import { useGame } from '@/store/game';
+import { useProfile } from '@/store/profile';
 import { transition } from '@/store/transition';
 import { CLOSEUP_MOTION } from '@/config/streetLife';
 import { streetCrowd } from '@/three/life/density';
@@ -41,6 +42,8 @@ export default function MachineCloseup() {
   const { height } = useWindowDimensions();
   const game = useGame((s) => s.game)!;
   const world = useGame((s) => s.world)!;
+  // Warm lighting pack (shop cosmetic) is stored with the owned looks.
+  const warmLighting = useProfile((s) => s.entitlements.wraps.includes('lightingWarm'));
   const machine = game.machines.find((m) => m.id === id);
   const { now, tod } = useCityClock(world.city.lat, world.city.lng);
   const [selected, setSelected] = useState<number | null>(null);
@@ -243,6 +246,7 @@ export default function MachineCloseup() {
           to={path.to}
           durationMs={CLOSEUP_CAMERA.dollyMs}
           broken={!!machine.broken}
+          warmLighting={warmLighting}
           selectedSlot={selected}
           crowd={crowd}
           seed={seedFrom(machine.id)}

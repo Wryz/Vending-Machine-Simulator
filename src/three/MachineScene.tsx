@@ -18,6 +18,7 @@ import { createStreetScene } from './life/streetScene';
 import { createTapGate, gateActivate, gateBegin, gateClick, gateFinalize } from './life/tapGate';
 import { sceneLighting } from './lightingRig';
 import { createMachineFx, createMachineMirror, trimShadowCasters } from './machineFx';
+import { SPILL_LIGHT } from './warmLighting';
 import { createVendingMachine, setMachineGlow } from './models/vendingMachine';
 
 /**
@@ -57,6 +58,8 @@ export interface MachineSceneProps {
   to: SceneCamera;
   durationMs: number;
   broken?: boolean;
+  /** Warm lighting pack owned: sodium-warm product glow and spill light after dusk. */
+  warmLighting?: boolean;
   selectedSlot?: number | null;
   onSlotPress?: (index: number) => void;
   onFps?: (fps: number) => void;
@@ -163,6 +166,7 @@ function World(props: MachineSceneProps) {
     palette,
     heading,
     broken,
+    warmLighting,
     selectedSlot,
     onSlotPress,
     crowd = 0.5,
@@ -218,6 +222,7 @@ function World(props: MachineSceneProps) {
     });
   }, [world, slots]);
   useEffect(() => world.fx.setBroken(!!broken), [world, broken]);
+  useEffect(() => world.fx.setWarmLighting(!!warmLighting), [world, warmLighting]);
   useEffect(() => world.fx.setSelected(selectedSlot ?? null), [world, selectedSlot]);
   useEffect(() => {
     if (restockEvent) world.fx.restock(restockEvent.slots, Date.now());
@@ -268,7 +273,15 @@ function World(props: MachineSceneProps) {
   );
 }
 
-function Lights({ sun, palette }: { sun: SunState; palette: Palette }) {
+function Lights({
+  sun,
+  palette,
+  warmLighting,
+}: {
+  sun: SunState;
+  palette: Palette;
+  warmLighting?: boolean;
+}) {
   const l = sceneLighting(sun, palette);
   const dir = useRef<THREE.DirectionalLight>(null);
   useEffect(() => {
@@ -299,7 +312,7 @@ function Lights({ sun, palette }: { sun: SunState; palette: Palette }) {
           inside the cabinet so a customer standing at the glass isn't blown out. */}
       <pointLight
         position={[0, 1.15, 0]}
-        color="#FFE9C7"
+        color={warmLighting ? SPILL_LIGHT.warm : SPILL_LIGHT.plain}
         intensity={l.glowLightIntensity}
         distance={5}
         decay={2}
@@ -347,7 +360,7 @@ export function MachineScene(props: MachineSceneProps) {
           onCreated={() => props.onReady?.()}
           style={{ flex: 1 }}
         >
-          <Lights sun={props.sun} palette={props.palette} />
+          <Lights sun={props.sun} palette={props.palette} warmLighting={props.warmLighting} />
           <World {...props} onSlotPress={gatedSlotPress} />
           <CameraRig from={props.from} to={props.to} durationMs={props.durationMs} orbit={orbit} />
           <FpsMeter onFps={props.onFps} />

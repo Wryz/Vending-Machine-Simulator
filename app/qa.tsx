@@ -1,6 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { LogBox, View } from 'react-native';
 
 import type { CityId } from '@/config/cities';
 import { CONTRACT } from '@/config/economy';
@@ -50,6 +50,8 @@ export default function Qa() {
 
   useEffect(() => {
     if (!__DEV__) return;
+    // Captures for the store: no dev log toasts (RevenueCat logs a missing paywall offering).
+    LogBox.ignoreLogs(['[RevenueCat]']);
     (async () => {
       const info = cityInfoFor(city as CityId);
       await useGame.getState().openCity(info, { fresh: true, seed: 7 });
@@ -86,7 +88,11 @@ export default function Qa() {
           }
         }
         if (cash) d.cashCents = Math.round(Number(cash) * 100);
-        if (chapter) d.chapter = Number(chapter);
+        if (chapter) {
+          d.chapter = Number(chapter);
+          // Earlier chapters count as finished (the Shop offers the Starter Pack after chapter 1).
+          for (let c = 1; c < d.chapter; c++) d.chapterDoneAt[c] ??= d.now;
+        }
         return placed ? { ok: true } : { ok: false };
       });
       useProfile.getState().update((p) => {

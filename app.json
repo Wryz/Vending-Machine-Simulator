@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "app.coinline.vending",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Coinline uses your approximate location once, to build your city on the map. It is rounded to about 1 km and never stored.",
