@@ -26,7 +26,8 @@
             "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
           }
         ]
-      }
+      },
+      "appleTeamId": "BXGQNYDRM6"
     },
     "android": {
       "package": "app.coinline.vending",
