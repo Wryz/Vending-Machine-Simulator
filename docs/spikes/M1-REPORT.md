@@ -1,6 +1,6 @@
 # Build report: Milestone 1 spikes and the v1 build
 
-Date: 2026-11-05 · Branch: `claude/blissful-franklin-vjegr0`
+Date: 2026-11-05 · Developed on `claude/blissful-franklin-vjegr0`, merged into `main` on 2026-11-06
 
 This started as the week 1–2 spikes (SPEC §12). Then the brief changed to "build all milestones without stopping for confirmation". So this report covers both:
 - the spike findings;
