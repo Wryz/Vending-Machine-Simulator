@@ -6,6 +6,7 @@ import type { CellData, WeatherHour } from '@/data/types';
 
 import { cloneState, collectCash, fuelCents } from './actions';
 import {
+  baseTraffic,
   customersPerHour,
   hasResearch,
   priceResponse,
@@ -107,6 +108,10 @@ interface StepCache {
   fit: Map<string, Map<string, number>>;
   /** Place affinity by cell, then product tag (products share tags). */
   affinity: Map<string, Map<string, number>>;
+  /** Base traffic by cell (same hour and day for every machine in a step). */
+  traffic: Map<string, TrafficBreakdown>;
+  /** sqrt(productWeatherFactor) by product id (same weather for every machine in a step). */
+  weatherFit: Map<string, number>;
 }
 
 function fitFor(
@@ -149,6 +154,11 @@ function sellStep(
 ): number {
   if (m.broken || isEmpty(m)) return 0;
   const cell = world.cells.get(m.cellId) ?? EMPTY_CELL;
+  let cellTraffic = ctx.cache.traffic.get(cell.id);
+  if (!cellTraffic) {
+    cellTraffic = baseTraffic(cell, ctx.local.hour, ctx.local.restDay);
+    ctx.cache.traffic.set(cell.id, cellTraffic);
+  }
   const { customers, traffic, tagBoost } = customersPerHour(m, state, {
     cell,
     local: ctx.local,
@@ -156,6 +166,7 @@ function sellStep(
     competitors: ctx.competitors,
     events: state.events,
     t: ctx.t,
+    traffic: cellTraffic,
   });
   if (customers <= 0) return 0;
   const mult = salesMultiplier(state, m, ctx.t);
@@ -164,26 +175,34 @@ function sellStep(
   // Each stocked slot draws customers in proportion to its fit; a thin
   // selection (fewer than SELECTION_REF slots) loses customers who don't find
   // what they want. Total purchases never exceed the customers who stopped.
-  const fits: number[] = [];
+  const n = m.slots.length;
+  const fits: number[] = new Array(n);
+  const products: (Product | null)[] = new Array(n);
   let stocked = 0;
   let weatherSum = 0;
-  for (const s of m.slots) {
+  for (let i = 0; i < n; i++) {
+    const s = m.slots[i];
     if (s.qty <= 0 || !s.productId) {
-      fits.push(0);
+      fits[i] = 0;
+      products[i] = null;
       continue;
     }
     const p = getProduct(s.productId);
+    products[i] = p;
     // Weather works two ways: it changes what people pick (fit) and how many
     // stop at all (pull). Split as a square root so the total effect is the
     // product's weather factor.
-    const w = Math.sqrt(productWeatherFactor(p, ctx.weather));
+    let w = ctx.cache.weatherFit.get(p.id);
+    if (w === undefined) {
+      w = Math.sqrt(productWeatherFactor(p, ctx.weather));
+      ctx.cache.weatherFit.set(p.id, w);
+    }
     weatherSum += w;
-    fits.push(
+    fits[i] =
       fitFor(ctx.cache, cell.id, p, traffic, ctx.local.hour) *
-        tagBoostFactor(p, tagBoost) *
-        w *
-        (cooler && HOT_COLD(p) ? 1.05 : 1),
-    );
+      tagBoostFactor(p, tagBoost) *
+      w *
+      (cooler && HOT_COLD(p) ? 1.05 : 1);
     stocked++;
   }
   if (!stocked) return 0;
@@ -191,19 +210,23 @@ function sellStep(
   const customersPulled = customers * pull;
   const denom = Math.max(stocked, FIT.selectionRef);
   const cardShare = hasResearch(state, 'card-reader', type.family) ? CASH.cardShare : 0;
-  const expected = m.slots.map((s, i) => {
-    if (!fits[i] || !s.productId) return 0;
-    const p = getProduct(s.productId);
-    return (
-      customersPulled *
-      mult *
-      ctx.bh *
-      (fits[i] / denom) *
-      FIT.baseBuy *
-      priceResponse(s.priceCents / p.suggestedCents)
-    );
-  });
-  const sumExpected = expected.reduce((a, b) => a + b, 0);
+  const expected: number[] = new Array(n);
+  let sumExpected = 0;
+  for (let i = 0; i < n; i++) {
+    const p = products[i];
+    const s = m.slots[i];
+    const e =
+      !fits[i] || !s.productId || !p
+        ? 0
+        : customersPulled *
+          mult *
+          ctx.bh *
+          (fits[i] / denom) *
+          FIT.baseBuy *
+          priceResponse(s.priceCents / p.suggestedCents);
+    expected[i] = e;
+    sumExpected += e;
+  }
   const ceiling = customersPulled * mult * ctx.bh * FIT.maxBuy;
   const scale = sumExpected > ceiling ? ceiling / sumExpected : 1;
   const units: number[] = m.slots.map((s, i) =>
@@ -548,7 +571,12 @@ export function advance(
     const weather = world.weatherAt(tMid);
     const bh = businessHours(dt);
     const bd = businessDays(dt);
-    const cache: StepCache = { fit: new Map(), affinity: new Map() };
+    const cache: StepCache = {
+      fit: new Map(),
+      affinity: new Map(),
+      traffic: new Map(),
+      weatherFit: new Map(),
+    };
     let costs = 0;
 
     let powerCents = 0;

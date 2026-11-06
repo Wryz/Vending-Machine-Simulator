@@ -192,6 +192,8 @@ export interface DemandContext {
   competitors: number;
   events: readonly LocalEvent[];
   t: number;
+  /** Precomputed `baseTraffic(cell, local.hour, local.restDay)` (catch-up caches it per cell per step). */
+  traffic?: TrafficBreakdown;
 }
 
 /** customers_per_hour (business hour) for a machine (SPEC §5.2). */
@@ -201,7 +203,7 @@ export function customersPerHour(
   ctx: DemandContext,
 ): { customers: number; traffic: TrafficBreakdown; tagBoost: Record<string, number> } {
   const type = getMachineType(machine.typeId);
-  const traffic = baseTraffic(ctx.cell, ctx.local.hour, ctx.local.restDay);
+  const traffic = ctx.traffic ?? baseTraffic(ctx.cell, ctx.local.hour, ctx.local.restDay);
   const ev = eventFactor(ctx.events, machine.lat, machine.lng, ctx.t);
   const customers =
     traffic.total *
