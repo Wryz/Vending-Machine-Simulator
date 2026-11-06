@@ -276,7 +276,8 @@ function risksStep(
   type: MachineType,
   local: LocalTime,
   t: number,
-  bd: number,
+  /** Risk days this step covers (real time, see RISK.riskDaysPerRealDay). */
+  riskDays: number,
   report: AdvanceReport,
 ): number {
   let costs = 0;
@@ -291,7 +292,7 @@ function risksStep(
     const fridge = type.holds.some((f) => FRIDGE_FAMILIES.has(f));
     const cooler = hasResearch(state, 'cooler', type.family);
     const rate = type.breakdownPerDay * (fridge && cooler ? 0.6 : 1);
-    if (happens(state, rate, bd)) {
+    if (happens(state, rate, riskDays)) {
       const kind = fridge && nextRandom(state) < 0.5 ? 'fridge' : 'jam';
       const tech = hasResearch(state, 'technician', type.family);
       m.broken = {
@@ -313,7 +314,7 @@ function risksStep(
     (night ? 1 + RISK.theftNightWeight : 1);
   if (hasResearch(state, 'security-cage', type.family)) theftRate *= 1 - RISK.securityCageReduction;
   if (hasResearch(state, 'camera', type.family)) theftRate *= 1 - RISK.cameraReduction;
-  if (happens(state, theftRate, bd)) {
+  if (happens(state, theftRate, riskDays)) {
     const lostCash = Math.round(m.cashBoxCents * RISK.theftCashLoss);
     m.cashBoxCents -= lostCash;
     let lostUnits = 0;
@@ -337,7 +338,7 @@ function risksStep(
     const rate =
       RISK.alcoholIncidentPerDay *
       (hasResearch(state, 'id-check', type.family) ? 1 - RISK.idCheckIncidentReduction : 1);
-    if (happens(state, rate, bd)) {
+    if (happens(state, rate, riskDays)) {
       costs += RISK.alcoholFineCents;
       addLedger(state, 'Fines', -RISK.alcoholFineCents);
       log(state, 'fine', 'Fined for an underage sale', m.id, -RISK.alcoholFineCents);
@@ -563,7 +564,16 @@ export function advance(
         report,
       );
       powerCents += type.powerCentsPerDay * bd;
-      costs += risksStep(s, world, m, type, local, tMid, bd, report);
+      costs += risksStep(
+        s,
+        world,
+        m,
+        type,
+        local,
+        tMid,
+        (dt / 86_400_000) * RISK.riskDaysPerRealDay,
+        report,
+      );
       spoilStep(s, m, tMid, report);
       contractStep(s, world, m, tMid, dt / 3_600_000, report);
       if (m.status === 'active' && isEmpty(m) && !emptyBefore.has(m.id)) {

@@ -154,6 +154,14 @@ export const CONTRACT = {
 
 export const RISK = {
   /** Theft: base chance per business day for an average spot. */
+  /**
+   * Breakdowns, theft and alcohol incidents roll on REAL time: each real day
+   * counts as this many "risk days" for the per-day rates (machine
+   * `breakdownPerDay`, `theftBasePerDay`, `alcoholIncidentPerDay`). On the 60×
+   * business clock a starter machine left for a night broke down 56% of the
+   * time and was robbed 68% of the time; now a night away is a small risk.
+   */
+  riskDaysPerRealDay: 4,
   theftBasePerDay: 0.03,
   theftIsolationWeight: 1.6,
   theftNightWeight: 0.8,
