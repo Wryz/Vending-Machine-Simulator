@@ -582,23 +582,26 @@ export default function Company() {
 
         {/* Market share */}
         <Section title={t('company.market.section')}>
-          {game.rival.active ? (
-            <Paper tone="surface" style={{ gap: SPACE.s }}>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <T>{t('company.market.you')}</T>
-                <Mono>{pct(share)}</Mono>
-              </Row>
-              <ProgressBar value={share} />
-              <Row style={{ justifyContent: 'space-between' }}>
-                <T muted>
-                  {t('company.market.rival', { rival: RIVAL.name, n: game.rival.machines.length })}
-                </T>
-                <Mono muted>{pct(1 - share)}</Mono>
-              </Row>
-            </Paper>
-          ) : (
-            <LockedCard icon="people" title={RIVAL.name} chapter={RIVAL.arrivesChapter} />
-          )}
+          {
+            game.rival.active ? (
+              <Paper tone="surface" style={{ gap: SPACE.s }}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <T>{t('company.market.you')}</T>
+                  <Mono>{pct(share)}</Mono>
+                </Row>
+                <ProgressBar value={share} />
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <T muted>
+                    {t('company.market.rival', {
+                      rival: RIVAL.name,
+                      n: game.rival.machines.length,
+                    })}
+                  </T>
+                  <Mono muted>{pct(1 - share)}</Mono>
+                </Row>
+              </Paper>
+            ) : null /* Brightvend shows up early now (after the tutorial); no chapter lock to show. */
+          }
           <GlobalRankingButton cityId={game.cityId} />
         </Section>
 
