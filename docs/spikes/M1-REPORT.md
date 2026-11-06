@@ -293,3 +293,25 @@ Decoded with `afconvert`, which uses the same Core Audio decoder as AVFoundation
 - Playthrough: onboarding, first machine, restock, sale, collect, zoom 17+ street life, close-up transition, frame drops, visual bugs, audio heard on hardware, and orbit-vs-tap on a real touchscreen.
 
 To continue, install Xcode (Xcode 26+ from the App Store), run `sudo xcode-select -s /Applications/Xcode.app`, then `npx expo run:ios`. The `ios/` folder is generated and gitignored; `npx expo prebuild --clean` regenerates it.
+
+### Update: first native build (same day, Xcode 26.3)
+
+**The app builds, installs and runs on the iPhone 17 Simulator (iOS 26.2).** Two blocking bugs were fixed:
+
+1. **`expo-modules-jsi` 58.0.22 doesn't compile with Xcode 26 (Swift 6.2.4):** "sending 'slot' risks causing data races" in `withEncodedValue`. Expo builds SDK 58 against Xcode 27 (Swift 6.4), and 58.0.21 added the function. `patches/expo-modules-jsi+58.0.22.patch` (patch-package, applied on `npm install`) passes the pointer through the package's own `UncheckedSendable`, the same idiom its host-function path uses. **Drop the patch when Expo ships a fix, or when the project moves to Xcode 27.**
+2. **Every screen with the 3D scene failed to load** ("undefined is not a function"). R3F's native bundle `require`s three, which resolves to `three.cjs`. Since r18x that file calls `process.emitWarning` at load, a Node API that React Native lacks. It was also a second copy of three next to the ESM build. `metro.config.js` now resolves every `three` import to `three.module.js`. Jest and the headless renders couldn't catch this: Node has `process.emitWarning`.
+
+**Unattended QA:** `EXPO_PUBLIC_QA_ROUTE='/diagnostics?run=all' npm start` opens Diagnostics at launch in dev builds. It runs every check and prints `[diag]` lines to the Metro log. Ignored in release builds.
+
+**Diagnostics on the iPhone 17 Simulator (Hermes, Apple-silicon Mac; a proxy, not the device):**
+
+| Check | Result | Target |
+|---|---|---|
+| h3-js on Hermes | works: 2,000 × latLngToCell + gridDisk in 203–215 ms | — |
+| Offline catch-up 72 h, 15 machines | **186–214 ms** | < 300 ms ✅ |
+| Offline catch-up 72 h, 200 machines | **1,401–1,434 ms** | < 300 ms ❌ (§4 options still apply) |
+| 3D close-up, busy street | **59.1 fps avg, 53 min** (10 s), 5 walkers, 2 cars, 6,742 tris | 60 fps |
+
+**iPhone 13 mini (iOS 26.6.2): not built yet.** xcodebuild: "The developer disk image could not be mounted on this device". Xcode 26.3 doesn't support iOS 26.6. Fix: update Xcode (26.4+), then `npx expo run:ios --device`. The signing team is set only in the generated, gitignored `ios/` project.
+
+**Playthrough:** not done. This session has no way to tap the Simulator: no Accessibility permission, and installing a third-party Simulator driver was not allowed. Onboarding and Diagnostics render. The user's review of the first screens asked for a UI redesign (full-screen map, bottom sheets, less text, globe zoom-out), which supersedes a QA pass of the current screens.
