@@ -305,13 +305,13 @@ export function budgetReport(typeId: 'snack' | 'combo' = 'combo') {
   let wheelTris = 0;
   let beamTris = 0;
   const per: Record<string, number> = {};
-  const visit = (root: THREE.Object3D, mirrored: boolean) =>
+  const visit = (root: THREE.Object3D) =>
     root.traverse((o) => {
       if (!(o instanceof THREE.Mesh)) return;
       const t = tri(o.geometry);
       if (o instanceof THREE.InstancedMesh) {
-        if (mirrored) return; // counted ×2 below
         const n = o.name;
+        if (n.endsWith('-mirror')) return; // reflections counted ×2 below
         if (n.startsWith('people-')) {
           const k = n === 'people-limbs' ? 6 : n === 'people-shoes' ? 2 : 1;
           personTris += t * k;
@@ -324,8 +324,8 @@ export function budgetReport(typeId: 'snack' | 'combo' = 'combo') {
       if (o.name === 'falling-product') return;
       staticTris += t;
     });
-  visit(model.group, false);
-  visit(life.root, false);
+  visit(model.group);
+  visit(life.root);
   const perCar = Math.max(...carTris) + wheelTris + beamTris;
   const crowd = personTris * PEDESTRIANS.max;
   const cars = perCar * 4;
