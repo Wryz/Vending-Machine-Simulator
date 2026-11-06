@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,10 @@ import { machineLabel } from '@/ui/machineStatus';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { Receipt, type ReceiptLine } from '@/ui/objects/Receipt';
 import { SPACE } from '@/ui/theme';
+
+interface StackEvents {
+  addListener(event: 'beforeRemove', cb: () => void): () => void;
+}
 
 function venueNames(game: GameState | null, ids: string[]): string[] {
   const names = ids.map((id) => {
@@ -56,6 +60,7 @@ export default function Report() {
   const theme = useTheme();
   const t = useT();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   // Keep our own copy so the receipt stays put while the sheet closes.
   const [report] = useState(() => useGame.getState().offlineReport);
   const game = useGame((s) => s.game);
@@ -65,8 +70,23 @@ export default function Report() {
   const [doubled, setDoubled] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  // However the sheet is closed (Done or a swipe), the report is read.
-  useEffect(() => () => useGame.getState().dismissOfflineReport(), []);
+  // The report is read when the player closes the sheet (Done or a swipe). Not on
+  // unmount: the navigator remounts once at launch when the language is applied, and
+  // clearing the report then left an empty sheet behind.
+  useEffect(
+    () =>
+      // expo-router's useNavigation() is typed without stack events; beforeRemove exists on stacks.
+      (navigation as unknown as StackEvents).addListener('beforeRemove', () =>
+        useGame.getState().dismissOfflineReport(),
+      ),
+    [navigation],
+  );
+  // Nothing to show (already read): close instead of showing an empty sheet.
+  useEffect(() => {
+    if (report) return;
+    const id = setTimeout(() => (router.canGoBack() ? router.back() : router.replace('/map')), 0);
+    return () => clearTimeout(id);
+  }, [report]);
 
   useEffect(() => {
     if (report && report.cashDeltaCents > 0) sound.play('coins');
@@ -82,6 +102,7 @@ export default function Report() {
     return (
       <View
         style={{
+          flex: 1,
           backgroundColor: theme.bg,
           padding: SPACE.l,
           paddingBottom: insets.bottom + SPACE.l,
@@ -159,9 +180,7 @@ export default function Report() {
   };
 
   return (
-    // No flex: 1 here. A formSheet root that stretches renders blank on iOS (new arch);
-    // let the content size the sheet, like place.tsx.
-    <View style={{ backgroundColor: theme.bg }}>
+    <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <ScrollView
         contentContainerStyle={{
           padding: SPACE.l,

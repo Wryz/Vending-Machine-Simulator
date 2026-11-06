@@ -102,12 +102,9 @@ export default function GameLayout() {
         />
         <Stack.Screen
           name="report"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.7, 0.95],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 16,
-          }}
+          // A standard iOS card (pageSheet). As a detent formSheet its content either
+          // rendered blank (flex: 1) or sank to the bottom of the sheet.
+          options={{ presentation: 'modal' }}
         />
         <Stack.Screen name="collections" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="cities" options={{ animation: 'slide_from_right' }} />
