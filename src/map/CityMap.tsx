@@ -18,6 +18,7 @@ import {
   useState,
 } from 'react';
 
+import { MACHINE_SPRITE } from '@/config/map';
 import { getMachineType } from '@/config/machines';
 import { DISTRICTS } from '@/config/progression';
 import { cellPolygon } from '@/data/h3';
@@ -113,7 +114,7 @@ interface Props {
 }
 
 /** Minimum machine icon-size (readable at mid zoom); true scale above it. */
-const MACHINE_MIN_ICON_SIZE = 0.32;
+const MACHINE_MIN_ICON_SIZE = MACHINE_SPRITE.minIconSize;
 
 /** On-screen height of a machine sprite above its base, points. */
 function machineHeightPt(zoom: number, lat: number): number {
@@ -190,6 +191,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           model: modelFor(m.typeId),
           hb: headingBucket(m.heading),
           ring: ring ? theme[ring] : '',
+          accent: theme.family[getMachineType(m.typeId).family],
           mine: true,
         },
       });
@@ -204,6 +206,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           model: 'rival',
           hb: headingBucket((r.lat * 1e5) % 360),
           ring: '',
+          accent: MACHINE_SPRITE.rivalPad,
           mine: false,
         },
       });
@@ -297,8 +300,8 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
       mapStyle={mapStyle}
       light={light}
       logo={false}
-      attribution
-      attributionPosition={{ bottom: 92, left: 8 }}
+      // The ODbL credit is drawn by the map screen as text above its sheet.
+      attribution={false}
       compass={false}
       scaleBar={false}
       onPress={(e) => {
@@ -520,6 +523,23 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
                 'text-size': 12,
               }}
               paint={{ 'text-color': theme.paper }}
+            />
+            <Layer
+              id="machine-pads"
+              type="circle"
+              filter={['!', ['has', 'point_count']]}
+              paint={{
+                'circle-pitch-alignment': 'map',
+                'circle-radius': [
+                  'interpolate',
+                  ['exponential', 1.6],
+                  ['zoom'],
+                  ...MACHINE_SPRITE.padRadius.flat(),
+                ] as never,
+                'circle-color': ['get', 'accent'],
+                'circle-opacity': MACHINE_SPRITE.padOpacity,
+                'circle-blur': MACHINE_SPRITE.padBlur,
+              }}
             />
             <Layer
               id="machine-rings"

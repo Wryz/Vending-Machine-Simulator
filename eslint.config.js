@@ -9,6 +9,7 @@ module.exports = defineConfig([
   {
     ignores: [
       'dist/*',
+      '.expo/*',
       'node_modules/*',
       'workers/*/node_modules/*',
       'workers/*/.wrangler/*',

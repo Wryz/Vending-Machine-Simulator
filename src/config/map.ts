@@ -45,12 +45,38 @@ export const MACHINE_SPRITES = {
   ] as const,
 } as const;
 
+/**
+ * Machines on the map. Sprites are true-to-scale up close, but never smaller
+ * than `minIconSize` (0.62 ≈ 32 pt tall), so a machine always reads as the
+ * star of the map. A soft pad in the family color sits under each one.
+ */
+export const MACHINE_SPRITE = {
+  minIconSize: 0.62,
+  /** Pad radius (pt) by zoom: [zoom, radius] stops. */
+  padRadius: [
+    [12, 7],
+    [15, 15],
+    [18, 24],
+    [21, 70],
+  ],
+  padOpacity: 0.55,
+  padBlur: 0.55,
+  rivalPad: '#8C8FA8',
+} as const;
+
 export const CAMERA = {
   /** Zoom/pitch the map flies to before crossfading into the close-up. */
   closeupZoom: 20.5,
   closeupPitch: 60,
   flyDurationMs: 1200,
   crossfadeMs: 350,
+  /** Home map framing: tilted 3D view, or straight down (the 2D toggle). */
+  homeZoom: 16,
+  homePitch: 50,
+  homeBearing: -15,
+  topDownPitch: 0,
+  /** Duration of the 3D ↔ top-down camera tilt and of the locate fly. */
+  tiltMs: 650,
 } as const;
 
 /**

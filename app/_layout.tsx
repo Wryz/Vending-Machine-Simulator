@@ -4,6 +4,7 @@ import { InstrumentSans_500Medium } from '@expo-google-fonts/instrument-sans/500
 import { InstrumentSans_600SemiBold } from '@expo-google-fonts/instrument-sans/600SemiBold';
 import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono/400Regular';
 import { JetBrainsMono_600SemiBold } from '@expo-google-fonts/jetbrains-mono/600SemiBold';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useFonts } from 'expo-font';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -85,8 +86,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <Navigator />
-          <CelebrationHost />
+          <BottomSheetModalProvider>
+            <Navigator />
+            <CelebrationHost />
+          </BottomSheetModalProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
