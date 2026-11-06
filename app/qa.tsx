@@ -25,6 +25,9 @@ export default function Qa() {
     chapter,
     sales,
     saleAt,
+    focusAt,
+    focusAfter,
+    stockOnly,
   } = useLocalSearchParams<{
     city?: string;
     to?: string;
@@ -37,6 +40,11 @@ export default function Qa() {
     sales?: string;
     /** Machine id for the test sales (default: the first active machine). */
     saleAt?: string;
+    /** After landing, open this machine (flies the map in), `focusAfter` ms later (preview videos). */
+    focusAt?: string;
+    focusAfter?: string;
+    /** Stock only the Nth placed machine (1-based), so only it sells (preview videos). */
+    stockOnly?: string;
   }>();
   const [note, setNote] = useState('Seeding…');
 
@@ -69,10 +77,11 @@ export default function Qa() {
             exclusive: false,
           } as Parameters<typeof placeMachine>[2]);
           if (r.ok) {
-            restockMachine(d, world, r.machine.id, suggestRestock(d, r.machine.id, 10_000), {
-              manual: true,
-              capacity: 10_000,
-            });
+            if (!stockOnly || Number(stockOnly) === placed + 1)
+              restockMachine(d, world, r.machine.id, suggestRestock(d, r.machine.id, 10_000), {
+                manual: true,
+                capacity: 10_000,
+              });
             placed++;
           }
         }
@@ -84,6 +93,8 @@ export default function Qa() {
         p.onboarded = true;
       });
       router.replace(to as never);
+      if (focusAt)
+        setTimeout(() => router.setParams({ focus: focusAt }), Number(focusAfter) || 3000);
       const n = Math.max(0, Math.min(10, Number(sales) || 0));
       for (let i = 0; i < n; i++)
         setTimeout(
@@ -97,7 +108,7 @@ export default function Qa() {
           6000 + i * 2500,
         );
     })().catch((e) => setNote(`QA seed failed: ${String(e)}`));
-  }, [city, to, machines, cash, chapter, sales, saleAt]);
+  }, [city, to, machines, cash, chapter, sales, saleAt, focusAt, focusAfter, stockOnly]);
 
   if (!__DEV__) return <Redirect href="/" />;
   return (

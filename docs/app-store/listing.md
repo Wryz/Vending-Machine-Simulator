@@ -52,7 +52,7 @@ GROW THE BUSINESS
 
 A LIVING CITY
 • A bright, low-poly city that follows your real day and night, with real weather
-• Cars and people on the streets, busy at rush hour and quiet at night
+• People out on the streets, busy at rush hour and quiet at night
 • Zoom out to the globe to see every city you run
 
 PLAY YOUR WAY
@@ -144,14 +144,20 @@ Coinline is a single-player vending business game on a real map. No account or l
 
 **Contact:** your name, phone and email (Apple only).
 
-## Screenshots
+## Screenshots and preview video
 
-6.9" (1320 × 2868, iPhone 17 Pro Max Simulator, standard 9:41 status bar), in `docs/app-store/screenshots/`. Apple scales them down for smaller iPhones. Upload in this order:
-1. `6.9in-01-sheet-2.jpg`: a customer reaches the machine at Trafalgar Square and the sale lands; the machine's sheet below
-2. `6.9in-02-map-1.jpg`: the London map with three machines, real daylight
-3. `6.9in-03-company-1.jpg`: chapter progress and finances
-4. `6.9in-04-orders-1.jpg`: daily orders and trophies
+Uploaded to App Store Connect in this order (video first):
 
-Left out on purpose: frames naming real chains (the key ring listed Costa and Waterstones; Tokyo's sale pills named GU and Maruhan). The game shows real place names from open map data, but store art shouldn't feature other companies' brands (guideline 5.2.1).
+0. `marketing/preview-iphone-886x1920.mp4`: 28 s App Preview. London map overview, the camera flies to The Grand Caffè, people walk up and sales pop. 886×1920, H.264 30 fps, silent stereo AAC track (Apple's spec).
+1. `marketing/6.3in-01.jpg`: "Watch customers walk up and buy"
+2. `marketing/6.3in-02.jpg`: "Build an empire on a real map"
+3. `marketing/6.3in-03.jpg`: "Grow a side hustle into a tycoon"
+4. `marketing/6.3in-04.jpg`: "Hit daily orders, earn trophies"
 
-To retake: run the dev build on the iPhone 17 Pro Max Simulator with `EXPO_PUBLIC_QA_ROUTE='/qa?city=london&machines=6&cash=1840&sales=5&saleAt=m2&to=%2Fmap%3Ffocus%3Dm2'` (see `app/qa.tsx`), and hide the dev menu with `xcrun simctl spawn <udid> defaults write app.coinline.vending EXDevMenuShowFloatingActionButton -bool NO`.
+The 6.9" versions (`marketing/6.9in-NN.jpg`, 1320×2868) are there too if Apple asks for that size. `node scripts/brand/build-store-shots.mjs` rebuilds the framed versions from the raw Simulator captures in `screenshots/` (headlines are in the script).
+
+Brand care: only machines at non-chain venues sell in these captures, so no real chain names appear (the game shows real place names from open map data, but store art shouldn't feature other companies' brands, guideline 5.2.1).
+
+To retake the video: dev build on the iPhone 17 Pro Max Simulator, Metro started with
+`EXPO_PUBLIC_QA_ROUTE='/qa?city=london&machines=3&stockOnly=2&cash=1840&sales=9&saleAt=m2&focusAt=m2&focusAfter=6000'`,
+record with `xcrun simctl io <udid> recordVideo --codec=h264`, then encode as in `preview` above (scale to 886 wide, crop to 1920, 30 fps, add `anullsrc` audio). Hide the dev menu with `defaults write app.coinline.vending EXDevMenuShowFloatingActionButton -bool NO` (and `EXDevMenuShowsAtLaunch NO`).
