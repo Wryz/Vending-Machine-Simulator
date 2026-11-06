@@ -57,8 +57,8 @@ export class StreetLife {
   private cy = 0;
   private radius = 0;
   private conditions: LifeConditions = { hour: 12, restDay: false, footTraffic: 0 };
-  private carCum = new Float64Array(0);
-  private pedCum = new Float64Array(0);
+  private carCum: Float64Array = new Float64Array(0);
+  private pedCum: Float64Array = new Float64Array(0);
   private readonly carModelCum: number[] = [];
   private budget = { cars: 0, people: 0 };
   private readonly v1: Vec = { x: 0, y: 0 };

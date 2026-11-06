@@ -12,6 +12,17 @@ export const MAP_STYLE = {
     minZoom: 14,
     opacity: 0.92,
   },
+  /**
+   * Road widths reach true scale from `trueScaleFromZoom` (the street-life
+   * cars and pedestrians are true scale and must fit their lanes/sidewalks).
+   * Typical roadway widths (curb to curb), meters.
+   */
+  roads: {
+    trueScaleFromZoom: 17,
+    widthM: { minor: 9, major: 15, majorCasing: 16.5 },
+    /** Used when the style is built without a city latitude. */
+    referenceLatitude: 40,
+  },
   label: {
     font: ['Noto Sans Regular'] as const,
     districtMinZoom: 12,

@@ -82,6 +82,7 @@ export function buildPreviewStyle(opts: {
     tiles: opts.tiles ?? { kind: 'pmtiles', url: opts.tilesUrl },
     palette: tod.palette,
     sun: tod.sun,
+    latitude: opts.lat,
   }) as unknown as Record<string, unknown> & {
     layers: unknown[];
     sources: Record<string, unknown>;

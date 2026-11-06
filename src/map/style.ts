@@ -1,3 +1,4 @@
+import type { ExpressionSpecification } from '@maplibre/maplibre-gl-style-spec';
 import type {
   LayerSpecification,
   LightSpecification,
@@ -8,6 +9,7 @@ import type {
 import type { Palette } from '@/config/timeOfDay';
 import { MAP_STYLE, TILES } from '@/config/map';
 
+import { metersPerPoint } from './cameraMatch';
 import type { SunState } from './sun';
 import { mixColors } from './timeOfDay';
 
@@ -61,6 +63,25 @@ export function buildBasemapSource(tiles: TileSource): VectorSourceSpecification
   };
 }
 
+/**
+ * Road `line-width`: the styled widths at low zoom, then true scale from
+ * MAP_STYLE.roads.trueScaleFromZoom so close-up street life fits the asphalt.
+ */
+export function roadWidth(
+  low: readonly number[],
+  widthM: number,
+  latitude: number = MAP_STYLE.roads.referenceLatitude,
+): ExpressionSpecification {
+  const zTrue = MAP_STYLE.roads.trueScaleFromZoom;
+  const truePts = (z: number) => widthM / metersPerPoint(z, latitude);
+  const lastLow = low[low.length - 1];
+  // Halfway (geometrically) between the styled width and true scale one zoom earlier.
+  const bridge = Math.sqrt(lastLow * 2 * truePts(zTrue - 1));
+  const stops: number[] = [...low, zTrue - 1, Math.max(lastLow, bridge)];
+  for (let z = zTrue; z <= 22; z++) stops.push(z, truePts(z));
+  return ['interpolate', ['exponential', 2], ['zoom'], ...stops] as ExpressionSpecification;
+}
+
 const PARK_KINDS = [
   'park',
   'garden',
@@ -80,8 +101,10 @@ const PARK_KINDS = [
 export function buildBaseLayers(
   p: Palette,
   schema: TileSchema = 'protomaps',
+  /** City latitude, for true-scale road widths at close zoom. */
+  latitude: number = MAP_STYLE.roads.referenceLatitude,
 ): LayerSpecification[] {
-  if (schema === 'openmaptiles') return buildOpenMapTilesLayers(p);
+  if (schema === 'openmaptiles') return buildOpenMapTilesLayers(p, latitude);
   const src = BASEMAP_SOURCE_ID;
   const { building, label } = MAP_STYLE;
   return [
@@ -123,7 +146,7 @@ export function buildBaseLayers(
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': p.road,
-        'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 12, 0.5, 15, 3, 18, 14],
+        'line-width': roadWidth([12, 0.5, 15, 3], MAP_STYLE.roads.widthM.minor, latitude),
       },
     },
     {
@@ -139,7 +162,7 @@ export function buildBaseLayers(
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': p.roadCasing,
-        'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 0.8, 15, 7, 18, 26],
+        'line-width': roadWidth([8, 0.8, 15, 7], MAP_STYLE.roads.widthM.majorCasing, latitude),
       },
     },
     {
@@ -155,7 +178,7 @@ export function buildBaseLayers(
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': p.roadMajor,
-        'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 0.5, 15, 5.5, 18, 22],
+        'line-width': roadWidth([8, 0.5, 15, 5.5], MAP_STYLE.roads.widthM.major, latitude),
       },
     },
     {
@@ -224,7 +247,7 @@ const NOT_TUNNEL: ExpressionLike = ['!=', ['get', 'brunnel'], 'tunnel'];
 type ExpressionLike = unknown[];
 
 /** Same look over the OpenMapTiles schema (OpenFreeMap). */
-function buildOpenMapTilesLayers(p: Palette): LayerSpecification[] {
+function buildOpenMapTilesLayers(p: Palette, latitude: number): LayerSpecification[] {
   const src = BASEMAP_SOURCE_ID;
   const { building, label } = MAP_STYLE;
   const name = ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
@@ -272,7 +295,7 @@ function buildOpenMapTilesLayers(p: Palette): LayerSpecification[] {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': p.road,
-        'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 12, 0.5, 15, 3, 18, 14],
+        'line-width': roadWidth([12, 0.5, 15, 3], MAP_STYLE.roads.widthM.minor, latitude),
       },
     },
     {
@@ -284,7 +307,7 @@ function buildOpenMapTilesLayers(p: Palette): LayerSpecification[] {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': p.roadCasing,
-        'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 0.8, 15, 7, 18, 26],
+        'line-width': roadWidth([8, 0.8, 15, 7], MAP_STYLE.roads.widthM.majorCasing, latitude),
       },
     },
     {
@@ -296,7 +319,7 @@ function buildOpenMapTilesLayers(p: Palette): LayerSpecification[] {
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': p.roadMajor,
-        'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 8, 0.5, 15, 5.5, 18, 22],
+        'line-width': roadWidth([8, 0.5, 15, 5.5], MAP_STYLE.roads.widthM.major, latitude),
       },
     },
     {
@@ -385,6 +408,8 @@ export function buildMapStyle(opts: {
   sun: SunState;
   /** Set to false to leave layers out (they are rendered as RN <Layer>s). */
   includeLayers?: boolean;
+  /** City latitude (true-scale road widths at close zoom). */
+  latitude?: number;
 }): StyleSpecification {
   return {
     version: 8,
@@ -392,6 +417,9 @@ export function buildMapStyle(opts: {
     glyphs: MAP_STYLE.glyphsUrl,
     sources: { [BASEMAP_SOURCE_ID]: buildBasemapSource(opts.tiles) },
     light: buildMapLight(opts.sun, opts.palette),
-    layers: opts.includeLayers === false ? [] : buildBaseLayers(opts.palette, schemaOf(opts.tiles)),
+    layers:
+      opts.includeLayers === false
+        ? []
+        : buildBaseLayers(opts.palette, schemaOf(opts.tiles), opts.latitude),
   };
 }
