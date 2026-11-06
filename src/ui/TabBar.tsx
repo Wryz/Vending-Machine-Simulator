@@ -27,6 +27,10 @@ export interface TabItem {
   fresh?: boolean;
 }
 
+/** Ink on the light orange status band (readable, not stark black). */
+const STRIP_INK = SKIN.marqueeInk;
+const STRIP_SOFT = '#9A4418';
+
 /** Top corner radius of the tab bar. */
 const CORNER = 22;
 
@@ -150,18 +154,18 @@ function StatusStrip() {
           router.push('/cities');
         }}
       >
-        <Icon name="pin" size={18} color="#FFE3D4" />
+        <Icon name="pin" size={18} color={STRIP_SOFT} />
         <View style={{ flexShrink: 1 }}>
-          <T size={14} weight="bold" color="#FFFFFF" numberOfLines={1}>
+          <T size={14} weight="bold" color={STRIP_INK} numberOfLines={1}>
             {title}
           </T>
           {under ? (
-            <T size={11} weight="medium" color="#FFD9C4" numberOfLines={1}>
+            <T size={11} weight="medium" color={STRIP_SOFT} numberOfLines={1}>
               {under}
             </T>
           ) : null}
         </View>
-        <Icon name="chevron" size={14} color="#FFE3D4" />
+        <Icon name="chevron" size={14} color={STRIP_SOFT} />
       </Pressable>
       <View
         style={styles.when}
@@ -169,22 +173,22 @@ function StatusStrip() {
         accessibilityLabel={[time, date, temp].filter(Boolean).join(', ')}
       >
         <View style={styles.whenRow}>
-          <Icon name={day.name} size={15} color={day.color} />
-          <Mono size={14} weight="bold" color="#FFFFFF">
+          <Icon name={day.name} size={15} color={STRIP_SOFT} />
+          <Mono size={14} weight="bold" color={STRIP_INK}>
             {time}
           </Mono>
           {weather ? (
             <>
               {weather.condition !== 'clear' ? (
-                <Icon name={WEATHER_ICON[weather.condition]} size={15} color="#FFE3D4" />
+                <Icon name={WEATHER_ICON[weather.condition]} size={15} color={STRIP_SOFT} />
               ) : null}
-              <Mono size={14} weight="bold" color="#FFFFFF">
+              <Mono size={14} weight="bold" color={STRIP_INK}>
                 {temp}
               </Mono>
             </>
           ) : null}
         </View>
-        <T size={11} weight="medium" color="#FFD9C4">
+        <T size={11} weight="medium" color={STRIP_SOFT}>
           {date}
         </T>
       </View>
@@ -215,7 +219,7 @@ const styles = StyleSheet.create({
     gap: SPACE.m,
     paddingHorizontal: SPACE.l,
     paddingVertical: SPACE.s,
-    backgroundColor: SKIN.cabinetDark,
+    backgroundColor: SKIN.cabinetLight,
     borderTopLeftRadius: CORNER,
     borderTopRightRadius: CORNER,
   },
