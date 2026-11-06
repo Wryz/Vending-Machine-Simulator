@@ -23,7 +23,7 @@ import { playerShare, rivalDecide, rivalRevenue } from './rival';
 import {
   activeMachines,
   cashBoxCapacity,
-  competitorMap,
+  competition,
   driverCapacity,
   isEmpty,
   maxOfflineMs,
@@ -103,7 +103,8 @@ function newReport(from: number): AdvanceReport {
 
 /** Per-step caches: traffic per cell and fit per (cell, product). */
 interface StepCache {
-  fit: Map<string, number>;
+  /** Product fit by cell, then product id (nested maps: no string keys in the hot loop). */
+  fit: Map<string, Map<string, number>>;
 }
 
 function fitFor(
@@ -113,11 +114,12 @@ function fitFor(
   traffic: TrafficBreakdown,
   hour: number,
 ): number {
-  const key = `${cellId}|${product.id}`;
-  let f = cache.fit.get(key);
+  let byProduct = cache.fit.get(cellId);
+  if (!byProduct) cache.fit.set(cellId, (byProduct = new Map()));
+  let f = byProduct.get(product.id);
   if (f === undefined) {
     f = productFit(product, traffic, hour);
-    cache.fit.set(key, f);
+    byProduct.set(product.id, f);
   }
   return f;
 }
@@ -518,7 +520,8 @@ export function advance(
   const longGap = to - s.now > 15 * 60_000;
   const stepMs = longGap ? TIME.offlineStepMinutes * 60_000 : TIME.liveTickMs;
   const startCash = s.cashCents;
-  let comp = competitorMap(s, world);
+  let compIdx = competition(s, world);
+  let comp = compIdx.values;
   const emptyBefore = new Set(
     activeMachines(s)
       .filter(isEmpty)
@@ -526,6 +529,7 @@ export function advance(
   );
 
   while (s.now < to) {
+    const lostBefore = report.contractsLost.length;
     const dt = Math.min(stepMs, to - s.now);
     const tMid = s.now + dt / 2;
     const tEnd = s.now + dt;
@@ -591,7 +595,21 @@ export function advance(
     costs += fixed;
 
     // Rival + market share window (half-life: one business day).
-    if (rivalDecide(s, world, tMid)) comp = competitorMap(s, world);
+    const rivalsBefore = s.rival.machines.slice();
+    const rivalWasActive = s.rival.active;
+    if (rivalDecide(s, world, tMid)) {
+      if (!rivalWasActive) {
+        compIdx = competition(s, world);
+        comp = compIdx.values;
+      } else {
+        const before = new Set(rivalsBefore);
+        const after = new Set(s.rival.machines);
+        compIdx.updateRivals(
+          rivalsBefore.filter((r) => !after.has(r)),
+          s.rival.machines.filter((r) => !before.has(r)),
+        );
+      }
+    }
     s.ledger.recentRivalCents += rivalRevenue(s, world, local, bh, comp);
     const decay = 0.5 ** bd;
     s.ledger.recentPlayerCents *= decay;
@@ -602,7 +620,12 @@ export function advance(
     s.now = tEnd;
     checkChapters(s, s.now, report);
     for (const id of checkAchievements(s)) report.achievements.push(id);
-    if (report.contractsLost.length) comp = competitorMap(s, world);
+    // Competition only changes when machines go: rebuild if this step lost a contract
+    // (report.contractsLost is cumulative over the whole catch-up).
+    if (report.contractsLost.length > lostBefore) {
+      const gone = new Set(report.contractsLost.slice(lostBefore));
+      compIdx.remove(s.machines.filter((m) => gone.has(m.id)));
+    }
   }
   report.toAt = s.now;
   report.cashDeltaCents = s.cashCents - startCash;

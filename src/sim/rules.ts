@@ -12,7 +12,7 @@ import type { NamedPlace } from '@/data/types';
 
 import { hasResearch } from './demand';
 import { distanceM, type LatLng } from './geo';
-import type { GameState, Machine, Venue, World } from './state';
+import type { GameState, Machine, RivalMachine, Venue, World } from './state';
 
 export function slotCapacity(state: GameState, type: MachineType): number {
   const bigger = hasResearch(state, 'bigger-coil', type.family);
@@ -247,6 +247,124 @@ export function competitorMap(state: GameState, world: World): Map<string, numbe
   for (const r of state.rival.machines)
     out.set(`rival:${r.id}`, countWithin(mineIdx, r, COMPETITION.radiusM, cellDeg));
   return out;
+}
+
+/**
+ * Competitor counts that can be updated as machines leave, without a full
+ * rebuild. `values` holds exactly what `competitorMap` would return: each
+ * value is computed by the same expression from the same integer counts, so
+ * an update is bit-identical to a rebuild (the sim stays deterministic).
+ */
+export interface Competition {
+  values: Map<string, number>;
+  /** The player's machines in `gone` stopped competing (e.g. contracts lost). */
+  remove(gone: readonly Machine[]): void;
+  /** The rival pulled `removed` and placed `added`. */
+  updateRivals(removed: readonly RivalMachine[], added: readonly RivalMachine[]): void;
+}
+
+export function competition(state: GameState, world: World): Competition {
+  const R = COMPETITION.radiusM;
+  const mine = activeMachines(state);
+  const cellDeg =
+    ((R / 111_000) * 1.05) / Math.max(0.2, Math.cos((world.city.lat * Math.PI) / 180));
+  const mineIdx = buildIndex(mine, cellDeg);
+  const rivalIdx = buildIndex(state.rival.machines, cellDeg);
+  const parts = new Map<string, { mine: number; rival: number; store: number }>();
+  const rivalCounts = new Map<string, number>();
+  const values = new Map<string, number>();
+  const valueOf = (p: { mine: number; rival: number; store: number }) => {
+    // Same order of operations as competitorMap.
+    let n = p.mine;
+    n += 1.25 * p.rival;
+    n += p.store;
+    return n;
+  };
+  for (const m of mine) {
+    const cell = world.cells.get(m.cellId);
+    const p = {
+      mine: countWithin(mineIdx, m, R, cellDeg, m),
+      rival: countWithin(rivalIdx, m, R, cellDeg),
+      store: cell ? cell.competitors * COMPETITION.storeWeight * 0.5 : 0,
+    };
+    parts.set(m.id, p);
+    values.set(m.id, valueOf(p));
+  }
+  for (const r of state.rival.machines) {
+    const n = countWithin(mineIdx, r, R, cellDeg);
+    rivalCounts.set(r.id, n);
+    values.set(`rival:${r.id}`, n);
+  }
+  return {
+    values,
+    remove(gone) {
+      for (const g of gone) {
+        const list = mineIdx.get(bucketKey(g.lat, g.lng, cellDeg));
+        const at = list ? list.indexOf(g) : -1;
+        if (!list || at < 0) continue;
+        list.splice(at, 1);
+        parts.delete(g.id);
+        values.delete(g.id);
+        // Its neighbors each lose one competitor (distance is symmetric, and so is the 3×3 bucket search).
+        forEachWithin(mineIdx, g, R, cellDeg, (m) => {
+          const p = parts.get(m.id);
+          if (!p) return;
+          p.mine -= 1;
+          values.set(m.id, valueOf(p));
+        });
+        forEachWithin(rivalIdx, g, R, cellDeg, (r) => {
+          const n = (rivalCounts.get(r.id) ?? 0) - 1;
+          rivalCounts.set(r.id, n);
+          values.set(`rival:${r.id}`, n);
+        });
+      }
+    },
+    updateRivals(removed, added) {
+      const bump = (r: RivalMachine, by: 1 | -1) =>
+        forEachWithin(mineIdx, r, R, cellDeg, (m) => {
+          const p = parts.get(m.id);
+          if (!p) return;
+          p.rival += by;
+          values.set(m.id, valueOf(p));
+        });
+      for (const r of removed) {
+        const list = rivalIdx.get(bucketKey(r.lat, r.lng, cellDeg));
+        const at = list ? list.indexOf(r) : -1;
+        if (!list || at < 0) continue;
+        list.splice(at, 1);
+        rivalCounts.delete(r.id);
+        values.delete(`rival:${r.id}`);
+        bump(r, -1);
+      }
+      for (const r of added) {
+        const k = bucketKey(r.lat, r.lng, cellDeg);
+        const list = rivalIdx.get(k);
+        if (list) list.push(r);
+        else rivalIdx.set(k, [r]);
+        const n = countWithin(mineIdx, r, R, cellDeg);
+        rivalCounts.set(r.id, n);
+        values.set(`rival:${r.id}`, n);
+        bump(r, 1);
+      }
+    },
+  };
+}
+
+function forEachWithin<T extends LatLng>(
+  idx: Map<string, T[]>,
+  p: LatLng,
+  radiusM: number,
+  cellDeg: number,
+  fn: (it: T) => void,
+): void {
+  const r = Math.floor(p.lat / cellDeg);
+  const c = Math.floor(p.lng / cellDeg);
+  for (let dr = -1; dr <= 1; dr++)
+    for (let dc = -1; dc <= 1; dc++) {
+      const list = idx.get(`${r + dr}:${c + dc}`);
+      if (!list) continue;
+      for (const it of list) if (it !== p && distanceM(it, p) <= radiusM) fn(it);
+    }
 }
 
 export function getProductSafe(id: string | null): Product | null {

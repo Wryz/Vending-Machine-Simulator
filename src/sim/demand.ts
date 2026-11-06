@@ -92,10 +92,12 @@ export function productWeatherFactor(product: Product, weather: WeatherHour | nu
  */
 export function productFit(product: Product, traffic: TrafficBreakdown, hour: number): number {
   let f = 1;
+  // Same iteration order as before, entries built once instead of once per tag.
+  const parts = Object.entries(traffic.parts) as [CurveKey, number][];
   for (const tag of product.tags) {
     let aff = 0;
     let weight = 0;
-    for (const [k, v] of Object.entries(traffic.parts) as [CurveKey, number][]) {
+    for (const [k, v] of parts) {
       const a = PLACE_TAG_AFFINITY[k]?.[tag];
       aff += (a ?? 1) * v;
       weight += v;
