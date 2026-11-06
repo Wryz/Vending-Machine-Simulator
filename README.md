@@ -46,8 +46,9 @@ npm start
 
 | Variable | Purpose |
 |---|---|
-| `EXPO_PUBLIC_DATA_API_URL` | Data API Worker base URL (area check, weather, region packs, tiles) |
-| `EXPO_PUBLIC_TILES_URL` | Optional tile override: a `.pmtiles` URL (native `pmtiles://`) or an XYZ template with `{z}/{x}/{y}`; `{name}` is replaced by the city id |
+| `EXPO_PUBLIC_DATA_API_URL` | Optional Data API Worker base URL (area check, shared weather cache, region packs, self-hosted tiles). Without it the app still works: tiles from OpenFreeMap, weather straight from MET Norway |
+| `EXPO_PUBLIC_TILES_URL` | Optional self-hosted tiles: a `.pmtiles` URL (native `pmtiles://`) or an XYZ template with `{z}/{x}/{y}`; `{name}` is replaced by the city id. Empty = OpenFreeMap (free, no key) |
+| `EXPO_PUBLIC_TILES_SCHEMA` | `protomaps` (default for self-hosted) or `openmaptiles` |
 | `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `_ANDROID_KEY` | Enables the store (one-time purchases) |
 | `EXPO_PUBLIC_ADMOB_REWARDED_IOS` / `_ANDROID` | Rewarded ad units (dev builds fall back to Google test ids; release builds hide ads without them) |
 | `EXPO_PUBLIC_POSTHOG_KEY` | Optional privacy-light analytics (event counts only) |
@@ -79,6 +80,10 @@ node scripts/audio/generate.mjs
 ```bash
 cd pipeline && npm install && npx tsx build-city.ts new-york
 ```
+
+## Free services
+
+Map tiles come from **OpenFreeMap** and weather from **MET Norway**. Both are free, need no key, and allow commercial use with attribution. See [`docs/hosting.md`](docs/hosting.md) for terms, limits and the self-hosting fallback (Cloudflare R2 free tier).
 
 ## Licenses & attribution
 

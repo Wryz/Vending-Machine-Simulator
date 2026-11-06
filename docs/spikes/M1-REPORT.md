@@ -213,10 +213,10 @@ The late-game number needs work before launch.
 
 | Item | Who / what |
 |---|---|
-| **Tile hosting.** Without `EXPO_PUBLIC_TILES_URL` or `EXPO_PUBLIC_DATA_API_URL`, the app falls back to `https://build.protomaps.com/20261104.pmtiles`, a daily build that **is deleted after about a week** | Create the R2 bucket, upload city extracts or a planet copy, deploy the Worker (`workers/data-api/README.md`) |
+| ~~Tile hosting~~ **Resolved (2026-11-06):** the default is OpenFreeMap's free public instance (no key, commercial use allowed, no SLA). Self-hosting on the R2 free tier is the fallback (`docs/hosting.md`) | Optional: deploy the Worker + R2 as a backup |
 | Native build and device QA (fps, transition, gestures, MapLibre `<Layer>` live repaint, R3F GLView under new architecture) | Run `eas build --profile development` and use Diagnostics |
 | AdMob app IDs and units (currently Google **test** IDs in `app.json`), RevenueCat keys, App Store Connect products (`coinline.*`) | Your accounts |
-| Weather: Open-Meteo free tier is non-commercial; production needs their commercial plan or WeatherKit | Decision and account |
+| ~~Weather licensing~~ **Resolved (2026-11-06):** MET Norway (free, no key, CC BY 4.0, commercial use allowed), via the Worker or directly from the app | — |
 | "Your area" regions: only the 9 cities are computed, so other areas get the city picker | Run the pipeline over regions (US first, per SPEC §6.5) |
 | Holidays table covers 2026–2028 | Regenerate with `date-holidays` |
 | Trademark check for "Coinline" (SPEC §14 Q1), ASO screenshots and preview video, privacy nutrition labels, age-rating questionnaire | Launch prep |
