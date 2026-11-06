@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "coinline",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "app.coinline.vending",
       "buildNumber": "1",
@@ -59,6 +58,11 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Coinline uses your approximate location once, to build your city on the map. It is rounded to about 1 km and never stored.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "locationFullAccuracyPermission": false,
+          "motionUsagePermission": false,
+          "isIosReducedAccuracyByDefault": true,
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
