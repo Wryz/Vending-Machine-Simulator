@@ -32,11 +32,14 @@ export const PEDESTRIANS = {
   /** Upper bound on people simulated at once (SPEC: 4–10 on a busy street). */
   max: 10,
   /** Walk-lane centers measured from the machine front, by walking direction. */
-  laneFromFrontM: { east: 0.72, west: 1.47 },
+  laneFromFrontM: { east: 0.95, west: 1.6 },
   /** Small lateral offsets so people never walk on one line. */
-  subLaneM: [-0.12, 0, 0.12],
-  /** One speed per sub-lane: nobody overtakes inside their sub-lane. */
-  speedsMps: [1.24, 1.33, 1.41],
+  subLaneM: [-0.08, 0, 0.08],
+  /**
+   * One speed per direction: start times are spaced, so nobody overtakes
+   * (and walks through) anybody.
+   */
+  speedsMps: { east: 1.3, west: 1.38 },
   /** People enter and leave at ±this x (outside the close-up view). */
   halfSpanM: 22,
   /** Each walker slot repeats on this period with a jittered start. */
@@ -44,15 +47,15 @@ export const PEDESTRIANS = {
   startJitterS: 10,
   /** Two steps; the walk cycle is driven by distance so feet never skate. */
   strideM: 1.42,
-  legSwingDeg: 21,
+  legSwingDeg: 24,
   armSwingDeg: 13,
   /** Peak-to-peak vertical bob. */
   bobM: 0.024,
   heightM: [1.6, 1.86],
   shoulderScale: [0.88, 1.08],
   customer: {
-    /** Walker slots that may stop (half a period apart: never two at once). */
-    slots: [0, 5],
+    /** East-bound walker slots that may stop (half a period apart: never two at once). */
+    slots: [0, 6],
     chance: 0.42,
     stopS: [2, 4],
     /** Distance over which they slow down and speed up again. */
@@ -61,7 +64,7 @@ export const PEDESTRIANS = {
     detourM: 1.4,
     /** Where they stand: x offset (the control column) and distance from the front. */
     standX: 0.2,
-    standOffM: 0.42,
+    standOffM: 0.38,
     turnS: 0.55,
   },
   /** Reaching into the pickup bin after a sale. */
@@ -126,7 +129,7 @@ export const CLOSEUP_MOTION = {
   drop: { tipMs: 130, fallMs: 430 },
   coins: { count: 8, doorMs: 240, firstCoinMs: 200, staggerMs: 70, slideMs: 420, holdMs: 900 },
   /** Delay before the 2D coin tray appears after the cash door opens. */
-  coinTrayDelayMs: 900,
+  coinTrayDelayMs: 1000,
   selectedPulseS: 1.8,
   /** Broken screen flicker: bin length and dim chance per bin. */
   flicker: { binS: 0.09, dimChance: 0.11 },

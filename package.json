@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "sprites": "node scripts/sprites/build-sprites.mjs",
+    "life-sprites": "node scripts/sprites/build-life-sprites.mjs",
     "spike:h3-hermes": "node scripts/spikes/h3-hermes.mjs"
   },
   "dependencies": {

@@ -69,10 +69,11 @@ export interface WalkerSlot {
 export function walkerSlot(i: number): WalkerSlot {
   const P = PEDESTRIANS;
   const subLane = Math.floor(i / 2) % P.subLaneM.length;
+  const dir = i % 2 === 0 ? 1 : -1;
   return {
-    dir: i % 2 === 0 ? 1 : -1,
+    dir,
     subLane,
-    speed: P.speedsMps[subLane],
+    speed: dir > 0 ? P.speedsMps.east : P.speedsMps.west,
     phaseS: (i * P.periodS) / P.max,
     canStop: (P.customer.slots as readonly number[]).includes(i),
   };
@@ -98,6 +99,25 @@ export function lerpAngle(a: number, b: number, t: number): number {
   return a + d * t;
 }
 
+function tripStart(seed: number, i: number, k: number): number {
+  const P = PEDESTRIANS;
+  return walkerSlot(i).phaseS + k * P.periodS + hash01(seed, i, k, 1) * P.startJitterS;
+}
+
+/** Earliest trip start after `start` among walkers going the same way (same speed). */
+function nextStartAfter(seed: number, i: number, k: number, start: number): number {
+  const P = PEDESTRIANS;
+  let best = Infinity;
+  for (let j = i % 2; j < P.max; j += 2) {
+    for (let kk = k - 1; kk <= k + 1; kk++) {
+      if (j === i && kk === k) continue;
+      const s = tripStart(seed, j, kk);
+      if (s > start && s < best) best = s;
+    }
+  }
+  return best;
+}
+
 /** Fill `out` with walker `i` at time `t` (seconds). Allocation-free. */
 export function walkerAt(
   out: WalkerState,
@@ -113,11 +133,17 @@ export function walkerAt(
   const dir = slot.dir;
   const L = P.halfSpanM;
   const k = Math.floor((t - slot.phaseS) / P.periodS);
-  const start = slot.phaseS + k * P.periodS + hash01(seed, i, k, 1) * P.startJitterS;
+  const start = tripStart(seed, i, k);
   const tau = t - start;
-  const stops = slot.canStop && hash01(seed, i, k, 2) < C.chance;
-  const stopS = stops ? C.stopS[0] + hash01(seed, i, k, 3) * (C.stopS[1] - C.stopS[0]) : 0;
   const a = C.easeM;
+  let stopS = 0;
+  if (slot.canStop && hash01(seed, i, k, 2) < C.chance) {
+    stopS = C.stopS[0] + hash01(seed, i, k, 3) * (C.stopS[1] - C.stopS[0]);
+    // Only stop if the next walker behind won't catch up inside the detour.
+    const delay = stopS + (2 * a) / v + (2 * C.detourM) / v + 1;
+    if (nextStartAfter(seed, i, k, start) - start < delay) stopS = 0;
+  }
+  const stops = stopS > 0;
   const duration = stops ? (2 * L) / v + (2 * a) / v + stopS : (2 * L) / v;
 
   out.trip = k;

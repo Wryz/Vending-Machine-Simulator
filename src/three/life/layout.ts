@@ -1,4 +1,4 @@
-import { CARS, PEDESTRIANS, STREET_LAYOUT } from '@/config/streetLife';
+import { PEDESTRIANS, STREET_LAYOUT } from '@/config/streetLife';
 
 /**
  * Street layout in the machine's local frame (+z = the way the machine faces,
@@ -50,5 +50,3 @@ export function streetLayout(machineDepthM: number): StreetLayout {
 export function nearLaneDir(leftHandTraffic: boolean): 1 | -1 {
   return leftHandTraffic ? 1 : -1;
 }
-
-export const CAR_SPAN_M = CARS.halfSpanM;

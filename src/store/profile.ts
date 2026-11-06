@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { AUDIO_DEFAULTS } from '@/config/audio';
 import { readJson, writeJson } from '@/services/storage';
 import type { World } from '@/sim';
 
@@ -10,7 +11,12 @@ import type { World } from '@/sim';
 export type CityInfo = World['city'] & { kind: 'fallback' | 'area'; res5?: string };
 
 export interface Settings {
+  /** Master sound switch (music, effects and ambience). */
   sound: boolean;
+  /** 0..1 volumes under the master switch. */
+  musicVolume: number;
+  sfxVolume: number;
+  ambienceVolume: number;
   haptics: boolean;
   notifications: { enabled: boolean; empty: boolean; cashFull: boolean; events: boolean };
   /** UI theme follows the city's real time (default) or the phone. */
@@ -45,6 +51,9 @@ const DEFAULT: Profile = {
   cities: {},
   settings: {
     sound: true,
+    musicVolume: AUDIO_DEFAULTS.musicVolume,
+    sfxVolume: AUDIO_DEFAULTS.sfxVolume,
+    ambienceVolume: AUDIO_DEFAULTS.ambienceVolume,
     haptics: true,
     notifications: { enabled: false, empty: true, cashFull: true, events: true },
     theme: 'city',

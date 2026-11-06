@@ -206,6 +206,28 @@ export class RoadNetwork {
     return out;
   }
 
+  /** Closest point of one road to (x, y): distance along it and from it. */
+  project(ri: number, x: number, y: number, out: RoadHit): RoadHit {
+    const r = this.roads[ri];
+    out.road = ri;
+    out.d = Infinity;
+    out.s = 0;
+    for (let i = 0; i < r.xs.length - 1; i++) {
+      const ax = r.xs[i];
+      const ay = r.ys[i];
+      const dx = r.xs[i + 1] - ax;
+      const dy = r.ys[i + 1] - ay;
+      const l2 = dx * dx + dy * dy;
+      const t = l2 > 0 ? Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+      const d = Math.hypot(ax + dx * t - x, ay + dy * t - y);
+      if (d < out.d) {
+        out.d = d;
+        out.s = r.cum[i] + Math.sqrt(l2) * t;
+      }
+    }
+    return out;
+  }
+
   /** Road length per kind inside a local box and within `radius` of (cx, cy). */
   lengthWithin(
     box: { x0: number; y0: number; x1: number; y1: number },
