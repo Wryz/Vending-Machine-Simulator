@@ -2,13 +2,15 @@ import type { MachineFamily, MachineTypeId } from '@/config/machines';
 import type { ResearchId } from '@/config/progression';
 import type { CellData, PlaceCategory, WeatherHour } from '@/data/types';
 
+import type { GoalsState } from './goals';
+
 /**
  * Game state. Plain JSON (no classes, Maps or Dates) so it can be saved,
  * exported and migrated (SPEC §7.5). All money in integer cents, all times in
  * epoch ms (real time).
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export interface Slot {
   productId: string | null;
@@ -190,6 +192,10 @@ export interface GameState {
   prestige: { reputation: number; perks: Record<string, number>; sales: number };
   hiddenPlaces: string[];
   tutorial: { step: number; done: boolean };
+  /** Daily orders + counters + streak (schema v2). */
+  goals: GoalsState;
+  /** Trophy id -> unlocked at (schema v2). */
+  achievements: Record<string, number>;
   ledger: Ledger;
   log: LogEntry[];
   nextId: number;

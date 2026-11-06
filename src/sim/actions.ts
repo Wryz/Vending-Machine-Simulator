@@ -19,6 +19,7 @@ import { PRODUCTS, getProduct } from '@/config/products';
 import { nextId, storedMachine } from './create';
 import { distanceM } from './geo';
 import { nextRandom } from './rng';
+import { bump } from './goals';
 import { addLedger, log } from './ledger';
 import {
   alcoholBlocked,
@@ -162,6 +163,7 @@ export function placeMachine(
   machine.lastVisitAt = now;
   machine.broken = null;
   log(state, 'info', `Placed ${type.name} at ${venue.name}`, machine.id);
+  if (!p.machineId) bump(state, 'places');
   return { ok: true, machine };
 }
 
@@ -301,6 +303,7 @@ export function restockMachine(
     slot.stockedAt = state.now;
   }
   if (opts.manual) {
+    bump(state, 'restocks');
     m.freshUntil = state.now + businessDaysToMs(SERVICE.freshStockBusinessDays);
     m.lastVisitAt = state.now;
     m.seen = { at: state.now, qty: m.slots.map((s) => s.qty), cashBoxCents: m.cashBoxCents };
@@ -401,7 +404,10 @@ export function collectCash(
       }
     }
   }
-  if (gross > 0) log(state, 'collect', `Collected cash`, m.id, net);
+  if (gross > 0) {
+    log(state, 'collect', `Collected cash`, m.id, net);
+    bump(state, 'collects');
+  }
   return { ok: true, grossCents: gross, netCents: net, commissionCents: commission, pulledItem };
 }
 
@@ -412,6 +418,7 @@ export function repairMachine(state: GameState, machineId: string): ActionResult
   m.broken = null;
   m.lastVisitAt = state.now;
   log(state, 'repair', 'Repaired by hand', m.id, -SERVICE.manualRepairCostCents);
+  bump(state, 'repairs');
   return { ok: true };
 }
 
@@ -454,6 +461,7 @@ export function buyResearch(
   if (list.includes(key) || list.includes('*')) return fail('Already researched.');
   if (!spend(state, r.costCents, 'Research')) return fail('Not enough cash.');
   state.research[id] = [...list, key];
+  bump(state, 'research');
   return { ok: true };
 }
 
@@ -561,6 +569,7 @@ export function buyPull(state: GameState, seriesId: string): ActionResult<{ item
   const item = rollCollectible(state, seriesId);
   if (!item) return fail('Unknown series.');
   state.collection[item] = (state.collection[item] ?? 0) + 1;
+  bump(state, 'pulls');
   return { ok: true, itemId: item };
 }
 

@@ -1,3 +1,4 @@
+import { emptyGoals } from './goals';
 import { SCHEMA_VERSION, type GameState } from './state';
 
 /**
@@ -7,7 +8,8 @@ import { SCHEMA_VERSION, type GameState } from './state';
 type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
 
 const MIGRATIONS: Record<number, Migration> = {
-  // 1 -> 2 goes here, e.g. (s) => ({ ...s, newField: default, schemaVersion: 2 })
+  // v2: daily orders, streaks and trophies.
+  1: (s) => ({ ...s, goals: emptyGoals(), achievements: {}, schemaVersion: 2 }),
 };
 
 export class SaveError extends Error {}

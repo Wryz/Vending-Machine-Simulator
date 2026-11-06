@@ -15,6 +15,7 @@ import {
   type TrafficBreakdown,
 } from './demand';
 import { maintainEvents } from './events';
+import { bump, checkAchievements, rollGoalsDay } from './goals';
 import { orderStops } from './geo';
 import { addLedger, log, rollLedgerDay } from './ledger';
 import { happens, nextRandom, poisson } from './rng';
@@ -61,6 +62,8 @@ export interface AdvanceReport {
   events: string[];
   /** Sales per machine during this advance (ticker, receipts). */
   perMachine: Record<string, { units: number; cents: number }>;
+  /** Trophies unlocked during this advance. */
+  achievements: string[];
 }
 
 const EMPTY_CELL: CellData = {
@@ -94,6 +97,7 @@ function newReport(from: number): AdvanceReport {
     chaptersCompleted: [],
     events: [],
     perMachine: {},
+    achievements: [],
   };
 }
 
@@ -247,6 +251,8 @@ function sellStep(
   state.ledger.recentPlayerCents += revenue;
   report.salesCents += revenue;
   report.units += sold;
+  bump(state, 'sales', revenue);
+  bump(state, 'units', sold);
   const pm = (report.perMachine[m.id] ??= { units: 0, cents: 0 });
   pm.units += sold;
   pm.cents += revenue;
@@ -525,6 +531,7 @@ export function advance(
     const tEnd = s.now + dt;
     const local = localTime(tMid, world.city.timeZone, world.city.countryCode);
     rollLedgerDay(s, local.dateKey);
+    rollGoalsDay(s, local.dateKey);
     const evBefore = s.events.length;
     maintainEvents(s, world, tMid);
     for (let i = evBefore; i < s.events.length; i++) report.events.push(s.events[i].name);
@@ -594,6 +601,7 @@ export function advance(
     report.costsCents += costs;
     s.now = tEnd;
     checkChapters(s, s.now, report);
+    for (const id of checkAchievements(s)) report.achievements.push(id);
     if (report.contractsLost.length) comp = competitorMap(s, world);
   }
   report.toAt = s.now;

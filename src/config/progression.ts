@@ -455,3 +455,182 @@ export const PRESTIGE_PERKS: readonly PrestigePerk[] = [
     maxLevel: 1,
   },
 ];
+
+/**
+ * Daily orders (gamification, SPEC §1.2 pillar 5 "always something to want").
+ * Three per local day, picked deterministically per save and day, scaled by
+ * chapter (index = chapter - 1). Claiming all three extends the daily streak.
+ */
+export type GoalKind =
+  'sales' | 'units' | 'restocks' | 'collects' | 'places' | 'repairs' | 'research' | 'pulls';
+
+export interface GoalTemplate {
+  id: string;
+  kind: GoalKind;
+  /** `{n}` is replaced by the target (money targets formatted by the UI). */
+  title: string;
+  minChapter: number;
+  targetByChapter: readonly number[];
+  rewardCentsByChapter: readonly number[];
+}
+
+export const DAILY_GOALS: readonly GoalTemplate[] = [
+  {
+    id: 'sales',
+    kind: 'sales',
+    title: 'Take {n} in sales',
+    minChapter: 1,
+    targetByChapter: [50_000, 300_000, 1_500_000, 6_000_000, 20_000_000, 40_000_000],
+    rewardCentsByChapter: [5_000, 25_000, 100_000, 350_000, 1_000_000, 2_000_000],
+  },
+  {
+    id: 'units',
+    kind: 'units',
+    title: 'Sell {n} items',
+    minChapter: 1,
+    targetByChapter: [200, 1_000, 5_000, 20_000, 60_000, 120_000],
+    rewardCentsByChapter: [4_000, 20_000, 80_000, 300_000, 900_000, 1_800_000],
+  },
+  {
+    id: 'restocks',
+    kind: 'restocks',
+    title: 'Restock {n} times by hand',
+    minChapter: 1,
+    targetByChapter: [2, 4, 6, 8, 10, 10],
+    rewardCentsByChapter: [3_000, 12_000, 40_000, 120_000, 300_000, 600_000],
+  },
+  {
+    id: 'collects',
+    kind: 'collects',
+    title: 'Empty {n} cash boxes',
+    minChapter: 1,
+    targetByChapter: [2, 5, 8, 12, 15, 15],
+    rewardCentsByChapter: [3_000, 12_000, 40_000, 120_000, 300_000, 600_000],
+  },
+  {
+    id: 'places',
+    kind: 'places',
+    title: 'Place {n} new machines',
+    minChapter: 2,
+    targetByChapter: [1, 1, 2, 3, 4, 5],
+    rewardCentsByChapter: [0, 30_000, 120_000, 400_000, 1_000_000, 2_000_000],
+  },
+  {
+    id: 'repairs',
+    kind: 'repairs',
+    title: 'Fix {n} breakdowns',
+    minChapter: 2,
+    targetByChapter: [1, 1, 2, 3, 3, 3],
+    rewardCentsByChapter: [0, 15_000, 50_000, 150_000, 400_000, 800_000],
+  },
+  {
+    id: 'research',
+    kind: 'research',
+    title: 'Research {n} upgrade',
+    minChapter: 2,
+    targetByChapter: [1, 1, 1, 1, 1, 1],
+    rewardCentsByChapter: [0, 25_000, 80_000, 250_000, 600_000, 1_200_000],
+  },
+  {
+    id: 'pulls',
+    kind: 'pulls',
+    title: 'Open {n} capsules',
+    minChapter: 3,
+    targetByChapter: [1, 1, 3, 5, 8, 8],
+    rewardCentsByChapter: [0, 0, 30_000, 100_000, 300_000, 600_000],
+  },
+];
+
+export const DAILY_GOALS_PER_DAY = 3;
+/** Streak bonus for finishing all orders: base × min(streak, cap). */
+export const STREAK_BONUS = {
+  baseCentsByChapter: [5_000, 20_000, 80_000, 250_000, 700_000, 1_500_000],
+  cap: 7,
+} as const;
+
+/** Trophies: permanent milestones with a one-time cash reward. */
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  rewardCents: number;
+}
+
+export const ACHIEVEMENTS: readonly Achievement[] = [
+  {
+    id: 'first-sale',
+    title: 'Open for business',
+    description: 'Make your first sale.',
+    rewardCents: 2_000,
+  },
+  { id: 'units-100', title: 'Regulars', description: 'Sell 100 items.', rewardCents: 5_000 },
+  {
+    id: 'units-10k',
+    title: 'Household name',
+    description: 'Sell 10,000 items.',
+    rewardCents: 150_000,
+  },
+  {
+    id: 'sales-1k',
+    title: 'Side hustle',
+    description: 'Take $1,000 in sales.',
+    rewardCents: 10_000,
+  },
+  {
+    id: 'sales-100k',
+    title: 'Real business',
+    description: 'Take $100,000 in sales.',
+    rewardCents: 500_000,
+  },
+  {
+    id: 'sales-1m',
+    title: 'Seven figures',
+    description: 'Take $1,000,000 in sales.',
+    rewardCents: 2_500_000,
+  },
+  { id: 'machines-5', title: 'A route', description: 'Run 5 machines.', rewardCents: 30_000 },
+  { id: 'machines-15', title: 'A network', description: 'Run 15 machines.', rewardCents: 120_000 },
+  {
+    id: 'machines-40',
+    title: 'An operator',
+    description: 'Run 40 machines.',
+    rewardCents: 500_000,
+  },
+  {
+    id: 'machines-100',
+    title: 'Coinline everywhere',
+    description: 'Run 100 machines.',
+    rewardCents: 2_000_000,
+  },
+  {
+    id: 'first-driver',
+    title: 'Delegation',
+    description: 'Hire your first driver.',
+    rewardCents: 50_000,
+  },
+  {
+    id: 'first-research',
+    title: 'Upgrades',
+    description: 'Research your first upgrade.',
+    rewardCents: 20_000,
+  },
+  {
+    id: 'full-set',
+    title: 'Completionist',
+    description: 'Complete a collectible set.',
+    rewardCents: 200_000,
+  },
+  {
+    id: 'beat-rival',
+    title: 'Top operator',
+    description: 'Beat Brightvend for the city.',
+    rewardCents: 1_000_000,
+  },
+  {
+    id: 'streak-7',
+    title: 'Every day',
+    description: 'Finish your daily orders 7 days in a row.',
+    rewardCents: 300_000,
+  },
+  { id: 'sold-company', title: 'Exit', description: 'Sell the company.', rewardCents: 0 },
+];
