@@ -98,6 +98,8 @@ export function MachinePanel({
   };
   const [coins, setCoins] = useState<{ gross: number; commission: number } | null>(null);
   const [collecting, setCollecting] = useState(false);
+  /** Specs and the less common actions stay folded away until asked for. */
+  const [more, setMore] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = (ms: number, fn: () => void) => {
     timers.current.push(setTimeout(fn, ms));
@@ -514,85 +516,108 @@ export function MachinePanel({
         </Paper>
       ) : null}
 
-      {/* Spec: icons and numbers. */}
-      <Row style={{ flexWrap: 'wrap' }}>
-        <StatChip icon="grid" label="Slots" value={`${type.slots}×${cap}`} />
-        <StatChip
-          icon="bolt"
-          label="Power per day"
-          value={moneyShortPrice(type.powerCentsPerDay)}
-        />
-        <StatChip
-          icon="wrench"
-          label="Breakdowns per day"
-          value={`${(type.breakdownPerDay * 100).toFixed(1)}%`}
-        />
-        <StatChip
-          icon="lock"
-          label="Theft risk"
-          value={type.theftRisk >= 1.4 ? 'High' : type.theftRisk >= 1 ? 'Med' : 'Low'}
-        />
-        <StatChip icon="bag" label="Items sold" value={String(machine.stats.unitsTotal)} />
-        <StatChip icon="coin" label="Revenue" value={moneyShort(machine.stats.revenueTotalCents)} />
-        {ownedResearch.map((r) => (
-          <StatChip key={r} icon="star" label="Upgrade" value={r} color={theme.brand} />
-        ))}
-      </Row>
+      <Button
+        kind="quiet"
+        label={more ? 'Less' : 'More'}
+        icon={
+          <View style={{ transform: [{ rotate: more ? '-90deg' : '90deg' }] }}>
+            <Icon name="chevron" size={16} color={theme.muted} />
+          </View>
+        }
+        onPress={() => setMore((m) => !m)}
+        accessibilityHint="Show specs, wraps and machine actions"
+      />
+      {more ? (
+        <>
+          {/* Spec: icons and numbers. */}
+          <Row style={{ flexWrap: 'wrap' }}>
+            <StatChip icon="grid" label="Slots" value={`${type.slots}×${cap}`} />
+            <StatChip
+              icon="bolt"
+              label="Power per day"
+              value={moneyShortPrice(type.powerCentsPerDay)}
+            />
+            <StatChip
+              icon="wrench"
+              label="Breakdowns per day"
+              value={`${(type.breakdownPerDay * 100).toFixed(1)}%`}
+            />
+            <StatChip
+              icon="lock"
+              label="Theft risk"
+              value={type.theftRisk >= 1.4 ? 'High' : type.theftRisk >= 1 ? 'Med' : 'Low'}
+            />
+            <StatChip icon="bag" label="Items sold" value={String(machine.stats.unitsTotal)} />
+            <StatChip
+              icon="coin"
+              label="Revenue"
+              value={moneyShort(machine.stats.revenueTotalCents)}
+            />
+            {ownedResearch.map((r) => (
+              <StatChip key={r} icon="star" label="Upgrade" value={r} color={theme.brand} />
+            ))}
+          </Row>
 
-      <Row style={{ flexWrap: 'wrap' }}>
-        {ownedWraps.map((w) => (
-          <Chip
-            key={w}
-            label={WRAPS[w].name}
-            color={WRAPS[w].color}
-            active={machine.wrap === w}
-            onPress={() =>
-              useGame.getState().act((d) => {
-                const m = d.machines.find((x) => x.id === machine.id);
-                if (m) m.wrap = m.wrap === w ? null : w;
-                return { ok: true };
-              })
-            }
-          />
-        ))}
-        <IconChip
-          icon="rotate"
-          label="Rotate"
-          onPress={() =>
-            useGame.getState().act((d) => rotateMachine(d, machine.id, machine.heading + 90))
-          }
-        />
-        {!machine.contract.renegotiated ? (
-          <IconChip
-            icon="handshake"
-            label="Renegotiate"
-            onPress={() => {
-              const r = useGame.getState().act((d) => renegotiate(d, machine.id));
-              show(
-                r.ok ? `Commission now ${pct(r.commission, 1)}` : r.error,
-                r.ok ? 'success' : 'error',
-              );
-            }}
-          />
-        ) : null}
-        <IconChip
-          icon="box"
-          label="Pick up"
-          onPress={() =>
-            Alert.alert('Pick up this machine?', 'It goes back to storage; the contract ends.', [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Pick up',
-                style: 'destructive',
-                onPress: () => {
-                  useGame.getState().act((d) => pickUpMachine(d, machine.id));
-                  finishLeave();
-                },
-              },
-            ])
-          }
-        />
-      </Row>
+          <Row style={{ flexWrap: 'wrap' }}>
+            {ownedWraps.map((w) => (
+              <Chip
+                key={w}
+                label={WRAPS[w].name}
+                color={WRAPS[w].color}
+                active={machine.wrap === w}
+                onPress={() =>
+                  useGame.getState().act((d) => {
+                    const m = d.machines.find((x) => x.id === machine.id);
+                    if (m) m.wrap = m.wrap === w ? null : w;
+                    return { ok: true };
+                  })
+                }
+              />
+            ))}
+            <IconChip
+              icon="rotate"
+              label="Rotate"
+              onPress={() =>
+                useGame.getState().act((d) => rotateMachine(d, machine.id, machine.heading + 90))
+              }
+            />
+            {!machine.contract.renegotiated ? (
+              <IconChip
+                icon="handshake"
+                label="Renegotiate"
+                onPress={() => {
+                  const r = useGame.getState().act((d) => renegotiate(d, machine.id));
+                  show(
+                    r.ok ? `Commission now ${pct(r.commission, 1)}` : r.error,
+                    r.ok ? 'success' : 'error',
+                  );
+                }}
+              />
+            ) : null}
+            <IconChip
+              icon="box"
+              label="Pick up"
+              onPress={() =>
+                Alert.alert(
+                  'Pick up this machine?',
+                  'It goes back to storage; the contract ends.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Pick up',
+                      style: 'destructive',
+                      onPress: () => {
+                        useGame.getState().act((d) => pickUpMachine(d, machine.id));
+                        finishLeave();
+                      },
+                    },
+                  ],
+                )
+              }
+            />
+          </Row>
+        </>
+      ) : null}
     </View>
   );
 }
