@@ -80,7 +80,8 @@ export function bass(midi, durSec, vel = 0.7) {
     if (i > offAt) env *= Math.exp(-(i - offAt) / SR / rel);
     if (env < 2e-5 && t > 0.02) break;
     ph += (TAU * f) / SR;
-    out[i] = vel * env * (Math.sin(ph) + 0.38 * Math.sin(2 * ph + 0.3) + 0.16 * Math.sin(3 * ph + 0.9));
+    out[i] =
+      vel * env * (Math.sin(ph) + 0.38 * Math.sin(2 * ph + 0.3) + 0.16 * Math.sin(3 * ph + 0.9));
   }
   return onePole(out, 900);
 }
@@ -149,7 +150,9 @@ export function snare(vel = 0.7, seed = 2, { brush = 0.5 } = {}) {
     const swishEnv = Math.min(1, t / 0.025) * Math.exp(-t / 0.16);
     ph += (TAU * 185) / SR;
     out[i] =
-      vel * (n[i] * ((1 - brush) * tapEnv * 2.2 + brush * swishEnv * 1.2) + 0.35 * Math.sin(ph) * Math.exp(-t / 0.04));
+      vel *
+      (n[i] * ((1 - brush) * tapEnv * 2.2 + brush * swishEnv * 1.2) +
+        0.35 * Math.sin(ph) * Math.exp(-t / 0.04));
   }
   return out;
 }

@@ -25,6 +25,7 @@ import { useProfile } from '@/store/profile';
  *     names: coin coins click thunk vend success error register drop door paper
  *            scribble whoosh pop chime notify
  *   sound.hum(on)                      compressor hum (shares the soundscape's hum layer)
+ *   sound.suspend() / sound.resume()   app background / foreground: halts every loop, fades back in
  *   music.start() / music.stop()       background loop, fades in/out
  *   music.setMood('day' | 'night')     ~3 s crossfade between the two loops
  *   music.pause() / music.resume()     app background / foreground
@@ -197,6 +198,7 @@ function haltAll(): void {
     if (p && f.playing) safe(() => p.pause());
     f.playing = false;
     f.current = 0;
+    f.target = 0;
     if (p) safe(() => (p.volume = 0));
   }
   if (ticker) {
@@ -233,6 +235,20 @@ function ensureInit(): void {
   );
 }
 
+function layerTarget(name: LayerName): number {
+  const s = settings();
+  if (!s.on || suspended) return 0;
+  let level = !scape.paused && scape.mix ? scape.mix.layers[name] : 0;
+  if (name === 'hum' && humForced) level = 1;
+  return level * AUDIO_MIX.layerTrim[name] * s.ambience;
+}
+
+function applyLayer(name: LayerName, sec: number): void {
+  const v = layerTarget(name);
+  const key = `layer:${name}`;
+  if (v > 0 || faders.has(key)) setTarget(fader(key, LAYER_SOURCES[name]), v, sec);
+}
+
 /** Recompute every loop's target from the logical state and settings. */
 function applyTargets(sec?: number): void {
   const s = settings();
@@ -240,18 +256,12 @@ function applyTargets(sec?: number): void {
   for (const mood of ['day', 'night'] as const) {
     const on = live && musicState.started && !musicState.paused && musicState.mood === mood;
     const v = on ? s.music * AUDIO_MIX.musicTrim : 0;
-    if (v > 0 || faders.has(`music:${mood}`))
-      setTarget(fader(`music:${mood}`, MUSIC_SOURCES[mood]), v, sec ?? AUDIO_MIX.ramp.music);
+    const key = `music:${mood}`;
+    if (v > 0 || faders.has(key))
+      setTarget(fader(key, MUSIC_SOURCES[mood]), v, sec ?? AUDIO_MIX.ramp.music);
   }
-  const scapeOn = live && !scape.paused && scape.mix !== null;
-  for (const name of LAYER_NAMES) {
-    let level = scapeOn && scape.mix ? scape.mix.layers[name] : 0;
-    if (name === 'hum' && humForced) level = 1;
-    const v = live ? level * AUDIO_MIX.layerTrim[name] * s.ambience : 0;
-    if (v > 0 || faders.has(`layer:${name}`))
-      setTarget(fader(`layer:${name}`, LAYER_SOURCES[name]), v, sec ?? AUDIO_MIX.ramp.layer);
-  }
-  syncSpiceTimer(scapeOn && s.ambience > 0);
+  for (const name of LAYER_NAMES) applyLayer(name, sec ?? AUDIO_MIX.ramp.layer);
+  syncSpiceTimer(live && !scape.paused && scape.mix !== null && s.ambience > 0);
 }
 
 function syncSpiceTimer(on: boolean): void {
@@ -328,7 +338,21 @@ export const sound = {
   hum(on: boolean): void {
     ensureInit();
     humForced = on;
-    safe(() => applyTargets(on ? 0.8 : AUDIO_MIX.ramp.layer));
+    safe(() => applyLayer('hum', on ? 0.8 : AUDIO_MIX.ramp.layer));
+  },
+
+  /** App going to background: stop every loop at once (timers will not run). */
+  suspend(): void {
+    suspended = true;
+    syncSpiceTimer(false);
+    haltAll();
+  },
+
+  /** Back to foreground: fade music and ambience back in. */
+  resume(): void {
+    if (!suspended) return;
+    suspended = false;
+    safe(() => applyTargets(AUDIO_MIX.ramp.resume));
   },
 
   /**
@@ -417,8 +441,7 @@ export const soundscape = {
     safe(() => {
       changed = setMix(input);
     });
-    if (scape.paused) return;
-    if (changed || !spiceTimer) safe(() => applyTargets());
+    if (changed && !scape.paused) safe(() => applyTargets());
   },
   /** Silence the ambience and stop spice (keeps the last mix for resume). */
   pause(): void {
@@ -443,19 +466,5 @@ export const soundscape = {
   /** The current mix (for diagnostics). */
   get mix(): SoundscapeMix | null {
     return scape.mix;
-  },
-};
-
-/** App lifecycle: stop everything at once on background, fade back in on foreground. */
-export const audioLifecycle = {
-  background(): void {
-    suspended = true;
-    syncSpiceTimer(false);
-    haltAll();
-  },
-  foreground(): void {
-    if (!suspended) return;
-    suspended = false;
-    safe(() => applyTargets(AUDIO_MIX.ramp.resume));
   },
 };

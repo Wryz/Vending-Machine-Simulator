@@ -8,8 +8,16 @@ import { CAMERA } from '@/config/map';
 import { CHAPTERS, CHAPTER_GOALS } from '@/config/progression';
 import { useCityClock } from '@/hooks/useCityClock';
 import { CityMap, type CityMapHandle, type MapCameraState } from '@/map/CityMap';
-import { activeMachines, goalProgress, nearbyPlaces, visibleEvents, playerShare } from '@/sim';
-import { sound } from '@/services/audio';
+import {
+  activeMachines,
+  baseTraffic,
+  goalProgress,
+  localTime,
+  nearbyPlaces,
+  visibleEvents,
+  playerShare,
+} from '@/sim';
+import { soundscape } from '@/services/audio';
 import { haptic } from '@/services/haptics';
 import { useGame } from '@/store/game';
 import { transition } from '@/store/transition';
@@ -156,10 +164,37 @@ export default function MapScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // City ambience follows the real time of day.
+  // Living soundscape: city bed, traffic, crowd, birds/crickets, rain/wind,
+  // richer as you zoom in; driven by zoom, real time of day, weather and how
+  // busy the streets in view are (street-life stats when available).
+  const cameraNow = useRef<MapCameraState>(initial);
+  const lifeTraffic = useRef<number | null>(null);
+  const feedSoundscape = useCallback(() => {
+    const cam = cameraNow.current;
+    const [lng, lat] = cam.center;
+    let traffic = lifeTraffic.current;
+    if (traffic === null) {
+      const cell = world.cells.get(world.cellOf(lat, lng));
+      const lt = localTime(Date.now(), world.city.timeZone, world.city.countryCode);
+      traffic = cell ? Math.min(1, baseTraffic(cell, lt.hour, lt.restDay).total / 600) : 0.1;
+    }
+    const w = world.weatherAt(Date.now());
+    soundscape.update({
+      zoom: cam.zoom,
+      tod: tod.weights,
+      weather: w ? { condition: w.condition, tempC: w.tempC } : null,
+      traffic,
+      scene: 'map',
+    });
+  }, [world, tod.weights]);
   useEffect(() => {
-    sound.ambience(tod.weights.night > 0.5 ? 'cityNight' : 'cityDay');
-  }, [tod.weights.night]);
+    feedSoundscape();
+  }, [feedSoundscape]);
+  useFocusEffect(
+    useCallback(() => {
+      feedSoundscape();
+    }, [feedSoundscape]),
+  );
 
   // Fly back to where the player was after leaving a close-up.
   useFocusEffect(
@@ -249,6 +284,10 @@ export default function MapScreen() {
         initial={initial}
         onMapPress={onMapPress}
         onMachinePress={onMachinePress}
+        onCameraChanged={(c) => {
+          cameraNow.current = c;
+          feedSoundscape();
+        }}
       />
 
       {/* Top: cash, city clock, live receipt ticker. */}

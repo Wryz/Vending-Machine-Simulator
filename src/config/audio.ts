@@ -12,7 +12,7 @@ export const AUDIO_DEFAULTS = {
 } as const;
 
 /** Steps offered by the settings screen for each volume. */
-export const VOLUME_STEPS = [0, 0.25, 0.5, 0.75, 1] as const;
+export const VOLUME_STEPS: readonly number[] = [0, 0.25, 0.5, 0.75, 1];
 
 export const SOUNDSCAPE = {
   /** MapLibre zoom where street detail starts to come in, and where it is full. */

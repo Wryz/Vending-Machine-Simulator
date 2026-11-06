@@ -6,7 +6,9 @@ import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { useState } from 'react';
 import { Alert, Pressable, Switch, View } from 'react-native';
 
+import { VOLUME_STEPS } from '@/config/audio';
 import { track } from '@/services/analytics';
+import { sound } from '@/services/audio';
 import { haptic } from '@/services/haptics';
 import { requestNotificationPermission, rescheduleNotifications } from '@/services/notifications';
 import { readUri, writeShareFile } from '@/services/storage';
@@ -106,6 +108,81 @@ function Choice({
         </T>
       </View>
     </Pressable>
+  );
+}
+
+/** Volume as five steps (0/25/50/75/100). Adjustable for VoiceOver. */
+function Level({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  disabled?: boolean;
+}) {
+  const theme = useTheme();
+  // Nearest step, so older or odd saved values still show a selection.
+  const index = VOLUME_STEPS.reduce(
+    (best, v, i) => (Math.abs(v - value) < Math.abs(VOLUME_STEPS[best] - value) ? i : best),
+    0,
+  );
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const go = (i: number) => {
+    const j = Math.min(VOLUME_STEPS.length - 1, Math.max(0, i));
+    if (j !== index) onChange(VOLUME_STEPS[j]);
+  };
+  return (
+    <View
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel={label}
+      accessibilityValue={{ text: VOLUME_STEPS[index] === 0 ? 'Off' : pct(VOLUME_STEPS[index]) }}
+      accessibilityState={{ disabled }}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(e) => {
+        if (disabled) return;
+        if (e.nativeEvent.actionName === 'increment') go(index + 1);
+        if (e.nativeEvent.actionName === 'decrement') go(index - 1);
+      }}
+      style={{ paddingVertical: SPACE.xs, gap: SPACE.xs, opacity: disabled ? 0.5 : 1 }}
+    >
+      <T weight="medium">{label}</T>
+      <Row gap={SPACE.xs}>
+        {VOLUME_STEPS.map((v, i) => {
+          const selected = i === index;
+          return (
+            <Pressable
+              key={v}
+              disabled={disabled}
+              importantForAccessibility="no"
+              onPress={() => go(i)}
+              style={({ pressed }) => ({
+                flex: 1,
+                minHeight: TOUCH,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: selected ? theme.ink : theme.line,
+                backgroundColor: selected ? theme.ink : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <T
+                size={13}
+                weight={selected ? 'medium' : 'regular'}
+                color={selected ? theme.bg : theme.muted}
+              >
+                {v === 0 ? 'Off' : String(Math.round(v * 100))}
+              </T>
+            </Pressable>
+          );
+        })}
+      </Row>
+    </View>
   );
 }
 
@@ -217,15 +294,44 @@ export default function SettingsScreen() {
   return (
     <View style={{ flex: 1 }}>
       <Screen title="Settings">
-        <Section title="Feel">
-          <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
+        <Section title="Sound">
+          <Paper tone="surface" style={{ paddingVertical: SPACE.s, gap: SPACE.s }}>
             <Toggle
               label="Sound"
-              detail="Clicks, coins and city ambience"
+              detail="Music, clicks and coins, and the city around you"
               value={settings.sound}
               onChange={(v) => setSettings({ sound: v })}
             />
             <Divider />
+            <Level
+              label="Music"
+              value={settings.musicVolume}
+              disabled={!settings.sound}
+              onChange={(v) => setSettings({ musicVolume: v })}
+            />
+            <Level
+              label="Effects"
+              value={settings.sfxVolume}
+              disabled={!settings.sound}
+              onChange={(v) => {
+                setSettings({ sfxVolume: v });
+                sound.play('pop');
+              }}
+            />
+            <Level
+              label="City ambience"
+              value={settings.ambienceVolume}
+              disabled={!settings.sound}
+              onChange={(v) => setSettings({ ambienceVolume: v })}
+            />
+          </Paper>
+          <T size={13} muted>
+            Follows the silent switch.
+          </T>
+        </Section>
+
+        <Section title="Feel">
+          <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
             <Toggle
               label="Haptics"
               detail="Coin ticks and product thunks"

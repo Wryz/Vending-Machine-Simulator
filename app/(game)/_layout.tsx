@@ -2,15 +2,18 @@ import { Redirect, Stack, router } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
+import { musicMoodFor } from '@/audio/soundscape';
+import { getTimeOfDay } from '@/map/timeOfDay';
 import { flush, track } from '@/services/analytics';
-import { haptic } from '@/services/haptics';
-import { sound } from '@/services/audio';
+import { music, sound } from '@/services/audio';
 import { rescheduleNotifications } from '@/services/notifications';
 import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
 
 /** Live tick cadence. The sim itself runs 1-minute steps (SPEC §5.1). */
 const TICK_MS = 5_000;
+/** How often the music mood follows the city's real time of day. */
+const MOOD_CHECK_MS = 60_000;
 
 /**
  * Game shell: ticks the simulation in real time, autosaves (every 30 s and on
@@ -22,6 +25,7 @@ export default function GameLayout() {
   const status = useGame((s) => s.status);
   const offlineReport = useGame((s) => s.offlineReport);
   const chapter = useGame((s) => s.game?.chapter ?? 1);
+  const city = useGame((s) => s.city);
 
   useEffect(() => {
     if (status !== 'ready') return;
@@ -30,11 +34,12 @@ export default function GameLayout() {
       const { game, world, tick, save } = useGame.getState();
       if (next === 'active') {
         tick();
+        sound.resume();
       } else if (next === 'background' || next === 'inactive') {
         save();
         rescheduleNotifications(game, world).catch(() => undefined);
         flush();
-        sound.ambience(null);
+        sound.suspend();
       }
     });
     return () => {
@@ -43,16 +48,23 @@ export default function GameLayout() {
     };
   }, [status]);
 
+  // Music follows the city's real time of day (day loop / night loop).
+  useEffect(() => {
+    if (status !== 'ready' || !city) return;
+    const mood = () => musicMoodFor(getTimeOfDay(new Date(), city.lat, city.lng).weights);
+    music.start(mood());
+    music.setMood(mood());
+    const id = setInterval(() => music.setMood(mood()), MOOD_CHECK_MS);
+    return () => clearInterval(id);
+  }, [status, city]);
+
   useEffect(() => {
     if (offlineReport) router.push('/report');
   }, [offlineReport]);
 
+  // Chapter sound + haptics are played by CelebrationHost; only track here.
   useEffect(() => {
-    if (chapter > 1) {
-      haptic.success();
-      sound.play('success');
-      track('chapter', { chapter });
-    }
+    if (chapter > 1) track('chapter', { chapter });
   }, [chapter]);
 
   if (status !== 'ready') return <Redirect href="/" />;

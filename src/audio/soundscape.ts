@@ -12,15 +12,7 @@ import { SOUNDSCAPE } from '@/config/audio';
  */
 
 export type LayerName =
-  | 'cityDay'
-  | 'cityNight'
-  | 'traffic'
-  | 'crowd'
-  | 'birds'
-  | 'crickets'
-  | 'rain'
-  | 'wind'
-  | 'hum';
+  'cityDay' | 'cityNight' | 'traffic' | 'crowd' | 'birds' | 'crickets' | 'rain' | 'wind' | 'hum';
 
 export type SpiceName =
   | 'carPass'
@@ -89,7 +81,11 @@ function smoothstep(a: number, b: number, x: number): number {
 
 /** 0 far out → 1 at street level. */
 export function nearness(zoom: number): number {
-  return smoothstep(SOUNDSCAPE.nearZoom[0], SOUNDSCAPE.nearZoom[1], Number.isFinite(zoom) ? zoom : 0);
+  return smoothstep(
+    SOUNDSCAPE.nearZoom[0],
+    SOUNDSCAPE.nearZoom[1],
+    Number.isFinite(zoom) ? zoom : 0,
+  );
 }
 
 function normTod(tod: TodWeights): TodWeights {
@@ -180,10 +176,17 @@ export function soundscapeMix(input: SoundscapeInput): SoundscapeMix {
   const birdTime = tod.dawn + 0.7 * tod.day + 0.35 * tod.dusk;
   const cold = tempC <= S.birds.coldTempC ? S.birds.coldFactor : 1;
   layers.birds =
-    near * birdTime * (1 - S.rainSuppress.birds * rain) * (1 - 0.3 * busy) * (1 - 0.5 * wind) * cold;
+    near *
+    birdTime *
+    (1 - S.rainSuppress.birds * rain) *
+    (1 - 0.3 * busy) *
+    (1 - 0.5 * wind) *
+    cold;
 
   const cricketTime = tod.night + 0.5 * tod.dusk;
-  const warm = clamp01((tempC - S.crickets.minTempC) / (S.crickets.fullTempC - S.crickets.minTempC));
+  const warm = clamp01(
+    (tempC - S.crickets.minTempC) / (S.crickets.fullTempC - S.crickets.minTempC),
+  );
   layers.crickets = cricketTime * (0.35 + 0.65 * near) * warm * (1 - rain) * (1 - 0.5 * busy);
 
   layers.rain = rain * (0.65 + 0.35 * near);

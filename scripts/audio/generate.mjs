@@ -28,14 +28,12 @@ import {
   brown,
   buf,
   circular,
-  dB,
   describe,
   fadeIn,
   fadeOut,
   limit,
   loopify,
   master,
-  midiHz,
   mix,
   noise,
   normalize,
@@ -45,7 +43,6 @@ import {
   range,
   rng,
   scale,
-  toDb,
   writeAudio,
 } from './lib.mjs';
 import { ep, vibes } from './synth.mjs';
@@ -99,7 +96,15 @@ function productDrop(x, td, seed = 41) {
   partial(x, { f: 64, amp: 1, decay: 0.08, t0: td, attack: 0.003, glide: 0.7 });
   partial(x, { f: 145, amp: 0.3, decay: 0.04, t0: td, glide: 0.4 });
   burst(x, { t0: td, dur: 0.06, amp: 0.55, lp: 1000, hp: 60, seed, decay: 0.014 });
-  burst(x, { t0: td + 0.06, dur: 0.03, amp: 0.12, lp: 2500, hp: 300, seed: seed + 1, decay: 0.008 });
+  burst(x, {
+    t0: td + 0.06,
+    dur: 0.03,
+    amp: 0.12,
+    lp: 2500,
+    hp: 300,
+    seed: seed + 1,
+    decay: 0.008,
+  });
 }
 
 // ---------- UI / machine SFX (wav) ----------
@@ -238,7 +243,7 @@ const SFX = {
     const r = rng(91);
     const steps = new Float64Array(x.length);
     const lines = [];
-    for (let t = 0.02; t < dur - 0.12; ) {
+    for (let t = 0.02; t < dur - 0.12;) {
       const on = range(r, 0.05, 0.09);
       lines.push([t, t + on]);
       t += on + range(r, 0.012, 0.03);
@@ -289,10 +294,15 @@ const SFX = {
     const dur = 0.42;
     const x = noise(Math.round(dur * SR), 111);
     const n = x.length;
-    biquadTV(x, 'bandpass', (i) => {
-      const u = i / n;
-      return u < 0.45 ? 350 + 1100 * (u / 0.45) ** 1.5 : 1450 - 750 * ((u - 0.45) / 0.55);
-    }, 0.8);
+    biquadTV(
+      x,
+      'bandpass',
+      (i) => {
+        const u = i / n;
+        return u < 0.45 ? 350 + 1100 * (u / 0.45) ** 1.5 : 1450 - 750 * ((u - 0.45) / 0.55);
+      },
+      0.8,
+    );
     for (let i = 0; i < n; i++) {
       const u = i / n;
       x[i] *= u < 0.38 ? Math.sin((u / 0.38) * (Math.PI / 2)) ** 2 : Math.exp(-(u - 0.38) / 0.16);
@@ -333,7 +343,9 @@ const SFX = {
     [
       [86, 0.0, 0.6],
       [81, 0.15, 0.55],
-    ].forEach(([m, t, v]) => mix(x, vibes(m, 0.6, v, { decay: 0.7, tremolo: 0.06 }), 1, Math.round(t * SR)));
+    ].forEach(([m, t, v]) =>
+      mix(x, vibes(m, 0.6, v, { decay: 0.7, tremolo: 0.06 }), 1, Math.round(t * SR)),
+    );
     addReverb(x, 0.3, { size: 0.5, damp: 0.5 });
     biquad(x, 'lowpass', 8500, 0.6);
     return normalize(fadeOut(fadeIn(x, 0.002), 0.25), -17);
@@ -364,7 +376,10 @@ const BED_LUFS = -20;
 
 /** Circular colored noise: filters run two laps so the loop is seamless. */
 const loopNoise = (N, seed, fn, kind = 'white') =>
-  circular(kind === 'pink' ? pink(N, seed) : kind === 'brown' ? brown(N, seed) : noise(N, seed), fn);
+  circular(
+    kind === 'pink' ? pink(N, seed) : kind === 'brown' ? brown(N, seed) : noise(N, seed),
+    fn,
+  );
 
 function cityBed({ seed, lp, rumbleLp, swell, hiss }) {
   const L = 16;
@@ -402,7 +417,9 @@ function traffic() {
   const L = 20;
   const N = L * SR;
   const r = rng(301);
-  const base = unit(loopNoise(N, 302, (x) => (biquad(x, 'lowpass', 260), biquad(x, 'highpass', 35)), 'brown'));
+  const base = unit(
+    loopNoise(N, 302, (x) => (biquad(x, 'lowpass', 260), biquad(x, 'highpass', 35)), 'brown'),
+  );
   const mid = unit(loopNoise(N, 303, (x) => biquad(x, 'bandpass', 450, 0.5), 'pink'));
   const cars = new Float64Array(N);
   for (let k = 0; k < 17; k++) {
@@ -485,7 +502,12 @@ function talker(N, seed, { f0, fScale, lp }) {
         mix(syl, fn);
       } else if (c < 0.55) {
         // plosive
-        const pb = biquad(noise(Math.round(0.01 * SR), seed + n + 1), 'bandpass', range(r, 1200, 2500), 1);
+        const pb = biquad(
+          noise(Math.round(0.01 * SR), seed + n + 1),
+          'bandpass',
+          range(r, 1200, 2500),
+          1,
+        );
         for (let i = 0; i < pb.length; i++) pb[i] *= 0.3 * Math.exp(-i / (0.003 * SR));
         mix(syl, pb);
       }
@@ -515,7 +537,9 @@ function crowd() {
     });
     mix(x, v, (near ? range(r, 0.7, 1) : range(r, 0.2, 0.4)) / rms(v));
   }
-  const murmur = unit(loopNoise(N, 690, (y) => (biquad(y, 'bandpass', 520, 0.7), biquad(y, 'lowpass', 1500)), 'pink'));
+  const murmur = unit(
+    loopNoise(N, 690, (y) => (biquad(y, 'bandpass', 520, 0.7), biquad(y, 'lowpass', 1500)), 'pink'),
+  );
   // Murmur follows the crowd's own syllabic envelope a little.
   const env = circular(x.map(Math.abs), (y) => onePole(y, 6));
   const em = rms(env);
@@ -558,7 +582,12 @@ function birdCall(r, kind, dist) {
     const d = range(r, 0.5, 1.1);
     const c = range(r, 3500, 5000);
     const rate = range(r, 18, 28);
-    notes.push([0, d, (u) => c * (1 - 0.1 * u), (u, s) => Math.sin(Math.PI * u) * (0.5 - 0.5 * Math.cos(TAU * rate * s)) ** 2]);
+    notes.push([
+      0,
+      d,
+      (u) => c * (1 - 0.1 * u),
+      (u, s) => Math.sin(Math.PI * u) * (0.5 - 0.5 * Math.cos(TAU * rate * s)) ** 2,
+    ]);
   } else {
     const a = range(r, 3600, 4000);
     notes.push([0, 0.18, (u) => a * (1 - 0.05 * u), (u) => Math.sin(Math.PI * u) ** 0.7]);
@@ -589,7 +618,9 @@ function birds() {
   const N = L * SR;
   const r = rng(701);
   const air = unit(loopNoise(N, 702, (y) => biquad(y, 'bandpass', 3200, 0.35)));
-  const leaves = unit(loopNoise(N, 703, (y) => (biquad(y, 'highpass', 1500), biquad(y, 'lowpass', 7000)), 'pink'));
+  const leaves = unit(
+    loopNoise(N, 703, (y) => (biquad(y, 'highpass', 1500), biquad(y, 'lowpass', 7000)), 'pink'),
+  );
   const calls = new Float64Array(N);
   for (let k = 0; k < 14; k++) {
     const kind = BIRD_KINDS[Math.floor(r() * BIRD_KINDS.length)];
@@ -648,7 +679,9 @@ function rain() {
   const L = 12;
   const N = L * SR;
   const r = rng(901);
-  const body = unit(loopNoise(N, 902, (y) => (biquad(y, 'highpass', 400), biquad(y, 'lowpass', 7500)), 'pink'));
+  const body = unit(
+    loopNoise(N, 902, (y) => (biquad(y, 'highpass', 400), biquad(y, 'lowpass', 7500)), 'pink'),
+  );
   const sizzle = unit(loopNoise(N, 903, (y) => biquad(y, 'highpass', 5000)));
   const rumble = unit(loopNoise(N, 904, (y) => biquad(y, 'lowpass', 180), 'brown'));
   const drops = new Float64Array(N);
@@ -699,18 +732,27 @@ function wind() {
   const g = new Float64Array(N);
   for (let i = 0; i < N; i++) {
     const u = i / N;
-    const s = 0.25 * Math.sin(TAU * u + 0.3) + 0.15 * Math.sin(TAU * 3 * u + 1.9) + 0.08 * Math.sin(TAU * 7 * u + 4);
+    const s =
+      0.25 * Math.sin(TAU * u + 0.3) +
+      0.15 * Math.sin(TAU * 3 * u + 1.9) +
+      0.08 * Math.sin(TAU * 7 * u + 4);
     g[i] = Math.exp(1.6 * s);
   }
   const at = (i) => g[i % N];
-  const body = loopNoise(N, 1001, (y) => biquadTV(y, 'bandpass', (i) => 220 + 380 * at(i), 0.7), 'pink');
+  const body = loopNoise(
+    N,
+    1001,
+    (y) => biquadTV(y, 'bandpass', (i) => 220 + 380 * at(i), 0.7),
+    'pink',
+  );
   const low = loopNoise(N, 1002, (y) => biquad(y, 'lowpass', 120), 'brown');
   const whistle = loopNoise(N, 1003, (y) => biquadTV(y, 'bandpass', (i) => 650 + 300 * at(i), 22));
   unit(body);
   unit(low);
   unit(whistle);
   const x = new Float64Array(N);
-  for (let i = 0; i < N; i++) x[i] = g[i] * body[i] + 0.5 * g[i] * low[i] + 0.06 * g[i] ** 3 * whistle[i];
+  for (let i = 0; i < N; i++)
+    x[i] = g[i] * body[i] + 0.5 * g[i] * low[i] + 0.06 * g[i] ** 3 * whistle[i];
   return x;
 }
 
@@ -745,7 +787,11 @@ function carPass({ seed, speed, dist, engineHz, tire, dur }) {
     src[i] = s * 0.25;
   }
   biquad(src, 'lowpass', 900, 0.6);
-  const tires = biquad(biquad(pink(srcLen, seed + 2), 'bandpass', range(r, 700, 1000), 0.5), 'highpass', 200);
+  const tires = biquad(
+    biquad(pink(srcLen, seed + 2), 'bandpass', range(r, 700, 1000), 0.5),
+    'highpass',
+    200,
+  );
   const windN = biquad(noise(srcLen, seed + 3), 'bandpass', 2600, 0.6);
   unit(src);
   unit(tires);
@@ -785,7 +831,8 @@ function hornDistant() {
       const t = i / SR;
       const env = Math.min(1, t / 0.012) * Math.min(1, (d - t) / 0.03);
       let s = 0;
-      for (const f of [415, 520]) for (let h = 1; h <= 9; h += 2) s += Math.sin(TAU * f * h * t) / h;
+      for (const f of [415, 520])
+        for (let h = 1; h <= 9; h += 2) s += Math.sin(TAU * f * h * t) / h;
       x[o + i] += env * s;
     }
   }
@@ -816,9 +863,25 @@ function footsteps() {
     const t0 = 0.15 + k * 0.52 + (r() - 0.5) * 0.03;
     const pass = Math.sin((Math.PI * (k + 0.5)) / steps); // approach and recede
     const a = (0.35 + 0.65 * pass) * range(r, 0.85, 1.05);
-    burst(x, { t0, dur: 0.03, amp: a, lp: range(r, 2400, 3200), hp: 600, seed: 1110 + k, decay: 0.01 });
+    burst(x, {
+      t0,
+      dur: 0.03,
+      amp: a,
+      lp: range(r, 2400, 3200),
+      hp: 600,
+      seed: 1110 + k,
+      decay: 0.01,
+    });
     partial(x, { f: range(r, 95, 125), amp: a * 0.5, decay: 0.025, t0, attack: 0.002 });
-    burst(x, { t0: t0 + 0.06, dur: 0.02, amp: a * 0.4, lp: 4000, hp: 1200, seed: 1130 + k, decay: 0.006 });
+    burst(x, {
+      t0: t0 + 0.06,
+      dur: 0.02,
+      amp: a * 0.4,
+      lp: 4000,
+      hp: 1200,
+      seed: 1130 + k,
+      decay: 0.006,
+    });
   }
   addReverb(x, 0.3, { size: 0.55, damp: 0.5 });
   return fadeOut(x, 0.2);
@@ -833,7 +896,8 @@ function sirenDistant() {
     const f = 950 + 300 * Math.sin((TAU * t) / 3.2 - Math.PI / 2);
     ph += f / SR;
     const env = Math.min(1, t / 2) ** 2 * Math.min(1, (dur - t) / 2.5) ** 2;
-    x[i] = env * (Math.sin(TAU * ph) + 0.3 * Math.sin(TAU * 2 * ph) + 0.15 * Math.sin(TAU * 3 * ph));
+    x[i] =
+      env * (Math.sin(TAU * ph) + 0.3 * Math.sin(TAU * 2 * ph) + 0.15 * Math.sin(TAU * 3 * ph));
   }
   biquad(x, 'lowpass', 1400, 0.7);
   biquad(x, 'highpass', 300);
@@ -843,7 +907,8 @@ function sirenDistant() {
 
 const SPICE = {
   'car-pass': () => carPass({ seed: 1201, speed: 14, dist: 9, engineHz: 38, tire: 0.7, dur: 3.6 }),
-  'car-pass-2': () => carPass({ seed: 1301, speed: 10, dist: 14, engineHz: 27, tire: 1.0, dur: 4.2 }),
+  'car-pass-2': () =>
+    carPass({ seed: 1301, speed: 10, dist: 14, engineHz: 27, tire: 1.0, dur: 4.2 }),
   'horn-distant': hornDistant,
   'bird-chirp': () => birdOneShot(1401, ['whistle']),
   'bird-chirp-2': () => birdOneShot(1402, ['sparrow', 'teeoo']),
@@ -874,8 +939,14 @@ function main() {
   for (const [name, fn] of Object.entries(BEDS)) {
     if (!want(name)) continue;
     const x = master(fn(), { targetLufs: BED_LUFS, ceilingDb: -4, loop: true });
-    out(name, writeAudio(path.join(OUT, name), x, { format: 'm4a', kbps: 64, loop: true }), x, true);
-    if (name === 'amb-crowd') console.log(`    syllabic modulation ${modulation(x).toFixed(2)} (band noise ~0.05)`);
+    out(
+      name,
+      writeAudio(path.join(OUT, name), x, { format: 'm4a', kbps: 64, loop: true }),
+      x,
+      true,
+    );
+    if (name === 'amb-crowd')
+      console.log(`    syllabic modulation ${modulation(x).toFixed(2)} (band noise ~0.05)`);
   }
   console.log('Spice one-shots (m4a)');
   for (const [name, fn] of Object.entries(SPICE)) {
@@ -896,11 +967,12 @@ function modulation(x) {
   for (let i = 0; i < env.length; i += hop) e.push(env[i]);
   const m = e.reduce((a, b) => a + b, 0) / e.length;
   // band-pass the 100 Hz envelope at 3-8 Hz with a crude difference of moving averages
-  const ma = (k) => e.map((_, i) => {
-    let s = 0;
-    for (let j = -k; j <= k; j++) s += e[(i + j + e.length) % e.length];
-    return s / (2 * k + 1);
-  });
+  const ma = (k) =>
+    e.map((_, i) => {
+      let s = 0;
+      for (let j = -k; j <= k; j++) s += e[(i + j + e.length) % e.length];
+      return s / (2 * k + 1);
+    });
   const a = ma(3);
   const b = ma(12);
   let s = 0;
@@ -908,7 +980,4 @@ function modulation(x) {
   return Math.sqrt(s / e.length) / m;
 }
 
-void dB;
-void peak;
-void toDb;
 main();

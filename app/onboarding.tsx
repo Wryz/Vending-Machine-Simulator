@@ -1,9 +1,10 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { musicMoodFor } from '@/audio/soundscape';
 import { FALLBACK_CITIES, type CityId } from '@/config/cities';
 import { CLOSEUP_CAMERA, FAMILY_ACCENT, SNACK_MACHINE_DIMENSIONS } from '@/config/machines';
 import { areaCheck } from '@/data/api';
@@ -11,6 +12,7 @@ import { ENV } from '@/data/env';
 import { closeupCamera } from '@/map/cameraMatch';
 import { getTimeOfDay } from '@/map/timeOfDay';
 import { track } from '@/services/analytics';
+import { music, sound } from '@/services/audio';
 import { cityInfoFor, hasSave, useGame } from '@/store/game';
 import { useProfile, type CityInfo } from '@/store/profile';
 import { MachineScene } from '@/three/MachineScene';
@@ -63,6 +65,17 @@ export default function Onboarding() {
     };
     return { c, tod, from, to };
   }, []);
+
+  // Audio: the music fades in gently on the cold open; a soft whoosh between steps.
+  useEffect(() => {
+    music.start(musicMoodFor(preview.tod.weights));
+  }, [preview]);
+  const lastStep = useRef<Step>(step);
+  useEffect(() => {
+    if (lastStep.current === step) return;
+    if (!(lastStep.current === 'location' && step === 'checking')) sound.play('whoosh');
+    lastStep.current = step;
+  }, [step]);
 
   const start = async (city: CityInfo) => {
     setBusy(true);

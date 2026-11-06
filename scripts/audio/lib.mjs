@@ -237,7 +237,8 @@ export function fadeIn(x, sec = 0.005) {
 }
 
 export function mix(into, src, gain = 1, offset = 0) {
-  for (let i = 0; i < src.length && i + offset < into.length; i++) into[i + offset] += src[i] * gain;
+  for (let i = 0; i < src.length && i + offset < into.length; i++)
+    into[i + offset] += src[i] * gain;
   return into;
 }
 
@@ -332,7 +333,12 @@ export function addReverb(x, wet, opts = {}, loop = false) {
 
 // ---------- loudness (ITU-R BS.1770 / EBU R128, mono) ----------
 export function lufs(x) {
-  const k = biquad(biquad(Float64Array.from(x), 'highshelf', 1500, 1 / Math.SQRT2, 4), 'highpass', 38, 0.5);
+  const k = biquad(
+    biquad(Float64Array.from(x), 'highshelf', 1500, 1 / Math.SQRT2, 4),
+    'highpass',
+    38,
+    0.5,
+  );
   const B = Math.round(0.4 * SR);
   const H = Math.round(0.1 * SR);
   const blocks = [];
@@ -365,7 +371,11 @@ export function seam(x) {
   let s = 0;
   for (let i = 1; i < x.length; i++) s += (x[i] - x[i - 1]) ** 2;
   const rmsStep = Math.sqrt(s / (x.length - 1));
-  return { jump: Math.abs(x[x.length - 1] - x[0]), rmsStep, ratio: Math.abs(x[x.length - 1] - x[0]) / (rmsStep || 1) };
+  return {
+    jump: Math.abs(x[x.length - 1] - x[0]),
+    rmsStep,
+    ratio: Math.abs(x[x.length - 1] - x[0]) / (rmsStep || 1),
+  };
 }
 
 // ---------- output ----------
@@ -404,9 +414,13 @@ function tmpDir() {
 
 /** Decode any file to mono float samples at SR (for verification). */
 export function decode(file) {
-  const r = spawnSync(FFMPEG, ['-v', 'error', '-i', file, '-f', 'f64le', '-ac', '1', '-ar', String(SR), '-'], {
-    maxBuffer: 1 << 30,
-  });
+  const r = spawnSync(
+    FFMPEG,
+    ['-v', 'error', '-i', file, '-f', 'f64le', '-ac', '1', '-ar', String(SR), '-'],
+    {
+      maxBuffer: 1 << 30,
+    },
+  );
   if (r.status !== 0) throw new Error(`ffmpeg decode failed: ${r.stderr}`);
   const b = r.stdout;
   return new Float64Array(b.buffer, b.byteOffset, b.length / 8).slice();
@@ -445,7 +459,18 @@ export function writeAudio(outNoExt, x, { format = 'wav', kbps = 64, loop = fals
   const file = `${outNoExt}.m4a`;
   const args = ['-v', 'error', '-y'];
   if (loop) args.push('-itsoffset', String(-K / SR));
-  args.push('-i', tmpWav, '-c:a', 'aac', '-b:a', `${kbps}k`, '-ac', '1', '-movie_timescale', String(SR));
+  args.push(
+    '-i',
+    tmpWav,
+    '-c:a',
+    'aac',
+    '-b:a',
+    `${kbps}k`,
+    '-ac',
+    '1',
+    '-movie_timescale',
+    String(SR),
+  );
   if (loop) args.push('-t', String((N + K) / SR));
   args.push('-movflags', '+faststart', file);
   const r = spawnSync(FFMPEG, args, { encoding: 'utf8' });

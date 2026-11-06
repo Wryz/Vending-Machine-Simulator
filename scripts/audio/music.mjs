@@ -25,7 +25,6 @@ import {
   addAt,
   biquad,
   circular,
-  lufs,
   master,
   peak,
   pink,
@@ -143,10 +142,20 @@ function musicDay() {
   };
 
   const COMP = [
-    [[0, 1.6, 0.72], [2.5, 1.3, 0.5]],
+    [
+      [0, 1.6, 0.72],
+      [2.5, 1.3, 0.5],
+    ],
     [[0, 3.6, 0.7]],
-    [[0, 0.9, 0.7], [1.5, 1.0, 0.48], [3, 0.9, 0.52]],
-    [[-0.5, 2.2, 0.68], [2.5, 1.2, 0.46]],
+    [
+      [0, 0.9, 0.7],
+      [1.5, 1.0, 0.48],
+      [3, 0.9, 0.52],
+    ],
+    [
+      [-0.5, 2.2, 0.68],
+      [2.5, 1.2, 0.46],
+    ],
   ];
 
   prog.forEach((bar, n) => {
@@ -157,7 +166,8 @@ function musicDay() {
       strum(keys, CH[bar[0]], S.at(n, 0) + hum(), 1.8, 0.68);
       strum(keys, CH[bar[1]], S.at(n, 2) + hum(), 1.8, 0.62);
     } else {
-      const pat = section === 'intro' || section === 'tail' ? COMP[1] : COMP[Math.floor(r() * COMP.length)];
+      const pat =
+        section === 'intro' || section === 'tail' ? COMP[1] : COMP[Math.floor(r() * COMP.length)];
       for (const [off, dur, vel] of pat) strum(keys, CH[bar[0]], S.at(n, off) + hum(), dur, vel);
     }
     // Bass
@@ -185,7 +195,8 @@ function musicDay() {
         [2.5, root + 12, 0.4, 0.5],
         [3, root + 7, 0.9, 0.62],
       ];
-    for (const [off, m, dur, vel] of bl) S.place(lo, bass(m, dur * S.beat, vel), S.at(n, off) + hum(6), 0.55);
+    for (const [off, m, dur, vel] of bl)
+      S.place(lo, bass(m, dur * S.beat, vel), S.at(n, off) + hum(6), 0.55);
 
     // Drums
     const g = { intro: 0.6, build: 0.8, full: 1, out: 0.8, tail: 0.6 }[section];
@@ -193,15 +204,26 @@ function musicDay() {
     for (let e = 0; e < 8; e++) {
       if (e % 2 === 1 && r() < 0.15) continue;
       const open = section === 'full' && n % 4 === 3 && e === 7;
-      S.place(drums, hat(hv[e] * g * (0.85 + r() * 0.3), 300 + n * 8 + e, open), S.at(n, e / 2) + hum(4), 0.5);
+      S.place(
+        drums,
+        hat(hv[e] * g * (0.85 + r() * 0.3), 300 + n * 8 + e, open),
+        S.at(n, e / 2) + hum(4),
+        0.5,
+      );
     }
     if (section === 'build' || section === 'full' || section === 'out') {
       S.place(drums, kick(0.8 * g, 11), S.at(n, 0) + hum(3), 0.9);
       S.place(drums, kick(0.6 * g, 12), S.at(n, 2.5) + hum(3), 0.9);
-      if (section === 'full' && r() < 0.25) S.place(drums, kick(0.45, 13), S.at(n, 3.5) + hum(3), 0.9);
+      if (section === 'full' && r() < 0.25)
+        S.place(drums, kick(0.45, 13), S.at(n, 3.5) + hum(3), 0.9);
       const brushy = section === 'full' ? 0.45 : 0.8;
       for (const off of [1, 3])
-        S.place(drums, snare(0.6 * g, 50 + n * 2 + off, { brush: brushy }), S.at(n, off) + hum(5), 0.75);
+        S.place(
+          drums,
+          snare(0.6 * g, 50 + n * 2 + off, { brush: brushy }),
+          S.at(n, off) + hum(5),
+          0.75,
+        );
       if (section === 'full' && r() < 0.3)
         S.place(drums, snare(0.18, 90 + n, { brush: 0.2 }), S.at(n, 3.5) + hum(5), 0.75);
     }
@@ -210,26 +232,65 @@ function musicDay() {
   // Lead melody [bar, beat offset, midi, beats, vel]
   const MEL = [
     // A2
-    [8, 0.5, 69, 0.5, 0.6], [8, 1, 72, 1, 0.7], [8, 2.5, 74, 1.5, 0.72],
-    [9, 0, 76, 1.5, 0.75], [9, 1.5, 74, 0.5, 0.55], [9, 2, 72, 2, 0.65],
-    [10, 0.5, 69, 0.5, 0.55], [10, 1, 72, 0.5, 0.6], [10, 1.5, 74, 0.5, 0.6], [10, 2, 77, 1.5, 0.72], [10, 3.5, 76, 0.5, 0.55],
-    [11, 0, 74, 1.5, 0.68], [11, 1.5, 70, 0.5, 0.5], [11, 2, 69, 1, 0.6], [11, 3, 67, 1, 0.55],
-    [12, 0.5, 69, 0.5, 0.6], [12, 1, 72, 1, 0.7], [12, 2.5, 77, 1.5, 0.74],
-    [13, 0, 76, 1, 0.7], [13, 1, 79, 1, 0.74], [13, 2, 76, 0.5, 0.55], [13, 2.5, 72, 1.5, 0.62],
-    [14, 0, 74, 2, 0.7], [14, 2.5, 76, 0.5, 0.5], [14, 3, 77, 0.5, 0.55], [14, 3.5, 76, 0.5, 0.5],
-    [15, 0, 74, 1, 0.62], [15, 1, 72, 1, 0.6], [15, 2, 69, 2, 0.66],
+    [8, 0.5, 69, 0.5, 0.6],
+    [8, 1, 72, 1, 0.7],
+    [8, 2.5, 74, 1.5, 0.72],
+    [9, 0, 76, 1.5, 0.75],
+    [9, 1.5, 74, 0.5, 0.55],
+    [9, 2, 72, 2, 0.65],
+    [10, 0.5, 69, 0.5, 0.55],
+    [10, 1, 72, 0.5, 0.6],
+    [10, 1.5, 74, 0.5, 0.6],
+    [10, 2, 77, 1.5, 0.72],
+    [10, 3.5, 76, 0.5, 0.55],
+    [11, 0, 74, 1.5, 0.68],
+    [11, 1.5, 70, 0.5, 0.5],
+    [11, 2, 69, 1, 0.6],
+    [11, 3, 67, 1, 0.55],
+    [12, 0.5, 69, 0.5, 0.6],
+    [12, 1, 72, 1, 0.7],
+    [12, 2.5, 77, 1.5, 0.74],
+    [13, 0, 76, 1, 0.7],
+    [13, 1, 79, 1, 0.74],
+    [13, 2, 76, 0.5, 0.55],
+    [13, 2.5, 72, 1.5, 0.62],
+    [14, 0, 74, 2, 0.7],
+    [14, 2.5, 76, 0.5, 0.5],
+    [14, 3, 77, 0.5, 0.55],
+    [14, 3.5, 76, 0.5, 0.5],
+    [15, 0, 74, 1, 0.62],
+    [15, 1, 72, 1, 0.6],
+    [15, 2, 69, 2, 0.66],
     // B
-    [16, 1, 74, 1, 0.62], [16, 2, 77, 1, 0.68], [16, 3, 81, 2, 0.74],
-    [17, 1, 79, 1, 0.62], [17, 2, 76, 2, 0.66],
-    [18, 0.5, 77, 0.5, 0.55], [18, 1, 74, 1, 0.62], [18, 2, 72, 1, 0.6], [18, 3, 69, 1, 0.58],
+    [16, 1, 74, 1, 0.62],
+    [16, 2, 77, 1, 0.68],
+    [16, 3, 81, 2, 0.74],
+    [17, 1, 79, 1, 0.62],
+    [17, 2, 76, 2, 0.66],
+    [18, 0.5, 77, 0.5, 0.55],
+    [18, 1, 74, 1, 0.62],
+    [18, 2, 72, 1, 0.6],
+    [18, 3, 69, 1, 0.58],
     [19, 0, 70, 3, 0.64],
-    [20, 1, 72, 1, 0.6], [20, 2, 76, 1, 0.64], [20, 3, 79, 1, 0.68],
-    [21, 0, 77, 1.5, 0.7], [21, 1.5, 76, 0.5, 0.52], [21, 2, 74, 2, 0.64],
-    [22, 0, 70, 1, 0.58], [22, 1, 74, 1, 0.6], [22, 2, 77, 1, 0.64], [22, 3, 76, 1, 0.58],
-    [23, 0, 73, 1, 0.6], [23, 1, 72, 2, 0.62],
+    [20, 1, 72, 1, 0.6],
+    [20, 2, 76, 1, 0.64],
+    [20, 3, 79, 1, 0.68],
+    [21, 0, 77, 1.5, 0.7],
+    [21, 1.5, 76, 0.5, 0.52],
+    [21, 2, 74, 2, 0.64],
+    [22, 0, 70, 1, 0.58],
+    [22, 1, 74, 1, 0.6],
+    [22, 2, 77, 1, 0.64],
+    [22, 3, 76, 1, 0.58],
+    [23, 0, 73, 1, 0.6],
+    [23, 1, 72, 2, 0.62],
     // A3 echoes
-    [25, 2, 76, 2, 0.45], [27, 2, 74, 1, 0.4], [27, 3, 72, 1, 0.4],
-    [29, 2, 76, 1.5, 0.42], [29, 3.5, 74, 0.5, 0.35], [30, 0, 72, 3, 0.4],
+    [25, 2, 76, 2, 0.45],
+    [27, 2, 74, 1, 0.4],
+    [27, 3, 72, 1, 0.4],
+    [29, 2, 76, 1.5, 0.42],
+    [29, 3.5, 74, 0.5, 0.35],
+    [30, 0, 72, 3, 0.4],
   ];
   for (const [n, off, m, dur, vel] of MEL)
     S.place(lead, vibes(m, dur * S.beat, vel * (0.94 + r() * 0.12)), S.at(n, off) + hum(7), 0.5);
@@ -252,7 +313,11 @@ function musicDay() {
   });
   for (let i = 0; i < S.N; i++) m[i] += rv[i] * 0.55;
 
-  return finish(tapeWarble(m, { wowMs: 0.8, wowHz: 0.45 }), vinyl(S.N, 777, { crackle: 1, hiss: 1 }), 0.012);
+  return finish(
+    tapeWarble(m, { wowMs: 0.8, wowHz: 0.45 }),
+    vinyl(S.N, 777, { crackle: 1, hiss: 1 }),
+    0.012,
+  );
 }
 
 // ---------- night ----------
@@ -280,15 +345,31 @@ function musicNight() {
     const n = k * 2;
     // EP: slow roll on the downbeat, a soft partial re-strike in the second bar.
     c.v.forEach((m, j) =>
-      S.place(keys, ep(m, 3.6 * S.beat, 0.42 * (0.9 + r() * 0.2), { bright: 0.7, tremolo: 0.08 }), S.at(n, 0) + j * 0.055 + hum(), 0.3),
+      S.place(
+        keys,
+        ep(m, 3.6 * S.beat, 0.42 * (0.9 + r() * 0.2), { bright: 0.7, tremolo: 0.08 }),
+        S.at(n, 0) + j * 0.055 + hum(),
+        0.3,
+      ),
     );
     const top = c.v.slice(2);
     const reOff = r() < 0.5 ? 4.5 : 5;
     top.forEach((m, j) =>
-      S.place(keys, ep(m, 2.5 * S.beat, 0.3 * (0.9 + r() * 0.2), { bright: 0.6, tremolo: 0.08 }), S.at(n, reOff) + j * 0.07 + hum(), 0.3),
+      S.place(
+        keys,
+        ep(m, 2.5 * S.beat, 0.3 * (0.9 + r() * 0.2), { bright: 0.6, tremolo: 0.08 }),
+        S.at(n, reOff) + j * 0.07 + hum(),
+        0.3,
+      ),
     );
     // Pad: the whole chord, slow swell.
-    for (const m of c.v) S.place(pads, pad(m, 8 * S.beat, 0.22, { attack: 1.8, release: 2.6, cutoff: 1300 }), S.at(n, 0), 0.25);
+    for (const m of c.v)
+      S.place(
+        pads,
+        pad(m, 8 * S.beat, 0.22, { attack: 1.8, release: 2.6, cutoff: 1300 }),
+        S.at(n, 0),
+        0.25,
+      );
     // Bass: long root, sometimes a soft fifth later.
     S.place(lo, bass(c.root, 7.4 * S.beat, 0.62), S.at(n, 0) + hum(6), 0.55);
     if (r() < 0.5) S.place(lo, bass(c.root + 7, 1.6 * S.beat, 0.35), S.at(n, 6) + hum(6), 0.55);
@@ -300,17 +381,38 @@ function musicNight() {
   }
 
   const MEL = [
-    [0, 1, 69, 2], [0, 3, 72, 2.5], [1, 2, 76, 4],
-    [2, 1.5, 77, 1.5], [2, 3, 76, 2], [3, 2, 74, 3],
-    [4, 1, 72, 2], [4, 3, 79, 3], [5, 3, 76, 1],
-    [6, 0, 74, 4], [7, 1, 70, 1.5], [7, 2.5, 69, 3],
-    [8, 2, 81, 2], [9, 0, 77, 1.5], [9, 1.5, 76, 2.5],
-    [10, 1, 79, 2], [10, 3, 74, 2], [11, 2, 69, 3],
-    [12, 1, 71, 2], [12, 3, 74, 2], [13, 2, 76, 3],
-    [14, 1, 77, 2], [14, 3, 73, 1], [15, 0, 76, 4],
+    [0, 1, 69, 2],
+    [0, 3, 72, 2.5],
+    [1, 2, 76, 4],
+    [2, 1.5, 77, 1.5],
+    [2, 3, 76, 2],
+    [3, 2, 74, 3],
+    [4, 1, 72, 2],
+    [4, 3, 79, 3],
+    [5, 3, 76, 1],
+    [6, 0, 74, 4],
+    [7, 1, 70, 1.5],
+    [7, 2.5, 69, 3],
+    [8, 2, 81, 2],
+    [9, 0, 77, 1.5],
+    [9, 1.5, 76, 2.5],
+    [10, 1, 79, 2],
+    [10, 3, 74, 2],
+    [11, 2, 69, 3],
+    [12, 1, 71, 2],
+    [12, 3, 74, 2],
+    [13, 2, 76, 3],
+    [14, 1, 77, 2],
+    [14, 3, 73, 1],
+    [15, 0, 76, 4],
   ];
   for (const [n, off, m, dur] of MEL)
-    S.place(lead, vibes(m, dur * S.beat, 0.5 * (0.85 + r() * 0.3), { tremolo: 0.1, decay: 2.2 }), S.at(n, off) + hum(12), 0.3);
+    S.place(
+      lead,
+      vibes(m, dur * S.beat, 0.5 * (0.85 + r() * 0.3), { tremolo: 0.1, decay: 2.2 }),
+      S.at(n, off) + hum(12),
+      0.3,
+    );
 
   // Dotted-eighth echo on the melody (circular feedback delay).
   const echo = circular(lead, (x) => {
@@ -326,13 +428,19 @@ function musicNight() {
   });
 
   const m = new Float64Array(S.N);
-  for (let i = 0; i < S.N; i++) m[i] = keys[i] + pads[i] + lo[i] * 0.9 + lead[i] * 0.85 + echo[i] * 0.8 + drums[i] * 0.8;
+  for (let i = 0; i < S.N; i++)
+    m[i] = keys[i] + pads[i] + lo[i] * 0.9 + lead[i] * 0.85 + echo[i] * 0.8 + drums[i] * 0.8;
   const send = new Float64Array(S.N);
-  for (let i = 0; i < S.N; i++) send[i] = keys[i] * 0.7 + pads[i] * 0.6 + lead[i] + echo[i] * 0.6 + drums[i] * 0.5;
+  for (let i = 0; i < S.N; i++)
+    send[i] = keys[i] * 0.7 + pads[i] * 0.6 + lead[i] + echo[i] * 0.6 + drums[i] * 0.5;
   const rv = circular(send, (x) => x.set(reverbWet(x, { size: 0.86, damp: 0.35, predelayMs: 30 })));
   for (let i = 0; i < S.N; i++) m[i] += rv[i] * 0.95;
 
-  return finish(tapeWarble(m, { wowMs: 0.6, wowHz: 0.35, flutterMs: 0.04 }), vinyl(S.N, 778, { crackle: 0.6, hiss: 0.8 }), 0.009);
+  return finish(
+    tapeWarble(m, { wowMs: 0.6, wowHz: 0.35, flutterMs: 0.04 }),
+    vinyl(S.N, 778, { crackle: 0.6, hiss: 0.8 }),
+    0.009,
+  );
 }
 
 /** Master: tone shaping (circular), texture, loudness and peak ceiling. */
@@ -364,7 +472,7 @@ function main() {
     const x = fn();
     let res = writeAudio(path.join(OUT, name), x, { format: 'm4a', kbps: 80, loop: true });
     // AAC can overshoot sample peaks by a dB or two: pull the ceiling down until it fits.
-    for (let ceiling = CEILING_DB; toDb(peak(res.decoded)) > MAX_PEAK_DB && ceiling > -12; ) {
+    for (let ceiling = CEILING_DB; toDb(peak(res.decoded)) > MAX_PEAK_DB && ceiling > -12;) {
       ceiling -= toDb(peak(res.decoded)) - MAX_PEAK_DB + 0.2;
       master(x, { targetLufs: TARGET_LUFS, ceilingDb: ceiling, loop: true });
       res = writeAudio(path.join(OUT, name), x, { format: 'm4a', kbps: 80, loop: true });
