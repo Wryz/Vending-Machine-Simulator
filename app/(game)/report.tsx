@@ -82,7 +82,6 @@ export default function Report() {
     return (
       <View
         style={{
-          flex: 1,
           backgroundColor: theme.bg,
           padding: SPACE.l,
           paddingBottom: insets.bottom + SPACE.l,
@@ -160,7 +159,9 @@ export default function Report() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    // No flex: 1 here. A formSheet root that stretches renders blank on iOS (new arch);
+    // let the content size the sheet, like place.tsx.
+    <View style={{ backgroundColor: theme.bg }}>
       <ScrollView
         contentContainerStyle={{
           padding: SPACE.l,
