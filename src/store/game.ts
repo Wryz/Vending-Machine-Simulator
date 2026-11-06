@@ -30,13 +30,17 @@ import {
 
 import { useCelebrations } from './celebrations';
 import { announceRanking } from './rankMoments';
+import { announceRival, announceSurprises } from './rivalMoments';
 import { cityKey, useProfile, type CityInfo } from './profile';
 
 export interface TickerEntry {
   at: number;
+  /** Your machine, or for a rival sting the rival machine the customer went to. */
   machineId: string;
   cents: number;
   units: number;
+  /** A VIP customer's row (gold pop), or a sale lost to the rival (red pop). */
+  kind?: 'vip' | 'rival';
 }
 
 interface GameStore {
@@ -137,6 +141,12 @@ export const useGame = create<GameStore>((set, get) => {
     for (const [machineId, v] of Object.entries(report.perMachine)) {
       if (v.cents > 0) ticker.push({ at: now, machineId, cents: v.cents, units: v.units });
     }
+    // Live moments on the map: a VIP's row, a customer who went to the rival instead.
+    for (const v of report.surprises)
+      if (v.kind === 'vip' && v.cents)
+        ticker.push({ at: now, machineId: v.machineId, cents: v.cents, units: 1, kind: 'vip' });
+    for (const st of report.stings)
+      ticker.push({ at: now, machineId: st.rivalId, cents: st.cents, units: 1, kind: 'rival' });
     announceMoments(state, report);
     set({
       game: state,
@@ -334,6 +344,9 @@ const EMPTY_REPORT: AdvanceReport = {
   events: [],
   perMachine: {},
   achievements: [],
+  rival: [],
+  stings: [],
+  surprises: [],
 };
 
 /** A city-load failure (src/data errors are English) in the UI language; unknown text passes through. */
@@ -406,7 +419,9 @@ function announceMoments(state: GameState, report: AdvanceReport): void {
           : t('celebrate.moment.startsHours', { n: Math.round(mins / 60) }),
     });
   }
+  announceRival(state, report.rival);
   announceRanking(state, report, useGame.getState().world?.city.name);
+  announceSurprises(state, report.surprises);
   for (const g of state.goals.items) {
     const key = `${state.goals.dateKey}|${g.id}`;
     if (g.claimed || readyOrders.has(key) || goalProgress(state, g) < 1) continue;

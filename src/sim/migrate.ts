@@ -1,4 +1,5 @@
 import { emptyGoals } from './goals';
+import { emptySurprises } from './events';
 import { emptyRankings } from './rankings';
 import { SCHEMA_VERSION, type GameState } from './state';
 
@@ -19,8 +20,29 @@ const MIGRATIONS: Record<number, Migration> = {
       : s.machines,
     schemaVersion: 3,
   }),
+  // v4: reserved (the rival and surprise fields moved to v6; v3 saves just step through).
+  3: (s) => ({ ...s, schemaVersion: 4 }),
   // v5: city ranking board (SPEC §4.8). The first week starts at the next step.
   4: (s) => ({ ...s, rankings: emptyRankings(), schemaVersion: 5 }),
+  // v6: day-one rival with a face, and surprise moments (SPEC §4.6). A rival
+  // that was already active arrived the old way (chapter 3), so it has ramped.
+  5: (s) => {
+    const rival = (s.rival ?? {}) as Record<string, unknown>;
+    return {
+      ...s,
+      rival: {
+        active: false,
+        machines: [],
+        nextDecisionAt: 0,
+        ...rival,
+        ramped: !!rival.active,
+        lastStingAt: 0,
+        lead: null,
+      },
+      surprises: emptySurprises(),
+      schemaVersion: 6,
+    };
+  },
 };
 
 export class SaveError extends Error {}

@@ -1,5 +1,6 @@
 import { CASH, CONTRACT, FIT, RISK, RIVAL, SERVICE, STAFF, TIME } from '@/config/economy';
 import { CHAPTER_GOALS as CHAPTER_GOALS_REF } from '@/config/progression';
+import { SURPRISES } from '@/config/surprises';
 import { getMachineType, type MachineType } from '@/config/machines';
 import { getProduct, type Product } from '@/config/products';
 import type { CellData, WeatherHour } from '@/data/types';
@@ -16,13 +17,28 @@ import {
   tagBoostFactor,
   type TrafficBreakdown,
 } from './demand';
-import { maintainEvents } from './events';
+import {
+  dealSavingCents,
+  expireSurprises,
+  maintainEvents,
+  rollSurprise,
+  surpriseBoost,
+  type SurpriseNews,
+} from './events';
 import { bump, checkAchievements, rollGoalsDay } from './goals';
 import { orderStops } from './geo';
 import { addLedger, log, rollLedgerDay } from './ledger';
 import { rankingsStep, type RankBoard } from './rankings';
 import { happens, nextRandom, poisson } from './rng';
-import { playerShare, rivalDecide, rivalRevenue } from './rival';
+import {
+  playerShare,
+  rivalDecide,
+  rivalRevenue,
+  rivalSting,
+  updateLead,
+  type RivalNews,
+  type RivalSting,
+} from './rival';
 import {
   activeMachines,
   cashBoxCapacity,
@@ -32,6 +48,7 @@ import {
   maxOfflineMs,
   machineFresh,
   overheadCentsPerDay,
+  rivalWeight,
   salesMultiplierBase,
   slotCapacity,
   wholesaleCents,
@@ -68,6 +85,12 @@ export interface AdvanceReport {
   perMachine: Record<string, { units: number; cents: number }>;
   /** Trophies unlocked during this advance. */
   achievements: string[];
+  /** What the rival did (its taunt cards). */
+  rival: RivalNews[];
+  /** Customers who bought at the rival's next to yours (live play only; map moments). */
+  stings: RivalSting[];
+  /** Surprise moments: VIP customer, jackpot hour, venue deal (live play only). */
+  surprises: SurpriseNews[];
   /** The latest nightly ranking board taken during this advance (one per advance). */
   rankUpdate?: RankBoard;
 }
@@ -104,6 +127,9 @@ function newReport(from: number): AdvanceReport {
     events: [],
     perMachine: {},
     achievements: [],
+    rival: [],
+    stings: [],
+    surprises: [],
   };
 }
 
@@ -196,7 +222,10 @@ function sellStep(
     multBase = salesMultiplierBase(state, type);
     ctx.cache.salesBase.set(type.family, multBase);
   }
-  const mult = machineFresh(m, ctx.t) ? multBase * (1 + SERVICE.freshStockBonus) : multBase;
+  // Jackpot hour (a surprise) boosts this spot for a while.
+  const mult =
+    (machineFresh(m, ctx.t) ? multBase * (1 + SERVICE.freshStockBonus) : multBase) *
+    surpriseBoost(state, m.id, ctx.t);
   const cooler = hasResearch(state, 'cooler', type.family);
   const noBoost = isNoBoost(tagBoost);
 
@@ -306,6 +335,13 @@ function sellStep(
     const bonus = Math.round(revenue * bonusShare);
     state.cashCents += bonus;
     addLedger(state, 'Bonus', bonus);
+  }
+  // Venue deal (a surprise): the commission saved on this sale is credited at once.
+  const saving = dealSavingCents(state, m, revenue, ctx.t);
+  if (saving > 0) {
+    state.cashCents += saving;
+    state.ledger.lifetimeNetCents += saving;
+    addLedger(state, 'Commission', saving);
   }
   addLedger(state, 'Sales', revenue);
   m.stats.unitsTotal += sold;
@@ -454,16 +490,19 @@ function contractStep(
   } else m.lowMoodSince = null;
 
   if (t >= m.contract.endsAt) {
+    // Contract bids start with the rival's chapter-3 ramp.
     const rivalBids =
-      state.rival.active &&
+      state.rival.ramped &&
       !m.contract.exclusive &&
       m.venue.category !== 'street' &&
       m.mood < RIVAL.stealMoodBelow &&
       nextRandom(state) < RIVAL.stealChance;
     if (rivalBids) {
       lose(`${RIVAL.name} outbid you`);
+      const rivalId = `r${state.nextId++}`;
+      report.rival.push({ kind: 'steal', rivalId, machineId: m.id });
       state.rival.machines.push({
-        id: `r${state.nextId++}`,
+        id: rivalId,
         lat: m.lat,
         lng: m.lng,
         cellId: m.cellId,
@@ -606,6 +645,8 @@ export function beginAdvance(
     return { state: s, report, run: () => true, progress: () => 1, done: () => true };
   const cap = maxOfflineMs(s, opts.offlineCapMultiplier ?? 1);
   const salesBonus = Math.max(0, opts.salesBonus ?? 0);
+  // Live play (the app open and ticking): surprises and rival stings happen only then.
+  const live = to - s.now <= SURPRISES.maxLiveGapMs;
   if (to - s.now > cap) {
     report.skippedMs = to - s.now - cap;
     s.now = to - cap;
@@ -633,6 +674,7 @@ export function beginAdvance(
   const from = s.now;
   const step = () => {
     const lostBefore = report.contractsLost.length;
+    const weightBefore = rivalWeight(s);
     const dt = Math.min(stepAt(s.now), to - s.now);
     const tMid = s.now + dt / 2;
     const tEnd = s.now + dt;
@@ -709,7 +751,7 @@ export function beginAdvance(
     // Rival + market share window (half-life: one business day).
     const rivalsBefore = s.rival.machines.slice();
     const rivalWasActive = s.rival.active;
-    if (rivalDecide(s, world, tMid)) {
+    if (rivalDecide(s, world, tMid, report.rival)) {
       if (!rivalWasActive) {
         compIdx = competition(s, world);
         comp = compIdx.values;
@@ -731,6 +773,18 @@ export function beginAdvance(
     s.ledger.recentPlayerCents *= decay;
     s.ledger.recentRivalCents *= decay;
     for (const m of s.machines) m.stats.revenueRecentCents *= decay;
+    updateLead(s, report.rival);
+    if (live) {
+      const sting = rivalSting(s, tMid);
+      if (sting) report.stings.push(sting);
+      const surprise = rollSurprise(s, tMid, { salesBonus });
+      if (surprise) {
+        report.surprises.push(surprise);
+        report.salesCents += surprise.cents ?? 0;
+        report.units += surprise.units ?? 0;
+      }
+    }
+    expireSurprises(s, tEnd);
 
     report.costsCents += costs;
     s.now = tEnd;
@@ -741,6 +795,11 @@ export function beginAdvance(
     if (report.contractsLost.length > lostBefore) {
       const gone = new Set(report.contractsLost.slice(lostBefore));
       compIdx.remove(s.machines.filter((m) => gone.has(m.id)));
+    }
+    // The rival's competitor weight steps up with its chapter-3 ramp: rebuild.
+    if (rivalWeight(s) !== weightBefore) {
+      compIdx = competition(s, world);
+      comp = compIdx.values;
     }
   };
 

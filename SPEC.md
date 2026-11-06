@@ -222,6 +222,14 @@ Each machine has:
 - **Breakdowns:** jams and refrigeration failures. Fix by hand (quick 3D repair interaction) or with a technician upgrade.
 - **Theft and vandalism:** risk by area (night foot traffic, isolation) minus security upgrades. The loss is cash and stock, never machine deletion.
 - **Rival company (AI):** "Brightvend" places machines in high-demand cells near yours, undercuts prices, and bids for contracts. Players counter with service quality, exclusivity contracts, pricing and upgrades. The rival must be beatable and readable, never unfair.
+  - *(2026-11-06, owner-approved.)* **A rival from day one, with a face.** Brightvend is run by **Rex Brightley** (fictional; flat friendly-smug portrait, `src/ui/RivalPortrait.tsx`). Once the tutorial is through (first sale, first collect, about $150 sold) his first machine opens 90–200 m from your first one. Before chapter 3 he stays gentle: 1 machine in chapter 1, 2 in chapter 2, half competitor weight, no contract bids, and he never leaves the map. Chapter 3 is his ramp: the full fleet arrives and the rules above apply (`RIVAL` in `src/config/economy.ts`).
+  - He talks through moment cards with his portrait and short taunts by situation (arrives, expands, opens near you, steals a contract, you push him out of a spot, you pass him or he passes you in share), at most one card every few minutes.
+  - Head to head on the map: during live play, now and then a customer near your machine walks to his instead, with a red "−$1.75 → Brightvend" chip (rate-limited; the lost sales themselves are already in the competition share).
+  - Tapping a rival machine opens his card: portrait and a taunt, his price vs yours at your nearest machine, and the counter-moves **Undercut** (your machines within the competition radius drop to 90% of suggested; needs price setting) and **Find a better spot** (busy-streets overlay).
+- **Surprise moments** *(2026-11-06)*: small, rare and positive, only while you play (never piled up from offline catch-up), one every 4–9 minutes (`src/config/surprises.ts`). No near-misses, streaks or money asked.
+  - **VIP customer:** buys a whole row (3–8 items) at once; gold sale chip.
+  - **Jackpot hour:** one of your spots gets ×1.5 customers for 5 minutes (5 business hours); a flame badge floats over it.
+  - **Venue deal:** a venue offers a lower commission (5%) for 10 minutes if you accept within 3; accept from its card or its handshake badge on the map.
 
 ### 4.7 Collections (capsules & cards)
 - Original collectible series (for example, "City Critters", "Transit Tokens", "Night Market Minis"), each with 12–24 items across rarity tiers (common, uncommon, rare, ultra).
@@ -238,7 +246,7 @@ Each machine has:
 |---|---|---|
 | 1. Side Hustle | Earn $1,000 with your used machine | Second machine, price setting, first contract renegotiation |
 | 2. The Route | Run 5 machines, buy a van | Telemetry, drinks and coffee machines, district 2 |
-| 3. LLC | 15 machines, hire a driver | Card readers, capsules, warehouse, rival appears |
+| 3. LLC | 15 machines, hire a driver | Card readers, capsules, warehouse, rival expands (its first machine opens in chapter 1, §4.6) |
 | 4. Operator | 40 machines, 3 drivers | Smart machines, tech and essentials, hot food, events board |
 | 5. Empire | Top operator in the city (beat the rival's share) | All machine types, new city unlock, liquor permit |
 | Prestige | "Sell the company" | Prestige currency ("Reputation") for permanent perks; restart in a new city with a head start |

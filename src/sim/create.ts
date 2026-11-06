@@ -1,6 +1,7 @@
 import { START } from '@/config/economy';
 import { getMachineType, type MachineTypeId } from '@/config/machines';
 
+import { emptySurprises } from './events';
 import { emptyGoals } from './goals';
 import { emptyRankings } from './rankings';
 import { perkLevel } from './rules';
@@ -76,7 +77,15 @@ export function newGame(opts: NewGameOptions): GameState {
     research: {},
     machines: [],
     drivers: [],
-    rival: { active: false, machines: [], nextDecisionAt: 0 },
+    rival: {
+      active: false,
+      machines: [],
+      nextDecisionAt: 0,
+      ramped: false,
+      lastStingAt: 0,
+      lead: null,
+    },
+    surprises: emptySurprises(),
     events: [],
     eventDays: [],
     collection: {},

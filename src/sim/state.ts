@@ -11,7 +11,7 @@ import type { RankingsState } from './rankings';
  * epoch ms (real time).
  */
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export interface Slot {
   productId: string | null;
@@ -104,6 +104,30 @@ export interface RivalState {
   active: boolean;
   machines: RivalMachine[];
   nextDecisionAt: number;
+  /** The chapter-3 ramp happened: full fleet, contract bids, full competitor weight (schema v6). */
+  ramped: boolean;
+  /** Last "a customer went to the rival instead" moment (real ms, schema v6). */
+  lastStingAt: number;
+  /** Who leads the market share, once judged (schema v6). */
+  lead: 'player' | 'rival' | null;
+}
+
+/** Surprise moments (SPEC §4.6, schema v6): see src/sim/events.ts. */
+export interface SurpriseState {
+  /** When the next surprise may happen (0 = not scheduled yet). */
+  nextAt: number;
+  /** Jackpot hour: a spot's demand is boosted until `until`. */
+  jackpot: { machineId: string; until: number; multiplier: number } | null;
+  /** Venue deal: offered until `offerUntil`; once accepted, active until `activeUntil`. */
+  deal: {
+    id: string;
+    machineId: string;
+    venueName: string;
+    /** The venue's commission during the deal. */
+    commission: number;
+    offerUntil: number;
+    activeUntil: number;
+  } | null;
 }
 
 export interface LocalEvent {
@@ -183,6 +207,8 @@ export interface GameState {
   machines: Machine[];
   drivers: Driver[];
   rival: RivalState;
+  /** Surprise moments (schema v6). */
+  surprises: SurpriseState;
   events: LocalEvent[];
   /** Local dates for which events were generated. */
   eventDays: string[];

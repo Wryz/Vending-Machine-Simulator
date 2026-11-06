@@ -12,8 +12,24 @@ export * from './calibrate';
 export * from './goals';
 export * from './unlocks';
 export * from './rankings';
-export { playerShare } from './rival';
-export { visibleEvents } from './events';
+export {
+  playerShare,
+  rivalMatchup,
+  rivalPriceCents,
+  undercutRival,
+  type RivalMatchup,
+  type RivalNews,
+  type RivalNewsKind,
+  type RivalSting,
+} from './rival';
+export {
+  visibleEvents,
+  acceptDeal,
+  activeDeal,
+  surpriseBoost,
+  type SurpriseKind,
+  type SurpriseNews,
+} from './events';
 export { localTime, businessDaysToMs, businessHoursToMs } from './time';
 export { distanceM } from './geo';
 export { priceResponse, baseTraffic, hasResearch } from './demand';

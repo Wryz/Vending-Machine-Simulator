@@ -25,6 +25,7 @@ import { haptic } from '@/services/haptics';
 import { cityKey, useProfile } from '@/store/profile';
 import { useGame } from '@/store/game';
 import { useHud } from '@/store/hud';
+import { takeDeal } from '@/store/rivalMoments';
 import { GlobeView, type GlobePin } from '@/three/globe/GlobeView';
 import { transition } from '@/store/transition';
 import { useTheme } from '@/ui/ThemeProvider';
@@ -32,6 +33,7 @@ import { CashPill, InfoPill, RoundButton } from '@/ui/hud';
 import { Button, T } from '@/ui/kit';
 import { Coach } from '@/ui/Coach';
 import { MachineSheet } from '@/ui/sheets/MachineSheet';
+import { RivalSheet } from '@/ui/sheets/RivalSheet';
 import { MoneyPanel, type IncomingSale } from '@/ui/MoneyPanel';
 import { SpotSheet, type SpotPoint } from '@/ui/sheets/SpotSheet';
 import { sfx } from '@/ui/sfx';
@@ -69,7 +71,12 @@ export default function MapScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const params = useLocalSearchParams<{ placeMachineId?: string; focus?: string }>();
+  const params = useLocalSearchParams<{
+    placeMachineId?: string;
+    focus?: string;
+    /** Open this rival machine's card (dev QA). */
+    rival?: string;
+  }>();
   const game = useGame((s) => s.game)!;
   const world = useGame((s) => s.world)!;
   const ticker = useGame((s) => s.ticker);
@@ -77,6 +84,9 @@ export default function MapScreen() {
   const mapRef = useRef<CityMapHandle>(null);
   const spotRef = useRef<BottomSheetModal>(null);
   const machineSheetRef = useRef<BottomSheetModal>(null);
+  const rivalSheetRef = useRef<BottomSheetModal>(null);
+  /** The rival machine whose card is open. */
+  const [rivalId, setRivalId] = useState<string | null>(null);
   /** The machine whose sheet is open. */
   const [machineId, setMachineId] = useState<string | null>(null);
   const [heat, setHeat] = useState(false);
@@ -155,6 +165,7 @@ export default function MapScreen() {
       return () => {
         if (openMachine.current) reopenSheet.current = openMachine.current;
         machineSheetRef.current?.dismiss();
+        rivalSheetRef.current?.dismiss();
         spotRef.current?.dismiss();
       };
     }, []),
@@ -208,6 +219,26 @@ export default function MapScreen() {
     machineSheetRef.current?.present();
     frameMachine(id, framePadding);
   };
+
+  // A rival machine: Rex's card (prices, a taunt, the counter-moves).
+  const onRivalPress = (id: string) => {
+    if (busy) return;
+    spotRef.current?.dismiss();
+    machineSheetRef.current?.dismiss();
+    setRivalId(id);
+    rivalSheetRef.current?.present();
+  };
+
+  // Dev QA: open a rival machine's card (then forget the request).
+  useFocusEffect(
+    useCallback(() => {
+      if (!params.rival) return;
+      onRivalPress(params.rival);
+      router.setParams({ rival: undefined });
+      // Once per request.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [params.rival]),
+  );
 
   // From the key ring: open that machine here (then forget the request).
   useFocusEffect(
@@ -298,10 +329,11 @@ export default function MapScreen() {
   const salePops = useMemo<SalePop[]>(
     () =>
       ticker.slice(-12).map((sale) => ({
-        id: `${sale.at}-${sale.machineId}`,
+        id: `${sale.at}-${sale.machineId}${sale.kind ? `-${sale.kind}` : ''}`,
         machineId: sale.machineId,
         cents: sale.cents,
         units: sale.units,
+        tone: sale.kind,
       })),
     [ticker],
   );
@@ -312,6 +344,10 @@ export default function MapScreen() {
   const onSalesShown = useCallback(
     (pops: SalePop[]) => {
       const machines = useGame.getState().game?.machines ?? [];
+      // A customer who went to the rival: a soft "pop", no money for you.
+      if (pops.some((p) => p.tone === 'rival')) sfx('pop');
+      pops = pops.filter((p) => p.tone !== 'rival');
+      if (!pops.length) return;
       const fresh = pops.map((p) => ({
         id: p.id,
         cents: p.cents,
@@ -354,6 +390,8 @@ export default function MapScreen() {
         minZoom={GLOBE.mapMinZoom}
         onMapPress={onMapPress}
         onMachinePress={onMachinePress}
+        onRivalPress={onRivalPress}
+        onDealPress={(id) => takeDeal(id)}
         onAreaName={setArea}
         onCameraChanged={(c, byUser) => {
           cameraNow.current = c;
@@ -481,6 +519,13 @@ export default function MapScreen() {
           const share = MACHINE_SHEET.snapPoints[i];
           if (share !== undefined) setSheetShare(share);
         }}
+      />
+      <RivalSheet
+        ref={rivalSheetRef}
+        rivalId={rivalId}
+        bottomInset={insets.bottom}
+        onDismiss={() => setRivalId(null)}
+        onBetterSpot={() => setHeat(true)}
       />
       <SpotSheet
         ref={spotRef}

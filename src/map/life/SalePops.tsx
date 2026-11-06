@@ -25,19 +25,25 @@ export interface SalePop {
   machineId: string;
   cents: number;
   units: number;
+  /** A VIP's whole row (gold chip), or a sale lost to the rival (red chip at the rival machine). */
+  tone?: 'vip' | 'rival';
 }
 
 interface Live {
   id: string;
   lngLat: [number, number];
   cents: number;
+  tone?: SalePop['tone'];
 }
+
+/** VIP gold chip. */
+const GOLD = '#F5B700';
 
 const DURATION_MS = 1200;
 const RISE_PT = 24;
 const MAX_VISIBLE = 6;
 const RING_PT = 30;
-const W = 120;
+const W = 170;
 
 interface Props {
   pops: readonly SalePop[];
@@ -50,6 +56,8 @@ interface Props {
   /** Machine sprite height on screen at this zoom, points (the chip starts above it). */
   machineHeightPt: number;
   theme: Theme;
+  /** Chip text for a sale lost to the rival (e.g. "−$1.75 → Brightvend"). */
+  rivalLabel?: (cents: number) => string;
 }
 
 export const SalePops = memo(function SalePops(props: Props) {
@@ -62,7 +70,7 @@ export const SalePops = memo(function SalePops(props: Props) {
     const p = pops[i];
     if (history.has(p.id) || !props.shown.has(p.id)) continue;
     const m = machines.find((x) => x.id === p.machineId);
-    if (m) live.push({ id: p.id, lngLat: [m.lng, m.lat], cents: p.cents });
+    if (m) live.push({ id: p.id, lngLat: [m.lng, m.lat], cents: p.cents, tone: p.tone });
   }
   return (
     <>
@@ -78,14 +86,17 @@ function Pop({
   pitch,
   machineHeightPt,
   theme,
-}: { pop: Live } & Pick<Props, 'pitch' | 'machineHeightPt' | 'theme'>) {
+  rivalLabel,
+}: { pop: Live } & Pick<Props, 'pitch' | 'machineHeightPt' | 'theme' | 'rivalLabel'>) {
   const t = useSharedValue(0);
   const [done, setDone] = useState(false);
+  // Special chips linger a little longer so they can be read.
+  const duration = pop.tone ? DURATION_MS * 1.8 : DURATION_MS;
   useEffect(() => {
-    t.value = withTiming(1, { duration: DURATION_MS, easing: Easing.out(Easing.cubic) });
-    const id = setTimeout(() => setDone(true), DURATION_MS + 100);
+    t.value = withTiming(1, { duration, easing: Easing.out(Easing.cubic) });
+    const id = setTimeout(() => setDone(true), duration + 100);
     return () => clearTimeout(id);
-  }, [t]);
+  }, [t, duration]);
 
   const start = Math.min(150, machineHeightPt + 6);
   const H = start + RISE_PT + 26 + RING_PT / 2;
@@ -113,14 +124,34 @@ function Pop({
         <Animated.View
           style={[
             styles.ring,
-            { borderColor: theme.paper, top: H - RING_PT, left: (W - RING_PT) / 2 },
+            {
+              borderColor:
+                pop.tone === 'vip' ? GOLD : pop.tone === 'rival' ? theme.alert : theme.paper,
+              top: H - RING_PT,
+              left: (W - RING_PT) / 2,
+            },
             ring,
           ]}
         />
         <Animated.View style={[styles.chipWrap, { bottom: RING_PT / 2 + start }, chip]}>
-          <View style={[styles.chip, { backgroundColor: theme.paper, shadowColor: theme.shadow }]}>
-            <Mono size={11} weight="bold" color={theme.signal}>
-              {money(pop.cents, { sign: true })}
+          <View
+            style={[
+              styles.chip,
+              {
+                backgroundColor:
+                  pop.tone === 'vip' ? GOLD : pop.tone === 'rival' ? theme.alert : theme.paper,
+                shadowColor: theme.shadow,
+              },
+            ]}
+          >
+            <Mono
+              size={pop.tone === 'vip' ? 13 : 11}
+              weight="bold"
+              color={pop.tone ? '#FFFFFF' : theme.signal}
+            >
+              {pop.tone === 'rival' && rivalLabel
+                ? rivalLabel(pop.cents)
+                : `${pop.tone === 'vip' ? '★ ' : ''}${money(pop.cents, { sign: true })}`}
             </Mono>
           </View>
         </Animated.View>

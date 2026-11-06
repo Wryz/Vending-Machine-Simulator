@@ -1,4 +1,4 @@
-import { CASH, COMPETITION, CONTRACT, OVERHEAD, SERVICE, STAFF, TIME } from '@/config/economy';
+import { CASH, COMPETITION, CONTRACT, OVERHEAD, RIVAL, SERVICE, STAFF, TIME } from '@/config/economy';
 import { getMachineType, type MachineType, ALCOHOL_ALLOWED_COUNTRIES } from '@/config/machines';
 import {
   ALCOHOL_MIN_DISTANCE_M,
@@ -231,9 +231,20 @@ function countWithin<T extends LatLng>(
 }
 
 /**
+ * How much one rival machine counts as a competitor: gently before its
+ * chapter-3 ramp (the day-one rival must not stall the tutorial chapters),
+ * fully after (it undercuts).
+ */
+export function rivalWeight(state: GameState): number {
+  return state.chapter < RIVAL.arrivesChapter
+    ? RIVAL.early.competitorWeight
+    : RIVAL.competitorWeight;
+}
+
+/**
  * Effective competitors around each active player machine (key = machine id)
  * and around each rival machine (key = `rival:{id}`, counting player machines).
- * Player machines count 1, rival machines 1.25 (they undercut), real stores
+ * Player machines count 1, rival machines `rivalWeight` (1.25 once ramped), real stores
  * per `COMPETITION.storeWeight`. Uses a spatial hash: O(n) per rebuild.
  */
 export function competitorMap(state: GameState, world: World): Map<string, number> {
@@ -245,9 +256,10 @@ export function competitorMap(state: GameState, world: World): Map<string, numbe
     Math.max(0.2, Math.cos((world.city.lat * Math.PI) / 180));
   const mineIdx = buildIndex(mine, cellDeg);
   const rivalIdx = buildIndex(state.rival.machines, cellDeg);
+  const w = rivalWeight(state);
   for (const m of mine) {
     let n = countWithin(mineIdx, m, COMPETITION.radiusM, cellDeg, m);
-    n += 1.25 * countWithin(rivalIdx, m, COMPETITION.radiusM, cellDeg);
+    n += w * countWithin(rivalIdx, m, COMPETITION.radiusM, cellDeg);
     const cell = world.cells.get(m.cellId);
     if (cell) n += cell.competitors * COMPETITION.storeWeight * 0.5;
     out.set(m.id, n);
@@ -281,10 +293,11 @@ export function competition(state: GameState, world: World): Competition {
   const parts = new Map<string, { mine: number; rival: number; store: number }>();
   const rivalCounts = new Map<string, number>();
   const values = new Map<string, number>();
+  const w = rivalWeight(state);
   const valueOf = (p: { mine: number; rival: number; store: number }) => {
     // Same order of operations as competitorMap.
     let n = p.mine;
-    n += 1.25 * p.rival;
+    n += w * p.rival;
     n += p.store;
     return n;
   };

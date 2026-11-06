@@ -27,6 +27,7 @@ import orders from './orders';
 import place from './place';
 import rankings from './rankings';
 import report from './report';
+import rival from './rival';
 import routes from './routes';
 import services from './services';
 import settings from './settings';
@@ -65,6 +66,7 @@ const catalog: Shape<typeof en> = {
   place,
   rankings,
   report,
+  rival,
   routes,
   services,
   settings,

@@ -204,8 +204,45 @@ export const VISIBILITY = {
 
 export const RIVAL = {
   name: 'Brightvend',
-  /** Rival arrives with chapter 3. */
+  /** The rival's owner, a fictional character with a face (portrait: src/ui/RivalPortrait.tsx). */
+  owner: 'Rex Brightley',
+  /**
+   * Chapter the rival ramps up (its full fleet arrives, it bids for contracts
+   * and counts fully as a competitor). Before this it runs a small early fleet.
+   */
   arrivesChapter: 3,
+  /**
+   * Day one (SPEC §4.6): one rival machine opens near your first machine once
+   * the tutorial is through (first sale and first collect) and you have sold
+   * `afterSalesCents` in total. Gentle until chapter 3.
+   */
+  early: {
+    afterSalesCents: 15_000,
+    /** Max rival machines by chapter before the ramp. */
+    maxMachines: { 1: 1, 2: 2 } as Record<number, number>,
+    /** Competitor weight of a rival machine before the ramp (1.25 after). */
+    competitorWeight: 0.5,
+    /** The first rival machine opens this far from your first machine (inside COMPETITION.radiusM). */
+    placeMinM: 90,
+    placeMaxM: 200,
+  },
+  /** Competitor weight of a rival machine from the ramp on (it undercuts). */
+  competitorWeight: 1.25,
+  /** Share of your nearby sales that counts as lost to the rival for the map's "sting" pop. */
+  sting: {
+    /** Min real ms between two stings (a customer walking to the rival instead). */
+    minGapMs: 75_000,
+    /** Chance per live minute (cooldown over, a rival machine near one of yours). */
+    chancePerMinute: 0.45,
+  },
+  /** "Undercut" counter-move: your nearby prices drop to this share of suggested. */
+  counterPriceRatio: 0.9,
+  /** Share lead (above or below 50%) before "you passed them" / "they passed you" fires. */
+  leadHysteresis: 0.06,
+  /** Both rolling revenues must reach this (cents) before the lead is judged. */
+  leadMinCents: 2_000,
+  /** Min real ms between two rival cards (taunts); arrivals always show. */
+  tauntMinGapMs: 4 * 60_000,
   /** Business hours between rival decisions. */
   decisionEveryHours: 12,
   /** Max rival machines as a multiple of the player's (keeps it beatable). */

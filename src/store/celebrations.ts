@@ -5,7 +5,17 @@ import { create } from 'zustand';
  * the screen: chapter complete, trophies, finished orders, local events.
  * Calm and brief (SPEC §3.2): one at a time, auto-dismissed.
  */
-export type MomentKind = 'chapter' | 'trophy' | 'order' | 'streak' | 'event' | 'info';
+export type MomentKind =
+  | 'chapter'
+  | 'trophy'
+  | 'order'
+  | 'streak'
+  | 'event'
+  | 'info'
+  /** The rival's owner talks (portrait card). */
+  | 'rival'
+  /** A surprise: VIP customer, jackpot hour, venue deal. */
+  | 'surprise';
 
 export interface Moment {
   id: string;
@@ -14,6 +24,14 @@ export interface Moment {
   subtitle?: string;
   lines?: { label: string; value: string }[];
   amountCents?: number;
+  /** Small heading over the title (defaults to the kind's label). */
+  label?: string;
+  /** Icon in the disc (surprises); rival cards show the owner's portrait. */
+  icon?: 'vip' | 'jackpot' | 'deal';
+  /** One key on the card (e.g. accept a venue deal); pressing it also dismisses. */
+  action?: { label: string; run: () => void };
+  /** How long it stays up (ms), when not the kind's default. */
+  showMs?: number;
 }
 
 interface CelebrationStore {

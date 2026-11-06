@@ -58,3 +58,18 @@ export function hashString(str: string): number {
 export function pick<T>(s: RngState, items: readonly T[]): T {
   return items[Math.floor(nextRandom(s) * items.length) % items.length];
 }
+
+/**
+ * Deterministic uniform [0,1) from a key, well mixed (FNV-1a then the murmur3
+ * finalizer: keys that differ by one character still land far apart). For
+ * keyed rolls that must not touch the sim's RNG stream.
+ */
+export function keyedUnit(key: string): number {
+  let h = hashString(key);
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}

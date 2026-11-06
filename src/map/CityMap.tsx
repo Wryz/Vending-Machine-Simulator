@@ -19,17 +19,19 @@ import {
   useState,
 } from 'react';
 
+import { RIVAL } from '@/config/economy';
 import { AREA_NAME, MACHINE_PIN, MACHINE_SPRITE } from '@/config/map';
 import { MAP_LIFE } from '@/config/mapLife';
 import { getMachineType } from '@/config/machines';
 import { DISTRICTS } from '@/config/progression';
 import { cellPolygon } from '@/data/h3';
-import { useLang } from '@/i18n';
+import { useLang, useT } from '@/i18n';
 import { content } from '@/i18n/content';
 import { offsetPoint } from '@/sim/geo';
 import type { CellData } from '@/data/types';
 import { baseTraffic, localTime, type GameState, type LocalEvent, type World } from '@/sim';
 import type { Theme } from '@/ui/theme';
+import { money } from '@/ui/format';
 import { machineStatus } from '@/ui/machineStatus';
 
 import {
@@ -50,6 +52,7 @@ import {
 } from './machinePins';
 import { PIN_ICON_OFFSET, PIN_IMAGES, PIN_SIZE } from './pinImages';
 import { SalePops, type SalePop } from './life/SalePops';
+import { SurpriseMarkers } from './SurpriseMarkers';
 import { StreetLifeLayer, type LifeStats, type StreetLifeHandle } from './life/StreetLifeLayer';
 import {
   SPRITE_ANCHOR_OFFSET_PX,
@@ -119,6 +122,11 @@ const STATUS_RING: Record<string, keyof Pick<Theme, 'amber' | 'signal' | 'alert'
   stored: null,
 };
 
+/** Rival machines have no stored heading: a stable one from their position (sprite and customers agree). */
+function rivalHeading(r: { lat: number }): number {
+  return (r.lat * 1e5) % 360;
+}
+
 function modelFor(typeId: Parameters<typeof getMachineType>[0]): string {
   return getMachineType(typeId).family;
 }
@@ -140,6 +148,10 @@ interface Props {
   minZoom?: number;
   onMapPress(lat: number, lng: number): void;
   onMachinePress(id: string): void;
+  /** A rival machine was tapped. */
+  onRivalPress?(id: string): void;
+  /** A venue-deal badge was tapped (accept the offer). */
+  onDealPress?(dealId: string): void;
   /** `byUser` is true when a gesture moved the camera (not a fly-to or the initial load). */
   onCameraChanged?(c: MapCameraState, byUser: boolean): void;
   /** Neighbourhood and district nearest the center (null = none known). */
@@ -221,13 +233,40 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
   /** Bottom padding of the last fly-to (kept for zoom steps). */
   const padding = useRef(0);
 
+  const machinePoints = useMemo(
+    () => game.machines.filter((m) => m.status === 'active'),
+    [game.machines],
+  );
+  /** Rival machines with the facing their sprite uses (customers stand in front). */
+  const rivalPoints = useMemo(
+    () =>
+      game.rival.machines.map((r) => ({
+        id: r.id,
+        lng: r.lng,
+        lat: r.lat,
+        heading: rivalHeading(r),
+      })),
+    [game.rival.machines],
+  );
+  const popPoints = useMemo(() => [...machinePoints, ...rivalPoints], [machinePoints, rivalPoints]);
+  const t = useT();
+  const rivalLabel = useCallback(
+    (cents: number) => t('rival.sting', { money: money(cents), rival: RIVAL.name }),
+    [t],
+  );
   // Sales reach the screen when their customer gets to the machine (StreetLifeLayer).
   const [shownSales, setShownSales] = useState<ReadonlySet<string>>(() => new Set());
   const lifeSales = useMemo(
     () =>
       (props.salePops ?? []).flatMap((p) => {
-        const m = game.machines.find((x) => x.id === p.machineId);
-        return m ? [{ id: p.id, lng: m.lng, lat: m.lat, heading: m.heading, units: p.units }] : [];
+        // A sale lost to the rival: the customer walks to the rival machine instead.
+        const m =
+          p.tone === 'rival'
+            ? rivalPoints.find((x) => x.id === p.machineId)
+            : game.machines.find((x) => x.id === p.machineId);
+        // A VIP comes alone (one customer for the whole row).
+        const units = p.tone ? 1 : p.units;
+        return m ? [{ id: p.id, lng: m.lng, lat: m.lat, heading: m.heading, units }] : [];
       }),
     // Positions only matter for new sales: follow the pop list, not every tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -253,10 +292,6 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
   const lifeRef = useRef<StreetLifeHandle>(null);
   /** Counts style loads; overlay sources remount on each (see the overlay block below). */
   const [styleGen, setStyleGen] = useState(0);
-  const machinePoints = useMemo(
-    () => game.machines.filter((m) => m.status === 'active'),
-    [game.machines],
-  );
   const trackView = useCallback((zoom: number, pitch: number) => {
     const z = Math.round(zoom * 2) / 2;
     const p = Math.round(pitch / 10) * 10;
@@ -331,7 +366,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         properties: {
           id: r.id,
           model: 'rival',
-          hb: headingBucket((r.lat * 1e5) % 360),
+          hb: headingBucket(rivalHeading(r)),
           ring: '',
           accent: MACHINE_SPRITE.rivalPad,
           pin: pinImageName('rival', null),
@@ -633,7 +668,11 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             clusterRadius={40}
             onPress={(e) => {
               const f = e.nativeEvent.features.find((x) => x.properties?.mine && x.properties?.id);
-              if (f) props.onMachinePress(String(f.properties?.id));
+              if (f) return props.onMachinePress(String(f.properties?.id));
+              const r = e.nativeEvent.features.find(
+                (x) => x.properties?.mine === false && x.properties?.id,
+              );
+              if (r) props.onRivalPress?.(String(r.properties?.id));
             }}
           >
             <Layer
@@ -758,13 +797,22 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         <SalePops
           pops={props.salePops}
           shown={shownSales}
-          machines={machinePoints}
+          machines={popPoints}
           zoom={view.zoom}
           pitch={view.pitch}
           machineHeightPt={machineHeightPt(view.zoom, world.city.lat)}
           theme={theme}
+          rivalLabel={rivalLabel}
         />
       ) : null}
+
+      {/* Jackpot hour and venue-deal badges over machines. */}
+      <SurpriseMarkers
+        game={game}
+        zoom={view.zoom}
+        machineHeightPt={machineHeightPt(view.zoom, world.city.lat)}
+        onDealPress={props.onDealPress}
+      />
     </Map>
   );
 });

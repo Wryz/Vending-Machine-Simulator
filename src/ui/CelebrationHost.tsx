@@ -10,6 +10,8 @@ import { useCelebrations, type Moment } from '@/store/celebrations';
 import { moneyShort } from './format';
 import { Icon, type IconName } from './icons';
 import { Mono, T } from './kit';
+import { BRIGHTVEND, RivalPortrait } from './RivalPortrait';
+import { Key, keyInk } from './skin';
 import { sfx } from './sfx';
 import { useTheme } from './ThemeProvider';
 import { RADIUS, SPACE } from './theme';
@@ -21,6 +23,8 @@ const SHOW_MS: Record<Moment['kind'], number> = {
   streak: 4500,
   event: 5000,
   info: 3000,
+  rival: 5500,
+  surprise: 5000,
 };
 
 const ICON: Record<Moment['kind'], IconName> = {
@@ -30,7 +34,17 @@ const ICON: Record<Moment['kind'], IconName> = {
   streak: 'orders',
   event: 'flame',
   info: 'locate',
+  rival: 'people',
+  surprise: 'star',
 };
+
+/** Surprise icons and disc colors (VIP gold, jackpot amber, deal green). */
+const SURPRISE_ICON: Record<NonNullable<Moment['icon']>, IconName> = {
+  vip: 'star',
+  jackpot: 'flame',
+  deal: 'handshake',
+};
+const VIP_GOLD = '#F5B700';
 
 /**
  * Shows the head of the celebration queue as a rounded card that springs in
@@ -52,18 +66,30 @@ export function CelebrationHost() {
     } else if (head.kind === 'trophy' || head.kind === 'order') {
       setTimeout(() => sfx(head.amountCents ? 'coins' : 'success'), 300);
       haptic.success();
-    } else if (head.kind === 'event') {
-      sfx('notify');
+    } else if (head.kind === 'event' || head.kind === 'rival' || head.kind === 'surprise') {
+      sfx(head.amountCents ? 'coins' : 'notify');
       haptic.tick();
     }
-    const timer = setTimeout(() => dismiss(head.id), SHOW_MS[head.kind]);
+    const timer = setTimeout(() => dismiss(head.id), head.showMs ?? SHOW_MS[head.kind]);
     return () => clearTimeout(timer);
   }, [head, dismiss]);
 
   if (!head) return null;
-  const label = t(`celebrate.kind.${head.kind}`);
+  const label =
+    head.label ??
+    (head.kind === 'rival' || head.kind === 'surprise' ? '' : t(`celebrate.kind.${head.kind}`));
   const accent =
-    head.kind === 'event' ? theme.amber : head.amountCents ? theme.signal : theme.brand;
+    head.kind === 'rival'
+      ? BRIGHTVEND.violet
+      : head.icon === 'vip'
+        ? VIP_GOLD
+        : head.icon === 'deal'
+          ? theme.signal
+          : head.kind === 'event' || head.icon === 'jackpot'
+            ? theme.amber
+            : head.amountCents
+              ? theme.signal
+              : theme.brand;
   return (
     <View pointerEvents="box-none" style={styles.host}>
       <Animated.View
@@ -79,9 +105,17 @@ export function CelebrationHost() {
           onPress={() => dismiss(head.id)}
           style={[styles.card, { backgroundColor: theme.hud, shadowColor: theme.shadow }]}
         >
-          <View style={[styles.disc, { backgroundColor: accent }]}>
-            <Icon name={ICON[head.kind]} size={24} color="#FFFFFF" />
-          </View>
+          {head.kind === 'rival' ? (
+            <RivalPortrait size={48} />
+          ) : (
+            <View style={[styles.disc, { backgroundColor: accent }]}>
+              <Icon
+                name={head.icon ? SURPRISE_ICON[head.icon] : ICON[head.kind]}
+                size={24}
+                color="#FFFFFF"
+              />
+            </View>
+          )}
           <View style={{ flex: 1, gap: 1 }}>
             <T size={12} weight="bold" color={accent}>
               {label}
@@ -90,13 +124,34 @@ export function CelebrationHost() {
               {head.title}
             </T>
             {head.subtitle ? (
-              <T size={13} muted numberOfLines={1}>
+              <T size={13} muted numberOfLines={head.kind === 'rival' ? 2 : 1}>
                 {head.subtitle}
               </T>
             ) : null}
           </View>
+          {head.action ? (
+            <Key
+              tone="green"
+              height={36}
+              accessibilityLabel={head.action.label}
+              onPress={() => {
+                head.action?.run();
+                dismiss(head.id);
+              }}
+              faceStyle={{ paddingHorizontal: SPACE.m }}
+            >
+              <T size={14} weight="bold" color={keyInk('green')}>
+                {head.action.label}
+              </T>
+            </Key>
+          ) : null}
           {head.amountCents ? (
-            <View style={[styles.reward, { backgroundColor: theme.signal }]}>
+            <View
+              style={[
+                styles.reward,
+                { backgroundColor: head.icon === 'vip' ? VIP_GOLD : theme.signal },
+              ]}
+            >
               <Mono size={15} weight="bold" color="#FFFFFF">
                 {`+${moneyShort(head.amountCents)}`}
               </Mono>
