@@ -7,6 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CATEGORY_LABEL } from '@/config/places';
 import { getMachineType, type MachineTypeId } from '@/config/machines';
 import type { PlaceCategory } from '@/data/types';
+import { useT } from '@/i18n';
+import { content } from '@/i18n/content';
+import { simError } from '@/i18n/sim';
 import { availableMachineTypes, evaluateSpot, hidePlace, localTime } from '@/sim';
 import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
@@ -18,6 +21,7 @@ import { SPACE } from '@/ui/theme';
 /** Spot Card (SPEC §4.1, §8): readable reasons why a spot is good or bad. */
 export default function SpotCard() {
   const theme = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ lat: string; lng: string; machineId?: string }>();
   const game = useGame((s) => s.game)!;
@@ -40,11 +44,14 @@ export default function SpotCard() {
   const stars = '★'.repeat(Math.round(spot.rating)) + '☆'.repeat(5 - Math.round(spot.rating));
   const canPlace = !spot.districtLocked && !spot.blocked;
 
+  const category = (c: PlaceCategory) => t.or(`content.places.${c}`, CATEGORY_LABEL[c]);
+  const typeName = (id: MachineTypeId) => content.machineType(id, getMachineType(id).name);
+
   const report = (id: string, name: string) =>
-    Alert.alert('Report this place?', `${name} will be hidden from your game.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('spot.reportAlert.title'), t('spot.reportAlert.body', { name }), [
+      { text: t('spot.reportAlert.cancel'), style: 'cancel' },
       {
-        text: 'Hide it',
+        text: t('spot.reportAlert.hide'),
         style: 'destructive',
         onPress: () => useGame.getState().act((d) => hidePlace(d, id)),
       },
@@ -62,36 +69,40 @@ export default function SpotCard() {
       <View style={{ gap: 4 }}>
         <Row style={{ justifyContent: 'space-between' }}>
           <T size={20} weight="bold" accessibilityRole="header" style={{ flex: 1 }}>
-            {spot.venue.category === 'street' ? 'Street corner' : spot.venue.name}
+            {spot.venue.category === 'street' ? t('spot.streetCorner') : spot.venue.name}
           </T>
-          <T size={18} color={theme.amber} accessibilityLabel={`${spot.rating} of 5`}>
+          <T size={18} color={theme.amber} accessibilityLabel={t('spot.ratingA11y', { n: spot.rating })}>
             {stars}
           </T>
         </Row>
         <T muted size={13}>
           {spot.venue.category === 'street'
-            ? `District ${spot.district}`
-            : `${CATEGORY_LABEL[spot.venue.category as PlaceCategory]} · ${meters(spot.venue.distanceM)} · District ${spot.district}`}
+            ? t('spot.district', { n: spot.district })
+            : t('spot.venueLine', {
+                category: category(spot.venue.category as PlaceCategory),
+                distance: meters(spot.venue.distanceM),
+                n: spot.district,
+              })}
         </T>
       </View>
 
       {stored || types.length ? (
-        <Section title="Machine">
+        <Section title={t('spot.section.machine')}>
           <Row style={{ flexWrap: 'wrap' }}>
             {stored ? (
               <Chip
-                label={`${getMachineType(stored.typeId).name} (owned)`}
+                label={t('spot.owned', { name: typeName(stored.typeId) })}
                 active={typeId === stored.typeId}
                 onPress={() => setTypeId(stored.typeId)}
               />
             ) : null}
-            {types.slice(0, 8).map((t) => (
+            {types.slice(0, 8).map((mt) => (
               <Chip
-                key={t.id}
-                label={t.name}
-                color={theme.family[t.family]}
-                active={typeId === t.id && !(stored && stored.typeId === t.id)}
-                onPress={() => setTypeId(t.id)}
+                key={mt.id}
+                label={content.machineType(mt.id, mt.name)}
+                color={theme.family[mt.family]}
+                active={typeId === mt.id && !(stored && stored.typeId === mt.id)}
+                onPress={() => setTypeId(mt.id)}
               />
             ))}
           </Row>
@@ -102,15 +113,15 @@ export default function SpotCard() {
         <Row style={{ justifyContent: 'space-between' }}>
           <View>
             <T size={12} muted>
-              Customers now
+              {t('spot.stat.now')}
             </T>
             <Mono size={18} weight="bold">
-              {spot.nowCustomers.toFixed(1)}/h
+              {t('spot.perHour', { n: spot.nowCustomers.toFixed(1) })}
             </Mono>
           </View>
           <View>
             <T size={12} muted>
-              Per business day
+              {t('spot.stat.day')}
             </T>
             <Mono size={18} weight="bold">
               {Math.round(spot.dailyCustomers)}
@@ -118,7 +129,7 @@ export default function SpotCard() {
           </View>
           <View>
             <T size={12} muted>
-              Est. sales/day
+              {t('spot.stat.sales')}
             </T>
             <Mono size={18} weight="bold" color={theme.signal}>
               {money(spot.dailySalesCents, { compact: true })}
@@ -147,7 +158,7 @@ export default function SpotCard() {
         </View>
       </Paper>
 
-      <Section title="Why">
+      <Section title={t('spot.section.why')}>
         {spot.reasons.map((r, i) => (
           <Row key={i} style={{ alignItems: 'flex-start' }}>
             <T color={r.good ? theme.signal : theme.alert}>{r.good ? '+' : '−'}</T>
@@ -158,10 +169,14 @@ export default function SpotCard() {
         ))}
         <Row style={{ flexWrap: 'wrap' }}>
           <Chip
-            label={`Best: ${spot.bestFamilies.map((f) => FAMILY_LABEL[f.family]).join(', ')}`}
+            label={t('spot.best', {
+              list: spot.bestFamilies
+                .map((f) => t.or(`content.families.${f.family}`, FAMILY_LABEL[f.family]))
+                .join(', '),
+            })}
           />
           <Chip
-            label={`Theft risk: ${spot.theftRisk}`}
+            label={t('spot.theft', { risk: t(`spot.risk.${spot.theftRisk}`) })}
             color={
               spot.theftRisk === 'high'
                 ? theme.alert
@@ -171,14 +186,16 @@ export default function SpotCard() {
             }
           />
           <Chip
-            label={`Competitors: ${spot.competitors.yours + spot.competitors.rival + spot.competitors.stores}`}
+            label={t('spot.competitors', {
+              n: spot.competitors.yours + spot.competitors.rival + spot.competitors.stores,
+            })}
           />
-          <Chip label={`Commission ask ~${pct(spot.commission)}`} />
+          <Chip label={t('spot.commission', { pct: pct(spot.commission) })} />
         </Row>
       </Section>
 
-      <Section title="Nearby places">
-        {spot.nearby.length === 0 ? <T muted>No named places within 400 m.</T> : null}
+      <Section title={t('spot.section.nearby')}>
+        {spot.nearby.length === 0 ? <T muted>{t('spot.noNearby')}</T> : null}
         {spot.nearby.map((p) => (
           <Row key={p.id} style={{ minHeight: 40 }}>
             <Glyph category={p.category} size={20} />
@@ -187,35 +204,37 @@ export default function SpotCard() {
                 {p.name}
               </T>
               <T size={12} muted>
-                {p.label} · {meters(p.distanceM)}
+                {category(p.category)} · {meters(p.distanceM)}
               </T>
             </View>
             {p.distanceM <= 120 && p.category !== 'competitor' ? (
               <Chip
                 label={
-                  placeId === p.id || (!placeId && spot.venue.placeId === p.id) ? 'Host' : 'Use'
+                  placeId === p.id || (!placeId && spot.venue.placeId === p.id)
+                    ? t('spot.host')
+                    : t('spot.use')
                 }
                 active={spot.venue.placeId === p.id}
                 onPress={() => setPlaceId(p.id)}
               />
             ) : null}
-            <Chip label="Report" onPress={() => report(p.id, p.name)} />
+            <Chip label={t('spot.report')} onPress={() => report(p.id, p.name)} />
           </Row>
         ))}
         <T size={11} muted>
-          Places shown from open map data. No affiliation or endorsement.
+          {t('spot.disclaimer')}
         </T>
       </Section>
 
       {spot.districtLocked ? (
-        <T color={theme.alert}>This district unlocks in a later chapter.</T>
+        <T color={theme.alert}>{t('spot.districtLocked')}</T>
       ) : null}
-      {spot.blocked ? <T color={theme.alert}>{spot.blocked}</T> : null}
+      {spot.blocked ? <T color={theme.alert}>{simError(spot.blocked)}</T> : null}
       <Button
         label={
           stored && stored.typeId === typeId
-            ? 'Place my machine here'
-            : `Place a ${getMachineType(typeId).name} here`
+            ? t('spot.placeMine')
+            : t('spot.placeType', { type: typeName(typeId) })
         }
         disabled={!canPlace}
         onPress={() =>

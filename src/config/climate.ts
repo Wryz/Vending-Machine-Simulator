@@ -59,3 +59,25 @@ export const CLIMATE: Record<CityId, Climate> = {
     rain: [0.1, 0.11, 0.12, 0.1, 0.1, 0.11, 0.08, 0.07, 0.07, 0.09, 0.1, 0.09],
   },
 };
+
+/**
+ * Countries (ISO 3166-1 alpha-2) where people read temperatures in °F: the US
+ * and its territories, Liberia, Myanmar, and a few nations in the US or
+ * Caribbean orbit. Used when the temperature unit setting is 'auto'.
+ */
+export const FAHRENHEIT_COUNTRIES: readonly string[] = [
+  'US',
+  'PR',
+  'GU',
+  'VI',
+  'AS',
+  'MP',
+  'LR',
+  'MM',
+  'FM',
+  'MH',
+  'PW',
+  'KY',
+  'BS',
+  'BZ',
+];

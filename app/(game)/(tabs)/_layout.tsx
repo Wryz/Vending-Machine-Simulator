@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
 import type { Feature } from '@/config/progression';
+import { useT, type TKey } from '@/i18n';
 import { goalProgress, unlockedFeatures } from '@/sim';
 import { sound } from '@/services/audio';
 import { useCelebrations } from '@/store/celebrations';
@@ -12,12 +13,15 @@ import { TabBar, type TabItem } from '@/ui/TabBar';
 export const unstable_settings = { initialRouteName: 'map' };
 
 /** Each tab, and the feature that opens it (none = always there). */
-const TABS: readonly (Omit<TabItem, 'badge' | 'fresh'> & { feature?: Feature })[] = [
-  { name: 'map', icon: 'map', label: 'Map' },
-  { name: 'keys', icon: 'keys', label: 'Keys', feature: 'keys' },
-  { name: 'routes', icon: 'route', label: 'Routes', feature: 'routes' },
-  { name: 'orders', icon: 'orders', label: 'Orders', feature: 'orders' },
-  { name: 'company', icon: 'company', label: 'Company', feature: 'company' },
+const TABS: readonly (Omit<TabItem, 'badge' | 'fresh' | 'label'> & {
+  labelKey: TKey;
+  feature?: Feature;
+})[] = [
+  { name: 'map', icon: 'map', labelKey: 'tabs.labels.map' },
+  { name: 'keys', icon: 'keys', labelKey: 'tabs.labels.keys', feature: 'keys' },
+  { name: 'routes', icon: 'route', labelKey: 'tabs.labels.routes', feature: 'routes' },
+  { name: 'orders', icon: 'orders', labelKey: 'tabs.labels.orders', feature: 'orders' },
+  { name: 'company', icon: 'company', labelKey: 'tabs.labels.company', feature: 'company' },
 ];
 
 /**
@@ -27,6 +31,7 @@ const TABS: readonly (Omit<TabItem, 'badge' | 'fresh'> & { feature?: Feature })[
  * sheets) opens over it from the game stack.
  */
 export default function TabsLayout() {
+  const t = useT();
   const ordersReady = useGame(
     (s) =>
       s.game?.goals.items.filter((g) => !g.claimed && goalProgress(s.game!, g) >= 1).length ?? 0,
@@ -34,11 +39,12 @@ export default function TabsLayout() {
   const unlockedKey = useGame((s) => (s.game ? unlockedFeatures(s.game).join(',') : ''));
   const seen = useProfile((s) => s.seenFeatures);
   const unlocked = unlockedKey ? (unlockedKey.split(',') as Feature[]) : [];
-  const tabs: TabItem[] = TABS.filter((t) => !t.feature || unlocked.includes(t.feature)).map(
-    (t) => ({
-      ...t,
-      fresh: !!t.feature && !!seen && !seen.includes(t.feature),
-      badge: t.name === 'orders' && ordersReady > 0 ? String(ordersReady) : undefined,
+  const tabs: TabItem[] = TABS.filter((tab) => !tab.feature || unlocked.includes(tab.feature)).map(
+    ({ labelKey, ...tab }) => ({
+      ...tab,
+      label: t(labelKey),
+      fresh: !!tab.feature && !!seen && !seen.includes(tab.feature),
+      badge: tab.name === 'orders' && ordersReady > 0 ? String(ordersReady) : undefined,
     }),
   );
 
@@ -56,13 +62,14 @@ export default function TabsLayout() {
       return;
     }
     const before = prev ? prev.split(',') : [];
-    for (const t of TABS) {
-      if (t.feature && unlocked.includes(t.feature) && !before.includes(t.feature)) {
+    for (const tab of TABS) {
+      if (tab.feature && unlocked.includes(tab.feature) && !before.includes(tab.feature)) {
         sound.play('success');
+        const note = UNLOCK_NOTE[tab.name];
         useCelebrations.getState().push({
           kind: 'info',
-          title: `New: ${t.label}`,
-          subtitle: UNLOCK_NOTE[t.name],
+          title: t('tabs.newTab', { label: t(tab.labelKey) }),
+          subtitle: note ? t(note) : undefined,
         });
       }
     }
@@ -80,7 +87,7 @@ export default function TabsLayout() {
           onSelect={(name) => {
             const route = state.routes.find((r) => r.name === name);
             if (!route) return;
-            const f = TABS.find((t) => t.name === name)?.feature;
+            const f = TABS.find((tab) => tab.name === name)?.feature;
             if (f && !useProfile.getState().seenFeatures?.includes(f))
               useProfile.getState().update((p) => {
                 p.seenFeatures = [...(p.seenFeatures ?? []), f];
@@ -90,17 +97,17 @@ export default function TabsLayout() {
         />
       )}
     >
-      {TABS.map((t) => (
-        <Tabs.Screen key={t.name} name={t.name} />
+      {TABS.map((tab) => (
+        <Tabs.Screen key={tab.name} name={tab.name} />
       ))}
     </Tabs>
   );
 }
 
 /** One line on what a newly opened tab is for. */
-const UNLOCK_NOTE: Record<string, string> = {
-  keys: 'All your machines on one key ring',
-  routes: 'Plan restock runs with your van',
-  orders: 'Daily orders pay bonus cash',
-  company: 'Your chapter, money, upgrades and shop',
+const UNLOCK_NOTE: Record<string, TKey> = {
+  keys: 'tabs.unlockNote.keys',
+  routes: 'tabs.unlockNote.routes',
+  orders: 'tabs.unlockNote.orders',
+  company: 'tabs.unlockNote.company',
 };

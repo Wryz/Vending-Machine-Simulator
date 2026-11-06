@@ -1,0 +1,11 @@
+// Machine-drafted de translation. Needs a native-speaker review before launch.
+import type { Shape } from '../../core';
+import type en from '../en/money';
+
+export default {
+  a11y: {
+    panel:
+      'Bargeld {cash}. Kapitel {n}, {title}: {progress}. Heute {today} Umsatz, {waiting} warten in deinen Automaten.',
+    cash: 'Bargeld {amount}',
+  },
+} satisfies Shape<typeof en>;

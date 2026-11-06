@@ -1,0 +1,91 @@
+/** Settings screen. */
+export default {
+  title: 'Settings',
+  language: 'Language',
+  languageValue: '{name}',
+  /** {name} is the phone's language in its own name, e.g. "System (日本語)". */
+  languageSystem: 'System ({name})',
+  languagePhone: 'Use phone language',
+  languageTitle: 'Choose a language',
+  /** Hint on the Language row. */
+  languageHint: 'Shows the language choices',
+  temperature: {
+    label: 'Temperature',
+    /** Short value shown on the row, ~14 chars max. */
+    auto: 'Auto (°F/°C)',
+    autoDetail: '°F or °C, as people use in the city',
+    celsius: 'Always Celsius',
+    fahrenheit: 'Always Fahrenheit',
+    hint: 'Shows the temperature unit choices',
+  },
+  sections: {
+    sound: 'Sound',
+    feel: 'Feel',
+    notifications: 'Notifications',
+    look: 'Look',
+    privacy: 'Privacy',
+    save: 'Save',
+    about: 'About',
+  },
+  sound: {
+    label: 'Sound',
+    detail: 'Music, clicks and coins, and the city around you',
+    music: 'Music',
+    effects: 'Effects',
+    ambience: 'City ambience',
+    silentSwitch: 'Follows the silent switch.',
+    /** LED display on the volume meter, ~4 chars max. */
+    off: 'OFF',
+    /** Spoken value of a volume level at zero. */
+    offA11y: 'Off',
+  },
+  feel: {
+    haptics: 'Haptics',
+    hapticsDetail: 'Coin ticks and product thunks',
+  },
+  notifications: {
+    label: 'Notifications',
+    detail: 'At most 3 a day, never 22:00–08:00',
+    empty: 'Machine empty',
+    cashFull: 'Cash box full',
+    events: 'Local events nearby',
+    denied: 'Notifications are turned off for Coinline in the Settings app.',
+  },
+  look: {
+    bright: 'Bright',
+    brightDetail: "Bright menus all day; the map still follows your city's time",
+    system: 'System',
+    systemDetail: "Match your phone's light or dark setting",
+  },
+  privacy: {
+    personalizedAds: 'Personalized ads',
+    personalizedAdsDetail: 'Off by default. Asks for tracking permission.',
+    analytics: 'Anonymous usage stats',
+    analyticsDetail: 'Event counts only. No location, no place names.',
+    trackingDenied: 'Tracking not allowed. Ads stay non-personalized.',
+    note: 'Your location is used once, approximately, to build your city. It is never stored on a server. Saves stay on this device. Ads are optional rewards you choose to watch.',
+  },
+  save: {
+    current: 'Current save: {city}. Export a copy for support or as a backup.',
+    none: 'No city open. Export a copy for support or as a backup.',
+    export: 'Export',
+    import: 'Import',
+    exportTitle: 'Export save',
+    noSharing: 'Sharing is not available on this device.',
+    exportFailed: 'Could not export the save.',
+    openCityFirst: 'Open a city first, then import its save.',
+    otherCity: 'That save is for another city. Switch to it first.',
+    replaceTitle: 'Replace this save?',
+    replaceBody: 'Your business in {city} will be replaced by the imported save.',
+    cancel: 'Cancel',
+    replace: 'Replace',
+    imported: 'Save imported.',
+    readFailed: 'Could not read that file.',
+  },
+  about: {
+    credits: 'Credits and licenses',
+    app: 'Coinline · Vending Machine Simulator',
+    version: 'v{version}',
+    diagnosticsHint: 'Long press for diagnostics',
+  },
+} as const;

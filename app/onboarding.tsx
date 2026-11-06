@@ -14,6 +14,8 @@ import {
 } from '@/config/cities';
 import { areaCheck } from '@/data/api';
 import { ENV } from '@/data/env';
+import { useT, type TKey } from '@/i18n';
+import { content } from '@/i18n/content';
 import { getTimeOfDay } from '@/map/timeOfDay';
 import { distanceM } from '@/sim';
 import { track } from '@/services/analytics';
@@ -62,6 +64,16 @@ function nearestCity(lat: number, lng: number): { city: City; km: number } {
   return { city: best, km: bestKm };
 }
 
+/** A city's display name in the UI language. */
+function cityName(c: City): string {
+  return content.city(c.id, c.name);
+}
+
+/** A city's short description in the UI language. */
+function cityNotes(t: ReturnType<typeof useT>, c: City): string {
+  return t.or(`content.cityNotes.${c.id}`, c.notes);
+}
+
 /** A promise that rejects after `ms`. */
 function timeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -76,6 +88,7 @@ function timeout<T>(p: Promise<T>, ms: number): Promise<T> {
  * (once) -> area check -> start there, or pick one of the 9 cities.
  */
 export default function Onboarding() {
+  const t = useT();
   const insets = useSafeAreaInsets();
   // Dev QA only: open a given step, e.g. /onboarding?step=picker&city=tokyo or ?found=near.
   const qa = useLocalSearchParams<{ step?: Step; city?: CityId; found?: Found['kind'] }>();
@@ -114,7 +127,7 @@ export default function Onboarding() {
       track('onboarding_done', { city: city.kind === 'fallback' ? city.id : 'area' });
       router.replace('/map');
     } else {
-      setNote(useGame.getState().error ?? 'Could not load that city.');
+      setNote(useGame.getState().error ?? t('onboarding.location.loadFailed'));
       setBusy(false);
     }
   };
@@ -164,7 +177,7 @@ export default function Onboarding() {
           if (res.playable && res.res5 && res.centroid) {
             await start({
               id: `area-${res.res5}`,
-              name: res.cityName ?? 'Your area',
+              name: res.cityName ?? t('onboarding.location.yourArea'),
               lat: res.centroid.lat,
               lng: res.centroid.lng,
               timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -182,7 +195,7 @@ export default function Onboarding() {
       setFound({ kind: near.km <= NEAR_CITY_KM ? 'near' : 'far', ...near });
       setStep('location');
     } catch {
-      setNote("We couldn't find your location just now. Pick a city to start.");
+      setNote(t('onboarding.location.notFound'));
       setStep('picker');
     }
   };
@@ -200,7 +213,7 @@ export default function Onboarding() {
             gap: SPACE.m,
           }}
         >
-          <Marquee title="Coinline" subtitle="Vending Machine Simulator" />
+          <Marquee title="Coinline" subtitle={t('onboarding.coldOpen.subtitle')} />
           <Glass style={{ flex: 1 }} padding={SPACE.s} fill>
             <View style={styles.window}>
               {SHOWCASE.map((id) => (
@@ -214,19 +227,22 @@ export default function Onboarding() {
           <Row style={{ justifyContent: 'center' }}>
             <Led
               size={16}
-              accessibilityLabel={`${preview.c.name}, ${clock(now, preview.c.timeZone)}`}
+              accessibilityLabel={t('onboarding.coldOpen.clockA11y', {
+                city: cityName(preview.c),
+                time: clock(now, preview.c.timeZone),
+              })}
             >
-              {`${preview.c.name.toUpperCase()}  ${clock(now, preview.c.timeZone)}`}
+              {`${cityName(preview.c).toUpperCase()}  ${clock(now, preview.c.timeZone)}`}
             </Led>
           </Row>
           <T size={22} weight="bold" color="#FFFFFF" center accessibilityRole="header">
-            One used machine. $250. A whole city.
+            {t('onboarding.coldOpen.tagline')}
           </T>
           <Button
-            label="Insert coin"
+            label={t('onboarding.coldOpen.insertCoin')}
             icon={<Icon name="coin" size={22} color="#FFFFFF" />}
             onPress={() => setStep('intro')}
-            accessibilityHint="Start your vending business"
+            accessibilityHint={t('onboarding.coldOpen.insertCoinHint')}
           />
         </View>
       </Cabinet>
@@ -238,7 +254,7 @@ export default function Onboarding() {
   if (step === 'location' || step === 'checking') {
     const checking = step === 'checking';
     return (
-      <Screen title="Where to start?" back={false} scroll={false}>
+      <Screen title={t('onboarding.location.title')} back={false} scroll={false}>
         <View style={{ flex: 1, padding: SPACE.xl, justifyContent: 'space-between' }}>
           <View style={{ alignItems: 'center', gap: SPACE.l, marginTop: SPACE.xl }}>
             <View style={styles.bigIcon}>
@@ -251,39 +267,54 @@ export default function Onboarding() {
             {found?.kind === 'near' ? (
               <>
                 <T size={22} weight="bold" center>
-                  {`You're near ${found.city.name}`}
+                  {t('onboarding.location.nearTitle', { city: cityName(found.city) })}
                 </T>
                 <T center muted>
-                  Build your business on the streets around you.
+                  {t('onboarding.location.nearBody')}
                 </T>
               </>
             ) : found?.kind === 'far' ? (
               <>
                 <T size={22} weight="bold" center>
-                  {"Your area isn't on the map yet"}
+                  {t('onboarding.location.farTitle')}
                 </T>
                 <T center muted>
-                  {`The closest city is ${found.city.name}, ${Math.round(found.km).toLocaleString()} km away. More cities are coming.`}
+                  {t('onboarding.location.farBody', {
+                    city: cityName(found.city),
+                    km: Math.round(found.km).toLocaleString(t.lang),
+                  })}
                 </T>
               </>
             ) : found?.kind === 'off' ? (
               <>
                 <T size={22} weight="bold" center>
-                  Location is off for Coinline
+                  {t('onboarding.location.offTitle')}
                 </T>
                 <T center muted>
-                  Turn on location in Settings, or pick a city yourself.
+                  {t('onboarding.location.offBody')}
                 </T>
               </>
             ) : (
               <>
                 <T size={22} weight="bold" center>
-                  Start near you
+                  {t('onboarding.location.startTitle')}
                 </T>
                 <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <StatChip icon="locate" label="Approximate location only" value="~1 km" />
-                  <StatChip icon="lock" label="Your location is never stored" value="Not stored" />
-                  <StatChip icon="clock" label="Used once, to pick your city" value="Once" />
+                  <StatChip
+                    icon="locate"
+                    label={t('onboarding.location.approxLabel')}
+                    value={t('onboarding.location.approxValue')}
+                  />
+                  <StatChip
+                    icon="lock"
+                    label={t('onboarding.location.notStoredLabel')}
+                    value={t('onboarding.location.notStoredValue')}
+                  />
+                  <StatChip
+                    icon="clock"
+                    label={t('onboarding.location.onceLabel')}
+                    value={t('onboarding.location.onceValue')}
+                  />
                 </Row>
               </>
             )}
@@ -291,14 +322,14 @@ export default function Onboarding() {
           <View style={{ gap: SPACE.m }}>
             {found?.kind === 'near' || found?.kind === 'far' ? (
               <Button
-                label={`Start in ${found.city.name}`}
+                label={t('onboarding.location.startIn', { city: cityName(found.city) })}
                 icon={<Icon name="play" size={20} color="#FFFFFF" />}
                 onPress={() => start(cityInfoFor(found.city.id))}
                 busy={busy}
               />
             ) : found?.kind === 'off' ? (
               <Button
-                label="Open Settings"
+                label={t('onboarding.location.openSettings')}
                 icon={<Icon name="gear" size={20} color="#FFFFFF" />}
                 onPress={() => {
                   setFound(null);
@@ -307,15 +338,15 @@ export default function Onboarding() {
               />
             ) : (
               <Button
-                label="Use my location"
+                label={t('onboarding.location.useMyLocation')}
                 icon={<Icon name="locate" size={20} color="#FFFFFF" />}
                 onPress={useMyLocation}
                 busy={checking || busy}
-                accessibilityHint="Uses your approximate location once to find the closest city. It is never stored."
+                accessibilityHint={t('onboarding.location.useMyLocationHint')}
               />
             )}
             <Button
-              label="Explore cities"
+              label={t('onboarding.location.exploreCities')}
               icon={<Icon name="globe" size={20} color={SKIN.keyInk} />}
               kind="secondary"
               onPress={() => setStep('picker')}
@@ -332,7 +363,11 @@ export default function Onboarding() {
     const tod = getTimeOfDay(new Date(now), picked.lat, picked.lng);
     const night = tod.weights.night > 0.5;
     return (
-      <Screen title={picked.name} subtitle="Preview" onBack={() => setPicked(null)}>
+      <Screen
+        title={cityName(picked)}
+        subtitle={t('onboarding.preview.subtitle')}
+        onBack={() => setPicked(null)}
+      >
         <View style={[styles.previewSky, { backgroundColor: tod.palette.sky }]}>
           <Icon
             name={night ? 'moon' : tod.dominant === 'day' ? 'sun' : 'twilight'}
@@ -342,27 +377,33 @@ export default function Onboarding() {
           <Led size={22}>{clock(now, picked.timeZone)}</Led>
         </View>
         <T size={16} center>
-          {picked.notes}
+          {cityNotes(t, picked)}
         </T>
         <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-          <StatChip icon="clock" label="Real local time" value={clock(now, picked.timeZone)} />
+          <StatChip icon="clock" label={t('onboarding.preview.localTime')} value={clock(now, picked.timeZone)} />
           <StatChip
             icon="star"
-            label={hasSave(info) ? 'You have a business here' : 'A fresh start'}
-            value={hasSave(info) ? 'Saved' : 'New'}
+            label={
+              hasSave(info) ? t('onboarding.preview.hasBusiness') : t('onboarding.preview.freshStart')
+            }
+            value={hasSave(info) ? t('onboarding.preview.saved') : t('onboarding.preview.new')}
           />
         </Row>
         <T size={13} muted center>
-          You can switch cities any time from the map. Each city keeps its own business.
+          {t('onboarding.preview.switchNote')}
         </T>
         <Button
-          label={hasSave(info) ? `Continue in ${picked.name}` : `Start in ${picked.name}`}
+          label={
+            hasSave(info)
+              ? t('onboarding.preview.continueIn', { city: cityName(picked) })
+              : t('onboarding.preview.startIn', { city: cityName(picked) })
+          }
           icon={<Icon name="play" size={20} color="#FFFFFF" />}
           onPress={() => start(info)}
           busy={busy}
         />
         <Button
-          label="Back to cities"
+          label={t('onboarding.preview.back')}
           kind="secondary"
           onPress={() => setPicked(null)}
           disabled={busy}
@@ -373,8 +414,8 @@ export default function Onboarding() {
 
   return (
     <Screen
-      title="Explore cities"
-      subtitle={note ?? 'Tap a city to look around'}
+      title={t('onboarding.picker.title')}
+      subtitle={note ?? t('onboarding.picker.subtitle')}
       onBack={() => {
         setNote(null);
         setStep('location');
@@ -388,8 +429,11 @@ export default function Onboarding() {
           <Pressable
             key={c.id}
             accessibilityRole="button"
-            accessibilityLabel={`${c.name}, local time ${clock(now, c.timeZone)}${hasSave(info) ? ', saved' : ''}`}
-            accessibilityHint="Preview this city"
+            accessibilityLabel={t(
+              hasSave(info) ? 'onboarding.picker.rowA11ySaved' : 'onboarding.picker.rowA11y',
+              { city: cityName(c), time: clock(now, c.timeZone) },
+            )}
+            accessibilityHint={t('onboarding.picker.rowHint')}
             disabled={busy}
             onPress={() => setPicked(c)}
             style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.98 : 1 }] })}
@@ -403,9 +447,9 @@ export default function Onboarding() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <T weight="bold">{c.name}</T>
+                <T weight="bold">{cityName(c)}</T>
                 <T size={12} muted numberOfLines={1}>
-                  {hasSave(info) ? 'Saved' : c.notes}
+                  {hasSave(info) ? t('onboarding.picker.saved') : cityNotes(t, c)}
                 </T>
               </View>
               <Led size={14}>{clock(now, c.timeZone)}</Led>
@@ -419,25 +463,14 @@ export default function Onboarding() {
 }
 
 /** Three quick cards on how the game works, before choosing where to play. */
-const INTRO: readonly { icon: IconName; title: string; line: string }[] = [
-  {
-    icon: 'pin',
-    title: 'Real streets',
-    line: 'Place vending machines at real places in real cities, where people actually walk.',
-  },
-  {
-    icon: 'box',
-    title: 'Stock, price, collect',
-    line: 'Fill your machines, set fair prices, and watch customers walk up and buy.',
-  },
-  {
-    icon: 'company',
-    title: 'Side hustle to empire',
-    line: 'Grow from one used machine to vans, drivers and a whole city.',
-  },
+const INTRO: readonly { icon: IconName; title: TKey; line: TKey }[] = [
+  { icon: 'pin', title: 'onboarding.intro.streetsTitle', line: 'onboarding.intro.streetsLine' },
+  { icon: 'box', title: 'onboarding.intro.stockTitle', line: 'onboarding.intro.stockLine' },
+  { icon: 'company', title: 'onboarding.intro.empireTitle', line: 'onboarding.intro.empireLine' },
 ];
 
 function Intro({ onDone }: { onDone: () => void }) {
+  const t = useT();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
@@ -447,7 +480,7 @@ function Intro({ onDone }: { onDone: () => void }) {
     <Cabinet style={{ flex: 1 }}>
       <View style={{ flex: 1, paddingTop: insets.top + SPACE.m, paddingBottom: insets.bottom + SPACE.l }}>
         <View style={{ paddingHorizontal: SPACE.l }}>
-          <Marquee title="How it works" />
+          <Marquee title={t('onboarding.intro.title')} />
         </View>
         <ScrollView
           ref={scroller}
@@ -465,10 +498,10 @@ function Intro({ onDone }: { onDone: () => void }) {
                     <Icon name={c.icon} size={56} color={SKIN.brandFace} />
                   </View>
                   <T size={24} weight="bold" center accessibilityRole="header">
-                    {c.title}
+                    {t(c.title)}
                   </T>
                   <T size={16} center muted>
-                    {c.line}
+                    {t(c.line)}
                   </T>
                 </View>
               </Glass>
@@ -488,7 +521,7 @@ function Intro({ onDone }: { onDone: () => void }) {
             ))}
           </Row>
           <Button
-            label={last ? "Let's go" : 'Next'}
+            label={last ? t('onboarding.intro.letsGo') : t('onboarding.intro.next')}
             onPress={() => {
               if (last) onDone();
               else {
@@ -497,7 +530,7 @@ function Intro({ onDone }: { onDone: () => void }) {
               }
             }}
           />
-          {!last ? <Button label="Skip" kind="quiet" onPress={onDone} /> : null}
+          {!last ? <Button label={t('onboarding.intro.skip')} kind="quiet" onPress={onDone} /> : null}
         </View>
       </View>
     </Cabinet>

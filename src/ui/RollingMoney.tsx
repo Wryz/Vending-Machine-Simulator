@@ -7,6 +7,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useT } from '@/i18n';
+
 import { useTheme } from './ThemeProvider';
 import { money } from './format';
 import { Mono } from './kit';
@@ -29,6 +31,7 @@ export function RollingMoney({
   /** Glow around the digits, like an LED display. */
   glow?: boolean;
 }) {
+  const t = useT();
   const theme = useTheme();
   const [shown, setShown] = useState(cents);
   const from = useRef(cents);
@@ -48,12 +51,12 @@ export function RollingMoney({
     const t0 = Date.now();
     const dur = Math.min(900, 350 + Math.log10(Math.abs(delta) + 1) * 90);
     const step = () => {
-      const t = Math.min(1, (Date.now() - t0) / dur);
-      const e = 1 - (1 - t) ** 3;
+      const k = Math.min(1, (Date.now() - t0) / dur);
+      const e = 1 - (1 - k) ** 3;
       const v = Math.round(start + delta * e);
       setShown(v);
       from.current = v;
-      if (t < 1) raf.current = requestAnimationFrame(step);
+      if (k < 1) raf.current = requestAnimationFrame(step);
     };
     if (raf.current) cancelAnimationFrame(raf.current);
     raf.current = requestAnimationFrame(step);
@@ -64,7 +67,7 @@ export function RollingMoney({
 
   const glow = useAnimatedStyle(() => ({ opacity: flash.value }));
   return (
-    <View accessibilityLabel={`Cash ${money(cents)}`} accessible>
+    <View accessibilityLabel={t('money.a11y.cash', { amount: money(cents) })} accessible>
       <Animated.View
         pointerEvents="none"
         style={[

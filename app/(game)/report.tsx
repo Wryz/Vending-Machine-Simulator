@@ -4,6 +4,9 @@ import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CHAPTERS } from '@/config/progression';
+import { t as gt, useT } from '@/i18n';
+import { content } from '@/i18n/content';
+import { simError, venueName } from '@/i18n/sim';
 import { adsAvailable, showRewarded } from '@/services/ads';
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
@@ -21,12 +24,13 @@ import { SPACE } from '@/ui/theme';
 function venueNames(game: GameState | null, ids: string[]): string[] {
   const names = ids.map((id) => {
     const m = game?.machines.find((x) => x.id === id);
-    return m ? `${m.venue.name} (${machineLabel(m)})` : 'A machine you sold';
+    return m ? `${venueName(m.venue.name)} (${machineLabel(m)})` : gt('report.soldMachine');
   });
   return [...new Set(names)];
 }
 
 function Issue({ title, items, color }: { title: string; items: string[]; color: string }) {
+  const t = useT();
   if (!items.length) return null;
   return (
     <View style={{ gap: 2, marginTop: SPACE.xs }}>
@@ -40,7 +44,7 @@ function Issue({ title, items, color }: { title: string; items: string[]; color:
       ))}
       {items.length > 6 ? (
         <Mono size={12} color="#5C6066">
-          · and {items.length - 6} more
+          {t('report.more', { n: items.length - 6 })}
         </Mono>
       ) : null}
     </View>
@@ -50,6 +54,7 @@ function Issue({ title, items, color }: { title: string; items: string[]; color:
 /** "While you were away…" (SPEC §3.6, §13): a thermal receipt of what happened offline. */
 export default function Report() {
   const theme = useTheme();
+  const t = useT();
   const insets = useSafeAreaInsets();
   // Keep our own copy so the receipt stays put while the sheet closes.
   const [report] = useState(() => useGame.getState().offlineReport);
@@ -84,8 +89,8 @@ export default function Report() {
           gap: SPACE.l,
         }}
       >
-        <T>Nothing to report.</T>
-        <Button label="Done" onPress={done} />
+        <T>{t('report.nothing')}</T>
+        <Button label={t('report.done')} onPress={done} />
       </View>
     );
   }
@@ -97,28 +102,41 @@ export default function Report() {
   const canDouble = !removeAds && adsAvailable() && bonus > 0 && !doubled;
 
   const lines: ReceiptLine[] = [
-    { label: 'Sales', value: money(report.salesCents) },
-    { label: 'Items sold', value: report.units.toLocaleString('en-US') },
+    { label: t('report.line.sales'), value: money(report.salesCents) },
+    { label: t('report.line.items'), value: report.units.toLocaleString(t.lang) },
     {
-      label: 'Costs',
+      label: t('report.line.costs'),
       value: money(-report.costsCents),
       tone: report.costsCents > 0 ? 'bad' : 'muted',
     },
   ];
   if (report.driverRuns > 0)
-    lines.push({ label: 'Driver runs', value: String(report.driverRuns), tone: 'muted' });
+    lines.push({
+      label: t('report.line.driverRuns'),
+      value: String(report.driverRuns),
+      tone: 'muted',
+    });
   if (report.breakdowns > 0)
-    lines.push({ label: 'Breakdowns', value: String(report.breakdowns), tone: 'bad' });
-  if (report.thefts > 0) lines.push({ label: 'Thefts', value: String(report.thefts), tone: 'bad' });
+    lines.push({
+      label: t('report.line.breakdowns'),
+      value: String(report.breakdowns),
+      tone: 'bad',
+    });
+  if (report.thefts > 0)
+    lines.push({ label: t('report.line.thefts'), value: String(report.thefts), tone: 'bad' });
   if (report.spoiledUnits > 0)
-    lines.push({ label: 'Spoiled items', value: String(report.spoiledUnits), tone: 'bad' });
+    lines.push({
+      label: t('report.line.spoiled'),
+      value: String(report.spoiledUnits),
+      tone: 'bad',
+    });
 
   const best = Object.entries(report.perMachine)
     .filter(([, v]) => v.cents > 0)
     .sort((a, b) => b[1].cents - a[1].cents)
     .slice(0, 3)
     .map(([id, v]) => ({
-      name: game?.machines.find((m) => m.id === id)?.venue.name ?? 'A machine',
+      name: game?.machines.find((m) => m.id === id)?.venue.name ?? t('report.aMachine'),
       cents: v.cents,
     }));
 
@@ -127,7 +145,7 @@ export default function Report() {
     const earned = await showRewarded('double-offline');
     setBusy(false);
     if (!earned) {
-      show('No reward this time.', 'info');
+      show(t('report.noReward'), 'info');
       return;
     }
     const r = useGame
@@ -137,8 +155,8 @@ export default function Report() {
       setDoubled(true);
       haptic.success();
       sound.play('coins');
-      show(`Added ${money(r.bonusCents ?? bonus)}`, 'success');
-    } else show(r.error, 'error');
+      show(t('report.added', { amount: money(r.bonusCents ?? bonus) }), 'success');
+    } else show(simError(r.error), 'error');
   };
 
   return (
@@ -151,27 +169,27 @@ export default function Report() {
         }}
       >
         <T size={20} weight="bold" accessibilityRole="header">
-          While you were away…
+          {t('report.title')}
         </T>
         <Receipt
-          title={world?.city.name ?? 'Coinline'}
+          title={world ? content.city(world.city.id, world.city.name) : 'Coinline'}
           subtitle={`${clock(leftAt, tz)} – ${clock(report.toAt, tz)} · ${duration(away)}`}
           lines={lines}
           total={{
-            label: 'Cash change',
+            label: t('report.cashChange'),
             value: money(report.cashDeltaCents, { sign: true }),
             tone: report.cashDeltaCents >= 0 ? 'good' : 'bad',
           }}
           footer={
             report.skippedMs > 0
-              ? `Offline cap reached. ${duration(report.skippedMs)} not counted.`
-              : 'Thank you for your business.'
+              ? t('report.footerCapped', { time: duration(report.skippedMs) })
+              : t('report.footerThanks')
           }
         >
           {best.length > 0 ? (
             <View style={{ gap: 2, marginTop: SPACE.xs }}>
               <Mono size={13} weight="bold" color={theme.paperInk}>
-                Best spots
+                {t('report.bestSpots')}
               </Mono>
               {best.map((b) => (
                 <Row key={b.name} style={{ justifyContent: 'space-between' }}>
@@ -185,43 +203,52 @@ export default function Report() {
               ))}
             </View>
           ) : null}
-          <Issue title="Went empty" items={venueNames(game, report.becameEmpty)} color="#B5473A" />
           <Issue
-            title="Cash box full"
+            title={t('report.issue.empty')}
+            items={venueNames(game, report.becameEmpty)}
+            color="#B5473A"
+          />
+          <Issue
+            title={t('report.issue.cashFull')}
             items={venueNames(game, report.cashBoxFull)}
             color="#2E7D5B"
           />
           <Issue
-            title="Contracts lost"
+            title={t('report.issue.contractsLost')}
             items={venueNames(game, report.contractsLost)}
             color="#B5473A"
           />
-          <Issue title="Local events" items={[...new Set(report.events)]} color={theme.paperInk} />
           <Issue
-            title="Chapters completed"
-            items={report.chaptersCompleted.map(
-              (n) => `${n}. ${CHAPTERS.find((c) => c.n === n)?.title ?? ''}`,
-            )}
+            title={t('report.issue.events')}
+            items={[...new Set(report.events.map((e) => content.eventByName(e)))]}
+            color={theme.paperInk}
+          />
+          <Issue
+            title={t('report.issue.chapters')}
+            items={report.chaptersCompleted.map((n) => {
+              const title = CHAPTERS.find((c) => c.n === n)?.title ?? '';
+              return t('report.chapterLine', { n, title: content.chapterTitle(n, title) });
+            })}
             color="#2E7D5B"
           />
         </Receipt>
 
         {report.contractsLost.length > 0 ? (
           <T size={13} muted>
-            Machines from lost contracts are back in storage. Place them from the key ring.
+            {t('report.lostNote')}
           </T>
         ) : null}
 
         {canDouble ? (
           <Button
             kind="secondary"
-            label={`Double it · watch an ad (+${money(bonus)})`}
+            label={t('report.double', { amount: money(bonus) })}
             busy={busy}
-            accessibilityHint="Optional. Plays a short ad, then adds the same amount again."
+            accessibilityHint={t('report.doubleHint')}
             onPress={doubleIt}
           />
         ) : null}
-        <Button label="Done" onPress={done} />
+        <Button label={t('report.done')} onPress={done} />
         <Spacer h={SPACE.s} />
       </ScrollView>
       <FlashToast flash={flash} />

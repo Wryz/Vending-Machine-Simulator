@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { ADS } from '@/config/economy';
+import { t as gt, useT } from '@/i18n';
+import { simError } from '@/i18n/sim';
 import { adsAvailable, showRewarded } from '@/services/ads';
 import { haptic } from '@/services/haptics';
 import { PRODUCTS, buy, restore, storeAvailable, type ProductKey } from '@/services/purchases';
@@ -15,6 +17,14 @@ import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { SPACE } from '@/ui/theme';
 
 const COSMETICS = ['wrapNight', 'wrapLinen', 'lightingWarm'] as const;
+
+/** Our own product copy, translated; the price stays as the store delivers it. */
+function productTitle(key: ProductKey): string {
+  return gt.or(`shop.products.${key}.title`, PRODUCTS[key].title);
+}
+function productDetail(key: ProductKey): string {
+  return gt.or(`shop.products.${key}.detail`, PRODUCTS[key].detail);
+}
 
 function Offer({
   title,
@@ -34,6 +44,7 @@ function Offer({
   onBuy: () => void;
 }) {
   const theme = useTheme();
+  const t = useT();
   return (
     <Paper tone="surface" style={{ gap: SPACE.xs }}>
       <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -47,13 +58,13 @@ function Offer({
       </T>
       {owned ? (
         <T size={13} color={theme.signal}>
-          Owned
+          {t('shop.owned')}
         </T>
       ) : (
         <Button
           style={{ marginTop: SPACE.s }}
           kind="secondary"
-          label={`Buy · ${price}`}
+          label={t('shop.buy', { price })}
           disabled={disabled}
           busy={busy}
           onPress={onBuy}
@@ -66,6 +77,7 @@ function Offer({
 /** Shop (SPEC §9): fair by design. One-time purchases and opt-in rewards; nothing shows on its own. */
 export default function Shop() {
   const theme = useTheme();
+  const t = useT();
   const game = useGame((s) => s.game);
   const entitlements = useProfile((s) => s.entitlements);
   const { flash, show } = useFlash();
@@ -96,13 +108,13 @@ export default function Shop() {
         useProfile.getState().update((p) => {
           p.entitlements.starterPackClaimed = true;
         });
-        show('Starter Pack added. Two snack machines are in storage.', 'success');
+        show(t('shop.starterAdded'), 'success');
       } else {
-        show('Purchase recorded. Open a city to receive the Starter Pack.', 'info');
+        show(t('shop.starterPending'), 'info');
       }
       return;
     }
-    show(`${PRODUCTS[key].title} is yours.`, 'success');
+    show(t('shop.yours', { title: productTitle(key) }), 'success');
   };
 
   const doRestore = async () => {
@@ -119,7 +131,7 @@ export default function Shop() {
         });
     }
     show(
-      res.ok ? 'Purchases restored.' : (res.error ?? 'Could not restore purchases.'),
+      res.ok ? t('shop.restored') : (res.error ?? t('shop.restoreFailed')),
       res.ok ? 'success' : 'error',
     );
   };
@@ -129,14 +141,14 @@ export default function Shop() {
     const earned = await showRewarded('double-earnings');
     setBusy(null);
     if (!earned) {
-      show('No reward this time.', 'info');
+      show(t('shop.noReward'), 'info');
       return;
     }
     const r = useGame.getState().act((d, w) => applyAdReward(d, w, 'double-earnings'));
     if (r.ok) {
       haptic.success();
-      show(`Earnings doubled for ${ADS.doubleEarningsMinutes} minutes.`, 'success');
-    } else show(r.error, 'error');
+      show(t('shop.doubled', { n: ADS.doubleEarningsMinutes }), 'success');
+    } else show(simError(r.error), 'error');
   };
 
   const boostLeft = game ? game.boosts.doubleEarningsUntil - game.now : 0;
@@ -144,20 +156,20 @@ export default function Shop() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Screen title="Shop" subtitle="One-time purchases. No subscriptions.">
+      <Screen title={t('shop.title')} subtitle={t('shop.subtitle')}>
         {!store ? (
           <Paper tone="surface">
-            <T>The store isn&apos;t available in this build.</T>
+            <T>{t('shop.noStore')}</T>
             <T size={13} muted>
-              Everything in the game can be earned by playing.
+              {t('shop.noStoreBody')}
             </T>
           </Paper>
         ) : null}
 
-        <Section title="Purchases">
+        <Section title={t('shop.section.purchases')}>
           <Offer
-            title={PRODUCTS.removeAds.title}
-            detail={PRODUCTS.removeAds.detail}
+            title={productTitle('removeAds')}
+            detail={productDetail('removeAds')}
             price={PRODUCTS.removeAds.price}
             owned={entitlements.removeAds}
             disabled={!store || busy !== null}
@@ -166,8 +178,8 @@ export default function Shop() {
           />
           {starterEligible ? (
             <Offer
-              title={PRODUCTS.starterPack.title}
-              detail={PRODUCTS.starterPack.detail}
+              title={productTitle('starterPack')}
+              detail={productDetail('starterPack')}
               price={PRODUCTS.starterPack.price}
               owned={false}
               disabled={!store || busy !== null || !game}
@@ -177,12 +189,12 @@ export default function Shop() {
           ) : null}
         </Section>
 
-        <Section title="Looks">
+        <Section title={t('shop.section.looks')}>
           {COSMETICS.map((key) => (
             <Offer
               key={key}
-              title={PRODUCTS[key].title}
-              detail={PRODUCTS[key].detail}
+              title={productTitle(key)}
+              detail={productDetail(key)}
               price={PRODUCTS[key].price}
               owned={entitlements.wraps.includes(key)}
               disabled={!store || busy !== null}
@@ -191,20 +203,20 @@ export default function Shop() {
             />
           ))}
           <T size={13} muted>
-            Apply wraps and lighting from a machine&apos;s close-up. Cosmetic only.
+            {t('shop.looksNote')}
           </T>
         </Section>
 
         {showAds && game ? (
-          <Section title="Free rewards">
+          <Section title={t('shop.section.rewards')}>
             <Paper tone="surface" style={{ gap: SPACE.xs }}>
-              <T weight="bold">Double earnings for {ADS.doubleEarningsMinutes} minutes</T>
+              <T weight="bold">{t('shop.doubleTitle', { n: ADS.doubleEarningsMinutes })}</T>
               <T size={13} muted>
-                Optional. A short ad plays only when you tap.
+                {t('shop.doubleNote')}
               </T>
               {boostLeft > 0 ? (
                 <T size={13} color={theme.signal}>
-                  Active · {duration(boostLeft)} left
+                  {t('shop.active', { time: duration(boostLeft) })}
                 </T>
               ) : null}
               <Button
@@ -212,8 +224,8 @@ export default function Shop() {
                 kind="secondary"
                 label={
                   boostLeft > 0
-                    ? `Add ${ADS.doubleEarningsMinutes} minutes · watch an ad`
-                    : 'Watch an ad'
+                    ? t('shop.addMinutes', { n: ADS.doubleEarningsMinutes })
+                    : t('shop.watchAd')
                 }
                 busy={busy === 'ad'}
                 disabled={busy !== null}
@@ -226,7 +238,7 @@ export default function Shop() {
         {store ? (
           <Button
             kind="quiet"
-            label="Restore purchases"
+            label={t('shop.restore')}
             busy={busy === 'restore'}
             disabled={busy !== null}
             onPress={doRestore}

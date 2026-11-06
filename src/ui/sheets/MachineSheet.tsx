@@ -3,6 +3,7 @@ import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { MACHINE_SHEET } from '@/config/map';
+import { useT } from '@/i18n';
 
 import { Icon } from '../icons';
 import { Toast } from '../kit';
@@ -28,6 +29,7 @@ export const MachineSheet = forwardRef<
     onSnap?: (index: number) => void;
   }
 >(function MachineSheet({ machineId, bottomInset, onDismiss, onOpen3d, onSnap }, ref) {
+  const t = useT();
   const snapPoints = useMemo(
     () => MACHINE_SHEET.snapPoints.map((p) => `${Math.round(p * 100)}%`),
     [],
@@ -73,7 +75,7 @@ export const MachineSheet = forwardRef<
             <Key
               round
               height={TOUCH - 6}
-              accessibilityLabel="See it in 3D"
+              accessibilityLabel={t('machineSheet.a11y.open3d')}
               onPress={() => {
                 sfx('pop');
                 onOpen3d(machineId);
@@ -89,7 +91,7 @@ export const MachineSheet = forwardRef<
           <Key
             round
             height={TOUCH - 6}
-            accessibilityLabel="Close"
+            accessibilityLabel={t('machineSheet.a11y.close')}
             onPress={close}
             faceStyle={{ paddingHorizontal: 0, width: TOUCH - 6 }}
           >

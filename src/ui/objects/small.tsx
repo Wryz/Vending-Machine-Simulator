@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import Svg, { Circle, Path, Polygon, Rect } from 'react-native-svg';
 
 import type { PlaceCategory } from '@/data/types';
+import { useT } from '@/i18n';
 
 import { useTheme } from '../ThemeProvider';
 import { Mono, T } from '../kit';
@@ -21,6 +22,7 @@ export function PermitCard({
   detail: string;
 }) {
   const theme = useTheme();
+  const t = useT();
   return (
     <View
       style={{
@@ -33,7 +35,7 @@ export function PermitCard({
       }}
     >
       <Mono size={11} color="#5C6066">
-        CITY LICENSING OFFICE
+        {t('objects.permit.office')}
       </Mono>
       <T weight="bold" size={16} color={theme.paperInk}>
         {title}
@@ -42,7 +44,7 @@ export function PermitCard({
         {holder}
       </T>
       <Mono size={12} color={valid ? '#2E7D5B' : '#B5473A'}>
-        {valid ? 'VALID' : 'NOT HELD'}
+        {valid ? t('objects.permit.valid') : t('objects.permit.notHeld')}
       </Mono>
       <T size={12} color="#5C6066">
         {detail}
@@ -116,6 +118,7 @@ export function Sparkline({
   height?: number;
 }) {
   const theme = useTheme();
+  const t = useT();
   const max = Math.max(1e-6, ...values);
   const w = 100 / values.length;
   return (
@@ -124,7 +127,7 @@ export function Sparkline({
       height={height}
       viewBox={`0 0 100 ${height}`}
       preserveAspectRatio="none"
-      accessibilityLabel="Customers by hour"
+      accessibilityLabel={t('objects.sparkline.a11y')}
     >
       {values.map((v, i) => {
         const h = Math.max(1, (v / max) * (height - 2));

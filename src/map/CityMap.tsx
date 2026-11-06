@@ -24,6 +24,8 @@ import { MAP_LIFE } from '@/config/mapLife';
 import { getMachineType } from '@/config/machines';
 import { DISTRICTS } from '@/config/progression';
 import { cellPolygon } from '@/data/h3';
+import { useLang } from '@/i18n';
+import { content } from '@/i18n/content';
 import { offsetPoint } from '@/sim/geo';
 import type { CellData } from '@/data/types';
 import { baseTraffic, localTime, type GameState, type LocalEvent, type World } from '@/sim';
@@ -178,6 +180,12 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
 
   // Neighbourhood under the center, for the tab bar (see areaName.ts).
   const areas = useRef(new AreaBook());
+  // Map labels and the area name follow the UI language (labelLanguage.ts).
+  const lang = useLang();
+  const labels = useMemo(
+    () => ({ lang, countryCode: world.city.countryCode }),
+    [lang, world.city.countryCode],
+  );
   const areaTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onAreaName = props.onAreaName;
   const lookUpArea = useCallback(() => {
@@ -188,14 +196,14 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
       if (!map) return;
       try {
         const features = await map.queryRenderedFeatures({ layers: [AREA_PROBE_LAYER_ID] });
-        areas.current.add(areaPoints(features));
+        areas.current.add(areaPoints(features, labels));
       } catch {
         // Style not ready: try again on the next camera change.
       }
       const [lng, lat] = camera.current.center;
       onAreaName(areas.current.nearest(lng, lat, world.city.name));
     }, AREA_NAME.debounceMs);
-  }, [onAreaName, world.city.name]);
+  }, [onAreaName, world.city.name, labels]);
   useEffect(
     () => () => {
       if (areaTimer.current) clearTimeout(areaTimer.current);
@@ -283,7 +291,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [tiles],
   );
-  const baseLayers = buildBaseLayers(tod.palette, schemaOf(tiles), world.city.lat);
+  const baseLayers = buildBaseLayers(tod.palette, schemaOf(tiles), world.city.lat, labels);
   const light = buildMapLight(tod.sun, tod.palette);
   const spriteLight = spriteLightFor(tod.dominant);
 
@@ -358,7 +366,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
       features: events.map((e) => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: [e.lng, e.lat] },
-        properties: { label: `${e.name}`, live: game.now >= e.startsAt ? 1 : 0 },
+        properties: { label: content.eventByName(e.name), live: game.now >= e.startsAt ? 1 : 0 },
       })),
     }),
     [events, game.now],

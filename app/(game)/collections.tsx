@@ -10,6 +10,9 @@ import Animated, {
 
 import { ADS } from '@/config/economy';
 import { COLLECTION_PULL, COLLECTIONS, RARITY_ODDS, type Rarity } from '@/config/progression';
+import { useT, type TFn } from '@/i18n';
+import { content } from '@/i18n/content';
+import { simError } from '@/i18n/sim';
 import { adsAvailable, showRewarded } from '@/services/ads';
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
@@ -22,12 +25,9 @@ import { Button, Chip, Mono, Paper, Row, Screen, Section, T } from '@/ui/kit';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { SPACE } from '@/ui/theme';
 
-const RARITY_LABEL: Record<Rarity, string> = {
-  common: 'Common',
-  uncommon: 'Uncommon',
-  rare: 'Rare',
-  ultra: 'Ultra',
-};
+function rarityLabel(t: TFn, r: Rarity): string {
+  return t(`collections.rarity.${r}`);
+}
 
 function useRarityColor(): Record<Rarity, string> {
   const theme = useTheme();
@@ -50,6 +50,7 @@ function findItem(itemId: string) {
 /** The capsule you just opened: a calm fade and settle, no bounce. */
 function Reveal({ itemId, isNew }: { itemId: string; isNew: boolean }) {
   const theme = useTheme();
+  const t = useT();
   const colors = useRarityColor();
   const o = useSharedValue(0);
   const s = useSharedValue(0.9);
@@ -61,12 +62,17 @@ function Reveal({ itemId, isNew }: { itemId: string; isNew: boolean }) {
   const found = findItem(itemId);
   if (!found) return null;
   const { item, series } = found;
+  const itemName = content.seriesItem(item.id, item.name);
+  const rarity = rarityLabel(t, item.rarity);
   return (
     <Animated.View
       style={style}
       accessibilityLiveRegion="polite"
       accessible
-      accessibilityLabel={`You got ${item.name}, ${RARITY_LABEL[item.rarity]}${isNew ? ', new' : ''}`}
+      accessibilityLabel={t(isNew ? 'collections.reveal.a11yNew' : 'collections.reveal.a11y', {
+        item: itemName,
+        rarity,
+      })}
     >
       <Paper
         style={{
@@ -77,14 +83,13 @@ function Reveal({ itemId, isNew }: { itemId: string; isNew: boolean }) {
         }}
       >
         <Mono size={11} color="#6B6F75">
-          {series.name.toUpperCase()}
+          {content.series(series.id, series.name).toUpperCase()}
         </Mono>
         <T size={20} weight="bold" color={theme.paperInk} center>
-          {item.name}
+          {itemName}
         </T>
         <T size={13} weight="medium" color={colors[item.rarity]}>
-          {RARITY_LABEL[item.rarity]}
-          {isNew ? ' · New' : ' · Duplicate'}
+          {t(isNew ? 'collections.reveal.isNew' : 'collections.reveal.duplicate', { rarity })}
         </T>
       </Paper>
     </Animated.View>
@@ -94,6 +99,7 @@ function Reveal({ itemId, isNew }: { itemId: string; isNew: boolean }) {
 /** Collection binder (SPEC §4.7, §8): series pages, rarity, completion perks, disclosed odds. */
 export default function Collections() {
   const theme = useTheme();
+  const t = useT();
   const colors = useRarityColor();
   const game = useGame((s) => s.game);
   const world = useGame((s) => s.world);
@@ -107,8 +113,8 @@ export default function Collections() {
 
   if (!game || !world) {
     return (
-      <Screen title="Collections">
-        <T muted>No business is open.</T>
+      <Screen title={t('collections.title')}>
+        <T muted>{t('collections.noGame')}</T>
       </Screen>
     );
   }
@@ -134,7 +140,7 @@ export default function Collections() {
     if (r.ok) revealed(r.itemId, !(before[r.itemId] > 0));
     else {
       haptic.error();
-      show(r.error, 'error');
+      show(simError(r.error), 'error');
     }
   };
 
@@ -143,7 +149,7 @@ export default function Collections() {
     const earned = await showRewarded('free-pull');
     setBusy(false);
     if (!earned) {
-      show('No reward this time.', 'info');
+      show(t('collections.noReward'), 'info');
       return;
     }
     const before = { ...(useGame.getState().game?.collection ?? {}) };
@@ -151,20 +157,20 @@ export default function Collections() {
       .getState()
       .act((d, w) => applyAdReward(d, w, 'free-pull', { seriesId: series.id }));
     if (r.ok && r.itemId) revealed(r.itemId, !(before[r.itemId] > 0));
-    else if (!r.ok) show(r.error, 'error');
+    else if (!r.ok) show(simError(r.error), 'error');
   };
 
   return (
     <View style={{ flex: 1 }}>
       <Screen
-        title="Collections"
-        subtitle={`${Object.keys(game.collection).length} items collected`}
+        title={t('collections.title')}
+        subtitle={t('collections.subtitle', { n: Object.keys(game.collection).length })}
       >
         <Row gap={SPACE.s} style={{ flexWrap: 'wrap' }}>
           {COLLECTIONS.map((s) => (
             <Chip
               key={s.id}
-              label={s.name}
+              label={content.series(s.id, s.name)}
               active={s.id === series.id}
               onPress={() => setSeriesId(s.id)}
             />
@@ -174,16 +180,20 @@ export default function Collections() {
         <Paper>
           <Row style={{ justifyContent: 'space-between' }}>
             <T size={18} weight="bold" color={theme.paperInk} accessibilityRole="header">
-              {series.name}
+              {content.series(series.id, series.name)}
             </T>
             <Mono color={theme.paperInk}>
               {owned}/{series.items.length}
             </Mono>
           </Row>
           <T size={13} color={complete ? theme.signal : '#5C6066'}>
-            {complete
-              ? `Complete. +${pct(series.perkSalesBonus)} sales for ${FAMILY_LABEL[series.perkFamily]} machines.`
-              : `Complete the set for +${pct(series.perkSalesBonus)} sales on ${FAMILY_LABEL[series.perkFamily]} machines.`}
+            {t(complete ? 'collections.perkDone' : 'collections.perkGoal', {
+              pct: pct(series.perkSalesBonus),
+              family: t.or(
+                `content.families.${series.perkFamily}`,
+                FAMILY_LABEL[series.perkFamily],
+              ),
+            })}
           </T>
           <View
             style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s, marginTop: SPACE.m }}
@@ -197,8 +207,12 @@ export default function Collections() {
                   accessible
                   accessibilityLabel={
                     have
-                      ? `${item.name}, ${RARITY_LABEL[item.rarity]}, ${count} owned`
-                      : `Number ${i + 1}, not found yet`
+                      ? t('collections.a11y.owned', {
+                          item: content.seriesItem(item.id, item.name),
+                          rarity: rarityLabel(t, item.rarity),
+                          n: count,
+                        })
+                      : t('collections.a11y.missing', { n: i + 1 })
                   }
                   style={{
                     width: '31%',
@@ -219,11 +233,11 @@ export default function Collections() {
                   {have ? (
                     <>
                       <T size={13} weight="bold" color={theme.paperInk}>
-                        {item.name}
+                        {content.seriesItem(item.id, item.name)}
                       </T>
                       <Row style={{ justifyContent: 'space-between' }}>
                         <T size={11} color={colors[item.rarity]}>
-                          {RARITY_LABEL[item.rarity]}
+                          {rarityLabel(t, item.rarity)}
                         </T>
                         {count > 1 ? (
                           <Mono size={11} color="#6B6F75">
@@ -245,17 +259,16 @@ export default function Collections() {
 
         {reveal ? <Reveal key={reveal.key} itemId={reveal.itemId} isNew={reveal.isNew} /> : null}
 
-        <Section title="Pulls">
+        <Section title={t('collections.section.pulls')}>
           {unlocked ? (
             <Button
-              label={`Buy a pull · ${money(COLLECTION_PULL.pullCostCents)}`}
+              label={t('collections.buyPull', { price: money(COLLECTION_PULL.pullCostCents) })}
               disabled={game.cashCents < COLLECTION_PULL.pullCostCents}
               onPress={pull}
             />
           ) : (
             <T size={13} muted>
-              Buying pulls unlocks in chapter 3 (LLC). Capsule machines can still drop a free pull
-              when you collect their cash.
+              {t('collections.locked')}
             </T>
           )}
           {showAds ? (
@@ -263,22 +276,21 @@ export default function Collections() {
               kind="secondary"
               label={
                 freeLeft > 0
-                  ? `Free pull · watch an ad (${freeLeft} left today)`
-                  : 'No free pulls left today'
+                  ? t('collections.freePull', { n: freeLeft })
+                  : t('collections.noFreePulls')
               }
               disabled={freeLeft <= 0}
               busy={busy}
-              accessibilityHint="Optional. Plays a short ad, then opens one capsule."
+              accessibilityHint={t('collections.freePullHint')}
               onPress={freePull}
             />
           ) : null}
           <T size={13} muted>
-            Capsule machines also drop a free pull {pct(COLLECTION_PULL.freePullOnCollect)} of the
-            time when you collect their cash.
+            {t('collections.capsuleDrop', { pct: pct(COLLECTION_PULL.freePullOnCollect) })}
           </T>
         </Section>
 
-        <Section title="Odds">
+        <Section title={t('collections.section.odds')}>
           <Paper tone="surface" style={{ gap: SPACE.xs }}>
             {(Object.entries(RARITY_ODDS) as [Rarity, number][]).map(([rarity, p]) => (
               <Row key={rarity} style={{ justifyContent: 'space-between', minHeight: 26 }}>
@@ -291,14 +303,13 @@ export default function Collections() {
                       backgroundColor: colors[rarity],
                     }}
                   />
-                  <T size={14}>{RARITY_LABEL[rarity]}</T>
+                  <T size={14}>{rarityLabel(t, rarity)}</T>
                 </Row>
                 <Mono size={14}>{pct(p, 1)}</Mono>
               </Row>
             ))}
             <T size={13} muted style={{ marginTop: SPACE.xs }}>
-              Each pull picks a rarity with these odds, then an item of that rarity at random. Pulls
-              use in-game money only.
+              {t('collections.oddsNote')}
             </T>
           </Paper>
         </Section>

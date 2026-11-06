@@ -5,9 +5,12 @@ import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCityClock } from '@/hooks/useCityClock';
+import { useT } from '@/i18n';
+import { content } from '@/i18n/content';
 import { haptic } from '@/services/haptics';
 import { useGame } from '@/store/game';
 import { useHud } from '@/store/hud';
+import { useProfile } from '@/store/profile';
 
 import { clock } from './format';
 import { Badge } from './hud';
@@ -49,6 +52,7 @@ export function TabBar({
   current: string;
   onSelect: (name: string) => void;
 }) {
+  const t = useT();
   const insets = useSafeAreaInsets();
   const setHeight = useHud((s) => s.setTabBarHeight);
   const showKeys = tabs.length > 1;
@@ -56,19 +60,16 @@ export function TabBar({
     <View
       accessibilityRole="tablist"
       onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
-      style={[
-        styles.bar,
-        { paddingBottom: showKeys ? Math.max(insets.bottom - 6, SPACE.s) : insets.bottom },
-      ]}
+      style={[styles.bar, { paddingBottom: showKeys ? 0 : insets.bottom }]}
     >
       <StatusStrip />
       {showKeys ? (
-        <View style={styles.keys}>
-          {tabs.map((t) => {
-            const on = t.name === current;
+        <View style={[styles.keys, { paddingBottom: Math.max(insets.bottom - 6, SPACE.s) }]}>
+          {tabs.map((tab) => {
+            const on = tab.name === current;
             return (
               <Animated.View
-                key={t.name}
+                key={tab.name}
                 entering={FadeIn.duration(400)}
                 layout={LinearTransition.duration(300)}
                 style={styles.tab}
@@ -78,23 +79,31 @@ export function TabBar({
                     tone={on ? 'brand' : 'white'}
                     height={46}
                     accessibilityLabel={
-                      t.badge ? `${t.label}, ${t.badge} ready` : t.fresh ? `${t.label}, new` : t.label
+                      tab.badge
+                        ? t('tabBar.a11y.tabReady', { label: tab.label, badge: tab.badge })
+                        : tab.fresh
+                          ? t('tabBar.a11y.tabNew', { label: tab.label })
+                          : tab.label
                     }
                     accessibilityState={{ selected: on }}
                     onPress={() => {
                       if (on) return;
                       sfx('pop');
                       haptic.select();
-                      onSelect(t.name);
+                      onSelect(tab.name);
                     }}
                     faceStyle={{ width: 54, paddingHorizontal: 0 }}
                   >
-                    <Icon name={t.icon} size={24} color={on ? '#FFFFFF' : SKIN.brandFace} />
+                    <Icon name={tab.icon} size={24} color={on ? '#FFFFFF' : SKIN.brandFace} />
                   </Key>
-                  {t.badge ? <Badge text={t.badge} /> : t.fresh ? <Badge text="NEW" /> : null}
+                  {tab.badge ? (
+                    <Badge text={tab.badge} />
+                  ) : tab.fresh ? (
+                    <Badge text={t('tabBar.newBadge')} />
+                  ) : null}
                 </View>
                 <T size={11} weight="bold" color={on ? '#FFFFFF' : '#FFE3D4'}>
-                  {t.label}
+                  {tab.label}
                 </T>
               </Animated.View>
             );
@@ -105,14 +114,14 @@ export function TabBar({
   );
 }
 
-/** The city's date, e.g. "Fri 6 Nov". */
-function shortDate(t: number, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-GB', {
+/** The city's date, e.g. "Fri 6 Nov" (English), in the UI language. */
+function shortDate(at: number, timeZone: string, lang: string): string {
+  return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : lang, {
     timeZone,
     weekday: 'short',
     day: 'numeric',
     month: 'short',
-  }).format(new Date(t));
+  }).format(new Date(at));
 }
 
 /**
@@ -121,9 +130,12 @@ function shortDate(t: number, timeZone: string): string {
  * and weather on the right.
  */
 function StatusStrip() {
+  const t = useT();
   const world = useGame((s) => s.world);
+  const cityInfo = useGame((s) => s.city);
   const area = useHud((s) => s.area);
   const district = useHud((s) => s.district);
+  const tempUnit = useProfile((s) => s.settings.tempUnit);
   // Weather changes by the hour: re-read it when the clock ticks.
   const { now, tod } = useCityClock(world?.city.lat ?? 0, world?.city.lng ?? 0);
   const [, force] = useState(0);
@@ -134,20 +146,22 @@ function StatusStrip() {
   if (!world) return null;
   const weather = world.weatherAt(now);
   const day = dayIcon(tod);
-  const city = world.city.name;
+  // The fallback cities have translated names; local areas keep their map name.
+  const city =
+    cityInfo?.kind === 'fallback' ? content.city(world.city.id, world.city.name) : world.city.name;
   // Most specific name first; the line under it says where that is.
   const title = area ?? district ?? city;
-  const under = [area ? district : null, title !== city ? city : null].filter(Boolean).join(' · ');
+  const under = [area && district !== city ? district : null, title !== city ? city : null].filter(Boolean).join(' · ');
   const time = clock(now, world.city.timeZone);
-  const date = shortDate(now, world.city.timeZone);
-  const temp = weather ? temperature(weather.tempC, world.city.countryCode) : null;
+  const date = shortDate(now, world.city.timeZone, t.lang);
+  const temp = weather ? temperature(weather.tempC, world.city.countryCode, tempUnit) : null;
   return (
     <View style={styles.strip}>
       <Pressable
         style={({ pressed }) => [styles.where, { opacity: pressed ? 0.7 : 1 }]}
         accessibilityRole="button"
         accessibilityLabel={[title, under].filter(Boolean).join(', ')}
-        accessibilityHint="Explore other cities"
+        accessibilityHint={t('tabBar.a11y.exploreCities')}
         hitSlop={8}
         onPress={() => {
           sfx('pop');
@@ -202,10 +216,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: SKIN.cabinet,
+    // The outer bar is the light orange band; the keys sit in their own orange tray.
+    backgroundColor: SKIN.cabinetLight,
     borderTopLeftRadius: CORNER,
     borderTopRightRadius: CORNER,
-    gap: SPACE.s,
     shadowColor: '#7A2A08',
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -219,13 +233,23 @@ const styles = StyleSheet.create({
     gap: SPACE.m,
     paddingHorizontal: SPACE.l,
     paddingVertical: SPACE.s,
-    backgroundColor: SKIN.cabinetLight,
-    borderTopLeftRadius: CORNER,
-    borderTopRightRadius: CORNER,
   },
   where: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   when: { alignItems: 'flex-end' },
   whenRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  keys: { flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: SPACE.s },
+  keys: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: SPACE.s + 2,
+    paddingHorizontal: SPACE.s,
+    backgroundColor: SKIN.cabinet,
+    borderTopLeftRadius: CORNER,
+    borderTopRightRadius: CORNER,
+    // A thin dark orange edge that follows the rounded corners down the sides.
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderColor: SKIN.cabinetDark,
+  },
   tab: { alignItems: 'center', gap: 4, minWidth: 58 },
 });

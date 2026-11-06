@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useT } from '@/i18n';
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
 
@@ -26,8 +27,8 @@ function Coin({ index, total, onLand }: { index: number; total: number; onLand: 
     const delay = index * Math.min(70, 1200 / total);
     o.value = withDelay(delay, withTiming(1, { duration: 80 }));
     y.value = withDelay(delay, withTiming(0, { duration: 260, easing: Easing.out(Easing.quad) }));
-    const t = setTimeout(onLand, delay + 240);
-    return () => clearTimeout(t);
+    const timer = setTimeout(onLand, delay + 240);
+    return () => clearTimeout(timer);
   }, [index, total, o, y, onLand]);
   const col = index % 6;
   const stack = Math.floor(index / 6);
@@ -66,6 +67,7 @@ export function CoinTray({
   grossCents: number;
   commissionCents: number;
 }) {
+  const t = useT();
   const coins = Math.min(MAX_COINS, Math.max(1, Math.round(grossCents / 2000)));
   const onLand = useMemo(
     () => () => {
@@ -77,7 +79,7 @@ export function CoinTray({
   return (
     <View style={{ gap: SPACE.s }}>
       <View
-        accessibilityLabel={`Collected ${money(grossCents)}`}
+        accessibilityLabel={t('objects.coinTray.a11y.collected', { amount: money(grossCents) })}
         style={{
           height: 110,
           borderRadius: 12,
@@ -94,26 +96,35 @@ export function CoinTray({
           : null}
         {grossCents <= 0 ? (
           <T center color="#C9C6BF" style={{ marginTop: 44 }}>
-            Cash box is empty
+            {t('objects.coinTray.empty')}
           </T>
         ) : null}
       </View>
       {/* The receipt as an LED panel: box, the venue's cut, what you keep. */}
       <View
         accessible
-        accessibilityLabel={`Cash box ${money(grossCents)}, venue commission ${money(commissionCents)}, you keep ${money(grossCents - commissionCents)}`}
+        accessibilityLabel={t('objects.coinTray.a11y.summary', {
+          gross: money(grossCents),
+          commission: money(commissionCents),
+          net: money(grossCents - commissionCents),
+        })}
         style={styles.panel}
       >
-        <Readout icon="coin" label="Box" value={money(grossCents)} color={SKIN.ledAmber} />
+        <Readout
+          icon="coin"
+          label={t('objects.coinTray.box')}
+          value={money(grossCents)}
+          color={SKIN.ledAmber}
+        />
         <Readout
           icon="handshake"
-          label="Venue"
+          label={t('objects.coinTray.venue')}
           value={money(-commissionCents)}
           color={SKIN.ledRed}
         />
         <Readout
           icon="bag"
-          label="You keep"
+          label={t('objects.coinTray.youKeep')}
           value={money(grossCents - commissionCents)}
           color={SKIN.ledGreen}
           big

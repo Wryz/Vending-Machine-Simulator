@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { useT } from '@/i18n';
+
 import { Icon, type IconName } from './icons';
 import { T } from './kit';
 import { RollingMoney } from './RollingMoney';
@@ -25,13 +27,14 @@ export function RoundButton({
   badge?: string;
   size?: number;
 }) {
+  const t = useT();
   return (
     <View>
       <Key
         round
         tone={active ? 'brand' : 'white'}
         height={size}
-        accessibilityLabel={badge ? `${label}, ${badge}` : label}
+        accessibilityLabel={badge ? t('hud.buttonBadge', { label, badge }) : label}
         onPress={() => {
           sfx('pop');
           onPress();
@@ -88,11 +91,12 @@ export function StatChip({
   color?: string;
   children?: ReactNode;
 }) {
+  const t = useT();
   const theme = useTheme();
   return (
     <View
       accessible
-      accessibilityLabel={value ? `${label}: ${value}` : label}
+      accessibilityLabel={value ? t('hud.statValue', { label, value }) : label}
       style={[
         styles.stat,
         { backgroundColor: theme.dark ? theme.raised : SKIN.chrome, borderColor: SKIN.chromeDark },
@@ -119,11 +123,12 @@ export function LockedCard({
   title: string;
   chapter: number;
 }) {
+  const t = useT();
   const theme = useTheme();
   return (
     <View
       accessible
-      accessibilityLabel={`${title}, unlocks in chapter ${chapter}`}
+      accessibilityLabel={t('hud.locked.a11y', { title, n: chapter })}
       style={[styles.locked, { backgroundColor: theme.surface }]}
     >
       <View style={[styles.lockedIcon, { backgroundColor: theme.line }]}>
@@ -135,7 +140,7 @@ export function LockedCard({
       <View style={[styles.lockedChip, { backgroundColor: theme.line }]}>
         <Icon name="lock" size={14} color={theme.muted} />
         <T size={13} weight="bold" muted>
-          {`Ch. ${chapter}`}
+          {t('hud.locked.chip', { n: chapter })}
         </T>
       </View>
     </View>

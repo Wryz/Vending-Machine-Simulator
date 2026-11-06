@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useT } from '@/i18n';
 import { haptic } from '@/services/haptics';
 import { useCelebrations, type Moment } from '@/store/celebrations';
 
@@ -36,6 +37,7 @@ const ICON: Record<Moment['kind'], IconName> = {
  * from the top, with a matching sound and haptic. Tap to dismiss.
  */
 export function CelebrationHost() {
+  const t = useT();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const head = useCelebrations((s) => s.queue[0]);
@@ -54,19 +56,12 @@ export function CelebrationHost() {
       sfx('notify');
       haptic.tick();
     }
-    const t = setTimeout(() => dismiss(head.id), SHOW_MS[head.kind]);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => dismiss(head.id), SHOW_MS[head.kind]);
+    return () => clearTimeout(timer);
   }, [head, dismiss]);
 
   if (!head) return null;
-  const label: Record<Moment['kind'], string> = {
-    chapter: 'Chapter complete',
-    trophy: 'Trophy',
-    order: 'Order complete',
-    streak: 'All orders done',
-    event: 'Coming up nearby',
-    info: 'Note',
-  };
+  const label = t(`celebrate.kind.${head.kind}`);
   const accent =
     head.kind === 'event' ? theme.amber : head.amountCents ? theme.signal : theme.brand;
   return (
@@ -79,7 +74,7 @@ export function CelebrationHost() {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${label[head.kind]}: ${head.title}. Tap to dismiss.`}
+          accessibilityLabel={t('celebrate.a11y', { label, title: head.title })}
           accessibilityLiveRegion="polite"
           onPress={() => dismiss(head.id)}
           style={[styles.card, { backgroundColor: theme.hud, shadowColor: theme.shadow }]}
@@ -89,7 +84,7 @@ export function CelebrationHost() {
           </View>
           <View style={{ flex: 1, gap: 1 }}>
             <T size={12} weight="bold" color={accent}>
-              {label[head.kind]}
+              {label}
             </T>
             <T size={16} weight="bold" numberOfLines={2}>
               {head.title}

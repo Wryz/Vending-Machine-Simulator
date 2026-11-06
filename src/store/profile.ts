@@ -21,6 +21,8 @@ export interface Settings {
   notifications: { enabled: boolean; empty: boolean; cashFull: boolean; events: boolean };
   /** UI theme follows the city's real time (default) or the phone. */
   theme: 'city' | 'system';
+  /** Temperature unit: 'auto' = °F in °F countries (src/config/climate.ts), else °C. */
+  tempUnit: 'auto' | 'c' | 'f';
   /** Opt-in to personalized ads (asks App Tracking Transparency). */
   personalizedAds: boolean;
   analytics: boolean;
@@ -65,6 +67,7 @@ const DEFAULT: Profile = {
     haptics: true,
     notifications: { enabled: false, empty: true, cashFull: true, events: true },
     theme: 'city',
+    tempUnit: 'auto',
     personalizedAds: false,
     analytics: true,
   },

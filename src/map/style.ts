@@ -9,6 +9,7 @@ import type { Palette } from '@/config/timeOfDay';
 import { MAP_STYLE, TILES } from '@/config/map';
 
 import { metersPerPoint } from './cameraMatch';
+import { labelNameExpr, type LabelLanguage } from './labelLanguage';
 import type { SunState } from './sun';
 import { mixColors } from './timeOfDay';
 
@@ -160,10 +161,13 @@ export function buildBaseLayers(
   schema: TileSchema = 'protomaps',
   /** City latitude, for true-scale road widths at close zoom. */
   latitude: number = MAP_STYLE.roads.referenceLatitude,
+  /** Label language (UI language and the city's country). Default English. */
+  labels?: LabelLanguage,
 ): LayerSpecification[] {
-  if (schema === 'openmaptiles') return buildOpenMapTilesLayers(p, latitude);
+  if (schema === 'openmaptiles') return buildOpenMapTilesLayers(p, latitude, labels);
   const src = BASEMAP_SOURCE_ID;
   const { building, label } = MAP_STYLE;
+  const name = labelNameExpr('protomaps', labels);
   return [
     // Water is the backdrop; land ("earth") sits on top of it.
     { id: 'background', type: 'background', paint: { 'background-color': p.water } },
@@ -277,7 +281,7 @@ export function buildBaseLayers(
       maxzoom: label.districtMaxZoom,
       filter: ['in', ['get', 'kind'], ['literal', ['neighbourhood', 'macrohood', 'locality']]],
       layout: {
-        'text-field': ['coalesce', ['get', 'name:en'], ['get', 'name']],
+        'text-field': name,
         'text-font': [...label.font],
         'text-size': 12,
         'text-letter-spacing': 0.12,
@@ -295,7 +299,7 @@ export function buildBaseLayers(
       filter: ['in', ['get', 'kind'], ['literal', ['major_road', 'highway']]],
       layout: {
         'symbol-placement': 'line',
-        'text-field': ['coalesce', ['get', 'name:en'], ['get', 'name']],
+        'text-field': name,
         'text-font': [...label.font],
         'text-size': 11,
       },
@@ -314,10 +318,14 @@ const NOT_TUNNEL: ExpressionLike = ['!=', ['get', 'brunnel'], 'tunnel'];
 type ExpressionLike = unknown[];
 
 /** Same look over the OpenMapTiles schema (OpenFreeMap). */
-function buildOpenMapTilesLayers(p: Palette, latitude: number): LayerSpecification[] {
+function buildOpenMapTilesLayers(
+  p: Palette,
+  latitude: number,
+  labels?: LabelLanguage,
+): LayerSpecification[] {
   const src = BASEMAP_SOURCE_ID;
   const { building, label } = MAP_STYLE;
-  const name = ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']];
+  const name = labelNameExpr('openmaptiles', labels);
   const layers = [
     // No land layer in OpenMapTiles: the background is land, water sits on top.
     { id: 'background', type: 'background', paint: { 'background-color': p.land } },

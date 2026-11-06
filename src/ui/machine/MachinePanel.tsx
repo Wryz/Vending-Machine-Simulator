@@ -5,6 +5,9 @@ import { CONTRACT, SERVICE } from '@/config/economy';
 import { WRAPS, getMachineType } from '@/config/machines';
 import { getProduct } from '@/config/products';
 import { RESEARCH } from '@/config/progression';
+import { t as tg, useT } from '@/i18n';
+import { content } from '@/i18n/content';
+import { simError, venueName } from '@/i18n/sim';
 import {
   applyAdReward,
   cashBoxCapacity,
@@ -38,7 +41,7 @@ import { Icon, type IconName } from '../icons';
 import { Button, Chip, Mono, Paper, Row, T } from '../kit';
 import { hasTelemetry, machineStatus } from '../machineStatus';
 import { CoinTray } from '../objects/CoinTray';
-import { STATUS_LABEL } from '../objects/KeyTag';
+import { statusLabel } from '../objects/KeyTag';
 import { PRODUCT_IMAGES } from '../productImages';
 import { Glass, Key, Led, Marquee, SKIN } from '../skin';
 import { useTheme } from '../ThemeProvider';
@@ -81,6 +84,7 @@ export function MachinePanel({
   onGone?: () => void;
 }) {
   const theme = useTheme();
+  const t = useT();
   const game = useGame((s) => s.game)!;
   const removeAds = useProfile((s) => s.entitlements.removeAds);
   const ownedWraps = useProfile((s) => s.entitlements.wraps).filter((w) => w in WRAPS);
@@ -127,7 +131,7 @@ export function MachinePanel({
   const doCollect = () => {
     if (collecting) return;
     const res = useGame.getState().act((d) => collectCash(d, machine.id));
-    if (!res.ok) return show(res.error, 'error');
+    if (!res.ok) return show(simError(res.error), 'error');
     setCollecting(true);
     if (onCollect) onCollect();
     else {
@@ -139,7 +143,7 @@ export function MachinePanel({
       setCoins({ gross: res.grossCents, commission: res.commissionCents });
       sound.play('coins');
       haptic.success();
-      if (res.pulledItem) show('Free collectible pull found in the cash box.', 'success');
+      if (res.pulledItem) show(t('machinePanel.toast.pull'), 'success');
     });
     track('collect', { count: Math.round(res.grossCents / 100) });
   };
@@ -159,7 +163,9 @@ export function MachinePanel({
     const qty = Math.max(0, Math.min(cap - existing, van - otherUnits));
     if (qty <= 0)
       return show(
-        van - otherUnits <= 0 ? `Your van holds ${van} items per trip.` : 'That slot is full.',
+        van - otherUnits <= 0
+          ? t('machinePanel.toast.vanFull', { n: van })
+          : t('machinePanel.toast.slotFull'),
       );
     setPlan({ ...plan, [slot]: { slot, productId, qty } });
     haptic.thunk();
@@ -172,7 +178,7 @@ export function MachinePanel({
       .act((d, w) => restockMachine(d, w, machine.id, planned, { manual: true }));
     if (!res.ok) {
       haptic.error();
-      return show(res.error, 'error');
+      return show(simError(res.error), 'error');
     }
     setPlan({});
     const slotsIn = planned.map((l) => l.slot).sort((a, b) => a - b);
@@ -181,14 +187,14 @@ export function MachinePanel({
       haptic.success();
       sound.play('success');
     }
-    show(`Restocked ${res.units} items`, 'success');
+    show(t('machinePanel.toast.restocked', { n: res.units }), 'success');
     track('restock', { count: res.units });
   };
 
   const changePrice = (slot: number, delta: number) => {
     const s = machine.slots[slot];
     const res = useGame.getState().act((d) => setPrice(d, machine.id, slot, s.priceCents + delta));
-    if (!res.ok) show(res.error, 'error');
+    if (!res.ok) show(simError(res.error), 'error');
     else haptic.tick();
   };
 
@@ -198,31 +204,34 @@ export function MachinePanel({
       useGame
         .getState()
         .act((d, w) => applyAdReward(d, w, 'instant-restock', { machineId: machine.id }));
-      show('Restocked.', 'success');
+      show(t('machinePanel.toast.adRestocked'), 'success');
     }
   };
 
   const sel = selected !== null ? machine.slots[selected] : null;
   const selProduct = sel?.productId ? getProduct(sel.productId) : null;
   const contractLeft = machine.contract.endsAt - game.now;
-  const ownedResearch = RESEARCH.filter((r) => hasResearch(game, r.id, type.family)).map(
-    (r) => r.name,
+  const ownedResearch = RESEARCH.filter((r) => hasResearch(game, r.id, type.family)).map((r) =>
+    content.researchName(r.id, r.name),
   );
 
   return (
     <View style={{ gap: SPACE.l }}>
       {/* Who and how it's doing: one line of text, the rest as icons. */}
       <View style={{ gap: SPACE.s }}>
-        <Marquee title={machine.venue.name} subtitle={type.name} />
+        <Marquee
+          title={venueName(machine.venue.name)}
+          subtitle={content.machineType(type.id, type.name)}
+        />
         <Row style={{ justifyContent: 'center' }}>
           <Led
             size={14}
             color={
               status === 'ok' ? SKIN.ledGreen : status === 'broken' ? SKIN.ledRed : SKIN.ledAmber
             }
-            accessibilityLabel={`Status: ${STATUS_LABEL[status]}`}
+            accessibilityLabel={t('machinePanel.a11y.status', { status: statusLabel(status) })}
           >
-            {`● ${STATUS_LABEL[status].toUpperCase()}`}
+            {t('machinePanel.statusLed', { status: statusLabel(status).toUpperCase() })}
           </Led>
         </Row>
         <ScrollView
@@ -232,7 +241,7 @@ export function MachinePanel({
         >
           <StatChip
             icon="coin"
-            label="Cash box"
+            label={t('machinePanel.stats.cashBox')}
             value={`${moneyShort(machine.cashBoxCents)} / ${moneyShort(cashBoxCapacity(game, type))}`}
             color={
               machine.cashBoxCents >= cashBoxCapacity(game, type) * 0.95 ? theme.signal : undefined
@@ -240,15 +249,20 @@ export function MachinePanel({
           />
           <StatChip
             icon="percent"
-            label="Venue commission"
+            label={t('machinePanel.stats.commission')}
             value={pct(machine.contract.commission)}
           />
           <StatChip
             icon="clock"
-            label="Contract"
-            value={contractLeft > 0 ? shortDuration(contractLeft) : 'renewing'}
+            label={t('machinePanel.stats.contract')}
+            value={
+              contractLeft > 0 ? shortDuration(contractLeft) : t('machinePanel.stats.renewing')
+            }
           />
-          <StatChip icon="smile" label={`Venue mood ${Math.round(machine.mood * 100)}%`}>
+          <StatChip
+            icon="smile"
+            label={t('machinePanel.stats.mood', { pct: Math.round(machine.mood * 100) })}
+          >
             <View style={[styles.mood, { backgroundColor: theme.line }]}>
               <View
                 style={{
@@ -265,9 +279,7 @@ export function MachinePanel({
               />
             </View>
           </StatChip>
-          {!live ? (
-            <StatChip icon="eyeOff" label="No telemetry: stock shown from your last visit" />
-          ) : null}
+          {!live ? <StatChip icon="eyeOff" label={t('machinePanel.stats.noTelemetry')} /> : null}
         </ScrollView>
       </View>
 
@@ -276,26 +288,30 @@ export function MachinePanel({
           <Row>
             <Icon name="wrench" size={22} color={theme.alert} />
             <T weight="bold" color={theme.alert} style={{ flex: 1 }}>
-              {machine.broken.kind === 'fridge' ? 'Fridge broken' : 'Coil jammed'}
+              {machine.broken.kind === 'fridge'
+                ? t('machinePanel.broken.fridge')
+                : t('machinePanel.broken.coil')}
             </T>
             {machine.broken.techFixAt ? (
               <StatChip
                 icon="clock"
-                label="Technician arrives in"
+                label={t('machinePanel.stats.techIn')}
                 value={shortDuration(Math.max(0, machine.broken.techFixAt - game.now))}
               />
             ) : null}
           </Row>
           <Button
-            label={`Fix · ${moneyShort(SERVICE.manualRepairCostCents)}`}
+            label={t('machinePanel.broken.fix', {
+              cost: moneyShort(SERVICE.manualRepairCostCents),
+            })}
             icon={<Icon name="wrench" size={20} color={theme.onBrand} />}
             onPress={() => {
               const r = useGame.getState().act((d) => repairMachine(d, machine.id));
-              if (!r.ok) show(r.error, 'error');
+              if (!r.ok) show(simError(r.error), 'error');
               else {
                 haptic.success();
                 sound.play('click');
-                show('Repaired', 'success');
+                show(t('machinePanel.toast.repaired'), 'success');
               }
             }}
           />
@@ -308,7 +324,11 @@ export function MachinePanel({
       <Row gap={SPACE.s}>
         <Button
           label={
-            coins ? 'Collected' : collecting ? '…' : `Collect ${moneyShort(machine.cashBoxCents)}`
+            coins
+              ? t('machinePanel.actions.collected')
+              : collecting
+                ? '…'
+                : t('machinePanel.actions.collect', { amount: moneyShort(machine.cashBoxCents) })
           }
           icon={<Icon name="coin" size={20} color={coins ? theme.ink : theme.onBrand} />}
           kind={coins ? 'secondary' : 'primary'}
@@ -317,39 +337,44 @@ export function MachinePanel({
           style={{ flex: 1 }}
         />
         <Button
-          label="Fill"
+          label={t('machinePanel.actions.fill')}
           icon={<Icon name="box" size={20} color={theme.ink} />}
           kind="secondary"
           onPress={fillAll}
-          accessibilityHint={`Plan a full restock from the van, up to ${van} items`}
+          accessibilityHint={t('machinePanel.actions.fillHint', { n: van })}
         />
         {!removeAds && adsAvailable() ? (
           <Button
-            label="Instant restock (ad)"
+            label={t('machinePanel.actions.adRestock')}
             hideLabel
             icon={<Icon name="play" size={20} color={theme.ink} />}
             kind="secondary"
             onPress={adRestock}
-            accessibilityHint="Watch an ad for an instant restock"
+            accessibilityHint={t('machinePanel.actions.adRestockHint')}
           />
         ) : null}
       </Row>
       {plannedUnits ? (
         <Row gap={SPACE.s}>
           <Button
-            label={`Restock ${plannedUnits} · ${moneyShort(plannedCost)}`}
+            label={t('machinePanel.actions.restock', {
+              n: plannedUnits,
+              cost: moneyShort(plannedCost),
+            })}
             icon={<Icon name="box" size={20} color={theme.onBrand} />}
             onPress={commitRestock}
             style={{ flex: 1 }}
-            accessibilityHint={`Hand restocks sell ${Math.round(SERVICE.freshStockBonus * 100)}% more for a business day`}
+            accessibilityHint={t('machinePanel.actions.restockHint', {
+              pct: Math.round(SERVICE.freshStockBonus * 100),
+            })}
           />
           <Button
-            label="Clear"
+            label={t('machinePanel.actions.clear')}
             hideLabel
             icon={<Icon name="close" size={20} color={theme.ink} />}
             kind="secondary"
             onPress={() => setPlan({})}
-            accessibilityHint="Clear the restock plan"
+            accessibilityHint={t('machinePanel.actions.clearHint')}
           />
         </Row>
       ) : null}
@@ -367,7 +392,12 @@ export function MachinePanel({
               <Pressable
                 key={i}
                 accessibilityRole="button"
-                accessibilityLabel={`Slot ${i + 1}, ${pid ? getProduct(pid).name : 'empty'}, ${shownQty} of ${cap}`}
+                accessibilityLabel={t('machinePanel.a11y.slot', {
+                  slot: i + 1,
+                  product: pid ? getProduct(pid).name : t('machinePanel.a11y.slotEmpty'),
+                  qty: shownQty,
+                  cap,
+                })}
                 accessibilityState={{ selected: selected === i }}
                 onPress={() => setSelected(i)}
                 style={[styles.slotCell, { width: `${100 / Math.min(5, type.grid.cols)}%` }]}
@@ -414,10 +444,10 @@ export function MachinePanel({
       {selected !== null && sel ? (
         <Paper tone="surface" style={{ gap: SPACE.m }}>
           <Row style={{ justifyContent: 'space-between' }}>
-            <T weight="bold">{selProduct ? selProduct.name : 'Empty coil'}</T>
+            <T weight="bold">{selProduct ? selProduct.name : t('machinePanel.emptyCoil')}</T>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close"
+              accessibilityLabel={t('machinePanel.a11y.close')}
               hitSlop={10}
               onPress={() => setSelected(null)}
             >
@@ -433,7 +463,7 @@ export function MachinePanel({
                   tone={on ? 'brand' : 'white'}
                   height={84}
                   onPress={() => loadSlot(selected, pr.id)}
-                  accessibilityLabel={`Load ${pr.name}`}
+                  accessibilityLabel={t('machinePanel.a11y.load', { product: pr.name })}
                   faceStyle={{
                     width: 76,
                     paddingHorizontal: 4,
@@ -458,7 +488,7 @@ export function MachinePanel({
               <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
                 <Stepper
                   icon="minus"
-                  label="Lower price"
+                  label={t('machinePanel.a11y.lowerPrice')}
                   disabled={!canPrice}
                   onPress={() => changePrice(selected, -5)}
                 />
@@ -467,7 +497,7 @@ export function MachinePanel({
                 </Mono>
                 <Stepper
                   icon="plus"
-                  label="Raise price"
+                  label={t('machinePanel.a11y.raisePrice')}
                   disabled={!canPrice}
                   onPress={() => changePrice(selected, 5)}
                 />
@@ -475,36 +505,44 @@ export function MachinePanel({
               <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
                 <StatChip
                   icon="tag"
-                  label="Suggested price"
+                  label={t('machinePanel.stats.suggested')}
                   value={money(selProduct.suggestedCents)}
                 />
                 <StatChip
                   icon="box"
-                  label="Wholesale cost"
+                  label={t('machinePanel.stats.wholesale')}
                   value={money(selProduct.wholesaleCents)}
                 />
                 <StatChip
                   icon="people"
-                  label="Demand at this price"
+                  label={t('machinePanel.stats.demand')}
                   value={pct(priceResponse(sel.priceCents / selProduct.suggestedCents))}
                 />
                 {!canPrice ? (
-                  <StatChip icon="lock" label="Prices unlock after chapter 1" value="Ch. 2" />
+                  <StatChip
+                    icon="lock"
+                    label={t('machinePanel.stats.pricesLocked')}
+                    value={t('machinePanel.stats.pricesLockedValue')}
+                  />
                 ) : null}
               </Row>
               {hasResearch(game, 'auto-reorder', type.family) ? (
                 <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
                   <Stepper
                     icon="minus"
-                    label="Lower driver par level"
+                    label={t('machinePanel.a11y.lowerPar')}
                     onPress={() =>
                       useGame.getState().act((d) => setPar(d, machine.id, selected, sel.par - 1))
                     }
                   />
-                  <StatChip icon="box" label="Driver refills to" value={String(sel.par)} />
+                  <StatChip
+                    icon="box"
+                    label={t('machinePanel.stats.driverPar')}
+                    value={String(sel.par)}
+                  />
                   <Stepper
                     icon="plus"
-                    label="Raise driver par level"
+                    label={t('machinePanel.a11y.raisePar')}
                     onPress={() =>
                       useGame.getState().act((d) => setPar(d, machine.id, selected, sel.par + 1))
                     }
@@ -518,43 +556,63 @@ export function MachinePanel({
 
       <Button
         kind="quiet"
-        label={more ? 'Less' : 'More'}
+        label={more ? t('machinePanel.actions.less') : t('machinePanel.actions.more')}
         icon={
           <View style={{ transform: [{ rotate: more ? '-90deg' : '90deg' }] }}>
             <Icon name="chevron" size={16} color={theme.muted} />
           </View>
         }
         onPress={() => setMore((m) => !m)}
-        accessibilityHint="Show specs, wraps and machine actions"
+        accessibilityHint={t('machinePanel.actions.moreHint')}
       />
       {more ? (
         <>
           {/* Spec: icons and numbers. */}
           <Row style={{ flexWrap: 'wrap' }}>
-            <StatChip icon="grid" label="Slots" value={`${type.slots}×${cap}`} />
+            <StatChip
+              icon="grid"
+              label={t('machinePanel.stats.slots')}
+              value={`${type.slots}×${cap}`}
+            />
             <StatChip
               icon="bolt"
-              label="Power per day"
+              label={t('machinePanel.stats.power')}
               value={moneyShortPrice(type.powerCentsPerDay)}
             />
             <StatChip
               icon="wrench"
-              label="Breakdowns per day"
+              label={t('machinePanel.stats.breakdowns')}
               value={`${(type.breakdownPerDay * 100).toFixed(1)}%`}
             />
             <StatChip
               icon="lock"
-              label="Theft risk"
-              value={type.theftRisk >= 1.4 ? 'High' : type.theftRisk >= 1 ? 'Med' : 'Low'}
+              label={t('machinePanel.stats.theft')}
+              value={
+                type.theftRisk >= 1.4
+                  ? t('machinePanel.stats.theftHigh')
+                  : type.theftRisk >= 1
+                    ? t('machinePanel.stats.theftMed')
+                    : t('machinePanel.stats.theftLow')
+              }
             />
-            <StatChip icon="bag" label="Items sold" value={String(machine.stats.unitsTotal)} />
+            <StatChip
+              icon="bag"
+              label={t('machinePanel.stats.sold')}
+              value={String(machine.stats.unitsTotal)}
+            />
             <StatChip
               icon="coin"
-              label="Revenue"
+              label={t('machinePanel.stats.revenue')}
               value={moneyShort(machine.stats.revenueTotalCents)}
             />
             {ownedResearch.map((r) => (
-              <StatChip key={r} icon="star" label="Upgrade" value={r} color={theme.brand} />
+              <StatChip
+                key={r}
+                icon="star"
+                label={t('machinePanel.stats.upgrade')}
+                value={r}
+                color={theme.brand}
+              />
             ))}
           </Row>
 
@@ -562,7 +620,7 @@ export function MachinePanel({
             {ownedWraps.map((w) => (
               <Chip
                 key={w}
-                label={WRAPS[w].name}
+                label={content.wrap(w, WRAPS[w].name)}
                 color={WRAPS[w].color}
                 active={machine.wrap === w}
                 onPress={() =>
@@ -576,7 +634,7 @@ export function MachinePanel({
             ))}
             <IconChip
               icon="rotate"
-              label="Rotate"
+              label={t('machinePanel.actions.rotate')}
               onPress={() =>
                 useGame.getState().act((d) => rotateMachine(d, machine.id, machine.heading + 90))
               }
@@ -584,11 +642,13 @@ export function MachinePanel({
             {!machine.contract.renegotiated ? (
               <IconChip
                 icon="handshake"
-                label="Renegotiate"
+                label={t('machinePanel.actions.renegotiate')}
                 onPress={() => {
                   const r = useGame.getState().act((d) => renegotiate(d, machine.id));
                   show(
-                    r.ok ? `Commission now ${pct(r.commission, 1)}` : r.error,
+                    r.ok
+                      ? t('machinePanel.toast.commission', { pct: pct(r.commission, 1) })
+                      : simError(r.error),
                     r.ok ? 'success' : 'error',
                   );
                 }}
@@ -596,23 +656,19 @@ export function MachinePanel({
             ) : null}
             <IconChip
               icon="box"
-              label="Pick up"
+              label={t('machinePanel.actions.pickUp')}
               onPress={() =>
-                Alert.alert(
-                  'Pick up this machine?',
-                  'It goes back to storage; the contract ends.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Pick up',
-                      style: 'destructive',
-                      onPress: () => {
-                        useGame.getState().act((d) => pickUpMachine(d, machine.id));
-                        finishLeave();
-                      },
+                Alert.alert(t('machinePanel.pickUp.title'), t('machinePanel.pickUp.body'), [
+                  { text: t('machinePanel.pickUp.cancel'), style: 'cancel' },
+                  {
+                    text: t('machinePanel.pickUp.confirm'),
+                    style: 'destructive',
+                    onPress: () => {
+                      useGame.getState().act((d) => pickUpMachine(d, machine.id));
+                      finishLeave();
                     },
-                  ],
-                )
+                  },
+                ])
               }
             />
           </Row>
@@ -695,10 +751,10 @@ function moneyShortPrice(cents: number): string {
 /** "12 h", "3 d", "45 m". */
 function shortDuration(ms: number): string {
   const min = ms / 60_000;
-  if (min < 60) return `${Math.max(1, Math.round(min))} m`;
+  if (min < 60) return tg('machinePanel.duration.min', { n: Math.max(1, Math.round(min)) });
   const h = min / 60;
-  if (h < 48) return `${Math.round(h)} h`;
-  return `${Math.round(h / 24)} d`;
+  if (h < 48) return tg('machinePanel.duration.hour', { n: Math.round(h) });
+  return tg('machinePanel.duration.day', { n: Math.round(h / 24) });
 }
 
 /** "12 h", "3 d", "45 m" (exported for the close-up). */

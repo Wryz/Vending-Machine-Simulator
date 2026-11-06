@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
 import { FALLBACK_CITIES } from '@/config/cities';
+import { useT } from '@/i18n';
+import { content } from '@/i18n/content';
 import { track } from '@/services/analytics';
 import { cityInfoFor, hasSave, useGame } from '@/store/game';
 import { cityKey, useProfile, type CityInfo } from '@/store/profile';
@@ -27,6 +29,7 @@ function CityRow({
   detail,
   time,
   label,
+  highlight,
   onPress,
   disabled,
 }: {
@@ -34,15 +37,18 @@ function CityRow({
   detail?: string;
   time: string;
   label: string;
+  /** Show the label in the signal color (a saved city). */
+  highlight?: boolean;
   onPress?: () => void;
   disabled?: boolean;
 }) {
   const theme = useTheme();
+  const t = useT();
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={`${name}, local time ${time}, ${label}`}
-      accessibilityHint={onPress ? 'Switch to this city' : undefined}
+      accessibilityLabel={t('cities.a11y.row', { name, time, label })}
+      accessibilityHint={onPress ? t('cities.a11y.switchHint') : undefined}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled || !onPress}
       onPress={onPress}
@@ -68,16 +74,22 @@ function CityRow({
           </T>
         ) : null}
       </View>
-      <T size={13} color={label === 'Saved' ? theme.signal : theme.muted}>
+      <T size={13} color={highlight ? theme.signal : theme.muted}>
         {label}
       </T>
     </Pressable>
   );
 }
 
+/** A city's display name: the 9 fallback cities are translated, local areas keep their map name. */
+function cityName(c: CityInfo): string {
+  return c.kind === 'fallback' ? content.city(c.id, c.name) : c.name;
+}
+
 /** City switcher (SPEC §6.1 step 5, §8): each city is its own save slot. */
 export default function Cities() {
   const theme = useTheme();
+  const t = useT();
   const now = useNow();
   const city = useGame((s) => s.city);
   const game = useGame((s) => s.game);
@@ -104,37 +116,45 @@ export default function Cities() {
     if (useGame.getState().status === 'ready') router.replace('/map');
     else {
       setSwitching(false);
-      show(useGame.getState().error ?? 'Could not open that city.', 'error');
+      show(useGame.getState().error ?? t('cities.openFailed'), 'error');
     }
   };
 
-  const confirm = (target: CityInfo, isNew: boolean) =>
+  const confirm = (target: CityInfo, isNew: boolean) => {
+    const name = cityName(target);
+    const current = city ? cityName(city) : t('cities.confirm.thisCity');
     Alert.alert(
-      isNew ? `Start in ${target.name}?` : `Go to ${target.name}?`,
+      isNew ? t('cities.confirm.startTitle', { name }) : t('cities.confirm.goTitle', { name }),
       isNew
-        ? `A new business with a fresh save. Your progress in ${city?.name ?? 'this city'} stays saved.`
-        : `Your progress in ${city?.name ?? 'this city'} is saved first.`,
+        ? t('cities.confirm.startBody', { current })
+        : t('cities.confirm.goBody', { current }),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: isNew ? 'Start' : 'Go', onPress: () => switchTo(target) },
+        { text: t('cities.confirm.cancel'), style: 'cancel' },
+        {
+          text: isNew ? t('cities.confirm.start') : t('cities.confirm.go'),
+          onPress: () => switchTo(target),
+        },
       ],
     );
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      <Screen title="Cities" subtitle="Each city keeps its own business">
+      <Screen title={t('cities.title')} subtitle={t('cities.subtitle')}>
         {city ? (
-          <Section title="Current city">
+          <Section title={t('cities.section.current')}>
             <Paper tone="surface">
               <Row style={{ justifyContent: 'space-between' }}>
                 <View style={{ flex: 1 }}>
                   <T size={18} weight="bold">
-                    {city.name}
+                    {cityName(city)}
                   </T>
                   {game ? (
                     <T size={13} muted>
-                      Chapter {game.chapter} ·{' '}
-                      {game.machines.filter((m) => m.status === 'active').length} machines
+                      {t('cities.chapterMachines', {
+                        chapter: game.chapter,
+                        n: game.machines.filter((m) => m.status === 'active').length,
+                      })}
                     </T>
                   ) : null}
                 </View>
@@ -145,14 +165,15 @@ export default function Cities() {
         ) : null}
 
         {otherAreas.length > 0 ? (
-          <Section title="Your area">
+          <Section title={t('cities.section.area')}>
             <View>
               {otherAreas.map((c) => (
                 <CityRow
                   key={cityKey(c)}
                   name={c.name}
                   time={clock(now, c.timeZone)}
-                  label="Saved"
+                  label={t('cities.label.saved')}
+                  highlight
                   disabled={switching}
                   onPress={() => confirm(c, false)}
                 />
@@ -161,7 +182,7 @@ export default function Cities() {
           </Section>
         ) : null}
 
-        <Section title="Cities">
+        <Section title={t('cities.section.cities')}>
           <View>
             {FALLBACK_CITIES.map((c) => {
               const info = cityInfoFor(c.id);
@@ -170,10 +191,17 @@ export default function Cities() {
               return (
                 <CityRow
                   key={c.id}
-                  name={c.name}
-                  detail={c.notes}
+                  name={content.city(c.id, c.name)}
+                  detail={t.or(`content.cityNotes.${c.id}`, c.notes)}
                   time={clock(now, c.timeZone)}
-                  label={isCurrent ? 'Current' : has ? 'Saved' : 'New save'}
+                  label={
+                    isCurrent
+                      ? t('cities.label.current')
+                      : has
+                        ? t('cities.label.saved')
+                        : t('cities.label.newSave')
+                  }
+                  highlight={!isCurrent && has}
                   disabled={switching}
                   onPress={isCurrent ? undefined : () => confirm(info, !has)}
                 />
@@ -183,12 +211,11 @@ export default function Cities() {
         </Section>
 
         <T size={13} muted>
-          Switching saves this business first. Finish chapter 5 to sell the company and restart
-          anywhere with a head start.
+          {t('cities.footer')}
         </T>
         {switching ? (
           <T size={13} color={theme.muted} accessibilityLiveRegion="polite">
-            Opening city…
+            {t('cities.opening')}
           </T>
         ) : null}
       </Screen>

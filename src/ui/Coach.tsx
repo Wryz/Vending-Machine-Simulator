@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
 
+import { useT } from '@/i18n';
 import type { TutorialStep } from '@/sim';
 
 import { Icon, type IconName } from './icons';
@@ -10,32 +11,13 @@ import { SPACE } from './theme';
 
 export const COACH_STEPS: readonly TutorialStep[] = ['place', 'stock', 'wait', 'collect', 'goal'];
 
-const COPY: Record<TutorialStep, { icon: IconName; title: string; line: string }> = {
-  place: {
-    icon: 'pin',
-    title: 'Place your first machine',
-    line: 'Tap a busy street. The flame key shows where people walk.',
-  },
-  stock: {
-    icon: 'box',
-    title: 'Stock it',
-    line: 'Tap your machine, then Fill and Restock.',
-  },
-  wait: {
-    icon: 'people',
-    title: 'Wait for customers',
-    line: 'Zoom in to watch people walk up and buy.',
-  },
-  collect: {
-    icon: 'coin',
-    title: 'Collect your cash',
-    line: 'Tap your machine and empty the cash box.',
-  },
-  goal: {
-    icon: 'star',
-    title: 'Your first goal',
-    line: 'Earn $1,000 in sales to finish chapter 1. The meter up top tracks it.',
-  },
+/** Copy lives in the `coach.steps.<step>` catalog. */
+const ICON: Record<TutorialStep, IconName> = {
+  place: 'pin',
+  stock: 'box',
+  wait: 'people',
+  collect: 'coin',
+  goal: 'star',
 };
 
 /**
@@ -52,7 +34,7 @@ export function Coach({
   onClose: () => void;
   bottom: number;
 }) {
-  const c = COPY[step];
+  const t = useT();
   const at = COACH_STEPS.indexOf(step);
   const last = step === 'goal';
   return (
@@ -64,7 +46,7 @@ export function Coach({
       accessibilityLiveRegion="polite"
     >
       <View style={styles.icon}>
-        <Icon name={c.icon} size={24} color="#FFFFFF" />
+        <Icon name={ICON[step]} size={24} color="#FFFFFF" />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <View style={styles.dots}>
@@ -79,16 +61,16 @@ export function Coach({
           ))}
         </View>
         <T size={15} weight="bold" color={SKIN.keyInk} accessibilityRole="header">
-          {c.title}
+          {t(`coach.steps.${step}.title`)}
         </T>
         <T size={13} color="#5A5F7A">
-          {c.line}
+          {t(`coach.steps.${step}.line`)}
         </T>
       </View>
       {last ? (
-        <Key tone="brand" height={36} onPress={onClose} accessibilityLabel="Got it">
+        <Key tone="brand" height={36} onPress={onClose} accessibilityLabel={t('coach.a11y.gotIt')}>
           <T size={14} weight="bold" color="#FFFFFF">
-            OK
+            {t('coach.ok')}
           </T>
         </Key>
       ) : (
@@ -96,7 +78,7 @@ export function Coach({
           onPress={onClose}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel="Close the tutorial"
+          accessibilityLabel={t('coach.a11y.close')}
           style={styles.close}
         >
           <Icon name="close" size={16} color={SKIN.chromeDark} />

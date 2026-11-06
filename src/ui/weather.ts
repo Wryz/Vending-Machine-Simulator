@@ -13,12 +13,7 @@ export const WEATHER_ICON: Record<WeatherCondition, IconName> = {
   fog: 'fog',
 };
 
-/** °F where people read °F, °C elsewhere. */
-export function temperature(tempC: number, countryCode: string): string {
-  return ['US', 'LR', 'MM'].includes(countryCode)
-    ? `${Math.round((tempC * 9) / 5 + 32)}°F`
-    : `${Math.round(tempC)}°C`;
-}
+export { temperature } from './format';
 
 /** Day / night at a glance, from the city's real sun. */
 export function dayIcon(tod: TimeOfDay): { name: IconName; color: string } {

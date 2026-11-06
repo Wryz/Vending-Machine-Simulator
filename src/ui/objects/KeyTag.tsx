@@ -1,6 +1,8 @@
 import { Pressable, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { t, useT } from '@/i18n';
+
 import { useTheme } from '../ThemeProvider';
 import { Mono, StatusDot, T } from '../kit';
 import { SPACE, TOUCH } from '../theme';
@@ -26,14 +28,49 @@ export function statusColor(
   }
 }
 
-export const STATUS_LABEL: Record<MachineStatus, string> = {
-  ok: 'Running',
-  low: 'Low stock',
-  empty: 'Empty',
-  'cash-full': 'Cash box full',
-  broken: 'Broken',
-  stored: 'In storage',
-  unknown: 'No telemetry',
+/** Status label in the current language. */
+export function statusLabel(status: MachineStatus): string {
+  switch (status) {
+    case 'ok':
+      return t('objects.status.ok');
+    case 'low':
+      return t('objects.status.low');
+    case 'empty':
+      return t('objects.status.empty');
+    case 'cash-full':
+      return t('objects.status.cashFull');
+    case 'broken':
+      return t('objects.status.broken');
+    case 'stored':
+      return t('objects.status.stored');
+    default:
+      return t('objects.status.unknown');
+  }
+}
+
+/** Status labels by status, read in the current language (kept for existing callers). */
+export const STATUS_LABEL: Readonly<Record<MachineStatus, string>> = {
+  get ok() {
+    return statusLabel('ok');
+  },
+  get low() {
+    return statusLabel('low');
+  },
+  get empty() {
+    return statusLabel('empty');
+  },
+  get 'cash-full'() {
+    return statusLabel('cash-full');
+  },
+  get broken() {
+    return statusLabel('broken');
+  },
+  get stored() {
+    return statusLabel('stored');
+  },
+  get unknown() {
+    return statusLabel('unknown');
+  },
 };
 
 /**
@@ -56,10 +93,11 @@ export function KeyTag({
   onPress?: () => void;
 }) {
   const theme = useTheme();
+  const tr = useT();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${name} at ${place}, ${STATUS_LABEL[status]}`}
+      accessibilityLabel={tr('objects.keyTag.a11y', { name, place, status: statusLabel(status) })}
       onPress={onPress}
       style={({ pressed }) => ({
         flexDirection: 'row',
@@ -98,7 +136,7 @@ export function KeyTag({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <StatusDot color={statusColor(status, theme)} />
             <T size={11} color="#5C6066">
-              {STATUS_LABEL[status]}
+              {statusLabel(status)}
             </T>
           </View>
           {amount ? (

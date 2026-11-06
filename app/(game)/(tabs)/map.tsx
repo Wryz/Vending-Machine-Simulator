@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CAMERA, GLOBE, MACHINE_SHEET } from '@/config/map';
 import type { Feature } from '@/config/progression';
 import { useCityClock } from '@/hooks/useCityClock';
+import { useT } from '@/i18n';
 import { CityMap, type CityMapHandle, type MapCameraState, type SalePop } from '@/map/CityMap';
 import { WeatherOverlay } from '@/map/WeatherOverlay';
 import {
@@ -64,6 +65,7 @@ function useSaleFeedback() {
 
 /** Map (home), SPEC §8: the full city, a few floating controls and sheets. */
 export default function MapScreen() {
+  const t = useT();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -246,13 +248,13 @@ export default function MapScreen() {
         lat: world.city.lat,
         lng: world.city.lng,
         current: true,
-        label: `${world.city.name} · ${activeMachines(game).length} machine${activeMachines(game).length === 1 ? '' : 's'}`,
+        label: t('map.globePin', { city: world.city.name, n: activeMachines(game).length }),
       },
       ...Object.entries(visited)
         .filter(([key]) => key !== here)
         .map(([key, c]) => ({ id: key, lat: c.lat, lng: c.lng, current: false })),
     ];
-  }, [city, visited, world.city, game]);
+  }, [city, visited, world.city, game, t]);
 
   const leaveGlobe = useCallback(() => {
     setGlobe(false);
@@ -310,11 +312,11 @@ export default function MapScreen() {
   // Recent sales: a customer walks up to each (zoomed in), then a "+$2.00" chip pops.
   const salePops = useMemo<SalePop[]>(
     () =>
-      ticker.slice(-12).map((t) => ({
-        id: `${t.at}-${t.machineId}`,
-        machineId: t.machineId,
-        cents: t.cents,
-        units: t.units,
+      ticker.slice(-12).map((sale) => ({
+        id: `${sale.at}-${sale.machineId}`,
+        machineId: sale.machineId,
+        cents: sale.cents,
+        units: sale.units,
       })),
     [ticker],
   );
@@ -337,12 +339,12 @@ export default function MapScreen() {
   );
   useEffect(() => {
     if (!incoming.length) return;
-    const t = setTimeout(() => setIncoming((cur) => cur.slice(1)), SALE_PILL_MS);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setIncoming((cur) => cur.slice(1)), SALE_PILL_MS);
+    return () => clearTimeout(timer);
   }, [incoming]);
   const weather = world.weatherAt(game.now);
   // One plain hint while placing; otherwise the first-machine tutorial.
-  const hint = params.placeMachineId ? 'Tap a spot to place this machine' : null;
+  const hint = params.placeMachineId ? t('map.placeHint') : null;
   const tutorialHidden = useProfile((s) => s.tutorialHidden);
   const coachStep = tutorialHidden ? null : tutorialStep(game);
   const unlocked = (f: Feature) => featureUnlocked(game, f);
@@ -411,22 +413,26 @@ export default function MapScreen() {
         pointerEvents="box-none"
         style={[styles.topRight, { top: insets.top + SPACE.s, right: SPACE.l }]}
       >
-        <RoundButton icon="gear" label="Settings" onPress={() => router.push('/settings')} />
+        <RoundButton
+          icon="gear"
+          label={t('map.a11y.settings')}
+          onPress={() => router.push('/settings')}
+        />
         {unlocked('topDown') ? (
           <RoundButton
             icon={topDown ? 'tilt' : 'topdown'}
-            label={topDown ? '3D view' : 'Top-down view'}
+            label={topDown ? t('map.a11y.view3d') : t('map.a11y.topDown')}
             onPress={toggleTopDown}
           />
         ) : null}
         <RoundButton
           icon="flame"
-          label="Busy streets"
+          label={t('map.a11y.busyStreets')}
           active={heat}
           onPress={() => setHeat((h) => !h)}
         />
         {unlocked('locate') ? (
-          <RoundButton icon="locate" label="My machines" onPress={locate} />
+          <RoundButton icon="locate" label={t('map.a11y.myMachines')} onPress={locate} />
         ) : null}
       </View>
 
@@ -437,12 +443,12 @@ export default function MapScreen() {
       >
         <RoundButton
           icon="plus"
-          label="Zoom in"
+          label={t('map.a11y.zoomIn')}
           onPress={() => mapRef.current?.zoomBy(CAMERA.zoomStep, CAMERA.zoomStepMs)}
         />
         <RoundButton
           icon="minus"
-          label="Zoom out"
+          label={t('map.a11y.zoomOut')}
           onPress={() => mapRef.current?.zoomBy(-CAMERA.zoomStep, CAMERA.zoomStepMs)}
         />
       </View>
@@ -516,7 +522,7 @@ export default function MapScreen() {
             <CashPill cents={game.cashCents} />
           </View>
           <View style={[styles.globeBack, { bottom: insets.bottom + SPACE.xl }]}>
-            <Button label={`Back to ${world.city.name}`} onPress={leaveGlobe} />
+            <Button label={t('map.backTo', { city: world.city.name })} onPress={leaveGlobe} />
           </View>
         </Animated.View>
       ) : null}

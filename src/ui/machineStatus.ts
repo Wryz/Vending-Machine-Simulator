@@ -1,4 +1,5 @@
 import { getMachineType } from '@/config/machines';
+import { content } from '@/i18n/content';
 import { cashBoxCapacity, hasResearch, slotCapacity, type GameState, type Machine } from '@/sim';
 
 import type { MachineStatus } from './objects/KeyTag';
@@ -25,5 +26,5 @@ export function machineStatus(game: GameState, m: Machine): MachineStatus {
 }
 
 export function machineLabel(m: Machine): string {
-  return getMachineType(m.typeId).name;
+  return content.machineType(m.typeId, getMachineType(m.typeId).name);
 }

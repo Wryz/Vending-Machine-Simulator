@@ -4,6 +4,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Path } from 'react-native-svg';
 import { runOnJS } from 'react-native-worklets';
 
+import { useT } from '@/i18n';
 import { haptic } from '@/services/haptics';
 
 import { useTheme } from '../ThemeProvider';
@@ -28,6 +29,7 @@ export function ContractSheet({
   disabled?: boolean;
 }) {
   const theme = useTheme();
+  const t = useT();
   const [path, setPath] = useState('');
   const [width, setWidth] = useState(1);
   const [signed, setSigned] = useState(false);
@@ -54,14 +56,14 @@ export function ContractSheet({
   return (
     <View style={{ backgroundColor: theme.paper, borderRadius: 4, padding: SPACE.l, gap: SPACE.s }}>
       <Mono size={11} color="#6B6F75">
-        LOCATION AGREEMENT
+        {t('objects.contract.header')}
       </Mono>
       <T size={18} weight="bold" color={theme.paperInk}>
         {venue}
       </T>
-      {terms.map((t) => (
+      {terms.map((term) => (
         <View
-          key={t.label}
+          key={term.label}
           style={{
             flexDirection: 'row',
             justifyContent: 'space-between',
@@ -71,10 +73,10 @@ export function ContractSheet({
           }}
         >
           <T size={14} color="#5C6066">
-            {t.label}
+            {term.label}
           </T>
           <Mono size={14} color={theme.paperInk}>
-            {t.value}
+            {term.value}
           </Mono>
         </View>
       ))}
@@ -82,8 +84,8 @@ export function ContractSheet({
         <View
           accessible
           accessibilityRole="adjustable"
-          accessibilityLabel="Signature line. Swipe across to sign."
-          accessibilityActions={[{ name: 'activate', label: 'Sign' }]}
+          accessibilityLabel={t('objects.contract.a11y.line')}
+          accessibilityActions={[{ name: 'activate', label: t('objects.contract.a11y.sign') }]}
           onAccessibilityAction={() => {
             if (!signed && !disabled) {
               setSigned(true);
@@ -111,7 +113,7 @@ export function ContractSheet({
           </Svg>
           {!path ? (
             <T size={13} color="#9A9DA1" style={{ marginBottom: 4 }}>
-              {disabled ? 'Not enough cash to sign' : 'Swipe across to sign →'}
+              {disabled ? t('objects.contract.noCash') : t('objects.contract.swipe')}
             </T>
           ) : null}
         </View>

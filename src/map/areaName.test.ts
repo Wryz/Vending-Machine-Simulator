@@ -49,3 +49,19 @@ describe('area name', () => {
     expect(areaProbeLayer('protomaps')['source-layer']).toBe('places');
   });
 });
+
+describe('area name in another language', () => {
+  it('skips the game city by any spelling', () => {
+    const book = new AreaBook();
+    book.add(
+      areaPoints([
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [-0.1276, 51.5073] },
+          properties: { name: 'London', 'name:ja': 'ロンドン', 'name:en': 'London', class: 'city' },
+        },
+      ]).map((p) => ({ ...p, name: 'ロンドン' })),
+    );
+    expect(book.nearest(-0.127, 51.508, 'London').district).toBeNull();
+  });
+});

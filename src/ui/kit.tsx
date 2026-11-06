@@ -14,6 +14,7 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useT } from '@/i18n';
 import { useHud } from '@/store/hud';
 import { haptic } from '@/services/haptics';
 
@@ -298,6 +299,7 @@ export function Screen({
   /** A tab's root screen: no back key, and the tab bar takes the bottom inset. */
   tab?: boolean;
 }) {
+  const t = useT();
   const insets = useSafeAreaInsets();
   // The tab bar floats over tab screens: leave room for it.
   const tabBar = useHud((st) => st.tabBarHeight);
@@ -313,7 +315,7 @@ export function Screen({
             onPress={
               onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/map')))
             }
-            accessibilityLabel="Back"
+            accessibilityLabel={t('kit.a11y.back')}
             faceStyle={{ paddingHorizontal: 0, width: TOUCH - 2 }}
           >
             <Icon name="back" size={22} color={SKIN.keyInk} />

@@ -75,9 +75,9 @@ Fun, bright and lively, like a sunny toy-town version of your own city, with a w
 
 ### 3.3 Visual style: bright flat-shaded low-poly
 *(Revised 2026-11-05: from "calm, premium, low-poly realism" to bright and flat, at the owner's request.)*
-- **Proportions stay real.** A snack machine is about 1.83 m tall, 0.9 m wide, 0.9 m deep. No chibi or bobble proportions, no thick outlines. Motion is lively but restrained: springy pop-ins on UI, no squash-and-stretch on objects.
+- **Real sizes, toy-like machines.** *(Revised 2026-11-06 at the owner's request: machines were too realistic.)* A snack machine keeps its real footprint (about 1.83 m tall, 0.9 m wide, 0.9 m deep), but it is drawn like a painted toy: a chunky rounded cabinet on stubby feet, a puffy lit sign, a thick cream window frame, big round candy-colored keys, round cans and puffy bags, matte paint and no chrome. Still no thick outlines. Motion is lively but restrained: springy pop-ins on UI, no squash-and-stretch on objects.
 - **Flat and saturated.** Sunny, candy-but-harmonious colors; flat shading over subtle gradients.
-- **Geometry:** flat-shaded low-poly. Hero machines run 800–3,000 triangles; small props 50–400. Chamfers are suggested by single bevels.
+- **Geometry:** flat-shaded low-poly. Hero machines run 2,500–5,000 triangles (rounded cabinet and sign use two-step bevels, the rest single bevels); small props 50–400.
 - **Materials:** simple PBR (base color, roughness, light metalness), baked ambient occlusion. Color comes from material, not textures. Small texture atlases only for labels, product faces and screens.
 - **Machines are the color.** The city is bright but soft; machines carry the most saturated accents, by product family:
   - snacks: warm red;

@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
+import { useT } from '@/i18n';
 import { useGame } from '@/store/game';
 
 import { Icon } from './icons';
@@ -10,6 +11,7 @@ import { SPACE } from './theme';
 
 /** While a long catch-up runs on return: the machine counts the coins. */
 export function CatchUpOverlay() {
+  const t = useT();
   const busy = useGame((s) => s.catchingUp);
   const progress = useGame((s) => s.catchUpProgress);
   if (!busy) return null;
@@ -20,17 +22,17 @@ export function CatchUpOverlay() {
       style={styles.scrim}
       accessibilityViewIsModal
       accessibilityLiveRegion="polite"
-      accessibilityLabel="While you were away: counting the coins"
+      accessibilityLabel={t('catchUp.a11y')}
     >
       <View style={styles.card}>
         <View style={styles.coin}>
           <Icon name="coin" size={34} color="#FFFFFF" />
         </View>
         <T size={18} weight="bold" color="#FFFFFF" center>
-          While you were away…
+          {t('catchUp.title')}
         </T>
         <Led size={16} color={SKIN.ledAmber}>
-          COUNTING COINS
+          {t('catchUp.led')}
         </Led>
         <View style={styles.meter}>
           <LedBar value={progress} segments={12} color={SKIN.ledAmber} />

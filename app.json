@@ -13,7 +13,9 @@
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Coinline uses your approximate location once, to start your business in the closest city. It is never stored.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleLocalizations": ["en", "es", "fr", "de", "ja", "ko", "zh-Hans", "pt-BR"],
+        "CFBundleDevelopmentRegion": "en"
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -41,6 +43,16 @@
       "permissions": ["ACCESS_COARSE_LOCATION"],
       "blockedPermissions": ["ACCESS_FINE_LOCATION", "ACCESS_BACKGROUND_LOCATION"],
       "predictiveBackGestureEnabled": false
+    },
+    "locales": {
+      "en": "./assets/i18n/en.json",
+      "es": "./assets/i18n/es.json",
+      "fr": "./assets/i18n/fr.json",
+      "de": "./assets/i18n/de.json",
+      "ja": "./assets/i18n/ja.json",
+      "ko": "./assets/i18n/ko.json",
+      "zh-Hans": "./assets/i18n/zh-Hans.json",
+      "pt-BR": "./assets/i18n/pt-BR.json"
     },
     "plugins": [
       "expo-router",

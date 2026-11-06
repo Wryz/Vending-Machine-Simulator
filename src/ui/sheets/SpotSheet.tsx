@@ -6,6 +6,9 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { getMachineType, type MachineTypeId } from '@/config/machines';
 import { CATEGORY_LABEL } from '@/config/places';
 import type { PlaceCategory } from '@/data/types';
+import { useT } from '@/i18n';
+import { content } from '@/i18n/content';
+import { logText, simError } from '@/i18n/sim';
 import {
   availableMachineTypes,
   evaluateSpot,
@@ -88,6 +91,10 @@ function SpotBody({
   bottomInset: number;
 }) {
   const theme = useTheme();
+  const t = useT();
+  /** Place category label in the UI language (config has English). */
+  const categoryLabel = (c: PlaceCategory) => t.or(`content.places.${c}`, CATEGORY_LABEL[c]);
+  const typeName = (id: MachineTypeId) => content.machineType(id, getMachineType(id).name);
   const storedId = machineId || game.machines.find((m) => m.status === 'stored')?.id || '';
   const stored = game.machines.find((m) => m.id === storedId);
   const types = availableMachineTypes(game, world);
@@ -106,10 +113,10 @@ function SpotBody({
   const placingOwned = !!stored && stored.typeId === typeId;
 
   const report = (id: string, name: string) =>
-    Alert.alert('Report this place?', `${name} will be hidden from your game.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('spotSheet.reportAlert.title'), t('spotSheet.reportAlert.body', { name }), [
+      { text: t('spotSheet.reportAlert.cancel'), style: 'cancel' },
       {
-        text: 'Hide it',
+        text: t('spotSheet.reportAlert.confirm'),
         style: 'destructive',
         onPress: () => useGame.getState().act((d) => hidePlace(d, id)),
       },
@@ -125,11 +132,14 @@ function SpotBody({
     >
       <View style={{ gap: SPACE.s }}>
         <Marquee
-          title={spot.venue.category === 'street' ? 'Street corner' : spot.venue.name}
+          title={spot.venue.category === 'street' ? t('spotSheet.streetCorner') : spot.venue.name}
           subtitle={
             spot.venue.category === 'street'
-              ? `District ${spot.district}`
-              : `${CATEGORY_LABEL[spot.venue.category as PlaceCategory]} · ${meters(spot.venue.distanceM)}`
+              ? t('spotSheet.district', { n: spot.district })
+              : t('spotSheet.venueLine', {
+                  category: categoryLabel(spot.venue.category as PlaceCategory),
+                  distance: meters(spot.venue.distanceM),
+                })
           }
         />
         <Row style={{ justifyContent: 'center' }} gap={4}>
@@ -141,24 +151,32 @@ function SpotBody({
 
       <Row gap={SPACE.s}>
         <View style={{ flex: 1, gap: 4 }}>
-          <Led size={24} accessibilityLabel={`${spot.nowCustomers.toFixed(0)} customers per hour`}>
+          <Led
+            size={24}
+            accessibilityLabel={t('spotSheet.a11y.customers', { n: spot.nowCustomers.toFixed(0) })}
+          >
             {spot.nowCustomers.toFixed(0)}
           </Led>
           <Row gap={4} style={{ justifyContent: 'center' }}>
             <Icon name="people" size={16} color="#FFFFFF" />
             <T size={12} weight="bold" color="#FFFFFF">
-              per hour
+              {t('spotSheet.perHour')}
             </T>
           </Row>
         </View>
         <View style={{ flex: 1, gap: 4 }}>
-          <Led size={24} accessibilityLabel={`${moneyShort(spot.dailySalesCents)} sales per day`}>
+          <Led
+            size={24}
+            accessibilityLabel={t('spotSheet.a11y.sales', {
+              amount: moneyShort(spot.dailySalesCents),
+            })}
+          >
             {moneyShort(spot.dailySalesCents)}
           </Led>
           <Row gap={4} style={{ justifyContent: 'center' }}>
             <Icon name="coin" size={16} color="#FFFFFF" />
             <T size={12} weight="bold" color="#FFFFFF">
-              per day
+              {t('spotSheet.perDay')}
             </T>
           </Row>
         </View>
@@ -178,7 +196,7 @@ function SpotBody({
                 </T>
               </View>
               <T size={14} style={{ flex: 1 }} numberOfLines={2}>
-                {r.text}
+                {logText('spotReason', r.text)}
               </T>
             </Row>
           ))}
@@ -189,33 +207,35 @@ function SpotBody({
         <Row style={{ flexWrap: 'wrap' }}>
           {stored ? (
             <Chip
-              label={`${getMachineType(stored.typeId).name} (yours)`}
+              label={t('spotSheet.yours', { type: typeName(stored.typeId) })}
               active={typeId === stored.typeId}
               onPress={() => setTypeId(stored.typeId)}
             />
           ) : null}
           {types
             .slice(0, 6)
-            .map((t) =>
-              stored && stored.typeId === t.id ? null : (
+            .map((mt) =>
+              stored && stored.typeId === mt.id ? null : (
                 <Chip
-                  key={t.id}
-                  label={t.name}
-                  color={theme.family[t.family]}
-                  active={typeId === t.id && !placingOwned}
-                  onPress={() => setTypeId(t.id)}
+                  key={mt.id}
+                  label={content.machineType(mt.id, mt.name)}
+                  color={theme.family[mt.family]}
+                  active={typeId === mt.id && !placingOwned}
+                  onPress={() => setTypeId(mt.id)}
                 />
               ),
             )}
         </Row>
       ) : null}
 
-      {spot.districtLocked ? (
-        <T color={theme.alert}>This district unlocks in a later chapter.</T>
-      ) : null}
-      {spot.blocked ? <T color={theme.alert}>{spot.blocked}</T> : null}
+      {spot.districtLocked ? <T color={theme.alert}>{t('spotSheet.districtLocked')}</T> : null}
+      {spot.blocked ? <T color={theme.alert}>{simError(spot.blocked)}</T> : null}
       <Button
-        label={placingOwned ? 'Place my machine here' : `Place ${getMachineType(typeId).name}`}
+        label={
+          placingOwned
+            ? t('spotSheet.placeMine')
+            : t('spotSheet.placeType', { type: typeName(typeId) })
+        }
         disabled={!canPlace}
         onPress={() =>
           router.push({
@@ -232,8 +252,8 @@ function SpotBody({
       />
 
       <View style={{ gap: SPACE.s }}>
-        <Plate>Nearby</Plate>
-        {spot.nearby.length === 0 ? <T color="#FFFFFF">No named places within 400 m.</T> : null}
+        <Plate>{t('spotSheet.nearby')}</Plate>
+        {spot.nearby.length === 0 ? <T color="#FFFFFF">{t('spotSheet.noNearby')}</T> : null}
         {spot.nearby.map((p) => (
           <Row key={p.id} style={styles.place}>
             <Glyph category={p.category} size={20} />
@@ -242,21 +262,24 @@ function SpotBody({
                 {p.name}
               </T>
               <T size={12} muted>
-                {p.label} · {meters(p.distanceM)}
+                {t('spotSheet.placeLine', {
+                  category: categoryLabel(p.category),
+                  distance: meters(p.distanceM),
+                })}
               </T>
             </View>
             {p.distanceM <= 120 && p.category !== 'competitor' ? (
               <Chip
-                label={spot.venue.placeId === p.id ? 'Host' : 'Use'}
+                label={spot.venue.placeId === p.id ? t('spotSheet.host') : t('spotSheet.use')}
                 active={spot.venue.placeId === p.id}
                 onPress={() => setPlaceId(p.id)}
               />
             ) : null}
-            <Chip label="Report" onPress={() => report(p.id, p.name)} />
+            <Chip label={t('spotSheet.report')} onPress={() => report(p.id, p.name)} />
           </Row>
         ))}
         <T size={11} color="#FFE3D4">
-          Places from open map data. No affiliation or endorsement.
+          {t('spotSheet.attribution')}
         </T>
       </View>
     </BottomSheetScrollView>

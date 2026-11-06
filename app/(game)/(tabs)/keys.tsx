@@ -2,6 +2,8 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import { getMachineType } from '@/config/machines';
+import { t, useT } from '@/i18n';
+import { venueName } from '@/i18n/sim';
 import type { GameState, Machine } from '@/sim';
 import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
@@ -27,18 +29,19 @@ function cashLabel(game: GameState, m: Machine): string {
   const ago = Math.max(0, game.now - m.seen.at);
   return ago < 60_000
     ? money(m.seen.cashBoxCents)
-    : `${money(m.seen.cashBoxCents)} · ${duration(ago)} ago`;
+    : t('keys.cashSeen', { amount: money(m.seen.cashBoxCents), ago: duration(ago) });
 }
 
 /** Key ring (SPEC §3.6, §8): one key per owned machine. */
 export default function Keys() {
+  const t = useT();
   const theme = useTheme();
   const game = useGame((s) => s.game);
 
   if (!game) {
     return (
-      <Screen tab title="Key ring">
-        <T muted>No business is open.</T>
+      <Screen tab title={t('keys.title')}>
+        <T muted>{t('keys.noBusiness')}</T>
       </Screen>
     );
   }
@@ -55,11 +58,15 @@ export default function Keys() {
   const accent = (m: Machine) => theme.family[getMachineType(m.typeId).family];
 
   return (
-    <Screen tab title="Key ring" subtitle={`${active.length} placed · ${stored.length} in storage`}>
-      <Section title="Placed">
+    <Screen
+      tab
+      title={t('keys.title')}
+      subtitle={t('keys.subtitle', { placed: active.length, stored: stored.length })}
+    >
+      <Section title={t('keys.placed')}>
         {active.length === 0 ? (
           <Paper tone="surface">
-            <T muted>None placed yet.</T>
+            <T muted>{t('keys.nonePlaced')}</T>
           </Paper>
         ) : (
           <View style={{ gap: SPACE.xs }}>
@@ -67,7 +74,7 @@ export default function Keys() {
               <KeyTag
                 key={m.id}
                 name={machineLabel(m)}
-                place={m.venue.name}
+                place={venueName(m.venue.name)}
                 accent={accent(m)}
                 status={status}
                 amount={cashLabel(game, m)}
@@ -79,7 +86,7 @@ export default function Keys() {
       </Section>
 
       {stored.length > 0 ? (
-        <Section title="In storage">
+        <Section title={t('keys.inStorage')}>
           <View style={{ gap: SPACE.s }}>
             {stored.map((m) => {
               const place = () =>
@@ -89,17 +96,17 @@ export default function Keys() {
                   <View style={{ flex: 1 }}>
                     <KeyTag
                       name={machineLabel(m)}
-                      place="Ready to place"
+                      place={t('keys.readyToPlace')}
                       accent={accent(m)}
                       status="stored"
                       onPress={place}
                     />
                   </View>
                   <Button
-                    label="Place"
+                    label={t('keys.place')}
                     kind="secondary"
                     onPress={place}
-                    accessibilityHint={`Choose a spot on the map for this ${machineLabel(m)}`}
+                    accessibilityHint={t('keys.a11y.placeHint', { machine: machineLabel(m) })}
                   />
                 </Row>
               );

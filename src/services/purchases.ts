@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import Purchases from 'react-native-purchases';
 
 import { ENV } from '@/data/env';
+import { t } from '@/i18n';
 import { useProfile } from '@/store/profile';
 
 import { track } from './analytics';
@@ -9,37 +10,58 @@ import { track } from './analytics';
 /**
  * One-time purchases via RevenueCat (SPEC §9). No subscriptions, no energy,
  * no paywalled automation. Product ids must match App Store Connect.
+ * Titles and details are getters so they read the current language.
  */
 export const PRODUCTS = {
   removeAds: {
     id: 'coinline.remove_ads',
-    title: 'Remove Ads + longer breaks',
+    get title() {
+      return t('services.products.removeAds.title');
+    },
     price: '$4.99',
-    detail: 'Hides ad offers and raises the offline cap by 25%.',
+    get detail() {
+      return t('services.products.removeAds.detail');
+    },
   },
   starterPack: {
     id: 'coinline.starter_pack',
-    title: 'Starter Pack',
+    get title() {
+      return t('services.products.starterPack.title');
+    },
     price: '$2.99',
-    detail: 'Van upgrade, two snack machines and $2,000 cash. Offered once after chapter 1.',
+    get detail() {
+      return t('services.products.starterPack.detail');
+    },
   },
   wrapNight: {
     id: 'coinline.wrap_night',
-    title: 'Night Shift wrap',
+    get title() {
+      return t('services.products.wrapNight.title');
+    },
     price: '$0.99',
-    detail: 'A dark, quiet machine wrap. Cosmetic.',
+    get detail() {
+      return t('services.products.wrapNight.detail');
+    },
   },
   wrapLinen: {
     id: 'coinline.wrap_linen',
-    title: 'Linen wrap',
+    get title() {
+      return t('services.products.wrapLinen.title');
+    },
     price: '$0.99',
-    detail: 'Warm off-white wrap. Cosmetic.',
+    get detail() {
+      return t('services.products.wrapLinen.detail');
+    },
   },
   lightingWarm: {
     id: 'coinline.lighting_warm',
-    title: 'Warm lighting pack',
+    get title() {
+      return t('services.products.lightingWarm.title');
+    },
     price: '$1.99',
-    detail: 'Sodium-warm product lighting at night. Cosmetic.',
+    get detail() {
+      return t('services.products.lightingWarm.detail');
+    },
   },
 } as const;
 
@@ -84,13 +106,13 @@ export async function syncEntitlements(): Promise<void> {
 
 /** Buy a product. Returns true when the purchase completed. */
 export async function buy(key: ProductKey): Promise<{ ok: boolean; error?: string }> {
-  if (!configured) return { ok: false, error: 'The store is not available in this build.' };
+  if (!configured) return { ok: false, error: t('services.errors.storeUnavailable') };
   try {
     const [product] = await Purchases.getProducts(
       [PRODUCTS[key].id],
       Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION,
     );
-    if (!product) return { ok: false, error: 'Product not found.' };
+    if (!product) return { ok: false, error: t('services.errors.productNotFound') };
     await Purchases.purchaseStoreProduct(product);
     track('purchase', { product: key });
     useProfile.getState().update((p) => {
@@ -106,17 +128,17 @@ export async function buy(key: ProductKey): Promise<{ ok: boolean; error?: strin
       e !== null &&
       'userCancelled' in e &&
       (e as { userCancelled?: boolean }).userCancelled;
-    return { ok: false, error: cancelled ? undefined : 'Purchase failed. You were not charged.' };
+    return { ok: false, error: cancelled ? undefined : t('services.errors.purchaseFailed') };
   }
 }
 
 export async function restore(): Promise<{ ok: boolean; error?: string }> {
-  if (!configured) return { ok: false, error: 'The store is not available in this build.' };
+  if (!configured) return { ok: false, error: t('services.errors.storeUnavailable') };
   try {
     await Purchases.restorePurchases();
     await syncEntitlements();
     return { ok: true };
   } catch {
-    return { ok: false, error: 'Could not restore purchases.' };
+    return { ok: false, error: t('services.errors.restoreFailed') };
   }
 }

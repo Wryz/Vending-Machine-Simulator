@@ -1,6 +1,7 @@
 import { Linking, Pressable, View } from 'react-native';
 
 import { LINKS } from '@/config/links';
+import { useT, type TFn } from '@/i18n';
 import { useProfile } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
 import { Paper, Screen, Section, T } from '@/ui/kit';
@@ -13,89 +14,88 @@ interface Credit {
   url?: string;
 }
 
-const DATA: Credit[] = [
+const DATA = (t: TFn): Credit[] => [
   {
     name: '© OpenStreetMap contributors',
-    detail: 'Map data, place names and building footprints.',
+    detail: t('credits.data.osm'),
     license: 'Open Database License (ODbL)',
     url: 'https://www.openstreetmap.org/copyright',
   },
   {
     name: 'OpenFreeMap',
-    detail: 'Basemap vector tiles and map fonts, hosted free by OpenFreeMap.',
-    license: 'Free public instance; tiles from OpenStreetMap data (ODbL)',
+    detail: t('credits.data.openfreemap'),
+    license: t('credits.data.openfreemapLicense'),
     url: 'https://openfreemap.org',
   },
   {
     name: '© OpenMapTiles',
-    detail: 'Vector tile schema used by the basemap.',
+    detail: t('credits.data.openmaptiles'),
     license: 'CC BY 4.0 (schema), ODbL (data)',
     url: 'https://www.openmaptiles.org',
   },
   {
     name: 'Protomaps',
-    detail:
-      'Place data from OpenStreetMap via the Protomaps planet build; self-hosted tiles option. Overture Maps Places is planned.',
-    license: 'Built from OpenStreetMap data (ODbL)',
+    detail: t('credits.data.protomaps'),
+    license: t('credits.data.protomapsLicense'),
     url: 'https://protomaps.com',
   },
   {
-    name: 'Population',
-    detail: 'Estimated from OpenStreetMap buildings.',
+    name: t('credits.data.populationName'),
+    detail: t('credits.data.population'),
     license: 'ODbL',
     url: 'https://www.openstreetmap.org/copyright',
   },
   {
     name: 'MET Norway',
-    detail:
-      'Live weather from the Norwegian Meteorological Institute (api.met.no), with no changes beyond mapping to game conditions. Offline, the game uses climate normals.',
-    license: 'CC BY 4.0 and NLOD 2.0',
+    detail: t('credits.data.met'),
+    license: t('credits.data.metLicense'),
     url: 'https://api.met.no',
   },
 ];
 
-const SOFTWARE: Credit[] = [
+const SOFTWARE = (t: TFn): Credit[] => [
   {
     name: 'Nunito',
-    detail: 'Typeface.',
+    detail: t('credits.software.nunito'),
     license: 'SIL Open Font License 1.1',
     url: 'https://github.com/googlefonts/nunito',
   },
   {
     name: 'MapLibre',
-    detail: 'Map rendering.',
+    detail: t('credits.software.maplibre'),
     license: 'BSD-2-Clause',
     url: 'https://github.com/maplibre/maplibre-native',
   },
   {
     name: 'three.js',
-    detail: '3D close-ups.',
+    detail: t('credits.software.three'),
     license: 'MIT',
     url: 'https://github.com/mrdoob/three.js',
   },
   {
     name: 'h3-js',
-    detail: 'Hexagonal grid.',
+    detail: t('credits.software.h3'),
     license: 'Apache-2.0',
     url: 'https://github.com/uber/h3-js',
   },
   {
     name: 'suncalc',
-    detail: 'Sun position for real daylight.',
+    detail: t('credits.software.suncalc'),
     license: 'BSD-2-Clause',
     url: 'https://github.com/mourner/suncalc',
   },
 ];
 
 function CreditRow({ c }: { c: Credit }) {
+  const t = useT();
   const theme = useTheme();
   const url = c.url;
   const open = url ? () => Linking.openURL(url).catch(() => undefined) : undefined;
   return (
     <Pressable
       accessibilityRole={open ? 'link' : undefined}
-      accessibilityLabel={`${c.name}. ${c.license}`}
-      accessibilityHint={open ? 'Opens in your browser' : undefined}
+      accessibilityLabel={t('credits.rowA11y', { name: c.name, license: c.license })}
+      accessibilityHint={open ? t('credits.opensHint') : undefined}
       onPress={open}
       disabled={!open}
       style={({ pressed }) => ({
@@ -121,55 +121,55 @@ function CreditRow({ c }: { c: Credit }) {
 
 /** Credits and licenses (SPEC §6.4, §11). */
 export default function Credits() {
+  const t = useT();
   const installId = useProfile((s) => s.installId);
   return (
-    <Screen title="Credits" subtitle="Coinline · Vending Machine Simulator">
-      <Section title="Privacy and help">
+    <Screen title={t('credits.title')} subtitle={t('credits.subtitle')}>
+      <Section title={t('credits.sections.help')}>
         <View>
           <CreditRow
             c={{
-              name: 'Privacy policy',
-              detail: 'What the game sends and the choices you have.',
-              license: 'Open',
+              name: t('credits.privacy.name'),
+              detail: t('credits.privacy.detail'),
+              license: t('credits.open'),
               url: LINKS.privacy,
             }}
           />
           <CreditRow
             c={{
-              name: 'Support',
-              detail: 'Questions, problems, restoring purchases.',
-              license: 'Open',
+              name: t('credits.support.name'),
+              detail: t('credits.support.detail'),
+              license: t('credits.open'),
               url: LINKS.support,
             }}
           />
         </View>
         <T size={12} muted selectable style={{ marginTop: SPACE.s }}>
-          {`Install ID (for data requests): ${installId}`}
+          {t('credits.installId', { id: installId })}
         </T>
       </Section>
       <Paper tone="surface">
-        <T>Places shown from open map data. No affiliation or endorsement.</T>
+        <T>{t('credits.placesNote')}</T>
         <T size={13} muted style={{ marginTop: SPACE.xs }}>
-          All products and brands in the game are invented. Use &quot;Report this place&quot; on a
-          spot to hide a venue.
+          {t('credits.brandsNote')}
         </T>
       </Paper>
-      <Section title="Data">
+      <Section title={t('credits.sections.data')}>
         <View>
-          {DATA.map((c) => (
+          {DATA(t).map((c) => (
             <CreditRow key={c.name} c={c} />
           ))}
         </View>
       </Section>
-      <Section title="Software and fonts">
+      <Section title={t('credits.sections.software')}>
         <View>
-          {SOFTWARE.map((c) => (
+          {SOFTWARE(t).map((c) => (
             <CreditRow key={c.name} c={c} />
           ))}
         </View>
       </Section>
       <T size={13} muted center>
-        Made by Coinline.
+        {t('credits.madeBy')}
       </T>
     </Screen>
   );

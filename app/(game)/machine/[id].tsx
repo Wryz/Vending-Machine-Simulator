@@ -13,6 +13,7 @@ import { CLOSEUP_CAMERA, WRAPS, getMachineType } from '@/config/machines';
 import { CAMERA } from '@/config/map';
 import { getProduct } from '@/config/products';
 import { useCityClock } from '@/hooks/useCityClock';
+import { useT } from '@/i18n';
 import { closeupCamera, mapCameraToScene, type SceneCamera } from '@/map/cameraMatch';
 import { baseTraffic, localTime, slotCapacity } from '@/sim';
 import { weatherTrafficFactor } from '@/sim/demand';
@@ -38,6 +39,7 @@ import { SPACE } from '@/ui/theme';
 export default function MachineCloseup() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const tr = useT();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const game = useGame((s) => s.game)!;
@@ -183,8 +185,8 @@ export default function MachineCloseup() {
           paddingTop: insets.top + SPACE.xl,
         }}
       >
-        <T>This machine is gone.</T>
-        <Button label="Back to map" onPress={() => router.back()} />
+        <T>{tr('machineScreen.gone')}</T>
+        <Button label={tr('machineScreen.backToMap')} onPress={() => router.back()} />
       </View>
     );
   }
@@ -260,7 +262,7 @@ export default function MachineCloseup() {
           onFps={setFps}
         />
         <View style={[styles.topRow, { top: insets.top + SPACE.xs }]}>
-          <RoundButton icon="back" label="Back to map" onPress={leave} />
+          <RoundButton icon="back" label={tr('machineScreen.backToMap')} onPress={leave} />
           {__DEV__ && fps !== null ? (
             <View style={[styles.fps, { backgroundColor: theme.hud }]}>
               <Mono size={11}>{`${fps.toFixed(0)} fps`}</Mono>

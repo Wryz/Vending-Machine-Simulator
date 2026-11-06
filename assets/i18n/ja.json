@@ -1,0 +1,5 @@
+{
+  "CFBundleDisplayName": "Coinline",
+  "NSLocationWhenInUseUsageDescription": "Coinlineは、いちばん近い都市でビジネスを始めるために、おおよその位置情報を一度だけ使用します。位置情報が保存されることはありません。",
+  "NSUserTrackingUsageDescription": "設定でパーソナライズ広告をオンにした場合のみ：広告パートナーがあなたに合った広告を表示できるようになります。どちらを選んでもCoinlineは同じように遊べます。"
+}

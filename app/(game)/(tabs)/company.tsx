@@ -13,6 +13,9 @@ import {
   RESEARCH,
   type Research,
 } from '@/config/progression';
+import { t, useT, type TKey } from '@/i18n';
+import { content } from '@/i18n/content';
+import { ledgerCategory, simError } from '@/i18n/sim';
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
 import { track } from '@/services/analytics';
@@ -48,6 +51,11 @@ import { SPACE, TOUCH } from '@/ui/theme';
 
 const FAMILIES = Object.keys(FAMILY_LABEL) as MachineFamily[];
 
+/** A machine family's display name. */
+function familyLabel(f: MachineFamily): string {
+  return t.or(`content.families.${f}`, FAMILY_LABEL[f]);
+}
+
 interface Goal {
   label: string;
   value: string;
@@ -57,9 +65,9 @@ interface Goal {
 /** Progress toward the current chapter's goal, computed like the sim does (CHAPTER_GOALS). */
 function chapterGoals(game: GameState): Goal[] {
   const machines = activeMachines(game).length;
-  const count = (have: number, need: number, label: string): Goal => ({
-    label,
-    value: `${Math.min(have, need)} / ${need}`,
+  const count = (have: number, need: number, labelKey: TKey): Goal => ({
+    label: t(labelKey),
+    value: t('company.chapter.count', { have: Math.min(have, need), need }),
     progress: have / need,
   });
   switch (game.chapter) {
@@ -67,33 +75,39 @@ function chapterGoals(game: GameState): Goal[] {
       const need = CHAPTER_GOALS[1].salesCents;
       return [
         {
-          label: 'Sales',
-          value: `${moneyShort(Math.min(need, game.ledger.lifetimeSalesCents))} / ${moneyShort(need)}`,
+          label: t('company.chapter.sales'),
+          value: t('company.chapter.count', {
+            have: moneyShort(Math.min(need, game.ledger.lifetimeSalesCents)),
+            need: moneyShort(need),
+          }),
           progress: game.ledger.lifetimeSalesCents / need,
         },
       ];
     }
     case 2:
       return [
-        count(machines, CHAPTER_GOALS[2].machines, 'Machines running'),
-        count(game.vanLevel, CHAPTER_GOALS[2].vanLevel, 'Van'),
+        count(machines, CHAPTER_GOALS[2].machines, 'company.chapter.machinesRunning'),
+        count(game.vanLevel, CHAPTER_GOALS[2].vanLevel, 'company.chapter.van'),
       ];
     case 3:
       return [
-        count(machines, CHAPTER_GOALS[3].machines, 'Machines running'),
-        count(game.drivers.length, CHAPTER_GOALS[3].drivers, 'Drivers'),
+        count(machines, CHAPTER_GOALS[3].machines, 'company.chapter.machinesRunning'),
+        count(game.drivers.length, CHAPTER_GOALS[3].drivers, 'company.chapter.drivers'),
       ];
     case 4:
       return [
-        count(machines, CHAPTER_GOALS[4].machines, 'Machines running'),
-        count(game.drivers.length, CHAPTER_GOALS[4].drivers, 'Drivers'),
+        count(machines, CHAPTER_GOALS[4].machines, 'company.chapter.machinesRunning'),
+        count(game.drivers.length, CHAPTER_GOALS[4].drivers, 'company.chapter.drivers'),
       ];
     case 5: {
       const share = game.rival.active ? playerShare(game) : 0;
       return [
         {
-          label: `Your share vs ${RIVAL.name}`,
-          value: `${pct(share)} / ${pct(CHAPTER_GOALS[5].share)}`,
+          label: t('company.chapter.share', { rival: RIVAL.name }),
+          value: t('company.chapter.count', {
+            have: pct(share),
+            need: pct(CHAPTER_GOALS[5].share),
+          }),
           progress: share / CHAPTER_GOALS[5].share,
         },
       ];
@@ -113,7 +127,7 @@ function pnlLines(lines: Record<string, number>): { lines: ReceiptLine[]; total:
   });
   return {
     lines: entries.map(([label, v]) => ({
-      label,
+      label: ledgerCategory(label),
       value: money(v),
       tone: v >= 0 ? 'normal' : 'bad',
     })),
@@ -135,11 +149,16 @@ function FamilyButton({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const t = useT();
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={done ? `${label}, researched` : `Research for ${label}`}
+      accessibilityLabel={
+        done
+          ? t('company.research.familyDone', { family: label })
+          : t('company.research.familyHint', { family: label })
+      }
       accessibilityState={{ disabled: done || disabled }}
       disabled={done || disabled}
       onPress={onPress}
@@ -157,7 +176,7 @@ function FamilyButton({
     >
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
       <T size={13} weight="medium" color={done ? theme.signal : theme.ink}>
-        {done ? `${label} ✓` : label}
+        {done ? t('company.research.familyDoneLabel', { family: label }) : label}
       </T>
     </Pressable>
   );
@@ -165,6 +184,7 @@ function FamilyButton({
 
 /** Company (SPEC §8): chapters, P&L, staff, warehouse, permits, research, market share, prestige. */
 export default function Company() {
+  const t = useT();
   const theme = useTheme();
   const game = useGame((s) => s.game);
   const world = useGame((s) => s.world);
@@ -181,14 +201,14 @@ export default function Company() {
       show(success, 'success');
     } else {
       haptic.error();
-      show(r.error, 'error');
+      show(simError(r.error), 'error');
     }
   };
 
   if (!game || !world) {
     return (
-      <Screen tab title="Company">
-        <T muted>No business is open.</T>
+      <Screen tab title={t('company.title')}>
+        <T muted>{t('company.noBusiness')}</T>
       </Screen>
     );
   }
@@ -210,22 +230,25 @@ export default function Company() {
   const sellTo = (id: CityId) => {
     const target = cityInfoFor(id);
     const replacing = hasSave(target) && city && cityKey(city) !== cityKey(target);
+    const targetName = content.city(id, target.name);
     Alert.alert(
-      'Sell the company?',
-      `You bank ${reputation} Reputation and restart in ${target.name} with your perks.` +
-        (replacing ? ` Your saved business in ${target.name} will be replaced.` : '') +
-        ` This business in ${world.city.name} is sold.`,
+      t('company.sell.title'),
+      t(replacing ? 'company.sell.bodyReplacing' : 'company.sell.body', {
+        rep: reputation,
+        target: targetName,
+        city: world.city.name,
+      }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('company.sell.cancel'), style: 'cancel' },
         {
-          text: 'Sell',
+          text: t('company.sell.confirm'),
           style: 'destructive',
           onPress: async () => {
             const current = useGame.getState().game;
             if (!current) return;
             const res = sellCompany(current, id, Date.now(), Math.floor(Math.random() * 2 ** 31));
             if ('error' in res) {
-              show(res.error, 'error');
+              show(simError(res.error), 'error');
               return;
             }
             setSelling(true);
@@ -251,12 +274,22 @@ export default function Company() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Screen tab title="Company" subtitle={`Coinline · ${world.city.name}`}>
+      <Screen
+        tab
+        title={t('company.title')}
+        subtitle={t('company.subtitle', { city: world.city.name })}
+      >
         {/* Chapter progress */}
-        <Section title={`Chapter ${game.chapter}`}>
+        <Section title={t('company.chapter.section', { n: game.chapter })}>
           <Paper tone="surface">
-            <T size={18} weight="bold" accessibilityHint={chapter?.goal}>
-              {chapter?.title ?? 'Prestige'}
+            <T
+              size={18}
+              weight="bold"
+              accessibilityHint={chapter ? content.chapterGoal(chapter.n, chapter.goal) : undefined}
+            >
+              {chapter
+                ? content.chapterTitle(chapter.n, chapter.title)
+                : t('company.chapter.prestige')}
             </T>
             {goals.length > 0 ? <Spacer h={SPACE.m} /> : null}
             {goals.map((g) => (
@@ -270,12 +303,12 @@ export default function Company() {
             ))}
             {chapter && chapter.n < 6 ? (
               <Row style={{ flexWrap: 'wrap', marginTop: SPACE.xs }}>
-                {chapter.unlocks.map((u) => (
+                {chapter.unlocks.map((u, i) => (
                   <StatChip
                     key={u}
                     icon="star"
-                    label="Unlocks next"
-                    value={u}
+                    label={t('company.chapter.unlocksNext')}
+                    value={content.chapterUnlock(chapter.n, i, u)}
                     color={theme.brand}
                   />
                 ))}
@@ -287,11 +320,19 @@ export default function Company() {
             {CHAPTERS.map((c) => {
               const done = !!game.chapterDoneAt[c.n];
               const current = c.n === game.chapter;
+              const stepVars = { n: c.n, title: content.chapterTitle(c.n, c.title) };
               return (
                 <View
                   key={c.n}
                   accessible
-                  accessibilityLabel={`Chapter ${c.n}, ${c.title}${done ? ', done' : current ? ', current' : ''}`}
+                  accessibilityLabel={t(
+                    done
+                      ? 'company.chapter.stepDone'
+                      : current
+                        ? 'company.chapter.stepCurrent'
+                        : 'company.chapter.step',
+                    stepVars,
+                  )}
                   style={{
                     width: current ? 40 : 32,
                     height: current ? 40 : 32,
@@ -315,46 +356,50 @@ export default function Company() {
         </Section>
 
         {/* Finances */}
-        <Section title="Finances">
+        <Section title={t('company.finances.section')}>
           <Row style={{ flexWrap: 'wrap' }}>
-            <StatChip icon="coin" label="Cash" value={money(game.cashCents)} />
+            <StatChip
+              icon="coin"
+              label={t('company.finances.cash')}
+              value={money(game.cashCents)}
+            />
             <StatChip
               icon="bag"
-              label="Lifetime sales"
+              label={t('company.finances.lifetimeSales')}
               value={moneyShort(game.ledger.lifetimeSalesCents)}
             />
             <StatChip
               icon="box"
-              label="Units sold"
-              value={game.ledger.lifetimeUnits.toLocaleString('en-US')}
+              label={t('company.finances.unitsSold')}
+              value={game.ledger.lifetimeUnits.toLocaleString(t.lang)}
             />
             <StatChip
               icon="minus"
-              label="Lifetime costs"
+              label={t('company.finances.lifetimeCosts')}
               value={moneyShort(game.ledger.lifetimeCostsCents)}
             />
           </Row>
           <Receipt
-            title="Today"
+            title={t('company.finances.today')}
             subtitle={game.ledger.day.dateKey || undefined}
             lines={
               today.lines.length
                 ? today.lines
-                : [{ label: 'No activity yet', value: '', tone: 'muted' }]
+                : [{ label: t('company.finances.noActivity'), value: '', tone: 'muted' }]
             }
             total={{
-              label: 'Net',
+              label: t('company.finances.net'),
               value: money(today.total, { sign: true }),
               tone: today.total >= 0 ? 'good' : 'bad',
             }}
           />
           {yesterday ? (
             <Receipt
-              title="Yesterday"
+              title={t('company.finances.yesterday')}
               subtitle={game.ledger.yesterday?.dateKey}
               lines={yesterday.lines}
               total={{
-                label: 'Net',
+                label: t('company.finances.net'),
                 value: money(yesterday.total, { sign: true }),
                 tone: yesterday.total >= 0 ? 'good' : 'bad',
               }}
@@ -363,15 +408,25 @@ export default function Company() {
         </Section>
 
         {/* Staff & warehouse */}
-        <Section title="Staff and warehouse">
+        <Section title={t('company.staff.section')}>
           <Row style={{ flexWrap: 'wrap' }}>
-            <StatChip icon="grid" label="Machines placed" value={String(machines)} />
-            {stored ? <StatChip icon="box" label="In storage" value={String(stored)} /> : null}
-            <StatChip icon="people" label="Drivers" value={String(game.drivers.length)} />
+            <StatChip
+              icon="grid"
+              label={t('company.staff.machinesPlaced')}
+              value={String(machines)}
+            />
+            {stored ? (
+              <StatChip icon="box" label={t('company.staff.inStorage')} value={String(stored)} />
+            ) : null}
+            <StatChip
+              icon="people"
+              label={t('company.staff.drivers')}
+              value={String(game.drivers.length)}
+            />
             {game.drivers.length ? (
               <StatChip
                 icon="coin"
-                label="Wages per day"
+                label={t('company.staff.wagesPerDay')}
                 value={moneyShort(game.drivers.length * STAFF.driverWageCentsPerDay)}
               />
             ) : null}
@@ -379,39 +434,44 @@ export default function Company() {
           <Button
             kind="secondary"
             icon={<Icon name="route" size={20} color={theme.ink} />}
-            label="Routes"
+            label={t('company.staff.routes')}
             onPress={() => router.navigate('/routes')}
           />
           {game.chapter < 3 ? (
-            <LockedCard icon="box" title="Warehouse" chapter={3} />
+            <LockedCard icon="box" title={t('company.warehouse.title')} chapter={3} />
           ) : (
             <Paper tone="surface" style={{ gap: SPACE.s }}>
-              <T weight="bold">Warehouse</T>
+              <T weight="bold">{t('company.warehouse.title')}</T>
               <Row style={{ flexWrap: 'wrap' }}>
                 <StatChip
                   icon="percent"
-                  label="Off wholesale"
-                  value={`−${pct(STAFF.warehouseDiscount)}`}
+                  label={t('company.warehouse.offWholesale')}
+                  value={t('company.warehouse.discount', { pct: pct(STAFF.warehouseDiscount) })}
                 />
                 <StatChip
                   icon="box"
-                  label="Driver load"
+                  label={t('company.warehouse.driverLoad')}
                   value={String(STAFF.warehouseDriverCapacity)}
                 />
                 <StatChip
                   icon="coin"
-                  label="Rent per day"
+                  label={t('company.warehouse.rentPerDay')}
                   value={moneyShort(STAFF.warehouseRentCentsPerDay)}
                 />
               </Row>
               {game.warehouse ? (
-                <StatChip icon="star" label="Owned" value="Yours" color={theme.signal} />
+                <StatChip
+                  icon="star"
+                  label={t('company.warehouse.owned')}
+                  value={t('company.warehouse.yours')}
+                  color={theme.signal}
+                />
               ) : (
                 <Button
                   icon={<Icon name="plus" size={20} color={theme.onBrand} />}
-                  label={`Buy · ${moneyShort(STAFF.warehouseBuyCents)}`}
+                  label={t('company.warehouse.buy', { cost: moneyShort(STAFF.warehouseBuyCents) })}
                   disabled={game.cashCents < STAFF.warehouseBuyCents}
-                  onPress={() => run((d) => buyWarehouse(d), 'Warehouse bought')}
+                  onPress={() => run((d) => buyWarehouse(d), t('company.warehouse.bought'))}
                 />
               )}
             </Paper>
@@ -419,83 +479,92 @@ export default function Company() {
         </Section>
 
         {/* Permits */}
-        <Section title="Permits">
+        <Section title={t('company.permits.section')}>
           <PermitCard
-            title="Liquor permit"
-            holder={`Coinline · ${world.city.name}`}
+            title={t('company.permits.liquor')}
+            holder={t('company.subtitle', { city: world.city.name })}
             valid={game.liquorPermit}
-            detail={
-              !alcoholAllowed
-                ? 'Alcohol vending is not allowed in this city.'
-                : 'Beer and wine machines. Keep 300 m from schools and youth places.'
-            }
+            detail={!alcoholAllowed ? t('company.permits.notAllowed') : t('company.permits.detail')}
           />
           {!game.liquorPermit && alcoholAllowed ? (
             game.chapter < 5 ? (
-              <LockedCard icon="lock" title="Liquor permit" chapter={5} />
+              <LockedCard icon="lock" title={t('company.permits.liquor')} chapter={5} />
             ) : (
               <Button
-                label={`Apply · ${money(LIQUOR_PERMIT_CENTS)}`}
+                label={t('company.permits.apply', { cost: money(LIQUOR_PERMIT_CENTS) })}
                 disabled={game.cashCents < LIQUOR_PERMIT_CENTS}
-                onPress={() => run((d, w) => buyLiquorPermit(d, w), 'Liquor permit granted')}
+                onPress={() => run((d, w) => buyLiquorPermit(d, w), t('company.permits.granted'))}
               />
             )
           ) : null}
         </Section>
 
         {/* Research */}
-        <Section title="Research">
+        <Section title={t('company.research.section')}>
           {RESEARCH.map((r: Research) => {
             const locked = game.chapter < r.unlockChapter;
             const families =
               r.id === 'id-check' ? familiesOpen.filter((f) => f === 'alcohol') : familiesOpen;
             const globalDone = !!r.global && hasResearch(game, r.id, 'snacks');
+            const name = content.researchName(r.id, r.name);
+            const desc = content.researchDesc(r.id, r.description);
             return (
               <Paper key={r.id} tone="surface" style={{ gap: SPACE.xs }}>
                 <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <View style={{ flex: 1 }}>
-                    <T weight="bold" accessibilityHint={r.description}>
-                      {r.name}
+                    <T weight="bold" accessibilityHint={desc}>
+                      {name}
                     </T>
                     <T size={13} muted numberOfLines={1}>
-                      {r.description}
+                      {desc}
                     </T>
                   </View>
                   <Mono size={13} muted={locked}>
-                    {money(r.costCents)}
-                    {r.global ? '' : '/family'}
+                    {r.global
+                      ? money(r.costCents)
+                      : t('company.research.perFamily', { cost: money(r.costCents) })}
                   </Mono>
                 </Row>
                 {locked ? (
                   <StatChip
                     icon="lock"
-                    label={`Unlocks in chapter ${r.unlockChapter}`}
-                    value={`Ch. ${r.unlockChapter}`}
+                    label={t('company.research.unlocksIn', { n: r.unlockChapter })}
+                    value={t('company.research.chapterShort', { n: r.unlockChapter })}
                   />
                 ) : r.global ? (
                   globalDone ? (
-                    <StatChip icon="star" label="Researched" value="Done" color={theme.signal} />
+                    <StatChip
+                      icon="star"
+                      label={t('company.research.researched')}
+                      value={t('company.research.done')}
+                      color={theme.signal}
+                    />
                   ) : (
                     <Button
                       kind="secondary"
-                      label={`Research · ${money(r.costCents)}`}
+                      label={t('company.research.buy', { cost: money(r.costCents) })}
                       disabled={game.cashCents < r.costCents}
-                      onPress={() => run((d) => buyResearch(d, r.id), `Researched ${r.name}`)}
+                      onPress={() =>
+                        run((d) => buyResearch(d, r.id), t('company.research.doneToast', { name }))
+                      }
                     />
                   )
                 ) : families.length === 0 ? (
-                  <StatChip icon="grid" label="No machines of this kind yet" value="—" />
+                  <StatChip icon="grid" label={t('company.research.noMachines')} value="—" />
                 ) : (
                   <Row gap={SPACE.s} style={{ flexWrap: 'wrap', marginTop: SPACE.xs }}>
                     {families.map((f) => (
                       <FamilyButton
                         key={f}
-                        label={FAMILY_LABEL[f]}
+                        label={familyLabel(f)}
                         color={theme.family[f]}
                         done={hasResearch(game, r.id, f)}
                         disabled={game.cashCents < r.costCents}
                         onPress={() =>
-                          run((d) => buyResearch(d, r.id, f), `${r.name}: ${FAMILY_LABEL[f]}`)
+                          run(
+                            (d) => buyResearch(d, r.id, f),
+                            t('company.research.familyToast', { name, family: familyLabel(f) }),
+                          )
                         }
                       />
                     ))}
@@ -507,17 +576,17 @@ export default function Company() {
         </Section>
 
         {/* Market share */}
-        <Section title="Market share">
+        <Section title={t('company.market.section')}>
           {game.rival.active ? (
             <Paper tone="surface" style={{ gap: SPACE.s }}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <T>You</T>
+                <T>{t('company.market.you')}</T>
                 <Mono>{pct(share)}</Mono>
               </Row>
               <ProgressBar value={share} />
               <Row style={{ justifyContent: 'space-between' }}>
                 <T muted>
-                  {RIVAL.name} · {game.rival.machines.length} machines
+                  {t('company.market.rival', { rival: RIVAL.name, n: game.rival.machines.length })}
                 </T>
                 <Mono muted>{pct(1 - share)}</Mono>
               </Row>
@@ -528,25 +597,29 @@ export default function Company() {
         </Section>
 
         {/* Prestige */}
-        <Section title="Prestige">
+        <Section title={t('company.prestige.section')}>
           <Paper tone="surface" style={{ gap: SPACE.xs }}>
             <Row style={{ flexWrap: 'wrap' }}>
-              <StatChip icon="coin" label="Valuation" value={moneyShort(valuation)} />
+              <StatChip
+                icon="coin"
+                label={t('company.prestige.valuation')}
+                value={moneyShort(valuation)}
+              />
               <StatChip
                 icon="star"
-                label="Reputation from a sale"
+                label={t('company.prestige.repFromSale')}
                 value={`+${reputation}`}
                 color={theme.brand}
               />
               <StatChip
                 icon="star"
-                label="Reputation banked"
+                label={t('company.prestige.repBanked')}
                 value={String(game.prestige.reputation)}
               />
               {game.prestige.sales > 0 ? (
                 <StatChip
                   icon="handshake"
-                  label="Companies sold"
+                  label={t('company.prestige.companiesSold')}
                   value={String(game.prestige.sales)}
                 />
               ) : null}
@@ -556,7 +629,7 @@ export default function Company() {
               <>
                 <Button
                   kind={picking ? 'secondary' : 'danger'}
-                  label={picking ? 'Keep the company' : 'Sell the company'}
+                  label={picking ? t('company.prestige.keep') : t('company.prestige.sell')}
                   busy={selling}
                   onPress={() => setPicking((p) => !p)}
                 />
@@ -566,7 +639,9 @@ export default function Company() {
                       <Pressable
                         key={c.id}
                         accessibilityRole="button"
-                        accessibilityLabel={`Restart in ${c.name}`}
+                        accessibilityLabel={t('company.prestige.restartIn', {
+                          city: content.city(c.id, c.name),
+                        })}
                         onPress={() => sellTo(c.id)}
                         disabled={selling}
                         style={({ pressed }) => ({
@@ -578,9 +653,9 @@ export default function Company() {
                         })}
                       >
                         <Row style={{ justifyContent: 'space-between' }}>
-                          <T weight="medium">{c.name}</T>
+                          <T weight="medium">{content.city(c.id, c.name)}</T>
                           <T size={13} muted>
-                            {c.notes}
+                            {t.or(`content.cityNotes.${c.id}`, c.notes)}
                           </T>
                         </Row>
                       </Pressable>
@@ -589,32 +664,41 @@ export default function Company() {
                 ) : null}
               </>
             ) : (
-              <LockedCard icon="handshake" title="Sell the company" chapter={5} />
+              <LockedCard icon="handshake" title={t('company.prestige.sell')} chapter={5} />
             )}
           </Paper>
           {PRESTIGE_PERKS.map((p) => {
             const level = game.prestige.perks[p.id] ?? 0;
             const maxed = level >= p.maxLevel;
+            const perkName = content.perkName(p.id, p.name);
             return (
               <Paper key={p.id} tone="surface" style={{ gap: SPACE.xs }}>
                 <Row style={{ justifyContent: 'space-between' }}>
-                  <T weight="bold">{p.name}</T>
+                  <T weight="bold">{perkName}</T>
                   <Mono size={13}>
                     {level}/{p.maxLevel}
                   </Mono>
                 </Row>
                 <T size={13} muted numberOfLines={1}>
-                  {p.description}
+                  {content.perkDesc(p.id, p.description)}
                 </T>
                 {maxed ? (
-                  <StatChip icon="star" label="Maxed" value="Max" color={theme.signal} />
+                  <StatChip
+                    icon="star"
+                    label={t('company.prestige.maxed')}
+                    value={t('company.prestige.max')}
+                    color={theme.signal}
+                  />
                 ) : (
                   <Button
                     kind="secondary"
-                    label={`Buy · ${p.costRep} Reputation`}
+                    label={t('company.prestige.buyPerk', { cost: p.costRep })}
                     disabled={game.prestige.reputation < p.costRep}
                     onPress={() =>
-                      run((d) => buyPrestigePerk(d, p.id), `${p.name} level ${level + 1}`)
+                      run(
+                        (d) => buyPrestigePerk(d, p.id),
+                        t('company.prestige.perkToast', { name: perkName, n: level + 1 }),
+                      )
                     }
                   />
                 )}
@@ -623,16 +707,28 @@ export default function Company() {
           })}
         </Section>
 
-        <Section title="More">
+        <Section title={t('company.more.section')}>
           <Row gap={SPACE.s} style={{ flexWrap: 'wrap' }}>
             <Button
               kind="secondary"
-              label="Collections"
+              label={t('company.more.collections')}
               onPress={() => router.push('/collections')}
             />
-            <Button kind="secondary" label="Cities" onPress={() => router.push('/cities')} />
-            <Button kind="secondary" label="Shop" onPress={() => router.push('/shop')} />
-            <Button kind="secondary" label="Settings" onPress={() => router.push('/settings')} />
+            <Button
+              kind="secondary"
+              label={t('company.more.cities')}
+              onPress={() => router.push('/cities')}
+            />
+            <Button
+              kind="secondary"
+              label={t('company.more.shop')}
+              onPress={() => router.push('/shop')}
+            />
+            <Button
+              kind="secondary"
+              label={t('company.more.settings')}
+              onPress={() => router.push('/settings')}
+            />
           </Row>
         </Section>
       </Screen>

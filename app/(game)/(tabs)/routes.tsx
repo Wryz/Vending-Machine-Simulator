@@ -4,6 +4,8 @@ import { Alert, Pressable, View } from 'react-native';
 
 import { SERVICE, STAFF } from '@/config/economy';
 import { CHAPTER_GOALS, RESEARCH } from '@/config/progression';
+import { useT, type TKey } from '@/i18n';
+import { simError, venueName } from '@/i18n/sim';
 import { haptic } from '@/services/haptics';
 import {
   assignRoute,
@@ -32,7 +34,12 @@ import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { STATUS_LABEL, statusColor } from '@/ui/objects/KeyTag';
 import { SPACE, TOUCH } from '@/ui/theme';
 
-const VAN_NAMES = ['Car boot', 'Van', 'Box van', 'Truck'];
+const VAN_NAMES: readonly TKey[] = [
+  'routes.vans.v0',
+  'routes.vans.v1',
+  'routes.vans.v2',
+  'routes.vans.v3',
+];
 
 /** One checklist line: a box you tick to put a machine on this route. */
 function Stop({
@@ -50,6 +57,7 @@ function Stop({
   note?: string;
   onToggle?: () => void;
 }) {
+  const t = useT();
   const theme = useTheme();
   const status = machineStatus(game, machine);
   const ink = theme.paperInk;
@@ -57,7 +65,11 @@ function Stop({
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked, disabled: !!disabled }}
-      accessibilityLabel={`${machineLabel(machine)} at ${machine.venue.name}${note ? `, ${note}` : ''}`}
+      accessibilityLabel={t(note ? 'routes.stop.a11yNote' : 'routes.stop.a11y', {
+        machine: machineLabel(machine),
+        place: venueName(machine.venue.name),
+        note: note ?? '',
+      })}
       disabled={disabled || !onToggle}
       onPress={onToggle}
       style={({ pressed }) => ({
@@ -90,7 +102,7 @@ function Stop({
       </View>
       <View style={{ flex: 1 }}>
         <T size={14} weight="medium" color={ink}>
-          {machine.venue.name}
+          {venueName(machine.venue.name)}
         </T>
         <T size={12} color="#5C6066">
           {machineLabel(machine)}
@@ -109,6 +121,7 @@ function Stop({
 
 /** Route clipboard (SPEC §3.6, §8): van, drivers and their routes, auto-reorder. */
 export default function Routes() {
+  const t = useT();
   const theme = useTheme();
   const game = useGame((s) => s.game);
   const { flash, show } = useFlash();
@@ -121,15 +134,15 @@ export default function Routes() {
       show(success, 'success');
     } else {
       haptic.error();
-      show(r.error, 'error');
+      show(simError(r.error), 'error');
     }
     return r;
   };
 
   if (!game) {
     return (
-      <Screen tab title="Route clipboard">
-        <T muted>No business is open.</T>
+      <Screen tab title={t('routes.emptyTitle')}>
+        <T muted>{t('routes.noBusiness')}</T>
       </Screen>
     );
   }
@@ -150,16 +163,17 @@ export default function Routes() {
     const next = on ? d.machineIds.filter((id) => id !== machineId) : [...d.machineIds, machineId];
     const r = useGame.getState().act((draft) => assignRoute(draft, d.id, next));
     if (r.ok) haptic.select();
-    else show(r.error, 'error');
+    else show(simError(r.error), 'error');
   };
 
   const confirmFire = (d: Driver) =>
-    Alert.alert(`Let ${d.name} go?`, 'Their route will be left without a driver.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('routes.fire.title', { name: d.name }), t('routes.fire.body'), [
+      { text: t('routes.fire.cancel'), style: 'cancel' },
       {
-        text: `Let ${d.name} go`,
+        text: t('routes.fire.confirm', { name: d.name }),
         style: 'destructive',
-        onPress: () => run((draft) => fireDriver(draft, d.id), `${d.name} has left`),
+        onPress: () =>
+          run((draft) => fireDriver(draft, d.id), t('routes.fire.done', { name: d.name })),
       },
     ]);
 
@@ -167,22 +181,26 @@ export default function Routes() {
     <View style={{ flex: 1 }}>
       <Screen
         tab
-        title="Routes"
-        subtitle={`${active.length} machines · ${game.drivers.length} drivers`}
+        title={t('routes.title')}
+        subtitle={t('routes.subtitle', { machines: active.length, drivers: game.drivers.length })}
       >
-        <Section title="Van">
+        <Section title={t('routes.van.section')}>
           <Paper tone="surface" style={{ gap: SPACE.m }}>
             <Row style={{ justifyContent: 'space-between' }}>
               <T size={17} weight="bold">
-                {VAN_NAMES[Math.min(game.vanLevel, VAN_NAMES.length - 1)]}
+                {t(VAN_NAMES[Math.min(game.vanLevel, VAN_NAMES.length - 1)]!)}
               </T>
               <Row gap={SPACE.s}>
-                <StatChip icon="box" label="Items per trip" value={String(vanCapacity(game))} />
+                <StatChip
+                  icon="box"
+                  label={t('routes.van.itemsPerTrip')}
+                  value={String(vanCapacity(game))}
+                />
                 {game.chapter === 2 && game.vanLevel < CHAPTER_GOALS[2].vanLevel ? (
                   <StatChip
                     icon="star"
-                    label="Chapter goal: buy a van"
-                    value="Goal"
+                    label={t('routes.van.chapterGoal')}
+                    value={t('routes.van.goal')}
                     color={theme.brand}
                   />
                 ) : null}
@@ -198,41 +216,52 @@ export default function Routes() {
                     color={game.cashCents >= nextVanCost ? theme.onBrand : theme.ink}
                   />
                 }
-                label={`${VAN_NAMES[game.vanLevel + 1] ?? `Level ${game.vanLevel + 1}`} · ${moneyShort(nextVanCost)}`}
+                label={t('routes.van.buy', {
+                  name: VAN_NAMES[game.vanLevel + 1]
+                    ? t(VAN_NAMES[game.vanLevel + 1]!)
+                    : t('routes.vanLevel', { n: game.vanLevel + 1 }),
+                  cost: moneyShort(nextVanCost),
+                })}
                 disabled={game.cashCents < nextVanCost}
-                accessibilityHint={`Upgrade: carries ${SERVICE.vanCapacityByLevel[game.vanLevel + 1]} items per trip`}
-                onPress={() => run((d) => buyVan(d), 'Van upgraded')}
+                accessibilityHint={t('routes.van.buyHint', {
+                  n: SERVICE.vanCapacityByLevel[game.vanLevel + 1] ?? 0,
+                })}
+                onPress={() => run((d) => buyVan(d), t('routes.van.upgraded'))}
               />
             ) : null}
           </Paper>
         </Section>
 
-        <Section title="Drivers">
+        <Section title={t('routes.drivers.section')}>
           {!driversUnlocked ? (
-            <LockedCard icon="people" title="Drivers" chapter={3} />
+            <LockedCard icon="people" title={t('routes.drivers.section')} chapter={3} />
           ) : (
-            <Clipboard title="Routes">
+            <Clipboard title={t('routes.drivers.clipboard')}>
               <Row style={{ flexWrap: 'wrap' }}>
-                <StatChip icon="route" label="Stops per route" value={`≤${STAFF.stopsPerRoute}`} />
+                <StatChip
+                  icon="route"
+                  label={t('routes.drivers.stopsPerRoute')}
+                  value={`≤${STAFF.stopsPerRoute}`}
+                />
                 <StatChip
                   icon="clock"
-                  label="Run every (business hours)"
-                  value={`${STAFF.routeIntervalHours} h`}
+                  label={t('routes.drivers.runEvery')}
+                  value={t('routes.drivers.hours', { n: STAFF.routeIntervalHours })}
                 />
                 <StatChip
                   icon="box"
-                  label="Items per driver"
+                  label={t('routes.drivers.itemsPerDriver')}
                   value={String(driverCapacity(game))}
                 />
                 <StatChip
                   icon="coin"
-                  label="Wage per day"
+                  label={t('routes.drivers.wagePerDay')}
                   value={moneyShort(STAFF.driverWageCentsPerDay)}
                 />
               </Row>
               {game.drivers.length === 0 ? (
                 <T size={14} color={ink}>
-                  No drivers yet.
+                  {t('routes.drivers.none')}
                 </T>
               ) : null}
               {game.drivers.map((d) => {
@@ -251,23 +280,31 @@ export default function Routes() {
                           {d.name}
                         </T>
                         <T size={12} color="#5C6066">
-                          {stops.length}/{STAFF.stopsPerRoute} stops ·{' '}
-                          {stops.length === 0
-                            ? 'no route'
-                            : nextRun > 60_000
-                              ? `next run in ${duration(nextRun)}`
-                              : 'on the road'}
+                          {t('routes.drivers.stops', {
+                            stops: stops.length,
+                            max: STAFF.stopsPerRoute,
+                            state:
+                              stops.length === 0
+                                ? t('routes.drivers.noRoute')
+                                : nextRun > 60_000
+                                  ? t('routes.drivers.nextRun', { time: duration(nextRun) })
+                                  : t('routes.drivers.onTheRoad'),
+                          })}
                         </T>
                       </View>
                       <Mono size={13} color={ink}>
-                        {money(-STAFF.driverWageCentsPerDay)}/day
+                        {t('routes.drivers.perDay', {
+                          amount: money(-STAFF.driverWageCentsPerDay),
+                        })}
                       </Mono>
                     </Row>
                     {(isEditing ? active : stops).map((m) => {
                       const owner = routeOf.get(m.id);
                       const checked = d.machineIds.includes(m.id);
                       const note =
-                        owner && owner.id !== d.id ? `on ${owner.name}'s route` : undefined;
+                        owner && owner.id !== d.id
+                          ? t('routes.drivers.otherRoute', { name: owner.name })
+                          : undefined;
                       return (
                         <Stop
                           key={m.id}
@@ -282,21 +319,21 @@ export default function Routes() {
                     })}
                     {isEditing && active.length === 0 ? (
                       <T size={13} color="#5C6066">
-                        Place machines on the map first.
+                        {t('routes.drivers.placeFirst')}
                       </T>
                     ) : null}
                     <Row gap={SPACE.s} style={{ marginTop: SPACE.xs }}>
                       <Button
                         style={{ flex: 1 }}
                         kind="secondary"
-                        label={isEditing ? 'Done' : 'Edit route'}
+                        label={isEditing ? t('routes.drivers.done') : t('routes.drivers.editRoute')}
                         onPress={() => setEditing(isEditing ? null : d.id)}
                       />
                       <Button
                         kind="quiet"
-                        label="Let go"
+                        label={t('routes.drivers.letGo')}
                         onPress={() => confirmFire(d)}
-                        accessibilityHint={`Fire ${d.name}`}
+                        accessibilityHint={t('routes.drivers.letGoHint', { name: d.name })}
                       />
                     </Row>
                   </View>
@@ -305,60 +342,59 @@ export default function Routes() {
               <Divider dashed />
               {unassigned.length > 0 && game.drivers.length > 0 ? (
                 <T size={13} color={theme.amber}>
-                  {unassigned.length === 1 ? '1 machine is' : `${unassigned.length} machines are`}{' '}
-                  not on a route.
+                  {t('routes.drivers.unassigned', { n: unassigned.length })}
                 </T>
               ) : null}
               <Row gap={SPACE.s}>
                 <Button
                   style={{ flex: 1 }}
-                  label={`Hire · ${money(STAFF.driverHireCents)}`}
+                  label={t('routes.drivers.hire', { cost: money(STAFF.driverHireCents) })}
                   disabled={game.vanLevel < 1 || game.cashCents < STAFF.driverHireCents}
-                  onPress={() => run((d) => hireDriver(d), 'Driver hired')}
+                  onPress={() => run((d) => hireDriver(d), t('routes.drivers.hired'))}
                 />
                 {game.drivers.length > 0 ? (
                   <Button
                     kind="secondary"
-                    label="Auto-assign"
-                    accessibilityHint="Group nearby machines into routes"
+                    label={t('routes.drivers.autoAssign')}
+                    accessibilityHint={t('routes.drivers.autoAssignHint')}
                     onPress={() => {
                       setEditing(null);
-                      run((d) => autoAssignRoutes(d), 'Routes assigned');
+                      run((d) => autoAssignRoutes(d), t('routes.drivers.assigned'));
                     }}
                   />
                 ) : null}
               </Row>
               {game.vanLevel < 1 ? (
                 <T size={13} color="#5C6066">
-                  Drivers need a van.
+                  {t('routes.drivers.needVan')}
                 </T>
               ) : null}
               {game.drivers.length > 0 ? (
                 <T size={12} color="#5C6066">
-                  Daily wages {money(-wages)}
+                  {t('routes.drivers.dailyWages', { amount: money(-wages) })}
                 </T>
               ) : null}
             </Clipboard>
           )}
         </Section>
 
-        <Section title="Auto-reorder">
+        <Section title={t('routes.autoReorder.title')}>
           {game.chapter < (autoReorderInfo?.unlockChapter ?? 4) ? (
             <LockedCard
               icon="box"
-              title="Auto-reorder"
+              title={t('routes.autoReorder.title')}
               chapter={autoReorderInfo?.unlockChapter ?? 4}
             />
           ) : (
             <Paper tone="surface" style={{ gap: SPACE.m }}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <T weight="bold">Auto-reorder</T>
+                <T weight="bold">{t('routes.autoReorder.title')}</T>
                 <StatChip
                   icon={autoReorder ? 'star' : 'lock'}
                   label={
-                    autoReorder ? 'Drivers refill each coil to its par level' : 'Not researched yet'
+                    autoReorder ? t('routes.autoReorder.onLabel') : t('routes.autoReorder.offLabel')
                   }
-                  value={autoReorder ? 'On' : 'Off'}
+                  value={autoReorder ? t('routes.autoReorder.on') : t('routes.autoReorder.off')}
                   color={autoReorder ? theme.signal : undefined}
                 />
               </Row>
@@ -366,7 +402,9 @@ export default function Routes() {
                 <Button
                   kind="secondary"
                   icon={<Icon name="star" size={20} color={theme.ink} />}
-                  label={`Research · ${moneyShort(autoReorderInfo?.costCents ?? 0)}`}
+                  label={t('routes.autoReorder.research', {
+                    cost: moneyShort(autoReorderInfo?.costCents ?? 0),
+                  })}
                   onPress={() => router.navigate('/company')}
                 />
               ) : null}

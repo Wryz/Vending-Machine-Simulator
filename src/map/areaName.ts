@@ -1,5 +1,6 @@
 import { AREA_NAME } from '@/config/map';
 
+import { pickName, type LabelLanguage } from './labelLanguage';
 import { BASEMAP_SOURCE_ID, type TileSchema } from './style';
 
 /**
@@ -48,25 +49,36 @@ export function areaProbeLayer(schema: TileSchema) {
 export interface AreaPoint {
   name: string;
   level: AreaLevel;
+  /** Other spellings (local, English, Latin) of the same place. */
+  aliases?: readonly string[];
   lng: number;
   lat: number;
 }
 
-/** Area points from queried features (English name first, like the map labels). */
-export function areaPoints(features: readonly GeoJSON.Feature[]): AreaPoint[] {
+/**
+ * Area points from queried features, named like the map labels: the UI
+ * language first, then English / Latin, then the local name.
+ */
+export function areaPoints(
+  features: readonly GeoJSON.Feature[],
+  labels?: LabelLanguage,
+): AreaPoint[] {
   const out: AreaPoint[] = [];
   for (const f of features) {
     if (f.geometry?.type !== 'Point') continue;
     const p = (f.properties ?? {}) as Record<string, unknown>;
-    const name = [p['name:en'], p['name:latin'], p.name].find(
-      (x): x is string => typeof x === 'string' && x.length > 0,
-    );
+    // The OpenMapTiles chain (with name:latin) covers both schemas' tags.
+    const name = pickName(p, 'openmaptiles', labels);
     if (!name) continue;
     const cls = typeof p.class === 'string' ? p.class : typeof p.kind === 'string' ? p.kind : '';
     const level = OMT_LEVEL[cls] ?? PM_LEVEL[cls];
     if (!level) continue;
     const [lng, lat] = f.geometry.coordinates;
-    out.push({ name, level, lng, lat });
+    // Every spelling of the place, so the game city is recognised in any UI language.
+    const aliases = [p.name, p['name:en'], p.name_en, p['name:latin']].filter(
+      (x): x is string => typeof x === 'string' && x.length > 0,
+    );
+    out.push({ name, level, lng, lat, aliases });
   }
   return out;
 }
@@ -100,7 +112,7 @@ export class AreaBook {
       district: AREA_NAME.districtMaxDistanceM,
     };
     for (const p of this.points.values()) {
-      if (p.name === exclude) continue;
+      if (exclude && (p.name === exclude || p.aliases?.includes(exclude))) continue;
       const d = Math.hypot((p.lng - lng) * kx, p.lat - lat) * 111_320;
       if (d < bestD[p.level]) {
         bestD[p.level] = d;

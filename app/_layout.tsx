@@ -12,6 +12,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ENV } from '@/data/env';
+import { useLang } from '@/i18n';
+import { bindLanguageToProfile } from '@/i18n/init';
 import { initAds } from '@/services/ads';
 import { sound } from '@/services/audio';
 import { initPurchases } from '@/services/purchases';
@@ -51,10 +53,12 @@ export default function RootLayout() {
     Nunito_800ExtraBold,
   });
   const loaded = useProfile((s) => s.loaded);
+  const lang = useLang();
 
   useEffect(() => {
     useProfile.getState().load();
     sound.init();
+    return bindLanguageToProfile();
   }, []);
 
   useEffect(() => {
@@ -83,8 +87,10 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <BottomSheetModalProvider>
-            <Navigator />
-            <CelebrationHost />
+            {/* Re-keyed on the language so every string, memoized or not, re-renders.
+                Navigation state lives in the container, so the current screen stays. */}
+            <Navigator key={lang} />
+            <CelebrationHost key={`c-${lang}`} />
           </BottomSheetModalProvider>
         </ThemeProvider>
       </SafeAreaProvider>

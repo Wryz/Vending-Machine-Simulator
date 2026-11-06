@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 
+import { alertText } from '@/i18n/sim';
 import { projectAlerts, type GameState, type World } from '@/sim';
 import { useProfile } from '@/store/profile';
 
@@ -44,8 +45,10 @@ export async function rescheduleNotifications(
         (a.kind === 'event' && notifications.events)),
   );
   for (const a of alerts) {
+    // The projection speaks English; translate at this edge.
+    const { title, body } = alertText(a);
     await Notifications.scheduleNotificationAsync({
-      content: { title: a.title, body: a.body, data: { machineId: a.machineId ?? null } },
+      content: { title, body, data: { machineId: a.machineId ?? null } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(a.at) },
     }).catch(() => undefined);
   }

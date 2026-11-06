@@ -7,6 +7,9 @@ import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { VOLUME_STEPS } from '@/config/audio';
+import { LANGUAGES, LANGUAGE_NAMES, useLocale, useT, type Lang } from '@/i18n';
+import { content } from '@/i18n/content';
+import { simError } from '@/i18n/sim';
 import { track } from '@/services/analytics';
 import { sound } from '@/services/audio';
 import { haptic } from '@/services/haptics';
@@ -16,6 +19,7 @@ import { SaveError, exportSave, importSave } from '@/sim';
 import { useGame } from '@/store/game';
 import { useProfile, type Settings } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
+import { Icon } from '@/ui/icons';
 import { Button, Divider, Mono, Paper, Row, Screen, Section, T } from '@/ui/kit';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { Led, SKIN } from '@/ui/skin';
@@ -67,7 +71,7 @@ function Choice({
   onPress,
 }: {
   label: string;
-  detail: string;
+  detail?: string;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -77,7 +81,7 @@ function Choice({
       accessibilityRole="radio"
       accessibilityState={{ checked: selected }}
       accessibilityLabel={label}
-      accessibilityHint={detail}
+      accessibilityHint={detail || undefined}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: TOUCH + 8,
@@ -104,11 +108,141 @@ function Choice({
       </View>
       <View style={{ flex: 1 }}>
         <T weight="medium">{label}</T>
-        <T size={13} muted>
-          {detail}
-        </T>
+        {detail ? (
+          <T size={13} muted>
+            {detail}
+          </T>
+        ) : null}
       </View>
     </Pressable>
+  );
+}
+
+/** A settings row showing the current choice that expands into a radio list. */
+function PickerRow<K extends string>({
+  label,
+  value,
+  hint,
+  title,
+  options,
+  selected,
+  onPick,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  title: string;
+  options: { key: K; label: string; detail?: string }[];
+  selected: K;
+  onPick: (key: K) => void;
+}) {
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  return (
+    <View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityValue={{ text: value }}
+        accessibilityHint={hint}
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen((o) => !o)}
+        style={({ pressed }) => ({
+          minHeight: TOUCH + 8,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: SPACE.m,
+          opacity: pressed ? 0.7 : 1,
+        })}
+      >
+        <T weight="medium" style={{ flex: 1 }}>
+          {label}
+        </T>
+        <T muted numberOfLines={1} style={{ flexShrink: 1 }}>
+          {value}
+        </T>
+        <View style={{ transform: [{ rotate: open ? '90deg' : '0deg' }] }}>
+          <Icon name="chevron" size={16} color={theme.muted} />
+        </View>
+      </Pressable>
+      {open ? (
+        <>
+          <Divider />
+          <View
+            accessibilityRole="radiogroup"
+            accessibilityLabel={title}
+            style={{ paddingTop: SPACE.xs }}
+          >
+            {options.map((o) => (
+              <Choice
+                key={o.key}
+                label={o.label}
+                detail={o.detail}
+                selected={selected === o.key}
+                onPress={() => {
+                  setOpen(false);
+                  if (o.key !== selected) onPick(o.key);
+                }}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/** The UI language: "Use phone language" first, then each language in its own name. */
+function LanguagePicker() {
+  const t = useT();
+  const saved = useProfile((s) => s.language);
+  const device = useLocale((s) => s.device);
+  const chosen: Lang | null = LANGUAGES.find((l) => l === saved) ?? null;
+  const system = t('settings.languageSystem', { name: LANGUAGE_NAMES[device] });
+  return (
+    <PickerRow<Lang | 'system'>
+      label={t('settings.language')}
+      value={chosen ? t('settings.languageValue', { name: LANGUAGE_NAMES[chosen] }) : system}
+      hint={t('settings.languageHint')}
+      title={t('settings.languageTitle')}
+      options={[
+        { key: 'system', label: t('settings.languagePhone'), detail: system },
+        ...LANGUAGES.map((code) => ({ key: code, label: LANGUAGE_NAMES[code] })),
+      ]}
+      selected={chosen ?? 'system'}
+      onPick={(key) =>
+        useProfile.getState().update((p) => {
+          p.language = key === 'system' ? null : key;
+        })
+      }
+    />
+  );
+}
+
+/** Temperature unit: by the city's country (default), or always °C / °F. */
+function TempUnitPicker() {
+  const t = useT();
+  const unit = useProfile((s) => s.settings.tempUnit);
+  const setSettings = useProfile((s) => s.setSettings);
+  const labels: Record<Settings['tempUnit'], string> = {
+    auto: t('settings.temperature.auto'),
+    c: '°C',
+    f: '°F',
+  };
+  return (
+    <PickerRow<Settings['tempUnit']>
+      label={t('settings.temperature.label')}
+      value={labels[unit]}
+      hint={t('settings.temperature.hint')}
+      title={t('settings.temperature.label')}
+      options={[
+        { key: 'auto', label: labels.auto, detail: t('settings.temperature.autoDetail') },
+        { key: 'c', label: labels.c, detail: t('settings.temperature.celsius') },
+        { key: 'f', label: labels.f, detail: t('settings.temperature.fahrenheit') },
+      ]}
+      selected={unit}
+      onPick={(tempUnit) => setSettings({ tempUnit })}
+    />
   );
 }
 
@@ -124,6 +258,7 @@ function Level({
   onChange: (v: number) => void;
   disabled?: boolean;
 }) {
+  const t = useT();
   // Nearest step, so older or odd saved values still show a selection.
   const index = VOLUME_STEPS.reduce(
     (best, v, i) => (Math.abs(v - value) < Math.abs(VOLUME_STEPS[best] - value) ? i : best),
@@ -139,7 +274,9 @@ function Level({
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={label}
-      accessibilityValue={{ text: VOLUME_STEPS[index] === 0 ? 'Off' : pct(VOLUME_STEPS[index]) }}
+      accessibilityValue={{
+        text: VOLUME_STEPS[index] === 0 ? t('settings.sound.offA11y') : pct(VOLUME_STEPS[index]),
+      }}
       accessibilityState={{ disabled }}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(e) => {
@@ -152,7 +289,7 @@ function Level({
       <Row style={{ justifyContent: 'space-between' }}>
         <T weight="medium">{label}</T>
         <Led size={13} color={index === 0 ? SKIN.ledRed : SKIN.ledGreen}>
-          {VOLUME_STEPS[index] === 0 ? 'OFF' : pct(VOLUME_STEPS[index])}
+          {VOLUME_STEPS[index] === 0 ? t('settings.sound.off') : pct(VOLUME_STEPS[index])}
         </Led>
       </Row>
       {/* An LED level meter: tap a segment to set the level; the first one is off. */}
@@ -189,6 +326,7 @@ function Level({
 
 /** Settings (SPEC §8, §10, §11). */
 export default function SettingsScreen() {
+  const t = useT();
   const settings = useProfile((s) => s.settings);
   const setSettings = useProfile((s) => s.setSettings);
   const game = useGame((s) => s.game);
@@ -212,7 +350,7 @@ export default function SettingsScreen() {
       setNotifications({ enabled: true });
       track('notifications', { ok: true });
     } else {
-      show('Notifications are turned off for Coinline in the Settings app.', 'info');
+      show(t('settings.notifications.denied'), 'info');
     }
   };
 
@@ -223,7 +361,7 @@ export default function SettingsScreen() {
     }
     const res = await requestTrackingPermissionsAsync().catch(() => null);
     if (res?.granted) setSettings({ personalizedAds: true });
-    else show('Tracking not allowed. Ads stay non-personalized.', 'info');
+    else show(t('settings.privacy.trackingDenied'), 'info');
   };
 
   const doExport = async () => {
@@ -236,13 +374,13 @@ export default function SettingsScreen() {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/json',
           UTI: 'public.json',
-          dialogTitle: 'Export save',
+          dialogTitle: t('settings.save.exportTitle'),
         });
       } else {
-        show('Sharing is not available on this device.', 'error');
+        show(t('settings.save.noSharing'), 'error');
       }
     } catch {
-      show('Could not export the save.', 'error');
+      show(t('settings.save.exportFailed'), 'error');
     } finally {
       setBusy(null);
     }
@@ -251,7 +389,7 @@ export default function SettingsScreen() {
   const doImport = async () => {
     const current = useGame.getState().city;
     if (!current || !useGame.getState().game) {
-      show('Open a city first, then import its save.', 'info');
+      show(t('settings.save.openCityFirst'), 'info');
       return;
     }
     setBusy('import');
@@ -263,28 +401,28 @@ export default function SettingsScreen() {
       if (picked.canceled || !picked.assets[0]) return;
       const imported = importSave(await readUri(picked.assets[0].uri));
       if (imported.cityId !== current.id) {
-        show('That save is for another city. Switch to it first.', 'error');
+        show(t('settings.save.otherCity'), 'error');
         return;
       }
       Alert.alert(
-        'Replace this save?',
-        `Your business in ${current.name} will be replaced by the imported save.`,
+        t('settings.save.replaceTitle'),
+        t('settings.save.replaceBody', { city: content.city(current.id, current.name) }),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('settings.save.cancel'), style: 'cancel' },
           {
-            text: 'Replace',
+            text: t('settings.save.replace'),
             style: 'destructive',
             onPress: () => {
               useGame.getState().replaceGame(imported);
               haptic.success();
-              show('Save imported.', 'success');
+              show(t('settings.save.imported'), 'success');
             },
           },
         ],
       );
     } catch (e) {
       haptic.error();
-      show(e instanceof SaveError ? e.message : 'Could not read that file.', 'error');
+      show(e instanceof SaveError ? simError(e.message) : t('settings.save.readFailed'), 'error');
     } finally {
       setBusy(null);
     }
@@ -294,24 +432,24 @@ export default function SettingsScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Screen title="Settings">
-        <Section title="Sound">
+      <Screen title={t('settings.title')}>
+        <Section title={t('settings.sections.sound')}>
           <Paper tone="surface" style={{ paddingVertical: SPACE.s, gap: SPACE.s }}>
             <Toggle
-              label="Sound"
-              detail="Music, clicks and coins, and the city around you"
+              label={t('settings.sound.label')}
+              detail={t('settings.sound.detail')}
               value={settings.sound}
               onChange={(v) => setSettings({ sound: v })}
             />
             <Divider />
             <Level
-              label="Music"
+              label={t('settings.sound.music')}
               value={settings.musicVolume}
               disabled={!settings.sound}
               onChange={(v) => setSettings({ musicVolume: v })}
             />
             <Level
-              label="Effects"
+              label={t('settings.sound.effects')}
               value={settings.sfxVolume}
               disabled={!settings.sound}
               onChange={(v) => {
@@ -320,51 +458,51 @@ export default function SettingsScreen() {
               }}
             />
             <Level
-              label="City ambience"
+              label={t('settings.sound.ambience')}
               value={settings.ambienceVolume}
               disabled={!settings.sound}
               onChange={(v) => setSettings({ ambienceVolume: v })}
             />
           </Paper>
           <T size={13} muted>
-            Follows the silent switch.
+            {t('settings.sound.silentSwitch')}
           </T>
         </Section>
 
-        <Section title="Feel">
+        <Section title={t('settings.sections.feel')}>
           <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
             <Toggle
-              label="Haptics"
-              detail="Coin ticks and product thunks"
+              label={t('settings.feel.haptics')}
+              detail={t('settings.feel.hapticsDetail')}
               value={settings.haptics}
               onChange={(v) => setSettings({ haptics: v })}
             />
           </Paper>
         </Section>
 
-        <Section title="Notifications">
+        <Section title={t('settings.sections.notifications')}>
           <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
             <Toggle
-              label="Notifications"
-              detail="At most 3 a day, never 22:00–08:00"
+              label={t('settings.notifications.label')}
+              detail={t('settings.notifications.detail')}
               value={settings.notifications.enabled}
               onChange={toggleNotifications}
             />
             <Divider />
             <Toggle
-              label="Machine empty"
+              label={t('settings.notifications.empty')}
               value={settings.notifications.empty}
               disabled={!settings.notifications.enabled}
               onChange={(v) => setNotifications({ empty: v })}
             />
             <Toggle
-              label="Cash box full"
+              label={t('settings.notifications.cashFull')}
               value={settings.notifications.cashFull}
               disabled={!settings.notifications.enabled}
               onChange={(v) => setNotifications({ cashFull: v })}
             />
             <Toggle
-              label="Local events nearby"
+              label={t('settings.notifications.events')}
               value={settings.notifications.events}
               disabled={!settings.notifications.enabled}
               onChange={(v) => setNotifications({ events: v })}
@@ -372,18 +510,22 @@ export default function SettingsScreen() {
           </Paper>
         </Section>
 
-        <Section title="Look">
+        <Section title={t('settings.sections.look')}>
           <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
+            <LanguagePicker />
+            <Divider />
+            <TempUnitPicker />
+            <Divider />
             <View accessibilityRole="radiogroup">
               <Choice
-                label="Bright"
-                detail="Bright menus all day; the map still follows your city's time"
+                label={t('settings.look.bright')}
+                detail={t('settings.look.brightDetail')}
                 selected={settings.theme === 'city'}
                 onPress={() => setSettings({ theme: 'city' })}
               />
               <Choice
-                label="System"
-                detail="Match your phone's light or dark setting"
+                label={t('settings.look.system')}
+                detail={t('settings.look.systemDetail')}
                 selected={settings.theme === 'system'}
                 onPress={() => setSettings({ theme: 'system' })}
               />
@@ -391,38 +533,38 @@ export default function SettingsScreen() {
           </Paper>
         </Section>
 
-        <Section title="Privacy">
+        <Section title={t('settings.sections.privacy')}>
           <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>
             <Toggle
-              label="Personalized ads"
-              detail="Off by default. Asks for tracking permission."
+              label={t('settings.privacy.personalizedAds')}
+              detail={t('settings.privacy.personalizedAdsDetail')}
               value={settings.personalizedAds}
               onChange={togglePersonalizedAds}
             />
             <Divider />
             <Toggle
-              label="Anonymous usage stats"
-              detail="Event counts only. No location, no place names."
+              label={t('settings.privacy.analytics')}
+              detail={t('settings.privacy.analyticsDetail')}
               value={settings.analytics}
               onChange={(v) => setSettings({ analytics: v })}
             />
           </Paper>
           <T size={13} muted>
-            Your location is used once, approximately, to build your city. It is never stored on a
-            server. Saves stay on this device. Ads are optional rewards you choose to watch.
+            {t('settings.privacy.note')}
           </T>
         </Section>
 
-        <Section title="Save">
+        <Section title={t('settings.sections.save')}>
           <T size={13} muted>
-            {city ? `Current save: ${city.name}.` : 'No city open.'} Export a copy for support or as
-            a backup.
+            {city
+              ? t('settings.save.current', { city: content.city(city.id, city.name) })
+              : t('settings.save.none')}
           </T>
           <Row gap={SPACE.s}>
             <Button
               style={{ flex: 1 }}
               kind="secondary"
-              label="Export"
+              label={t('settings.save.export')}
               busy={busy === 'export'}
               disabled={!game || busy !== null}
               onPress={doExport}
@@ -430,7 +572,7 @@ export default function SettingsScreen() {
             <Button
               style={{ flex: 1 }}
               kind="secondary"
-              label="Import"
+              label={t('settings.save.import')}
               busy={busy === 'import'}
               disabled={!game || busy !== null}
               onPress={doImport}
@@ -438,21 +580,21 @@ export default function SettingsScreen() {
           </Row>
         </Section>
 
-        <Section title="About">
+        <Section title={t('settings.sections.about')}>
           <Button
             kind="secondary"
-            label="Credits and licenses"
+            label={t('settings.about.credits')}
             onPress={() => router.push('/credits')}
           />
           <Row style={{ justifyContent: 'space-between' }}>
-            <T muted>Coinline · Vending Machine Simulator</T>
+            <T muted>{t('settings.about.app')}</T>
             <Mono
               muted
               suppressHighlighting
-              accessibilityHint="Long press for diagnostics"
+              accessibilityHint={t('settings.about.diagnosticsHint')}
               onLongPress={() => router.push('/diagnostics')}
             >
-              v{version}
+              {t('settings.about.version', { version })}
             </Mono>
           </Row>
         </Section>

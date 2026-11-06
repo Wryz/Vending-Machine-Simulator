@@ -1,4 +1,18 @@
-import { duration, meters, money, moneyShort, pct } from './format';
+import { duration, meters, money, moneyShort, pct, temperature } from './format';
+
+describe('temperature', () => {
+  it('follows the city in auto mode', () => {
+    expect(temperature(20, 'US')).toBe('68°F');
+    expect(temperature(20, 'PR', 'auto')).toBe('68°F');
+    expect(temperature(20, 'GB', 'auto')).toBe('20°C');
+    expect(temperature(-3.4, 'JP')).toBe('-3°C');
+  });
+
+  it('can be forced to °C or °F', () => {
+    expect(temperature(20, 'US', 'c')).toBe('20°C');
+    expect(temperature(20, 'GB', 'f')).toBe('68°F');
+  });
+});
 
 describe('format', () => {
   it('formats money', () => {

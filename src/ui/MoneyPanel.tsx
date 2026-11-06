@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { CHAPTERS } from '@/config/progression';
+import { useT } from '@/i18n';
+import { content } from '@/i18n/content';
 import { activeMachines, type GameState } from '@/sim';
 
 import { chapterProgress } from './chapter';
@@ -35,6 +37,7 @@ export function MoneyPanel({
   sales: readonly IncomingSale[];
   onPress?: () => void;
 }) {
+  const t = useT();
   const progress = chapterProgress(game);
   const chapter = CHAPTERS.find((c) => c.n === game.chapter) ?? CHAPTERS[CHAPTERS.length - 1];
   const today = game.ledger.day.lines.Sales ?? 0;
@@ -43,7 +46,14 @@ export function MoneyPanel({
     <View style={{ gap: SPACE.xs + 2, alignItems: 'flex-start' }}>
       <Pressable
         accessibilityRole={onPress ? 'button' : 'summary'}
-        accessibilityLabel={`Cash ${money(game.cashCents)}. Chapter ${chapter.n}, ${chapter.title}: ${progress.text}. Today ${money(today)} in sales, ${money(inBoxes)} waiting in your machines.`}
+        accessibilityLabel={t('money.a11y.panel', {
+          cash: money(game.cashCents),
+          n: chapter.n,
+          title: content.chapterTitle(chapter.n, chapter.title),
+          progress: progress.text,
+          today: money(today),
+          waiting: money(inBoxes),
+        })}
         onPress={onPress}
         disabled={!onPress}
         style={({ pressed }) => [styles.panel, { transform: [{ scale: pressed ? 0.97 : 1 }] }]}

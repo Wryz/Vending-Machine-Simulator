@@ -2,6 +2,8 @@ import { View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ACHIEVEMENTS, STREAK_BONUS } from '@/config/progression';
+import { t, useT } from '@/i18n';
+import { content } from '@/i18n/content';
 import { claimGoal, goalProgress, type DailyGoal } from '@/sim';
 import { haptic } from '@/services/haptics';
 import { useCelebrations } from '@/store/celebrations';
@@ -14,18 +16,25 @@ import { Button, Mono, Paper, ProgressBar, Row, Screen, Section, T } from '@/ui/
 import { SPACE } from '@/ui/theme';
 
 function label(g: DailyGoal): string {
-  const n = g.kind === 'sales' ? moneyShort(g.target) : g.target.toLocaleString('en-US');
-  return g.title.replace('{n}', n);
+  const n = g.kind === 'sales' ? moneyShort(g.target) : g.target.toLocaleString(t.lang);
+  return content.goal(g.id, g.title, n);
 }
 
 function progressText(g: DailyGoal, have: number): string {
   if (g.kind === 'sales')
-    return `${moneyShort(Math.min(have, g.target))} / ${moneyShort(g.target)}`;
-  return `${Math.min(have, g.target).toLocaleString('en-US')} / ${g.target.toLocaleString('en-US')}`;
+    return t('orders.progress', {
+      have: moneyShort(Math.min(have, g.target)),
+      target: moneyShort(g.target),
+    });
+  return t('orders.progress', {
+    have: Math.min(have, g.target).toLocaleString(t.lang),
+    target: g.target.toLocaleString(t.lang),
+  });
 }
 
 /** Today's orders (daily goals), the streak, and the trophy shelf. */
 export default function Orders() {
+  const t = useT();
   const theme = useTheme();
   const game = useGame((s) => s.game)!;
   const goals = game.goals;
@@ -43,8 +52,8 @@ export default function Orders() {
       const streak = useGame.getState().game?.goals.streak ?? 1;
       push({
         kind: 'streak',
-        title: `Day ${streak} streak`,
-        subtitle: 'All of today’s orders are done.',
+        title: t('orders.streakToast.title', { n: streak }),
+        subtitle: t('orders.streakToast.subtitle'),
         amountCents: r.streakBonusCents,
       });
     }
@@ -53,24 +62,26 @@ export default function Orders() {
   const unlocked = ACHIEVEMENTS.filter((a) => a.id in game.achievements).length;
 
   return (
-    <Screen tab title="Orders">
+    <Screen tab title={t('orders.title')}>
       <Row style={{ flexWrap: 'wrap' }}>
         <StatChip
           icon="flame"
-          label="Streak in days"
-          value={`${goals.streak} day${goals.streak === 1 ? '' : 's'}`}
+          label={t('orders.streakLabel')}
+          value={t('orders.streakValue', { n: goals.streak })}
           color={goals.streak > 0 ? theme.brand : undefined}
         />
         <StatChip
           icon="coin"
-          label={`Finish all three for a streak bonus, times the streak, up to ${STREAK_BONUS.cap}. Miss a day and it starts again.`}
-          value={`${moneyShort(STREAK_BONUS.baseCentsByChapter[ci])} × streak`}
+          label={t('orders.streakBonusLabel', { cap: STREAK_BONUS.cap })}
+          value={t('orders.streakBonusValue', {
+            amount: moneyShort(STREAK_BONUS.baseCentsByChapter[ci]),
+          })}
           color={theme.signal}
         />
       </Row>
 
       <View style={{ gap: SPACE.s }}>
-        {goals.items.length === 0 ? <T muted>New orders arrive with the day.</T> : null}
+        {goals.items.length === 0 ? <T muted>{t('orders.empty')}</T> : null}
         {goals.items.map((g, i) => {
           const have = goals.day[g.kind];
           const p = goalProgress(game, g);
@@ -96,10 +107,15 @@ export default function Orders() {
                     {progressText(g, have)}
                   </Mono>
                   {g.claimed ? (
-                    <StatChip icon="star" label="Claimed" value="Done" color={theme.signal} />
+                    <StatChip
+                      icon="star"
+                      label={t('orders.claimed')}
+                      value={t('orders.done')}
+                      color={theme.signal}
+                    />
                   ) : p >= 1 ? (
                     <Button
-                      label="Claim"
+                      label={t('orders.claim')}
                       icon={<Icon name="coin" size={18} color={theme.onBrand} />}
                       onPress={() => claim(g)}
                       style={{ minHeight: 40, paddingHorizontal: SPACE.l }}
@@ -112,15 +128,23 @@ export default function Orders() {
         })}
       </View>
 
-      <Section title={`Trophies ${unlocked}/${ACHIEVEMENTS.length}`}>
+      <Section title={t('orders.trophies', { got: unlocked, total: ACHIEVEMENTS.length })}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s }}>
           {ACHIEVEMENTS.map((a) => {
             const got = a.id in game.achievements;
+            const title = content.achievementTitle(a.id, a.title);
+            const desc = content.achievementDesc(a.id, a.description);
             return (
               <View
                 key={a.id}
                 accessible
-                accessibilityLabel={`${a.title}: ${a.description}${got ? ', unlocked' : ', locked'}`}
+                accessibilityLabel={t(
+                  got ? 'orders.a11y.trophyUnlocked' : 'orders.a11y.trophyLocked',
+                  {
+                    title,
+                    desc,
+                  },
+                )}
                 style={{
                   width: '48.5%',
                   flexDirection: 'row',
@@ -150,7 +174,7 @@ export default function Orders() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <T weight="bold" size={13} numberOfLines={1}>
-                    {a.title}
+                    {title}
                   </T>
                   {a.rewardCents ? (
                     <Mono size={12} color={got ? theme.signal : theme.muted}>

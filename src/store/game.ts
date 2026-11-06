@@ -9,6 +9,8 @@ import { syntheticWeather, WeatherBook } from '@/data/weather';
 import type { RegionPack } from '@/data/types';
 import { readJson, writeJson } from '@/services/storage';
 import { ACHIEVEMENTS, CHAPTERS } from '@/config/progression';
+import { t } from '@/i18n';
+import { content } from '@/i18n/content';
 import {
   advance,
   beginAdvance,
@@ -209,7 +211,7 @@ export const useGame = create<GameStore>((set, get) => {
         get().save();
       } catch (e) {
         if (token === loadToken)
-          set({ status: 'error', error: e instanceof Error ? e.message : String(e) });
+          set({ status: 'error', error: loadError(e instanceof Error ? e.message : String(e)) });
       }
     },
 
@@ -267,8 +269,8 @@ export const useGame = create<GameStore>((set, get) => {
     },
     act(fn) {
       const { game, world, catchingUp } = get();
-      if (catchingUp) return { ok: false, error: 'Still counting coins.' } as never;
-      if (!game || !world) return { ok: false, error: 'No game loaded.' } as never;
+      if (catchingUp) return { ok: false, error: t('store.stillCounting') } as never;
+      if (!game || !world) return { ok: false, error: t('store.noGame') } as never;
       // Bring the sim up to date first so actions happen "now".
       let current: GameState;
       if (Date.now() > game.now) {
@@ -333,15 +335,26 @@ const EMPTY_REPORT: AdvanceReport = {
   achievements: [],
 };
 
+/** A city-load failure (src/data errors are English) in the UI language; unknown text passes through. */
+function loadError(message: string): string {
+  if (message === 'Data API is not configured.') return t('store.load.noApi');
+  if (message === 'Unsupported region pack.') return t('store.load.badPack');
+  const pack = /^No bundled pack for (.+)$/.exec(message);
+  if (pack) return t('store.load.noPack', { id: pack[1] });
+  const http = /^HTTP (\d+)$/.exec(message);
+  if (http) return t('store.load.http', { status: http[1] });
+  return message;
+}
+
 const seenEvents = new Set<string>();
 const readyOrders = new Set<string>();
 
-function goalLabel(g: { title: string; kind: string; target: number }): string {
+function goalLabel(g: { id: string; title: string; kind: string; target: number }): string {
   const n =
     g.kind === 'sales'
       ? `$${Math.round(g.target / 100).toLocaleString('en-US')}`
       : String(g.target);
-  return g.title.replace('{n}', n);
+  return content.goal(g.id, g.title, n);
 }
 
 /** Turn sim outcomes into celebration moments: chapters, trophies, events, orders ready. */
@@ -352,9 +365,17 @@ function announceMoments(state: GameState, report: AdvanceReport): void {
     const next = CHAPTERS.find((c) => c.n === ch + 1);
     push({
       kind: 'chapter',
-      title: `${ch}. ${done?.title ?? ''}`,
-      subtitle: next ? `Next: ${next.goal}` : undefined,
-      lines: (done?.unlocks ?? []).map((u) => ({ label: `Unlocked: ${u}`, value: '' })),
+      title: t('celebrate.moment.chapterTitle', {
+        n: ch,
+        title: done ? content.chapterTitle(ch, done.title) : '',
+      }),
+      subtitle: next
+        ? t('celebrate.moment.next', { goal: content.chapterGoal(next.n, next.goal) })
+        : undefined,
+      lines: (done?.unlocks ?? []).map((u, i) => ({
+        label: t('celebrate.moment.unlocked', { unlock: content.chapterUnlock(ch, i, u) }),
+        value: '',
+      })),
     });
   }
   for (const id of report.achievements) {
@@ -362,8 +383,8 @@ function announceMoments(state: GameState, report: AdvanceReport): void {
     if (a)
       push({
         kind: 'trophy',
-        title: a.title,
-        subtitle: a.description,
+        title: content.achievementTitle(a.id, a.title),
+        subtitle: content.achievementDesc(a.id, a.description),
         amountCents: a.rewardCents || undefined,
       });
   }
@@ -374,15 +395,21 @@ function announceMoments(state: GameState, report: AdvanceReport): void {
     const mins = Math.round((e.startsAt - state.now) / 60_000);
     push({
       kind: 'event',
-      title: `${e.name} at ${e.placeName}`,
-      subtitle: mins < 90 ? `Starts in ${mins} min` : `Starts in ${Math.round(mins / 60)} h`,
+      title: t('celebrate.moment.eventTitle', {
+        event: content.event(e.templateId, e.name),
+        place: e.placeName,
+      }),
+      subtitle:
+        mins < 90
+          ? t('celebrate.moment.startsMin', { n: mins })
+          : t('celebrate.moment.startsHours', { n: Math.round(mins / 60) }),
     });
   }
   for (const g of state.goals.items) {
     const key = `${state.goals.dateKey}|${g.id}`;
     if (g.claimed || readyOrders.has(key) || goalProgress(state, g) < 1) continue;
     readyOrders.add(key);
-    push({ kind: 'info', title: 'Order ready to claim', subtitle: goalLabel(g) });
+    push({ kind: 'info', title: t('celebrate.moment.orderReady'), subtitle: goalLabel(g) });
   }
 }
 
