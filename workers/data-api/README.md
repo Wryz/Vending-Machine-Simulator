@@ -54,19 +54,25 @@ pipeline writes it.
 
 ### Weather
 
-The Worker proxies the Open-Meteo forecast API (`hourly=temperature_2m,precipitation,weather_code`,
-`timezone=UTC`, 3 forecast days) and keeps the next 48 hours from the current UTC hour. WMO codes
-map to `clear | cloudy | fog | rain | snow | storm`, and precipitation intensity is `min(1, mm/h ÷ 5)`.
-Results are cached at the edge with the Cache API for 1 h per region (`city:<id>` or
-`cell:<res5>`), so a city costs at most 24 upstream calls a day. The location sent upstream is the
-city center or the res-5 cell center, never a player's position.
+Default provider: **MET Norway Locationforecast 2.0** (`api.met.no`). It is free, global and
+hourly, needs no API key, and its data is CC BY 4.0 / NLOD 2.0, so **commercial use is allowed**
+with credit ("Weather: MET Norway"). The parser is shared with the app (`src/data/metno.ts`). MET's
+terms, all handled here:
 
-> **Licensing:** the free `api.open-meteo.com` endpoint is for **non-commercial use only**. A
-> shipped (monetised) game needs an Open-Meteo API subscription. Set the key with
-> `npx wrangler secret put OPEN_METEO_API_KEY`; the Worker then calls
-> `customer-api.open-meteo.com` with `&apikey=`. Open-Meteo data is CC BY 4.0, so credit
-> "Weather data by Open-Meteo.com" on the credits screen. Apple WeatherKit is the alternative
-> (SPEC §6.4).
+- an identifying `User-Agent` with a contact (`Coinline/1.0 (+https://github.com/…)`; override with
+  the `WEATHER_USER_AGENT` var);
+- at most 4 coordinate decimals (we send 2: city or res-5 centers, never a player's position);
+- cache responses (edge Cache API, 1 h per region `city:<id>` / `cell:<res5>`, so a city costs at
+  most 24 upstream calls a day);
+- stay under 20 requests per second in total.
+
+MET returns hourly steps for about 2.5 days, then 6-hourly steps; 6-hourly steps are expanded to
+hourly values. Symbol codes map to `clear | cloudy | fog | rain | snow | storm`, and intensity is
+`min(1, mm/h ÷ 6)`.
+
+Optional: set a paid Open-Meteo key (`npx wrangler secret put OPEN_METEO_API_KEY`) to use
+`customer-api.open-meteo.com` instead. The free Open-Meteo endpoint is non-commercial, so it is
+never used.
 
 ## R2 layout (bucket `coinline-data`, binding `DATA`)
 

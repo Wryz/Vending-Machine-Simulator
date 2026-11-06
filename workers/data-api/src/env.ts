@@ -27,8 +27,10 @@ export interface DataBucket {
 
 export interface Env {
   DATA: DataBucket;
-  /** Optional commercial Open-Meteo key (customer-api.open-meteo.com). */
+  /** Optional commercial Open-Meteo key (customer-api.open-meteo.com). Without it, MET Norway is used. */
   OPEN_METEO_API_KEY?: string;
+  /** Optional User-Agent override for MET Norway (must identify you: app + website/email). */
+  WEATHER_USER_AGENT?: string;
 }
 
 /** Minimal Cache API surface (Cloudflare `caches.default`). */

@@ -19,9 +19,21 @@ const DATA: Credit[] = [
     url: 'https://www.openstreetmap.org/copyright',
   },
   {
+    name: 'OpenFreeMap',
+    detail: 'Basemap vector tiles and map fonts, hosted free by OpenFreeMap.',
+    license: 'Free public instance; tiles from OpenStreetMap data (ODbL)',
+    url: 'https://openfreemap.org',
+  },
+  {
+    name: '© OpenMapTiles',
+    detail: 'Vector tile schema used by the basemap.',
+    license: 'CC BY 4.0 (schema), ODbL (data)',
+    url: 'https://www.openmaptiles.org',
+  },
+  {
     name: 'Protomaps',
     detail:
-      'Basemap tiles built from OpenStreetMap. Place data from OpenStreetMap via Protomaps; Overture Maps Places is planned.',
+      'Place data from OpenStreetMap via the Protomaps planet build; self-hosted tiles option. Overture Maps Places is planned.',
     license: 'Built from OpenStreetMap data (ODbL)',
     url: 'https://protomaps.com',
   },
@@ -32,10 +44,11 @@ const DATA: Credit[] = [
     url: 'https://www.openstreetmap.org/copyright',
   },
   {
-    name: 'Open-Meteo',
-    detail: 'Live weather when online. Offline, the game uses climate normals.',
-    license: 'CC BY 4.0',
-    url: 'https://open-meteo.com',
+    name: 'MET Norway',
+    detail:
+      'Live weather from the Norwegian Meteorological Institute (api.met.no), with no changes beyond mapping to game conditions. Offline, the game uses climate normals.',
+    license: 'CC BY 4.0 and NLOD 2.0',
+    url: 'https://api.met.no',
   },
 ];
 

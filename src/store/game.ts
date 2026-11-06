@@ -91,6 +91,8 @@ function buildWorld(city: CityInfo, pack: RegionPack, weather: WeatherBook): Wor
 
 const weatherBook = new WeatherBook();
 let loadToken = 0;
+let lastWeatherFetch = 0;
+const WEATHER_REFRESH_MS = 30 * 60_000;
 const OFFLINE_REPORT_MIN_MS = 5 * 60_000;
 
 function saveKey(city: CityInfo) {
@@ -123,7 +125,8 @@ export const useGame = create<GameStore>((set, get) => ({
       // A newer openCity() started while we were loading: let it win.
       if (token !== loadToken) return;
       const world = buildWorld(city, pack, weatherBook);
-      fetchWeather(city.id)
+      lastWeatherFetch = Date.now();
+      fetchWeather(city)
         .then((w) => weatherBook.load(w.hours))
         .catch(() => undefined);
       const now = Date.now();
@@ -173,8 +176,15 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   tick(now = Date.now()) {
-    const { game, world } = get();
+    const { game, world, city } = get();
     if (!game || !world || now <= game.now) return null;
+    // Keep live weather fresh (cached; MET's Expires is respected in fetchWeather).
+    if (city && now - lastWeatherFetch > WEATHER_REFRESH_MS) {
+      lastWeatherFetch = now;
+      fetchWeather(city)
+        .then((w) => weatherBook.load(w.hours))
+        .catch(() => undefined);
+    }
     const gap = now - game.now;
     const { state, report } = advance(game, world, now, {
       offlineCapMultiplier: offlineCapMultiplier(),

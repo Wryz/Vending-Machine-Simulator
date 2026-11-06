@@ -16,5 +16,6 @@ bucket_name = "coinline-data"
 enabled = true
 redact_query_string = true
 
-# Optional secret for commercial Open-Meteo (customer-api.open-meteo.com):
+# Weather defaults to MET Norway (free, no key). Optional secret to use the
+# commercial Open-Meteo endpoint (customer-api.open-meteo.com) instead:
 #   npx wrangler secret put OPEN_METEO_API_KEY

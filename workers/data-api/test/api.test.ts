@@ -272,7 +272,25 @@ describe('/weather', () => {
     return { hourly: { time, temperature_2m, precipitation, weather_code } };
   }
 
-  function stubFetch(payload: unknown = openMeteoPayload(), status = 200) {
+  function metnoPayload() {
+    const timeseries = [];
+    const symbols = ['cloudy', 'clearsky_day', 'lightrain', 'heavysnow', 'rainandthunder'];
+    for (let i = 0; i < 72; i++) {
+      timeseries.push({
+        time: new Date(Date.UTC(2026, 10, 5, i)).toISOString().replace('.000Z', 'Z'),
+        data: {
+          instant: { details: { air_temperature: 8 + i / 10 } },
+          next_1_hours: {
+            summary: { symbol_code: symbols[i % 5] },
+            details: { precipitation_amount: i % 5 === 2 ? 3 : 0 },
+          },
+        },
+      });
+    }
+    return { properties: { timeseries } };
+  }
+
+  function stubFetch(payload: unknown = metnoPayload(), status = 200) {
     const fn = vi.fn(async (_url: string | URL | Request) => Response.json(payload, { status }));
     vi.stubGlobal('fetch', fn);
     return fn;
@@ -283,10 +301,36 @@ describe('/weather', () => {
     vi.setSystemTime(NOW);
   });
 
-  it('proxies Open-Meteo for a res5 cell and maps the next 48 h', async () => {
+  it('uses MET Norway by default (free, no key) with an identifying User-Agent', async () => {
     const fetchFn = stubFetch();
     const res5 = latLngToCell(52.52, 13.4, 5);
     const res = await call(makeEnv(), `/weather?cell=${res5}`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as WeatherResponse;
+    expect(body.source).toContain('MET Norway');
+    expect(body.hours).toHaveLength(48);
+    expect(body.hours[0]).toEqual({
+      time: '2026-11-05T13:00:00Z',
+      tempC: 9.3,
+      condition: 'snow',
+      precipitation: 0,
+    });
+    expect(body.hours[1]).toMatchObject({ condition: 'storm' });
+    expect(body.hours[4]).toMatchObject({ condition: 'rain', precipitation: 0.5 });
+    const [req, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
+    const url = new URL(String(req));
+    expect(url.host).toBe('api.met.no');
+    expect(url.searchParams.get('lat')).toMatch(/^-?\d+(\.\d{1,4})?$/);
+    expect(new Headers(init.headers).get('User-Agent')).toMatch(/Coinline/);
+  });
+
+  it('proxies Open-Meteo (commercial key) for a res5 cell and maps the next 48 h', async () => {
+    const fetchFn = stubFetch(openMeteoPayload());
+    const res5 = latLngToCell(52.52, 13.4, 5);
+    const res = await call(
+      makeEnv(undefined, { OPEN_METEO_API_KEY: 'k' }),
+      `/weather?cell=${res5}`,
+    );
     expect(res.status).toBe(200);
     const body = (await res.json()) as WeatherResponse;
     expect(body.region).toBe(`cell:${res5}`);
@@ -302,17 +346,16 @@ describe('/weather', () => {
     expect(body.hours[47].time).toBe('2026-11-07T12:00:00Z');
 
     const url = new URL(String(fetchFn.mock.calls[0][0]));
-    expect(url.host).toBe('api.open-meteo.com');
+    expect(url.host).toBe('customer-api.open-meteo.com');
     expect(url.searchParams.get('hourly')).toBe('temperature_2m,precipitation,weather_code');
     expect(url.searchParams.get('timezone')).toBe('UTC');
-    expect(url.searchParams.has('apikey')).toBe(false);
     const [cLat, cLng] = cellToLatLng(res5);
     expect(Number(url.searchParams.get('latitude'))).toBe(roundCoord(cLat));
     expect(Number(url.searchParams.get('longitude'))).toBe(roundCoord(cLng));
   });
 
   it('accepts ?city= and uses the commercial endpoint when a key is set', async () => {
-    const fetchFn = stubFetch();
+    const fetchFn = stubFetch(openMeteoPayload());
     const res = await call(
       makeEnv(undefined, { OPEN_METEO_API_KEY: 'k123' }),
       '/weather?city=tokyo',
@@ -346,7 +389,7 @@ describe('/weather', () => {
     expect((await call(makeEnv(), `/weather?cell=${latLngToCell(1, 1, 9)}`)).status).toBe(400);
     expect((await call(makeEnv(), '/weather?cell=zzz')).status).toBe(400);
     expect((await call(makeEnv(), '/weather?city=seoul')).status).toBe(502);
-    stubFetch({ hourly: {} });
+    stubFetch({ properties: {} });
     expect((await call(makeEnv(), '/weather?city=seoul')).status).toBe(502);
   });
 

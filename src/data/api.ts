@@ -1,4 +1,7 @@
 import { ENV } from './env';
+import { readJson, writeJson } from '@/services/storage';
+
+import { METNO, metnoUrl, parseMetno, type MetnoCompact } from './metno';
 import type { AreaCheckResponse, WeatherResponse } from './types';
 
 /** Round to ~1 km before anything leaves the device (SPEC §6.6, §11). */
@@ -23,8 +26,47 @@ export function areaCheck(lat: number, lng: number): Promise<AreaCheckResponse> 
   return getJson<AreaCheckResponse>(`/area/check?lat=${coarse(lat)}&lng=${coarse(lng)}`);
 }
 
-export function fetchWeather(cityId: string): Promise<WeatherResponse> {
-  return getJson<WeatherResponse>(`/weather?city=${encodeURIComponent(cityId)}`);
+/**
+ * Hourly weather for a city. Through the data API Worker when configured
+ * (shared edge cache); otherwise straight from MET Norway (free, no key),
+ * cached on device and never re-requested before MET's `Expires`. Only the
+ * city/region center is sent, never the player's position.
+ */
+export async function fetchWeather(city: {
+  id: string;
+  lat: number;
+  lng: number;
+}): Promise<WeatherResponse> {
+  if (ENV.dataApiUrl)
+    return getJson<WeatherResponse>(`/weather?city=${encodeURIComponent(city.id)}`);
+  const key = `weather-${city.id.replace(/[^a-z0-9-]/gi, '_')}`;
+  const cached = readJson<{ expires: number; response: WeatherResponse }>(key);
+  if (cached && cached.expires > Date.now()) return cached.response;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10_000);
+  try {
+    const res = await fetch(metnoUrl(city.lat, city.lng), {
+      headers: { 'User-Agent': METNO.userAgent, Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const response: WeatherResponse = {
+      region: `city:${city.id}`,
+      fetchedAt: new Date().toISOString(),
+      source: METNO.credit,
+      hours: parseMetno((await res.json()) as MetnoCompact, new Date()),
+    };
+    const expiresHeader = Date.parse(res.headers.get('expires') ?? '');
+    // Honor MET's Expires, but never refetch more than every 30 minutes.
+    const expires = Math.max(
+      Number.isFinite(expiresHeader) ? expiresHeader : 0,
+      Date.now() + 30 * 60_000,
+    );
+    writeJson(key, { expires, response });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function fetchRegionPack(res5: string): Promise<Uint8Array> {

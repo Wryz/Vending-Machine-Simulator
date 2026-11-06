@@ -10,6 +10,7 @@ import {
 } from './config';
 import { edgeCache, type Ctx, type Env } from './env';
 import { roundCoord } from './geo';
+import { METNO, metnoUrl, parseMetno, type MetnoCompact } from '../../../src/data/metno';
 import { badRequest, json } from './http';
 
 /** WMO weather interpretation code → game condition. */
@@ -93,11 +94,22 @@ export async function weather(url: URL, env: Env, ctx: Ctx): Promise<Response> {
   const hit = await cache?.match(cacheKey);
   if (hit) return hit;
 
+  // Default: MET Norway (free, no key, commercial use allowed under CC BY 4.0).
+  // Open-Meteo is used only with a paid commercial key (its free tier is non-commercial).
+  const useOpenMeteo = !!env.OPEN_METEO_API_KEY;
   let upstream: Response;
   try {
-    upstream = await fetch(openMeteoUrl(r.lat, r.lng, env.OPEN_METEO_API_KEY), {
-      headers: { Accept: 'application/json' },
-    });
+    upstream = useOpenMeteo
+      ? await fetch(openMeteoUrl(r.lat, r.lng, env.OPEN_METEO_API_KEY), {
+          headers: { Accept: 'application/json' },
+        })
+      : await fetch(metnoUrl(r.lat, r.lng), {
+          // MET's terms require an identifying User-Agent with a contact.
+          headers: {
+            'User-Agent': env.WEATHER_USER_AGENT || METNO.userAgent,
+            Accept: 'application/json',
+          },
+        });
   } catch {
     return json({ error: 'weather_upstream_unavailable' }, 502, { 'Cache-Control': 'no-store' });
   }
@@ -109,7 +121,10 @@ export async function weather(url: URL, env: Env, ctx: Ctx): Promise<Response> {
 
   let hours: WeatherHour[];
   try {
-    hours = mapHours((await upstream.json()) as OpenMeteoHourly, new Date());
+    const payload = await upstream.json();
+    hours = useOpenMeteo
+      ? mapHours(payload as OpenMeteoHourly, new Date())
+      : parseMetno(payload as MetnoCompact, new Date(), WEATHER_HOURS);
   } catch {
     return json({ error: 'weather_upstream_bad_payload' }, 502, { 'Cache-Control': 'no-store' });
   }
@@ -117,7 +132,7 @@ export async function weather(url: URL, env: Env, ctx: Ctx): Promise<Response> {
   const body: WeatherResponse = {
     region: r.region,
     fetchedAt: new Date().toISOString(),
-    source: 'Open-Meteo (open-meteo.com), CC BY 4.0',
+    source: useOpenMeteo ? 'Open-Meteo (open-meteo.com), CC BY 4.0' : METNO.credit,
     hours,
   };
   const res = json(body, 200, { 'Cache-Control': CACHE.weather });
