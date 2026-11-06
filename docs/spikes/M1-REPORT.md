@@ -326,7 +326,7 @@ To continue, install Xcode (Xcode 26+ from the App Store), run `sudo xcode-selec
 |---|---|---|
 | h3-js, 2,000 × latLngToCell + gridDisk | 180 ms | — |
 | Offline catch-up 72 h, 16 machines | **140 ms** | < 300 ms ✅ |
-| Offline catch-up 72 h, 200 machines | **1,015 ms** (was 1,400–1,700) | < 300 ms ❌ |
+| Offline catch-up 72 h, 200 machines | **1,015 ms** (was 1,400–1,700); **1,442 ms** after the balance fix below, with adaptive steps | < 300 ms ❌ |
 | 3D close-up, busy street | 58 fps avg, 55 min | 60 fps |
 
 The catch-up speedups keep the simulation bit-identical. Tests compare the incremental competition against a full rebuild, and the benchmarks' final cash, units, lost contracts and rival fleet are unchanged:
@@ -342,6 +342,16 @@ In Node: 274 → 98 ms (synthetic) and 150 → 115 ms (`scripts/bench/offline-ca
 - show the "While you were away" receipt printing while it computes.
 
 **Balance note:** in both 200-machine benchmarks every contract is lost within 72 h when nobody restocks or collects. Worth checking that venue mood isn't too harsh for absent players with drivers.
+
+**Update: balance fixed, catch-up reworked.**
+- Venue mood, breakdowns, theft and alcohol fines ran per *business* day (the clock is 60×), so one real night away cost most contracts. They now run on real time:
+  - mood changes per real hour; a venue ends the contract after 24 real hours below 0.2 (`CONTRACT`);
+  - risks roll at `RISK.riskDaysPerRealDay` = 4.
+  - In the realistic bench only 17 of 200 contracts are lost in 72 h.
+- Because machines keep selling while you're away, catch-up does more work. **Adaptive steps** (owner's choice): 15-minute steps for the first 3 hours away, then 1-hour steps (`TIME.offlineFineHours`, `offlineCoarseStepMinutes`).
+- Hermes numbers: 16 machines **146 ms** ✅; 200 machines **1,442 ms** ❌. In Node the same 200-machine run takes 133 ms.
+- Returning to the app after 5+ minutes shows a "While you were away… COUNTING COINS" overlay for one frame, then runs the catch-up (`useGame.resume`, `src/ui/CatchUpOverlay.tsx`). The cold start already shows the loading screen.
+- 200 machines is a late-game fleet. If the wait feels long on a device, the next step is moving catch-up off the JS thread (a worklet or a native module, which needs the owner's OK).
 
 ### Bugs found on the Simulator and fixed
 - **Every map overlay was invisible on iOS** (machines, cars and people, events, district boundary, heat). MapLibre RN adds a GeoJSON source to the style that's current when it mounts. On iOS the map first loads its default style, then ours, so all overlay sources were dropped. Overlays now mount after our style loads.
