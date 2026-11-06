@@ -43,12 +43,16 @@ interface GameStore {
   /** Shown as a receipt when returning after a while. */
   offlineReport: AdvanceReport | null;
   ticker: TickerEntry[];
+  /** True while a long catch-up runs after returning to the app (shows an overlay). */
+  catchingUp: boolean;
   /** Bumped on every state change (cheap selector for re-renders). */
   version: number;
   lastSavedAt: number;
 
   openCity(city: CityInfo, opts?: { fresh?: boolean; seed?: number }): Promise<void>;
   tick(now?: number): AdvanceReport | null;
+  /** Back from the background: tick now, or after one frame with an overlay if the gap is long. */
+  resume(): void;
   /** Run a sim action on a draft; commits and saves when it succeeds. */
   act<R extends { ok: boolean }>(fn: (draft: GameState, world: World) => R): R;
   replaceGame(next: GameState): void;
@@ -117,6 +121,7 @@ export const useGame = create<GameStore>((set, get) => ({
   world: null,
   offlineReport: null,
   ticker: [],
+  catchingUp: false,
   version: 0,
   lastSavedAt: 0,
 
@@ -208,6 +213,24 @@ export const useGame = create<GameStore>((set, get) => ({
     });
     if (now - get().lastSavedAt >= SAVE.autosaveMs) get().save();
     return report;
+  },
+
+  resume() {
+    const { game, catchingUp } = get();
+    if (!game || catchingUp) return;
+    if (Date.now() - game.now < OFFLINE_REPORT_MIN_MS) {
+      get().tick();
+      return;
+    }
+    // Let the "while you were away" overlay paint before the (blocking) catch-up runs.
+    set({ catchingUp: true });
+    setTimeout(() => {
+      try {
+        get().tick();
+      } finally {
+        set({ catchingUp: false });
+      }
+    }, 60);
   },
 
   act(fn) {

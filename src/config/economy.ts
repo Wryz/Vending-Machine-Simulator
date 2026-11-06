@@ -18,6 +18,13 @@ export const TIME = {
   liveTickMs: 60_000,
   /** Offline catch-up step (real minutes) — SPEC §5.1: 15-minute buckets. */
   offlineStepMinutes: 15,
+  /**
+   * Adaptive catch-up (owner's call, 2026-11-05): fine steps for the first
+   * hours of an absence, then coarser ones, so 72 h with a big fleet stays
+   * fast on Hermes. Same rules and expected sales; coarser timing later on.
+   */
+  offlineFineHours: 3,
+  offlineCoarseStepMinutes: 60,
   /** Offline progress cap (real hours) before upgrades — SPEC §5.1. */
   offlineCapHours: 72,
 } as const;

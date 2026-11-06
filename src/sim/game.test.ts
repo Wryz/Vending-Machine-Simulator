@@ -361,12 +361,18 @@ describe('service, risks and contracts', () => {
   });
   it('theft takes cash and stock but never the machine', () => {
     const w = testWorld();
-    const s = startWithPlacedMachine(w);
     for (const c of w.cells.values()) c.isolation = 1;
-    s.machines[0].cashBoxCents = 50_000;
-    const { state, report } = advance(s, w, s.now + 72 * 3_600_000);
-    expect(report.thefts).toBeGreaterThan(0);
-    expect(state.machines).toHaveLength(1);
+    // Thefts are random: across a few seeds some happen, and none removes the machine.
+    let thefts = 0;
+    for (let seed = 1; seed <= 6; seed++) {
+      const s = startWithPlacedMachine(w);
+      s.rng = seed;
+      s.machines[0].cashBoxCents = 50_000;
+      const { state, report } = advance(s, w, s.now + 72 * 3_600_000);
+      thefts += report.thefts;
+      expect(state.machines).toHaveLength(1);
+    }
+    expect(thefts).toBeGreaterThan(0);
   });
   it('an empty machine upsets the venue until it ends the contract', () => {
     const s = startWithPlacedMachine(world);

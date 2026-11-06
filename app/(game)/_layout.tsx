@@ -8,6 +8,7 @@ import { flush, track } from '@/services/analytics';
 import { music, sound } from '@/services/audio';
 import { rescheduleNotifications } from '@/services/notifications';
 import { useGame } from '@/store/game';
+import { CatchUpOverlay } from '@/ui/CatchUpOverlay';
 import { useTheme } from '@/ui/ThemeProvider';
 
 /** Live tick cadence. The sim itself runs 1-minute steps (SPEC §5.1). */
@@ -29,11 +30,13 @@ export default function GameLayout() {
 
   useEffect(() => {
     if (status !== 'ready') return;
-    const id = setInterval(() => useGame.getState().tick(), TICK_MS);
+    const id = setInterval(() => {
+      if (!useGame.getState().catchingUp) useGame.getState().tick();
+    }, TICK_MS);
     const sub = AppState.addEventListener('change', (next) => {
-      const { game, world, tick, save } = useGame.getState();
+      const { game, world, resume, save } = useGame.getState();
       if (next === 'active') {
-        tick();
+        resume();
         sound.resume();
       } else if (next === 'background' || next === 'inactive') {
         save();
@@ -70,47 +73,50 @@ export default function GameLayout() {
   if (status !== 'ready') return <Redirect href="/" />;
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }}>
-      <Stack.Screen name="map" options={{ animation: 'fade' }} />
-      <Stack.Screen
-        name="machine/[id]"
-        // A regular screen with a fade, not a transparent modal: as a transparent modal
-        // over the live map, the 3D close-up deadlocked the JS thread in the Simulator.
-        options={{ animation: 'fade' }}
-      />
-      <Stack.Screen
-        name="spot"
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.55, 0.95],
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 16,
-        }}
-      />
-      <Stack.Screen
-        name="place"
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.95],
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 16,
-        }}
-      />
-      <Stack.Screen
-        name="report"
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.7, 0.95],
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 16,
-        }}
-      />
-      <Stack.Screen name="keys" options={{ animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="routes" options={{ animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="company" options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="collections" options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="cities" options={{ animation: 'slide_from_right' }} />
-      <Stack.Screen name="shop" options={{ animation: 'slide_from_right' }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }}>
+        <Stack.Screen name="map" options={{ animation: 'fade' }} />
+        <Stack.Screen
+          name="machine/[id]"
+          // A regular screen with a fade, not a transparent modal: as a transparent modal
+          // over the live map, the 3D close-up deadlocked the JS thread in the Simulator.
+          options={{ animation: 'fade' }}
+        />
+        <Stack.Screen
+          name="spot"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.55, 0.95],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 16,
+          }}
+        />
+        <Stack.Screen
+          name="place"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.95],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 16,
+          }}
+        />
+        <Stack.Screen
+          name="report"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.7, 0.95],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 16,
+          }}
+        />
+        <Stack.Screen name="keys" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="routes" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="company" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="collections" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="cities" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="shop" options={{ animation: 'slide_from_right' }} />
+      </Stack>
+      <CatchUpOverlay />
+    </>
   );
 }

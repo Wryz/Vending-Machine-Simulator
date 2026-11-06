@@ -547,7 +547,14 @@ export function advance(
     report.fromAt = s.now;
   }
   const longGap = to - s.now > 15 * 60_000;
-  const stepMs = longGap ? TIME.offlineStepMinutes * 60_000 : TIME.liveTickMs;
+  const fineUntil = s.now + TIME.offlineFineHours * 3_600_000;
+  // Live ticks for short gaps; for long ones 15-minute steps, then hourly after the first hours.
+  const stepAt = (now: number) =>
+    !longGap
+      ? TIME.liveTickMs
+      : now < fineUntil
+        ? TIME.offlineStepMinutes * 60_000
+        : TIME.offlineCoarseStepMinutes * 60_000;
   const startCash = s.cashCents;
   let compIdx = competition(s, world);
   let comp = compIdx.values;
@@ -559,7 +566,7 @@ export function advance(
 
   while (s.now < to) {
     const lostBefore = report.contractsLost.length;
-    const dt = Math.min(stepMs, to - s.now);
+    const dt = Math.min(stepAt(s.now), to - s.now);
     const tMid = s.now + dt / 2;
     const tEnd = s.now + dt;
     const local = localTime(tMid, world.city.timeZone, world.city.countryCode);
