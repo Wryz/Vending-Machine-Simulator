@@ -129,7 +129,7 @@ Show numbers and icons before text; sentences are for VoiceOver hints. Physical 
 
 - Touch targets are at least 44 pt. Use Dynamic Type where possible.
 - Haptics: light tick per coin, medium thunk when a product slots in, success notification on milestones.
-- Sound: soft mechanical clicks, coin clinks, compressor hum near machines. No loud jingles.
+- Sound: toy-like and characterful, never stock app blips: a wooden-block tock for taps, an old LED keypad beep, coins rolling down a chute and wobbling flat, a can thunking into the tray, the vending coil turning, a tiny register bell, a thermal receipt printer, a springy cash-box latch, kalimba / music-box / tongue-drum phrases for good news; compressor hum near machines. All procedural (`scripts/audio/`), leveled by loudness: taps quietest, rewards a little louder. No loud jingles.
 - Ambience is positional, never a constant bed: each source follows zoom and its distance from the view center to the places that make it (probed from the map on camera idle): quiet rhythmic waves only near water, birds by parks by day, crickets in green on warm nights, crowd and steps where streets are busy, rain and wind with the weather. Far out it is near silent under the music.
 
 ### 3.7 Typography & color tokens (proposal)
@@ -326,7 +326,8 @@ An area is playable if, within 2 km of the start point:
 | Singapore | 1.3521, 103.8198 | Hot all year; strict rules (alcohol limits) |
 | Sydney | −33.8688, 151.2093 | Beaches; seasons reversed |
 
-- City-specific flavor: local holidays and per-country alcohol rules. Currency stays in-game dollars in v1.
+- City-specific flavor: local holidays and per-country alcohol rules.
+- **Money in the local currency** *(2026-11-06)*: in-game money shows in the city's currency (country → currency in `src/config/currency.ts`; US dollars where unknown), formatted for the UI language (¥ and ₩ without decimals; compact "¥180k", "₩1.6M"). The sim and saves stay in integer US cents; the UI converts at the edge with **fixed, rounded game rates** (not live exchange rates; e.g. ¥150, ₩1,350, £0.79, €0.92 per $1), so balance is identical everywhere. Price steppers move by a nice local step (¥10, ₩100, 5p, 5c) mapped back to the sim's 5-cent grid without drift; shown prices round to that step. Real-money store prices (Shop) and Game Center scores (US cents) are unaffected.
 - The 9 cities ship as downloadable data packs from the data API, with the first chosen city cached locally.
 
 ### 6.4 Data sources & licensing (verify before shipping)

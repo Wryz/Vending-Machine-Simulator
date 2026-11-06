@@ -2,7 +2,8 @@
  * Audio tuning (SPEC §1.2 calm and premium, §3.6 sound). Used by the pure
  * soundscape mixer (src/audio/soundscape.ts) and the engine
  * (src/services/audio.ts). Asset loudness: music about -18 LUFS, ambience beds
- * about -20 LUFS, spice one-shots peak -6 dBFS; the trims below set the mix.
+ * about -20 LUFS, spice one-shots peak -6 dBFS, UI/machine one-shots in
+ * loudness tiers (scripts/audio/sfx.mjs); the trims below set the mix.
  *
  * There is no constant city bed (it read as a loud ocean wash far out): far
  * out is near silent under the music, and each ambience comes from the places
@@ -88,24 +89,28 @@ export const AUDIO_MIX = {
     footsteps: 0.35,
   },
   spiceJitter: 0.55,
-  /** UI / machine one-shots at sfxVolume 1. */
+  /**
+   * UI / machine one-shots at sfxVolume 1. The assets are leveled by loudness
+   * in tiers (scripts/audio/sfx.mjs: taps quietest, rewards loudest), so they
+   * share one trim; change a single entry only to nudge one sound.
+   */
   sfx: {
-    coin: 0.55,
-    coins: 0.6,
+    coin: 0.4,
+    coins: 0.4,
     click: 0.4,
-    thunk: 0.6,
-    vend: 0.6,
-    success: 0.5,
-    error: 0.45,
-    register: 0.5,
-    drop: 0.6,
-    door: 0.5,
-    paper: 0.45,
-    scribble: 0.5,
-    whoosh: 0.35,
+    thunk: 0.4,
+    vend: 0.4,
+    success: 0.4,
+    error: 0.4,
+    register: 0.4,
+    drop: 0.4,
+    door: 0.4,
+    paper: 0.4,
+    scribble: 0.4,
+    whoosh: 0.4,
     pop: 0.4,
-    chime: 0.5,
-    notify: 0.45,
+    chime: 0.4,
+    notify: 0.4,
   },
   /** Ramp times in seconds. */
   ramp: { layer: 1.5, music: 3, settings: 0.4, resume: 1.2 },

@@ -356,6 +356,26 @@ export function lufs(x) {
   return L(gated.reduce((a, b) => a + b, 0) / gated.length);
 }
 
+/**
+ * Loudest 400 ms window (EBU "momentary" loudness, LUFS), zero-padded so even a
+ * 50 ms tick gets a value. One-shots are leveled by this, not by peak: a short
+ * tick and a long chime at the same peak sound very different.
+ */
+export function momentaryMax(x) {
+  const B = Math.round(0.4 * SR);
+  const padded = new Float64Array(x.length + 2 * B);
+  padded.set(x, B);
+  const k = biquad(biquad(padded, 'highshelf', 1500, 1 / Math.SQRT2, 4), 'highpass', 38, 0.5);
+  const H = Math.round(0.01 * SR);
+  let best = 0;
+  for (let s = 0; s + B <= k.length; s += H) {
+    let e = 0;
+    for (let i = s; i < s + B; i++) e += k[i] * k[i];
+    best = Math.max(best, e / B);
+  }
+  return -0.691 + 10 * Math.log10(Math.max(1e-12, best));
+}
+
 /** Bring a buffer to `targetLufs` (iterating with the limiter), peaks <= ceilingDb. */
 export function master(x, { targetLufs, ceilingDb, loop = false }) {
   for (let it = 0; it < 4; it++) {

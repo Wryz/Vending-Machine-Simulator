@@ -7,8 +7,9 @@
  *
  *   node scripts/audio/generate.mjs [name ...]   (needs ffmpeg for the .m4a files)
  *
- * - UI/SFX one-shots -> assets/audio/<name>.wav (short, 16-bit mono 44.1 kHz,
- *   peaks about -14..-22 dBFS; the engine sets per-sound volume).
+ * - UI/SFX one-shots (scripts/audio/sfx.mjs) -> assets/audio/<name>.wav
+ *   (short, 16-bit mono 44.1 kHz, leveled by loudness in tiers: taps quietest,
+ *   rewards loudest; the engine applies one shared trim).
  * - Ambience loops -> assets/audio/<name>.m4a (AAC mono, ~-20 LUFS, built
  *   circularly so the seam is continuous; the engine plays them far quieter).
  * - Spice one-shots (birds, steps) -> .m4a.
@@ -30,11 +31,10 @@ import {
   buf,
   circular,
   describe,
-  fadeIn,
   fadeOut,
   limit,
-  loopify,
   master,
+  momentaryMax,
   mix,
   noise,
   normalize,
@@ -45,7 +45,7 @@ import {
   scale,
   writeAudio,
 } from './lib.mjs';
-import { ep, vibes } from './synth.mjs';
+import { SFX } from './sfx.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const OUT = path.join(ROOT, 'assets/audio');
@@ -82,294 +82,6 @@ function rms(x) {
   return Math.sqrt(s / x.length) || 1;
 }
 const unit = (x) => scale(x, 1 / rms(x));
-
-/** One coin clink: two inharmonic damped partials + a tiny contact tick. */
-function clink(out, t0, pitch = 1, amp = 1, seed = 7) {
-  partial(out, { f: 2380 * pitch, amp: 0.55 * amp, decay: 0.09, t0 });
-  partial(out, { f: 3790 * pitch, amp: 0.35 * amp, decay: 0.06, t0 });
-  partial(out, { f: 6120 * pitch, amp: 0.12 * amp, decay: 0.025, t0 });
-  burst(out, { t0, dur: 0.012, amp: 0.25 * amp, lp: 9000, hp: 2500, seed });
-}
-
-/** Product landing in the pickup bin. */
-function productDrop(x, td, seed = 41) {
-  partial(x, { f: 64, amp: 1, decay: 0.08, t0: td, attack: 0.003, glide: 0.7 });
-  partial(x, { f: 145, amp: 0.3, decay: 0.04, t0: td, glide: 0.4 });
-  burst(x, { t0: td, dur: 0.06, amp: 0.55, lp: 1000, hp: 60, seed, decay: 0.014 });
-  burst(x, {
-    t0: td + 0.06,
-    dur: 0.03,
-    amp: 0.12,
-    lp: 2500,
-    hp: 300,
-    seed: seed + 1,
-    decay: 0.008,
-  });
-}
-
-// ---------- UI / machine SFX (wav) ----------
-const SFX = {
-  coin() {
-    const x = buf(0.32);
-    clink(x, 0.002);
-    clink(x, 0.055, 1.03, 0.35, 9); // the small bounce
-    return normalize(fadeOut(x), -14);
-  },
-  'coins-stack'() {
-    const x = buf(0.62);
-    const hits = [
-      [0.0, 1.0, 1.0],
-      [0.1, 0.97, 0.8],
-      [0.19, 1.05, 0.7],
-      [0.3, 0.99, 0.85],
-    ];
-    hits.forEach(([t, p, a], i) => {
-      clink(x, t + 0.002, p, a, 11 + i);
-      burst(x, { t0: t + 0.002, dur: 0.02, amp: 0.15 * a, lp: 1500, hp: 150, seed: 31 + i });
-    });
-    return normalize(fadeOut(x), -14);
-  },
-  click() {
-    const x = buf(0.05);
-    partial(x, { f: 3100, amp: 0.4, decay: 0.006, t0: 0.001 });
-    partial(x, { f: 1650, amp: 0.25, decay: 0.009, t0: 0.001 });
-    burst(x, { t0: 0.0005, dur: 0.006, amp: 0.5, lp: 7000, hp: 1200, seed: 3 });
-    return normalize(fadeOut(x, 0.005), -16);
-  },
-  thunk() {
-    const x = buf(0.36);
-    partial(x, { f: 72, amp: 1, decay: 0.07, t0: 0.004, attack: 0.003, glide: 0.6 });
-    partial(x, { f: 160, amp: 0.35, decay: 0.035, t0: 0.004, glide: 0.4 });
-    burst(x, { t0: 0.002, dur: 0.05, amp: 0.5, lp: 900, hp: 60, seed: 5, decay: 0.012 });
-    partial(x, { f: 2600, amp: 0.12, decay: 0.006, t0: 0.045 });
-    burst(x, { t0: 0.045, dur: 0.006, amp: 0.15, lp: 8000, hp: 2000, seed: 6 });
-    return normalize(fadeOut(x), -14);
-  },
-  vend() {
-    const x = buf(1.0);
-    const motorEnd = 0.55;
-    const m = buf(motorEnd);
-    let ph = 0;
-    for (let i = 0; i < m.length; i++) {
-      const t = i / SR;
-      const f = 92 + 6 * Math.sin(TAU * 3 * t);
-      ph += f / SR;
-      const saw = 2 * (ph % 1) - 1;
-      const env = Math.min(1, t / 0.06) * Math.min(1, (motorEnd - t) / 0.08);
-      m[i] = saw * env * 0.5;
-    }
-    biquad(m, 'lowpass', 700);
-    biquad(m, 'highpass', 80);
-    mix(x, m);
-    for (let t = 0.07; t < motorEnd - 0.05; t += 0.085) {
-      burst(x, { t0: t, dur: 0.008, amp: 0.18, lp: 5000, hp: 1200, seed: Math.round(t * 1000) });
-    }
-    productDrop(x, 0.68);
-    return normalize(fadeOut(x, 0.03), -14);
-  },
-  success() {
-    const x = buf(0.95);
-    for (const [t0, f, a] of [
-      [0.002, 784, 0.8],
-      [0.13, 1175, 0.65],
-    ]) {
-      partial(x, { f, amp: a, decay: 0.32, t0, attack: 0.004 });
-      partial(x, { f: f * 2.01, amp: a * 0.18, decay: 0.12, t0, attack: 0.004 });
-      partial(x, { f: f * 2.76, amp: a * 0.06, decay: 0.06, t0, attack: 0.003 });
-    }
-    return normalize(fadeOut(x, 0.05), -15);
-  },
-  error() {
-    const x = buf(0.3);
-    for (const t0 of [0.002, 0.12]) {
-      partial(x, { f: 196, amp: 0.8, decay: 0.035, t0, attack: 0.002 });
-      partial(x, { f: 392, amp: 0.2, decay: 0.02, t0, attack: 0.002 });
-      burst(x, { t0, dur: 0.01, amp: 0.25, lp: 2500, hp: 300, seed: 13 });
-    }
-    return normalize(fadeOut(x), -15);
-  },
-  /** Sale: a key-press tick, then one small soft bell (not a jingle). */
-  register() {
-    const x = buf(1.1);
-    burst(x, { t0: 0.001, dur: 0.008, amp: 0.35, lp: 5000, hp: 900, seed: 61 });
-    partial(x, { f: 820, amp: 0.18, decay: 0.012, t0: 0.001 });
-    const t0 = 0.045;
-    const f = 1568; // G6
-    partial(x, { f, amp: 0.7, decay: 0.42, t0, attack: 0.002 });
-    partial(x, { f: f * 1.0035, amp: 0.3, decay: 0.38, t0, attack: 0.002 }); // slow shimmer
-    partial(x, { f: f * 2.0, amp: 0.14, decay: 0.2, t0 });
-    partial(x, { f: f * 2.76, amp: 0.08, decay: 0.09, t0 });
-    partial(x, { f: f * 5.4, amp: 0.03, decay: 0.03, t0 });
-    burst(x, { t0, dur: 0.004, amp: 0.12, lp: 9000, hp: 3000, seed: 62 });
-    return normalize(fadeOut(x, 0.08), -17);
-  },
-  /** Product dropping into the pickup bin, with a small plastic rattle. */
-  drop() {
-    const x = buf(0.45);
-    productDrop(x, 0.004, 71);
-    burst(x, { t0: 0.045, dur: 0.012, amp: 0.1, lp: 3500, hp: 1200, seed: 73, decay: 0.004 });
-    burst(x, { t0: 0.082, dur: 0.01, amp: 0.06, lp: 3000, hp: 1200, seed: 74, decay: 0.003 });
-    partial(x, { f: 1900, amp: 0.04, decay: 0.012, t0: 0.045 });
-    return normalize(fadeOut(x, 0.03), -14);
-  },
-  /** Metal cash-box door: key/latch clicks, then a damped steel clank. */
-  door() {
-    const x = buf(0.7);
-    for (const [t, a, s] of [
-      [0.002, 0.35, 81],
-      [0.055, 0.5, 82],
-    ]) {
-      burst(x, { t0: t, dur: 0.006, amp: a, lp: 8000, hp: 1800, seed: s });
-      partial(x, { f: 3300, amp: a * 0.25, decay: 0.006, t0: t });
-    }
-    const tc = 0.22;
-    for (const [f, a, d] of [
-      [372, 0.5, 0.11],
-      [1013, 0.32, 0.07],
-      [1741, 0.2, 0.05],
-      [2655, 0.12, 0.035],
-      [3920, 0.06, 0.02],
-    ])
-      partial(x, { f, amp: a, decay: d, t0: tc, attack: 0.001 });
-    burst(x, { t0: tc, dur: 0.04, amp: 0.45, lp: 3000, hp: 120, seed: 83, decay: 0.01 });
-    partial(x, { f: 95, amp: 0.35, decay: 0.05, t0: tc, attack: 0.002 });
-    burst(x, { t0: tc + 0.07, dur: 0.01, amp: 0.08, lp: 5000, hp: 1500, seed: 84 }); // settle
-    return normalize(fadeOut(x, 0.05), -15);
-  },
-  /** Thermal receipt printer: stepper burr in short line bursts, paper feed. */
-  paper() {
-    const dur = 0.95;
-    const x = buf(dur);
-    const r = rng(91);
-    const steps = new Float64Array(x.length);
-    const lines = [];
-    for (let t = 0.02; t < dur - 0.12;) {
-      const on = range(r, 0.05, 0.09);
-      lines.push([t, t + on]);
-      t += on + range(r, 0.012, 0.03);
-    }
-    for (const [a, b] of lines) {
-      for (let t = a; t < b; t += 1 / 230) steps[Math.round(t * SR)] += 0.7 + 0.3 * r();
-    }
-    const s = biquad(biquad(steps, 'bandpass', 2600, 1.4), 'lowpass', 7000);
-    const feed = biquad(biquad(noise(x.length, 92), 'highpass', 3000), 'lowpass', 9000);
-    const motor = new Float64Array(x.length);
-    let ph = 0;
-    for (let i = 0; i < x.length; i++) {
-      const t = i / SR;
-      const on = lines.some(([a, b]) => t >= a && t < b) ? 1 : 0.15;
-      ph += (TAU * 460) / SR;
-      motor[i] = on * 0.05 * Math.sin(ph);
-      const env = Math.min(1, t / 0.02) * Math.min(1, (dur - t) / 0.08);
-      x[i] = env * (s[i] * 1.6 + feed[i] * 0.05 * on + motor[i]);
-    }
-    return normalize(fadeOut(x, 0.03), -19);
-  },
-  /** Pen signature: friction noise following stroke speed, with lifts. */
-  scribble() {
-    const dur = 1.05;
-    const x = buf(dur);
-    const r = rng(101);
-    const comps = Array.from({ length: 4 }, () => [range(r, 3, 9), r() * TAU, range(r, 0.4, 1)]);
-    const fr = biquad(biquad(noise(x.length, 102), 'bandpass', 3600, 0.9), 'highpass', 1500);
-    const body = biquad(noise(x.length, 103), 'bandpass', 1250, 4);
-    const lifts = [
-      [0.38, 0.45],
-      [0.71, 0.76],
-    ];
-    for (let i = 0; i < x.length; i++) {
-      const t = i / SR;
-      let v = 0;
-      for (const [f, p, a] of comps) v += a * Math.sin(TAU * f * t + p);
-      let speed = Math.abs(v) / 2;
-      if (lifts.some(([a, b]) => t > a && t < b)) speed = 0;
-      const env = Math.min(1, t / 0.03) * Math.min(1, (dur - 0.05 - t) / 0.06);
-      x[i] = Math.max(0, env) * speed ** 1.4 * (fr[i] + body[i] * 0.25);
-    }
-    onePole(x, 7000);
-    return normalize(fadeOut(x, 0.03), -19);
-  },
-  /** Soft UI sheet: band-pass noise swept up and back down. */
-  whoosh() {
-    const dur = 0.42;
-    const x = noise(Math.round(dur * SR), 111);
-    const n = x.length;
-    biquadTV(
-      x,
-      'bandpass',
-      (i) => {
-        const u = i / n;
-        return u < 0.45 ? 350 + 1100 * (u / 0.45) ** 1.5 : 1450 - 750 * ((u - 0.45) / 0.55);
-      },
-      0.8,
-    );
-    for (let i = 0; i < n; i++) {
-      const u = i / n;
-      x[i] *= u < 0.38 ? Math.sin((u / 0.38) * (Math.PI / 2)) ** 2 : Math.exp(-(u - 0.38) / 0.16);
-    }
-    return normalize(fadeOut(x, 0.02), -22);
-  },
-  /** Soft UI tick: a small rounded "tok". */
-  pop() {
-    const x = buf(0.08);
-    let ph = 0;
-    for (let i = 0; i < x.length; i++) {
-      const t = i / SR;
-      const f = 720 + 420 * Math.exp(-t / 0.006);
-      ph += (TAU * f) / SR;
-      x[i] = Math.min(1, t / 0.0008) * Math.exp(-t / 0.016) * Math.sin(ph);
-    }
-    burst(x, { t0: 0, dur: 0.003, amp: 0.12, lp: 6000, hp: 1500, seed: 121 });
-    return normalize(fadeOut(x, 0.01), -20);
-  },
-  /** Chapter complete: calm three-note rise (C5 F5 A5), warm EP + soft vibes. */
-  chime() {
-    const x = buf(2.6);
-    [
-      [72, 0.0, 0.5],
-      [77, 0.16, 0.55],
-      [81, 0.32, 0.6],
-    ].forEach(([m, t, v]) => {
-      mix(x, ep(m, 1.5, v, { tremolo: 0.05 }), 1, Math.round(t * SR));
-      mix(x, vibes(m + 12, 0.8, v * 0.6, { decay: 0.9, tremolo: 0.1 }), 0.25, Math.round(t * SR));
-    });
-    addReverb(x, 0.35, { size: 0.55, damp: 0.5 });
-    biquad(x, 'lowpass', 9000, 0.6);
-    return normalize(fadeOut(fadeIn(x, 0.002), 0.3), -15);
-  },
-  /** Event announced: two soft bell notes falling a fourth. */
-  notify() {
-    const x = buf(1.6);
-    [
-      [86, 0.0, 0.6],
-      [81, 0.15, 0.55],
-    ].forEach(([m, t, v]) =>
-      mix(x, vibes(m, 0.6, v, { decay: 0.7, tremolo: 0.06 }), 1, Math.round(t * SR)),
-    );
-    addReverb(x, 0.3, { size: 0.5, damp: 0.5 });
-    biquad(x, 'lowpass', 8500, 0.6);
-    return normalize(fadeOut(fadeIn(x, 0.002), 0.25), -17);
-  },
-  hum() {
-    // 2 s loop. Partials are multiples of 0.5 Hz so they also wrap exactly.
-    const N = 2;
-    const F = 0.25;
-    const x = buf(N + F);
-    for (let i = 0; i < x.length; i++) {
-      const t = i / SR;
-      const lfo = 1 + 0.08 * Math.sin(TAU * 0.5 * t);
-      x[i] =
-        lfo *
-        (0.5 * Math.sin(TAU * 60 * t) +
-          0.28 * Math.sin(TAU * 120 * t + 0.6) +
-          0.12 * Math.sin(TAU * 180 * t + 1.1) +
-          0.06 * Math.sin(TAU * 240 * t + 2.0));
-    }
-    const air = biquad(biquad(noise(x.length, 77), 'lowpass', 500), 'highpass', 90);
-    for (let i = 0; i < x.length; i++) x[i] += air[i] * 0.35;
-    return normalize(loopify(x, F), -26);
-  },
-};
 
 // ---------- ambience loops (m4a) ----------
 const BED_LUFS = -20;
@@ -429,7 +141,12 @@ function waves() {
     ),
   );
   const foam = unit(
-    loopNoise(N, 1202, (y) => (biquad(y, 'bandpass', 900, 0.8), biquad(y, 'lowpass', 1600)), 'pink'),
+    loopNoise(
+      N,
+      1202,
+      (y) => (biquad(y, 'bandpass', 900, 0.8), biquad(y, 'lowpass', 1600)),
+      'pink',
+    ),
   );
   const x = new Float64Array(N);
   for (let i = 0; i < N; i++) x[i] = (0.1 + env[i]) * body[i] + 0.22 * washEnv[i] * foam[i];
@@ -828,6 +545,7 @@ function main() {
     if (!want(name)) continue;
     const x = fn();
     out(name, writeAudio(path.join(OUT, name), x), x, name === 'hum');
+    if (name !== 'hum') console.log(`    momentary max ${momentaryMax(x).toFixed(1)} LUFS`);
   }
   console.log('Ambience loops (m4a)');
   for (const [name, fn] of Object.entries(BEDS)) {
