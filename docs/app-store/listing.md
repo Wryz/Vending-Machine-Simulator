@@ -1,5 +1,7 @@
 # App Store listing (ready to paste)
 
+> **Status (2026-11-06):** entered in App Store Connect (app 6831590229): name, subtitle, category, content rights, age rating (13+), privacy policy URL, App Privacy answers (saved, **not published**: the account holder publishes after review), promotional text, description, keywords, URLs, copyright, 4 screenshots, Free pricing, all 175 regions, and the 5 in-app purchases (availability, price, English name and description). Still to do by hand: review contact (name, phone, email) and notes, in-app purchase review screenshots (take them from a build with the store live), the Paid Applications Schedule, and publishing App Privacy.
+
 Everything App Store Connect asks for, with Apple's limits checked. Prepared on 2026-11-06.
 
 ## App information
@@ -97,7 +99,7 @@ Answer as below; expect **13+** (Apple's current tiers), driven only by alcohol 
 Based on the code (`src/services/analytics.ts`, `ads.ts`, `purchases.ts`, `src/data/api.ts`) and the SDKs' own disclosures. Google publishes AdMob's data list; RevenueCat its own.
 
 **Data used to track you**
-- Identifiers › **Device ID**: only when the player turns on personalized ads in Settings and allows tracking (AdMob). Purpose: third-party advertising.
+- Identifiers › **Device ID**: only when the player turns on personalized ads in Settings and allows tracking (AdMob). Purpose: third-party advertising. Entered as **linked to identity** (an advertising ID is device-level), and used for tracking.
 
 **Data not linked to you**
 | Data type | Collected by | Purposes |

@@ -158,7 +158,9 @@ export default function Onboarding() {
           <Button
             label="Insert coin"
             icon={<Icon name="coin" size={22} color="#FFFFFF" />}
-            onPress={() => setStep('location')}
+            // Without the data service there's no area check, so don't ask for location
+            // we couldn't use (App Review 5.1.1): go straight to the city picker.
+            onPress={() => setStep(ENV.dataApiUrl ? 'location' : 'picker')}
             accessibilityHint="Start your vending business"
           />
         </View>

@@ -72,6 +72,9 @@ export async function syncEntitlements(): Promise<void> {
   const owned = new Set(info.nonSubscriptionTransactions.map((t) => t.productIdentifier));
   useProfile.getState().update((p) => {
     if (owned.has(PRODUCTS.removeAds.id)) p.entitlements.removeAds = true;
+    // Bought on another install: the pack is owed to this one (the shop delivers it).
+    if (owned.has(PRODUCTS.starterPack.id) && !p.entitlements.starterPackClaimed)
+      p.entitlements.starterPackOwed = true;
     for (const key of ['wrapNight', 'wrapLinen', 'lightingWarm'] as const) {
       if (owned.has(PRODUCTS[key].id) && !p.entitlements.wraps.includes(key))
         p.entitlements.wraps.push(key);

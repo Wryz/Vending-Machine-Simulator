@@ -84,7 +84,7 @@
       [
         "react-native-google-mobile-ads",
         {
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "iosAppId": "ca-app-pub-3538177621347149~7872103117",
           "androidAppId": "ca-app-pub-3940256099942544~3347511713",
           "userTrackingUsageDescription": "Only if you turn on personalized ads in Settings: lets ad partners show ads that fit you. Coinline works the same either way."
         }

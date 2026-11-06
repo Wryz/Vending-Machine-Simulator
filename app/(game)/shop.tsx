@@ -109,6 +109,15 @@ export default function Shop() {
     setBusy('restore');
     const res = await restore();
     setBusy(null);
+    // A restored Starter Pack is delivered to the open game (once per install).
+    if (res.ok && useProfile.getState().entitlements.starterPackOwed) {
+      const applied = useGame.getState().act((d) => applyStarterPack(d));
+      if (applied.ok)
+        useProfile.getState().update((p) => {
+          p.entitlements.starterPackClaimed = true;
+          p.entitlements.starterPackOwed = false;
+        });
+    }
     show(
       res.ok ? 'Purchases restored.' : (res.error ?? 'Could not restore purchases.'),
       res.ok ? 'success' : 'error',

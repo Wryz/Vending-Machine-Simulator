@@ -29,6 +29,8 @@ export interface Settings {
 export interface Entitlements {
   removeAds: boolean;
   starterPackClaimed: boolean;
+  /** Bought (restored) but not yet delivered to a game on this install. */
+  starterPackOwed?: boolean;
   starterPackOffered: boolean;
   wraps: string[];
 }
