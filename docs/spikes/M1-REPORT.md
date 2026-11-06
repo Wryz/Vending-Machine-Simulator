@@ -353,6 +353,31 @@ In Node: 274 → 98 ms (synthetic) and 150 → 115 ms (`scripts/bench/offline-ca
 - Returning to the app after 5+ minutes shows a "While you were away… COUNTING COINS" overlay for one frame, then runs the catch-up (`useGame.resume`, `src/ui/CatchUpOverlay.tsx`). The cold start already shows the loading screen.
 - 200 machines is a late-game fleet. If the wait feels long on a device, the next step is moving catch-up off the JS thread (a worklet or a native module, which needs the owner's OK).
 
+**Update 2: Release build, exact speedups, sliced catch-up (2026-11-06).**
+- Profiling: `node --jitless` (V8 without its JIT) runs the realistic bench in ~1.3 s, close to Hermes. It's a usable local proxy for profiling Hermes.
+- Exact speedups (final cash, units and lost contracts unchanged in both benches):
+  - traffic and fit cached per (local hour, day type) across steps;
+  - sales multiplier cached per family per step;
+  - scratch arrays in `sellStep`, plain loops instead of `map`/`forEach`;
+  - RNG inlined into the Knuth Poisson loop;
+  - no tag-boost work when no event is near;
+  - one sell context per step.
+  - About 15–20% faster in the interpreter proxy (Node with JIT: 124 → 99 ms).
+- **Release build, Hermes, iPhone 17 Simulator** (`diagnostics?run=all`, 3 runs):
+
+  | Check | Result | Target |
+  |---|---|---|
+  | h3-js, 2,000 × latLngToCell + gridDisk | 82 ms | — |
+  | Offline catch-up 72 h, 16 machines | **84–88 ms** | < 300 ms ✅ |
+  | Offline catch-up 72 h, 200 machines | **752–784 ms** (debug, old code: 1,442) | < 300 ms ❌ |
+
+  Most of the gain is Release vs debug; I didn't measure the old code in Release.
+- **Sliced catch-up.** `beginAdvance()` runs the catch-up a few steps at a time. Any chunking gives exactly the same state and report as `advance()` (`src/sim/advanceJob.test.ts`).
+  - Returning after 5+ minutes runs it in ~12 ms slices (`TIME.catchUpSliceMs`), so the app never freezes. The coin-counting overlay's LED meter fills as it goes, and actions wait until it finishes.
+  - The 300 ms target was about a frozen screen; with slicing the screen stays live, so 200 machines now means a short progress meter rather than a hang.
+  - Cold start still catches up in one go behind the loading screen (native spinner).
+- The Diagnostics auto-run (`coinline://diagnostics?run=all`) also writes its log to `Documents/saves/diagnostics-log.json`. Release builds don't send `console.log` to the system log, so this is how to read device numbers.
+
 ### Bugs found on the Simulator and fixed
 - **Every map overlay was invisible on iOS** (machines, cars and people, events, district boundary, heat). MapLibre RN adds a GeoJSON source to the style that's current when it mounts. On iOS the map first loads its default style, then ours, so all overlay sources were dropped. Overlays now mount after our style loads.
 - Three.js CJS build crash (`process.emitWarning`) on every 3D screen; patched `expo-modules-jsi` for Xcode 26. See §7.

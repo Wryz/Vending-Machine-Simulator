@@ -22,6 +22,7 @@ import {
   type World,
 } from '@/sim';
 import { offsetPoint } from '@/sim/geo';
+import { writeJson } from '@/services/storage';
 import { buildWorld, cityInfoFor, useGame } from '@/store/game';
 import { MachineScene, type SceneStats } from '@/three/MachineScene';
 import { Button, Mono, Paper, Screen, Section, T } from '@/ui/kit';
@@ -47,6 +48,9 @@ async function benchState(): Promise<{ game: GameState; world: World }> {
   return { game: newGame({ cityId: city.id, now: Date.now(), seed: 1 }), world: bench };
 }
 
+/** This session's auto-run log (see `log`). */
+const autoLog: string[] = [];
+
 export default function Diagnostics() {
   const [lines, setLines] = useState<string[]>([]);
   const [fps, setFps] = useState<number[]>([]);
@@ -58,6 +62,11 @@ export default function Diagnostics() {
   const log = (s: string) => {
     console.log(`[diag] ${s}`);
     setLines((l) => [...l, s]);
+    // Auto runs also keep the log on disk, so a Release build's numbers can be read off the device.
+    if (run === 'all') {
+      autoLog.push(`${new Date().toISOString()} ${s}`);
+      writeJson('diagnostics-log', autoLog);
+    }
   };
 
   const runH3 = () => {
