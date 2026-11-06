@@ -23,7 +23,7 @@ import { soundscape } from '@/services/audio';
 import { haptic } from '@/services/haptics';
 import { cityKey, useProfile } from '@/store/profile';
 import { useGame } from '@/store/game';
-import { GlobeScene, type GlobePin } from '@/three/globe/GlobeScene';
+import { GlobeView, type GlobePin } from '@/three/globe/GlobeView';
 import { transition } from '@/store/transition';
 import { useTheme } from '@/ui/ThemeProvider';
 import { clock, money } from '@/ui/format';
@@ -196,12 +196,18 @@ export default function MapScreen() {
   const globePins = useMemo<GlobePin[]>(() => {
     const here = city ? cityKey(city) : '';
     return [
-      { id: here || 'current', lat: world.city.lat, lng: world.city.lng, current: true },
+      {
+        id: here || 'current',
+        lat: world.city.lat,
+        lng: world.city.lng,
+        current: true,
+        label: `${world.city.name} · ${activeMachines(game).length} machine${activeMachines(game).length === 1 ? '' : 's'}`,
+      },
       ...Object.entries(visited)
         .filter(([key]) => key !== here)
         .map(([key, c]) => ({ id: key, lat: c.lat, lng: c.lng, current: false })),
     ];
-  }, [city, visited, world.city]);
+  }, [city, visited, world.city, game]);
 
   const leaveGlobe = useCallback(() => {
     setGlobe(false);
@@ -450,18 +456,12 @@ export default function MapScreen() {
           exiting={FadeOut.duration(GLOBE.crossfadeMs)}
           style={StyleSheet.absoluteFill}
         >
-          <GlobeScene pins={globePins} focus={world.city} onPin={onGlobePin} onEnter={leaveGlobe} />
+          <GlobeView pins={globePins} focus={world.city} onPin={onGlobePin} onEnter={leaveGlobe} />
           <View
             pointerEvents="box-none"
             style={[styles.topLeft, { top: insets.top + SPACE.s, left: SPACE.l }]}
           >
             <CashPill cents={game.cashCents} />
-            <InfoPill>
-              <Icon name="globe" size={16} />
-              <T size={13} weight="medium">
-                {`${world.city.name} · ${active.length} machine${active.length === 1 ? '' : 's'}`}
-              </T>
-            </InfoPill>
           </View>
           <View style={[styles.globeBack, { bottom: insets.bottom + SPACE.xl }]}>
             <Button label={`Back to ${world.city.name}`} onPress={leaveGlobe} />

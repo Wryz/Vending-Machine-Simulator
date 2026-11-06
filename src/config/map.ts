@@ -71,33 +71,32 @@ export const MACHINE_SPRITE = {
  */
 export const GLOBE = {
   /**
-   * Off until the three.js globe presents on iOS: its GL view renders frames
-   * (three.js reports draw calls) but nothing reaches the screen in the
-   * Simulator, unless another GL scene is mounted. While off, the map itself
-   * zooms out to the world with machines clustered.
+   * MapLibre Native has no globe projection yet, so pinching out past
+   * `handoffZoom` crossfades into a flat-shaded SVG globe (src/ui/GlobeView);
+   * pinching in, tapping your city's pin or "Back" flies back to the map.
    */
-  enabled: false,
-  /** The map can zoom out this far (world view, machines clustered). */
-  mapMinZoom: 2,
+  enabled: true,
+  /** The map can zoom out this far before the globe takes over. */
+  mapMinZoom: 4,
   /** A pinch that ends below this zoom opens the globe. */
   handoffZoom: 7.5,
   /** Map zoom when coming back from the globe to a city. */
   returnZoom: 13,
   crossfadeMs: 450,
-  /** Camera distance in globe radii; pinch range. */
-  cameraDistance: 3.1,
-  minDistance: 2.2,
-  maxDistance: 4.2,
   /** Pinch-in past this scale (relative to the start) returns to the map. */
   enterScale: 1.35,
   /** Drag: degrees of spin per point dragged. */
   degPerPt: 0.35,
   /** Slow idle spin (degrees per second) after a few seconds untouched. */
-  idleSpinDegPerS: 3,
-  idleAfterMs: 4000,
-  /** Icosphere subdivisions (5 ≈ 20k faces) and land relief in radii. */
-  detail: 5,
+  idleSpinDegPerS: 4,
+  idleAfterMs: 3000,
+  /** Edge splits (20·n² faces; 12 ≈ 2,900), land relief in radii. */
+  flatDetail: 12,
   landHeight: 0.022,
+  /** Flat light steps from night to full sun. */
+  shadeSteps: 4,
+  /** Redraw rate while spinning (frames per second). */
+  fps: 30,
   colors: {
     ocean: '#5BB8EE',
     oceanDeep: '#4AA6E0',
@@ -106,8 +105,11 @@ export const GLOBE = {
     snow: '#F4F7FF',
     /** Above this |latitude| land turns to snow. */
     snowLatDeg: 62,
-    space: '#1E2250',
-    ambient: '#7F86D9',
+    /** What the night side tints toward (soft periwinkle, never black). */
+    night: '#9AA0EE',
+    /** Sky behind the globe, and its soft halo. */
+    sky: '#CFE9FF',
+    halo: '#FFFFFF',
     pin: '#FF6B2C',
     pinOther: '#FFFFFF',
   },

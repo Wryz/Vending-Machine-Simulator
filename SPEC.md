@@ -101,7 +101,7 @@ Custom MapLibre style, not a default basemap:
 - **Labels:** minimal. Districts and major roads only at mid zoom; place names appear only near selected spots. Typeface matches the UI (§3.7).
 - **POIs:** never use default POI icons. When a spot is selected, nearby places appear as small, consistent low-poly-style category glyphs (school, gym, office, hospital, station, café, park, stadium, university, nightlife).
 - **Machines on the map:** rendered as pre-rendered low-poly sprites of the actual 3D models (§7.3) with a soft glowing pad in the family color. They never shrink below a readable size (about 32 pt tall), so machines are always the stars of the map. Status rings: low stock is amber, cash full is green, broken is red.
-- **Views:** a tilted 3D view and a straight top-down view (one toggle). Zooming far out hands off to a low-poly globe showing every city and machine (MapLibre Native has no globe projection yet, so the globe is a three.js scene).
+- **Views:** a tilted 3D view and a straight top-down view (one toggle). Zooming far out hands off to a low-poly globe showing every city and machine (MapLibre Native has no globe projection yet, so the globe is a flat-shaded low-poly sphere drawn with SVG, lit by the real sun, with a pin per city).
 
 ### 3.6 UI: soft, rounded, map-first
 The map is always the screen. Controls float over it as round buttons and pills; details open in bottom sheets (`@gorhom/bottom-sheet`) instead of new pages. Buttons are pills, cards are rounded and borderless with soft shadows; no boxy panels, no all-caps labels. Show numbers and icons before text.
