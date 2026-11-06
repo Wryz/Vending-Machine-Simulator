@@ -18,6 +18,7 @@ import { readUri, writeShareFile } from '@/services/storage';
 import { SaveError, exportSave, importSave } from '@/sim';
 import { useGame } from '@/store/game';
 import { useProfile, type Settings } from '@/store/profile';
+import { GameCenterSettings } from '@/ui/GameCenter';
 import { useTheme } from '@/ui/ThemeProvider';
 import { Icon } from '@/ui/icons';
 import { Button, Divider, Mono, Paper, Row, Screen, Section, T } from '@/ui/kit';
@@ -532,6 +533,8 @@ export default function SettingsScreen() {
             </View>
           </Paper>
         </Section>
+
+        <GameCenterSettings />
 
         <Section title={t('settings.sections.privacy')}>
           <Paper tone="surface" style={{ paddingVertical: SPACE.s }}>

@@ -15,6 +15,7 @@ import { ENV } from '@/data/env';
 import { useLang } from '@/i18n';
 import { bindLanguageToProfile } from '@/i18n/init';
 import { initAds } from '@/services/ads';
+import { initGameCenter } from '@/services/gameCenter';
 import { sound } from '@/services/audio';
 import { initPurchases } from '@/services/purchases';
 import { useProfile } from '@/store/profile';
@@ -64,6 +65,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (!loaded) return;
     initPurchases();
+    // Silent: signs in only if the player already uses Game Center; never prompts.
+    initGameCenter();
     // Ads SDK starts after launch and never shows anything on its own (SPEC §9).
     if (!useProfile.getState().entitlements.removeAds) initAds();
   }, [loaded]);

@@ -29,7 +29,10 @@
           }
         ]
       },
-      "appleTeamId": "BXGQNYDRM6"
+      "appleTeamId": "BXGQNYDRM6",
+      "entitlements": {
+        "com.apple.developer.game-center": true
+      }
     },
     "android": {
       "package": "app.coinline.vending",

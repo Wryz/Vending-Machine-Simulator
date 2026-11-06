@@ -14,6 +14,7 @@ import company from './company';
 import content from './content';
 import credits from './credits';
 import format from './format';
+import gameCenter from './gameCenter';
 import hud from './hud';
 import keys from './keys';
 import kit from './kit';
@@ -50,6 +51,7 @@ const en = {
   content,
   credits,
   format,
+  gameCenter,
   hud,
   keys,
   kit,

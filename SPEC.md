@@ -328,6 +328,7 @@ An area is playable if, within 2 km of the start point:
   - **Open-Meteo:** check commercial-use terms.
   - Cache per city or region, hourly, in the data API so client calls stay minimal.
 - **Holidays:** a static per-country table bundled with the app (for example, generated from the `date-holidays` package at build time).
+- **Leaderboards & achievements:** Apple Game Center (free with the Apple Developer Program). Only scores (weekly and lifetime sales) and trophy ids are sent, to Apple, when the player is signed in to Game Center; no location.
 - **Do not use** Google Maps or Places data (terms don't allow this use).
 - Credits screen lists all sources and licenses.
 
@@ -367,6 +368,7 @@ An area is playable if, within 2 km of the start point:
 - **Notifications:** `expo-notifications` (local only), scheduled from the simulation's projections.
 - **Ads:** `react-native-google-mobile-ads` (rewarded only), with App Tracking Transparency prompt handling.
 - **Purchases:** RevenueCat (`react-native-purchases`) or `react-native-iap`.
+- **Game Center (iOS):** local Expo module `modules/game-center` (Swift, GameKit; no third-party package): silent sign-in, weekly city + all-time leaderboards, trophies as achievements. Service `src/services/gameCenter.ts`, ids in `src/config/gameCenter.ts`, ASC setup in `docs/app-store/game-center.md`. Android: no-op.
 - **Haptics and audio:** `expo-haptics`, `expo-audio` (or `expo-av`).
 - **Analytics:** privacy-light, event counts only (e.g., PostHog or Firebase Analytics); no precise location.
 
