@@ -17,11 +17,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { haptic } from '@/services/haptics';
 
 import { useTheme } from './ThemeProvider';
-import { FONTS, SPACE, TOUCH } from './theme';
+import { FONTS, RADIUS, SPACE, TOUCH } from './theme';
 
 /**
- * Base UI primitives. Calm and plain (SPEC §3.2): short copy, no shouting,
- * Dynamic Type allowed (fonts scale; capped so layouts hold).
+ * Base UI primitives (SPEC §3.6): bright, soft and rounded. Pill buttons,
+ * borderless cards with soft shadows, short copy. Dynamic Type allowed
+ * (fonts scale; capped so layouts hold).
  */
 
 type TProps = TextProps & {
@@ -108,13 +109,13 @@ export function Button({
   const theme = useTheme();
   const bg =
     kind === 'primary'
-      ? theme.ink
+      ? theme.brand
       : kind === 'danger'
         ? theme.alert
         : kind === 'secondary'
           ? theme.raised
           : 'transparent';
-  const fg = kind === 'primary' ? theme.bg : kind === 'danger' ? '#FFFFFF' : theme.ink;
+  const fg = kind === 'primary' ? theme.onBrand : kind === 'danger' ? '#FFFFFF' : theme.ink;
   return (
     <Pressable
       accessibilityRole="button"
@@ -130,9 +131,8 @@ export function Button({
         styles.button,
         {
           backgroundColor: bg,
-          borderColor: kind === 'secondary' ? theme.line : 'transparent',
           opacity: disabled ? 0.45 : 1,
-          transform: [{ translateY: pressed ? 1 : 0 }, { scale: pressed ? 0.98 : 1 }],
+          transform: [{ scale: pressed ? 0.96 : 1 }],
           shadowColor: theme.shadow,
           shadowOpacity: kind === 'quiet' || pressed ? 0 : 1,
         },
@@ -149,7 +149,7 @@ export function Button({
   );
 }
 
-/** A sheet of paper: slight grain via layered borders and a soft shadow. */
+/** A soft rounded card with a gentle shadow. */
 export function Paper({
   children,
   style,
@@ -166,7 +166,6 @@ export function Paper({
         styles.paper,
         {
           backgroundColor: tone === 'paper' ? theme.paper : theme.surface,
-          borderColor: theme.dark && tone === 'surface' ? theme.line : 'rgba(27,31,35,0.06)',
           shadowColor: theme.shadow,
         },
         style,
@@ -201,7 +200,7 @@ export function Divider({ dashed }: { dashed?: boolean }) {
     <View
       style={{
         height: 0,
-        borderTopWidth: 1,
+        borderTopWidth: dashed ? 1.5 : StyleSheet.hairlineWidth,
         borderColor: theme.line,
         borderStyle: dashed ? 'dashed' : 'solid',
         marginVertical: SPACE.s,
@@ -230,14 +229,11 @@ export function Chip({
       hitSlop={8}
       style={[
         styles.chip,
-        {
-          borderColor: active ? theme.ink : theme.line,
-          backgroundColor: active ? theme.ink : 'transparent',
-        },
+        { backgroundColor: active ? theme.brand : theme.dark ? theme.raised : theme.brandSoft },
       ]}
     >
       {color ? <View style={[styles.dot, { backgroundColor: color }]} /> : null}
-      <T size={13} weight="medium" color={active ? theme.bg : theme.ink}>
+      <T size={13} weight="bold" color={active ? theme.onBrand : theme.ink}>
         {label}
       </T>
     </Pressable>
@@ -256,13 +252,14 @@ export function ProgressBar({ value, color }: { value: number; color?: string })
     <View
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}
-      style={{ height: 6, backgroundColor: theme.line, borderRadius: 3, overflow: 'hidden' }}
+      style={{ height: 8, backgroundColor: theme.line, borderRadius: 4, overflow: 'hidden' }}
     >
       <View
         style={{
           width: `${Math.max(0, Math.min(1, value)) * 100}%`,
           height: '100%',
-          backgroundColor: color ?? theme.signal,
+          borderRadius: 4,
+          backgroundColor: color ?? theme.brand,
         }}
       />
     </View>
@@ -290,18 +287,27 @@ export function Screen({
   const Body = scroll ? ScrollView : View;
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={[styles.header, { paddingTop: insets.top + SPACE.s, borderColor: theme.line }]}>
+      <View style={[styles.header, { paddingTop: insets.top + SPACE.s }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
           hitSlop={12}
           onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/map')))}
-          style={styles.back}
+          style={({ pressed }) => [
+            styles.back,
+            {
+              backgroundColor: theme.raised,
+              shadowColor: theme.shadow,
+              transform: [{ scale: pressed ? 0.92 : 1 }],
+            },
+          ]}
         >
-          <T size={22}>{'‹'}</T>
+          <T size={24} weight="bold" style={{ marginTop: -2 }}>
+            {'‹'}
+          </T>
         </Pressable>
         <View style={{ flex: 1 }}>
-          <T size={18} weight="bold" accessibilityRole="header">
+          <T size={24} weight="bold" accessibilityRole="header">
             {title}
           </T>
           {subtitle ? (
@@ -338,7 +344,7 @@ export function Section({
   return (
     <View style={{ gap: SPACE.s }}>
       <Row style={{ justifyContent: 'space-between' }}>
-        <T size={12} weight="bold" muted style={{ letterSpacing: 1.2, textTransform: 'uppercase' }}>
+        <T size={17} weight="bold">
           {title}
         </T>
         {right}
@@ -368,7 +374,7 @@ export function ListRow({
       onPress={onPress}
       style={({ pressed }) => [
         styles.listRow,
-        { borderColor: theme.line, opacity: pressed ? 0.7 : 1 },
+        { backgroundColor: theme.surface, transform: [{ scale: pressed ? 0.98 : 1 }] },
       ]}
     >
       {left}
@@ -397,7 +403,7 @@ export function Toast({
   return (
     <View
       accessibilityLiveRegion="polite"
-      style={[styles.toast, { backgroundColor: theme.hud, borderColor: color }]}
+      style={[styles.toast, { backgroundColor: theme.hud, shadowColor: theme.shadow }]}
     >
       <T size={14} color={color}>
         {text}
@@ -408,32 +414,29 @@ export function Toast({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: TOUCH + 4,
-    paddingHorizontal: SPACE.l,
-    borderRadius: 10,
-    borderWidth: 1,
+    minHeight: TOUCH + 8,
+    paddingHorizontal: SPACE.xl,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: SPACE.s,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 3,
   },
   paper: {
-    borderRadius: 6,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: RADIUS.l,
     padding: SPACE.l,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
     shadowOpacity: 1,
     elevation: 3,
   },
   chip: {
-    minHeight: 32,
-    paddingHorizontal: SPACE.m,
-    borderRadius: 16,
-    borderWidth: 1,
+    minHeight: 34,
+    paddingHorizontal: SPACE.m + 2,
+    borderRadius: RADIUS.pill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -442,24 +445,36 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACE.s,
-    paddingHorizontal: SPACE.m,
-    paddingBottom: SPACE.m,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: SPACE.m,
+    paddingHorizontal: SPACE.l,
+    paddingBottom: SPACE.s,
   },
-  back: { width: TOUCH, height: TOUCH, alignItems: 'center', justifyContent: 'center' },
+  back: {
+    width: TOUCH,
+    height: TOUCH,
+    borderRadius: TOUCH / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    shadowOpacity: 1,
+  },
   listRow: {
-    minHeight: TOUCH + 12,
+    minHeight: TOUCH + 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.m,
     paddingVertical: SPACE.s,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: SPACE.l,
+    borderRadius: RADIUS.m,
+    marginBottom: SPACE.s,
   },
   toast: {
     paddingHorizontal: SPACE.l,
     paddingVertical: SPACE.m,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: RADIUS.pill,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    shadowOpacity: 1,
   },
 });

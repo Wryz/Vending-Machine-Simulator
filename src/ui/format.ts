@@ -17,6 +17,20 @@ export function money(cents: number, opts: { sign?: boolean; compact?: boolean }
   return `${sign}$${s}`;
 }
 
+/** Glanceable money for HUDs and goals: "$0", "$45", "$1k", "$12.5k", "$1.2M". */
+export function moneyShort(cents: number): string {
+  const neg = cents < 0;
+  const abs = Math.abs(cents) / 100;
+  const trim = (x: number) => x.toFixed(1).replace(/\.0$/, '');
+  const s =
+    abs >= 1_000_000
+      ? `${trim(abs / 1_000_000)}M`
+      : abs >= 1000
+        ? `${trim(abs / 1000)}k`
+        : `${Math.floor(abs)}`;
+  return `${neg ? MINUS : ''}$${s}`;
+}
+
 export function pct(x: number, digits = 0): string {
   return `${(x * 100).toFixed(digits)}%`;
 }

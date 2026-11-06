@@ -1,4 +1,4 @@
-import { duration, meters, money, pct } from './format';
+import { duration, meters, money, moneyShort, pct } from './format';
 
 describe('format', () => {
   it('formats money', () => {
@@ -14,5 +14,16 @@ describe('format', () => {
     expect(meters(2500)).toBe('2.5 km');
     expect(duration(90 * 60_000)).toBe('1 h 30 min');
     expect(duration(3 * 86_400_000)).toBe('3 d 0 h');
+  });
+});
+
+describe('moneyShort', () => {
+  it('keeps HUD numbers short', () => {
+    expect(moneyShort(0)).toBe('$0');
+    expect(moneyShort(4599)).toBe('$45');
+    expect(moneyShort(100_000)).toBe('$1k');
+    expect(moneyShort(1_250_000)).toBe('$12.5k');
+    expect(moneyShort(120_000_000)).toBe('$1.2M');
+    expect(moneyShort(-50_000)).toBe('−$500');
   });
 });
