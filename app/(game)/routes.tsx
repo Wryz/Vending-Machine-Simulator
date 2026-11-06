@@ -166,7 +166,7 @@ export default function Routes() {
   return (
     <View style={{ flex: 1 }}>
       <Screen
-        title="Route clipboard"
+        title="Routes"
         subtitle={`${active.length} machines · ${game.drivers.length} drivers`}
       >
         <Section title="Van">

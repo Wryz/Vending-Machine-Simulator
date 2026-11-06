@@ -16,7 +16,19 @@ import { Mono } from './kit';
  * gives a soft colour flash: green when money comes in, amber when it goes
  * out. Calm, no bounce (SPEC §3.2).
  */
-export function RollingMoney({ cents, size = 18 }: { cents: number; size?: number }) {
+export function RollingMoney({
+  cents,
+  size = 18,
+  color,
+  glow: ledGlow,
+}: {
+  cents: number;
+  size?: number;
+  /** Digit color (e.g. an LED green). */
+  color?: string;
+  /** Glow around the digits, like an LED display. */
+  glow?: boolean;
+}) {
   const theme = useTheme();
   const [shown, setShown] = useState(cents);
   const from = useRef(cents);
@@ -68,7 +80,20 @@ export function RollingMoney({ cents, size = 18 }: { cents: number; size?: numbe
           glow,
         ]}
       />
-      <Mono size={size} weight="bold">
+      <Mono
+        size={size}
+        weight="bold"
+        color={color}
+        style={
+          ledGlow && color
+            ? {
+                textShadowColor: color,
+                textShadowRadius: 8,
+                textShadowOffset: { width: 0, height: 0 },
+              }
+            : undefined
+        }
+      >
         {money(shown)}
       </Mono>
     </View>

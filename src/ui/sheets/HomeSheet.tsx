@@ -11,10 +11,11 @@ import type { GameState } from '@/sim';
 import { chapterProgress } from '../chapter';
 import { Badge } from '../hud';
 import { Icon, type IconName } from '../icons';
-import { ProgressBar, Row, T } from '../kit';
+import { Row, T } from '../kit';
 import { machineStatus } from '../machineStatus';
 import { STATUS_LABEL, statusColor } from '../objects/KeyTag';
 import { sfx } from '../sfx';
+import { Cabinet, Key, Led, LedBar, Marquee, Plate, SKIN } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { RADIUS, SPACE } from '../theme';
 
@@ -49,8 +50,13 @@ export const HomeSheet = forwardRef<
       snapPoints={snapPoints}
       onChange={onChange}
       enableDynamicSizing={false}
-      backgroundStyle={{ backgroundColor: theme.bg, borderRadius: RADIUS.l + 4 }}
-      handleIndicatorStyle={{ backgroundColor: theme.line, width: 44, height: 5 }}
+      backgroundComponent={({ style }) => (
+        <Cabinet
+          screws={false}
+          style={[style, { borderTopLeftRadius: RADIUS.l + 4, borderTopRightRadius: RADIUS.l + 4 }]}
+        />
+      )}
+      handleIndicatorStyle={{ backgroundColor: SKIN.chrome, width: 56, height: 6 }}
       style={[styles.sheet, { shadowColor: theme.shadow }]}
     >
       <BottomSheetScrollView
@@ -64,24 +70,24 @@ export const HomeSheet = forwardRef<
           accessibilityRole="button"
           accessibilityLabel={`Chapter ${chapter.n}, ${chapter.title}. ${progress.text}`}
           onPress={() => router.push('/company')}
-          style={{ gap: 6 }}
+          style={{ gap: SPACE.s }}
         >
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Row gap={SPACE.s}>
-              <View style={[styles.chapter, { backgroundColor: theme.brand }]}>
-                <T size={13} weight="bold" color={theme.onBrand}>
-                  {chapter.n}
-                </T>
-              </View>
-              <T size={16} weight="bold">
-                {chapter.title}
+          <Row gap={SPACE.s}>
+            <View style={styles.chapter}>
+              <T size={15} weight="bold" color={SKIN.marqueeInk}>
+                {chapter.n}
               </T>
-            </Row>
-            <T size={13} weight="medium" muted>
-              {progress.text}
-            </T>
+            </View>
+            <Marquee title={chapter.title} style={{ flex: 1 }} />
           </Row>
-          <ProgressBar value={progress.value} />
+          <Row gap={SPACE.s}>
+            <View style={{ flex: 1 }}>
+              <LedBar value={progress.value} color={SKIN.ledAmber} />
+            </View>
+            <Led size={14} color={SKIN.ledAmber}>
+              {progress.text}
+            </Led>
+          </Row>
         </Pressable>
 
         <Row style={{ justifyContent: 'space-between' }}>
@@ -98,11 +104,11 @@ export const HomeSheet = forwardRef<
         </Row>
 
         <View style={{ gap: SPACE.s }}>
-          <T size={17} weight="bold">
-            Your machines
-          </T>
+          <Plate>Your machines</Plate>
           {machines.length === 0 ? (
-            <T muted>{stored ? 'Tap a busy spot on the map to place one.' : 'None yet.'}</T>
+            <T color="#FFFFFF">
+              {stored ? 'Tap a busy spot on the map to place one.' : 'None yet.'}
+            </T>
           ) : null}
           {machines.map((m) => {
             const type = getMachineType(m.typeId);
@@ -120,7 +126,9 @@ export const HomeSheet = forwardRef<
                 style={({ pressed }) => [
                   styles.machine,
                   {
-                    backgroundColor: theme.surface,
+                    backgroundColor: '#FFFFFF',
+                    borderColor: SKIN.chrome,
+                    borderBottomColor: SKIN.chromeDark,
                     transform: [{ scale: pressed ? 0.98 : 1 }],
                   },
                 ]}
@@ -143,7 +151,7 @@ export const HomeSheet = forwardRef<
           })}
         </View>
 
-        <T size={10} muted center>
+        <T size={10} color="#FFE3D4" center>
           © OpenFreeMap © OpenMapTiles © OpenStreetMap contributors
         </T>
       </BottomSheetScrollView>
@@ -162,26 +170,26 @@ function Action({
   onPress: () => void;
   badge?: string;
 }) {
-  const theme = useTheme();
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={badge ? `${label}, ${badge} ready` : label}
-      onPress={() => {
-        haptic.select();
-        sfx('pop');
-        onPress();
-      }}
-      style={({ pressed }) => [styles.action, { transform: [{ scale: pressed ? 0.92 : 1 }] }]}
-    >
-      <View style={[styles.actionIcon, { backgroundColor: theme.brandSoft }]}>
-        <Icon name={icon} size={24} color={theme.dark ? theme.ink : theme.brand} />
+    <View style={styles.action}>
+      <View>
+        <Key
+          onPress={() => {
+            sfx('pop');
+            onPress();
+          }}
+          accessibilityLabel={badge ? `${label}, ${badge} ready` : label}
+          height={54}
+          faceStyle={{ width: 58, paddingHorizontal: 0 }}
+        >
+          <Icon name={icon} size={26} color={SKIN.brandFace} />
+        </Key>
         {badge ? <Badge text={badge} /> : null}
       </View>
-      <T size={12} weight="medium">
+      <T size={12} weight="bold" color="#FFFFFF">
         {label}
       </T>
-    </Pressable>
+    </View>
   );
 }
 
@@ -193,26 +201,24 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   chapter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: SKIN.marquee,
+    borderWidth: 4,
+    borderColor: SKIN.cabinetEdge,
   },
   action: { alignItems: 'center', gap: 6, minWidth: 56 },
-  actionIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   machine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.m,
     padding: SPACE.m,
     borderRadius: RADIUS.m,
+    borderWidth: 1,
+    borderBottomWidth: 5,
   },
   swatch: { width: 14, height: 40, borderRadius: 7 },
   dot: { width: 8, height: 8, borderRadius: 4 },

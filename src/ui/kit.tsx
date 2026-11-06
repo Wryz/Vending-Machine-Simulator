@@ -16,6 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptic } from '@/services/haptics';
 
+import { Icon } from './icons';
+import { Cabinet, Glass, Key, keyInk, LedBar, Marquee, Plate, SKIN } from './skin';
 import { useTheme } from './ThemeProvider';
 import { FONTS, RADIUS, SPACE, TOUCH } from './theme';
 
@@ -109,50 +111,54 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   accessibilityHint?: string;
 }) {
-  const theme = useTheme();
-  const bg =
-    kind === 'primary'
-      ? theme.brand
-      : kind === 'danger'
-        ? theme.alert
-        : kind === 'secondary'
-          ? theme.raised
-          : 'transparent';
-  const fg = kind === 'primary' ? theme.onBrand : kind === 'danger' ? '#FFFFFF' : theme.ink;
+  if (kind === 'quiet') {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint={accessibilityHint}
+        disabled={disabled || busy}
+        onPress={() => {
+          haptic.select();
+          onPress();
+        }}
+        style={({ pressed }) => [
+          styles.quiet,
+          { opacity: disabled ? 0.45 : pressed ? 0.6 : 1 },
+          style,
+        ]}
+      >
+        {icon}
+        {!hideLabel ? (
+          <T weight="bold" size={15}>
+            {label}
+          </T>
+        ) : null}
+      </Pressable>
+    );
+  }
+  const tone = kind === 'primary' ? 'brand' : kind === 'danger' ? 'red' : 'white';
+  const fg = keyInk(tone);
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Key
+      tone={tone}
+      onPress={onPress}
+      disabled={disabled || busy}
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: !!disabled, busy: !!busy }}
-      disabled={disabled || busy}
-      onPress={() => {
-        haptic.select();
-        onPress();
-      }}
-      style={({ pressed }) => [
-        styles.button,
-        {
-          backgroundColor: bg,
-          opacity: disabled ? 0.45 : 1,
-          transform: [{ scale: pressed ? 0.96 : 1 }],
-          shadowColor: theme.shadow,
-          shadowOpacity: kind === 'quiet' || pressed ? 0 : 1,
-        },
-        style,
-      ]}
+      style={style}
     >
       {busy ? <ActivityIndicator color={fg} /> : icon}
-      {!busy && !hideLabel && (
-        <T weight="bold" color={fg} size={15}>
+      {!busy && !hideLabel ? (
+        <T weight="bold" color={fg} size={16}>
           {label}
         </T>
-      )}
-    </Pressable>
+      ) : null}
+    </Key>
   );
 }
 
-/** A soft rounded card with a gentle shadow. */
+/** A shelf card inside the glass: white face with a chrome lip underneath. */
 export function Paper({
   children,
   style,
@@ -168,8 +174,9 @@ export function Paper({
       style={[
         styles.paper,
         {
-          backgroundColor: tone === 'paper' ? theme.paper : theme.surface,
-          shadowColor: theme.shadow,
+          backgroundColor: theme.dark ? theme.surface : tone === 'paper' ? '#FFFDF7' : '#FFFFFF',
+          borderBottomColor: SKIN.chromeDark,
+          borderColor: SKIN.chrome,
         },
         style,
       ]}
@@ -223,23 +230,30 @@ export function Chip({
   onPress?: () => void;
   active?: boolean;
 }) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole={onPress ? 'button' : 'text'}
-      accessibilityState={{ selected: !!active }}
-      onPress={onPress}
-      hitSlop={8}
-      style={[
-        styles.chip,
-        { backgroundColor: active ? theme.brand : theme.dark ? theme.raised : theme.brandSoft },
-      ]}
-    >
+  const body = (
+    <>
       {color ? <View style={[styles.dot, { backgroundColor: color }]} /> : null}
-      <T size={13} weight="bold" color={active ? theme.onBrand : theme.ink}>
+      <T size={13} weight="bold" color={keyInk(active ? 'brand' : 'white')}>
         {label}
       </T>
-    </Pressable>
+    </>
+  );
+  if (!onPress)
+    return (
+      <View accessibilityRole="text" style={[styles.chipStatic, { backgroundColor: SKIN.chrome }]}>
+        {body}
+      </View>
+    );
+  return (
+    <Key
+      tone={active ? 'brand' : 'white'}
+      onPress={onPress}
+      height={34}
+      accessibilityLabel={label}
+      faceStyle={{ paddingHorizontal: SPACE.m, gap: 6 }}
+    >
+      {body}
+    </Key>
   );
 }
 
@@ -251,22 +265,14 @@ export function StatusDot({ color, size = 8 }: { color: string; size?: number })
 
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
   const theme = useTheme();
-  return (
-    <View
-      accessibilityRole="progressbar"
-      accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}
-      style={{ height: 8, backgroundColor: theme.line, borderRadius: 4, overflow: 'hidden' }}
-    >
-      <View
-        style={{
-          width: `${Math.max(0, Math.min(1, value)) * 100}%`,
-          height: '100%',
-          borderRadius: 4,
-          backgroundColor: color ?? theme.brand,
-        }}
-      />
-    </View>
-  );
+  // Money and done states glow green, everything else amber.
+  const led =
+    !color || color === theme.signal
+      ? SKIN.ledGreen
+      : color === theme.alert
+        ? SKIN.ledRed
+        : SKIN.ledAmber;
+  return <LedBar value={value} color={led} />;
 }
 
 /** Full-screen scrolling page with a calm header and back button. */
@@ -285,53 +291,40 @@ export function Screen({
   scroll?: boolean;
   onBack?: () => void;
 }) {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const Body = scroll ? ScrollView : View;
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={[styles.header, { paddingTop: insets.top + SPACE.s }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          hitSlop={12}
+    <Cabinet style={{ flex: 1 }} screws={false}>
+      {/* Top of the machine: back key and the lit marquee sign. */}
+      <View style={[styles.header, { paddingTop: insets.top + SPACE.xs }]}>
+        <Key
+          round
+          height={TOUCH - 2}
           onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/map')))}
-          style={({ pressed }) => [
-            styles.back,
-            {
-              backgroundColor: theme.raised,
-              shadowColor: theme.shadow,
-              transform: [{ scale: pressed ? 0.92 : 1 }],
-            },
-          ]}
+          accessibilityLabel="Back"
+          faceStyle={{ paddingHorizontal: 0, width: TOUCH - 2 }}
         >
-          <T size={24} weight="bold" style={{ marginTop: -2 }}>
-            {'‹'}
-          </T>
-        </Pressable>
-        <View style={{ flex: 1 }}>
-          <T size={24} weight="bold" accessibilityRole="header">
-            {title}
-          </T>
-          {subtitle ? (
-            <T size={13} muted>
-              {subtitle}
-            </T>
-          ) : null}
-        </View>
+          <Icon name="back" size={22} color={SKIN.keyInk} />
+        </Key>
+        <Marquee title={title} subtitle={subtitle} style={{ flex: 1 }} />
         {right}
       </View>
-      <Body
-        style={{ flex: 1 }}
-        contentContainerStyle={
-          scroll
-            ? { padding: SPACE.l, paddingBottom: insets.bottom + SPACE.xxl, gap: SPACE.l }
-            : undefined
-        }
-      >
-        {children}
-      </Body>
-    </View>
+      {/* The window: everything sits behind the glass. */}
+      <Glass style={styles.window} padding={0} fill>
+        <Body
+          style={{ flex: 1 }}
+          contentContainerStyle={
+            scroll ? { padding: SPACE.l, paddingBottom: SPACE.xxl, gap: SPACE.l } : undefined
+          }
+        >
+          {children}
+        </Body>
+      </Glass>
+      {/* Kick plate with the pickup bin. */}
+      <View style={[styles.kick, { paddingBottom: insets.bottom + SPACE.s }]}>
+        <View style={styles.bin} />
+      </View>
+    </Cabinet>
   );
 }
 
@@ -347,9 +340,7 @@ export function Section({
   return (
     <View style={{ gap: SPACE.s }}>
       <Row style={{ justifyContent: 'space-between' }}>
-        <T size={17} weight="bold">
-          {title}
-        </T>
+        <Plate>{title}</Plate>
         {right}
       </Row>
       {children}
@@ -416,24 +407,41 @@ export function Toast({
 }
 
 const styles = StyleSheet.create({
-  button: {
-    minHeight: TOUCH + 8,
-    paddingHorizontal: SPACE.xl,
-    borderRadius: RADIUS.pill,
+  quiet: {
+    minHeight: TOUCH,
+    paddingHorizontal: SPACE.l,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: SPACE.s,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
+  },
+  chipStatic: {
+    minHeight: 30,
+    paddingHorizontal: SPACE.m,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  window: { flex: 1, marginHorizontal: SPACE.m, marginTop: SPACE.s },
+  kick: { alignItems: 'center', paddingTop: SPACE.s },
+  bin: {
+    width: '46%',
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: SKIN.cabinetEdge,
+    borderTopWidth: 3,
+    borderTopColor: '#7A2A08',
   },
   paper: {
-    borderRadius: RADIUS.l,
+    borderRadius: RADIUS.m,
     padding: SPACE.l,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    shadowOpacity: 1,
+    borderWidth: 1,
+    borderBottomWidth: 5,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    shadowOpacity: 0.08,
     elevation: 3,
   },
   chip: {

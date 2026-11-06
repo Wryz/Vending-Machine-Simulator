@@ -32,6 +32,7 @@ import { Icon, type IconName } from '@/ui/icons';
 import { Button, Mono, T } from '@/ui/kit';
 import { HOME_SHEET_PEEK, HomeSheet } from '@/ui/sheets/HomeSheet';
 import { SpotSheet, type SpotPoint } from '@/ui/sheets/SpotSheet';
+import { SKIN } from '@/ui/skin';
 import { sfx } from '@/ui/sfx';
 import { SPACE } from '@/ui/theme';
 
@@ -46,6 +47,13 @@ const WEATHER_ICON: Record<WeatherCondition, IconName> = {
   storm: 'storm',
   fog: 'fog',
 };
+
+/** The glow of an LED digit. */
+const LED_GLOW = (color: string) => ({
+  textShadowColor: color,
+  textShadowRadius: 8,
+  textShadowOffset: { width: 0, height: 0 },
+});
 
 /** °F where people read °F, °C elsewhere. */
 function temperature(tempC: number, countryCode: string): string {
@@ -289,7 +297,7 @@ export default function MapScreen() {
   const dayIcon: IconName =
     tod.dominant === 'day' ? 'sun' : tod.dominant === 'night' ? 'moon' : 'twilight';
   const dayIconColor =
-    tod.dominant === 'day' ? theme.amber : tod.dominant === 'night' ? '#7C82D9' : theme.brand;
+    tod.dominant === 'day' ? SKIN.ledAmber : tod.dominant === 'night' ? '#C3C8FF' : '#FF9561';
 
   const active = activeMachines(game);
   const stored = game.machines.filter((m) => m.status === 'stored');
@@ -355,17 +363,17 @@ export default function MapScreen() {
         <CashPill cents={game.cashCents} onPress={() => router.push('/company')} />
         <InfoPill>
           <Icon name={dayIcon} size={18} color={dayIconColor} />
-          <T size={14} weight="bold">
+          <Mono size={15} weight="bold" color={SKIN.ledGreen} style={LED_GLOW(SKIN.ledGreen)}>
             {clock(game.now, world.city.timeZone)}
-          </T>
+          </Mono>
           {weather ? (
             <>
               {weather.condition !== 'clear' ? (
-                <Icon name={WEATHER_ICON[weather.condition]} size={18} color={theme.muted} />
+                <Icon name={WEATHER_ICON[weather.condition]} size={18} color={SKIN.ledAmber} />
               ) : null}
-              <T size={14} weight="medium" muted>
+              <Mono size={15} weight="bold" color={SKIN.ledAmber} style={LED_GLOW(SKIN.ledAmber)}>
                 {temperature(weather.tempC, world.city.countryCode)}
-              </T>
+              </Mono>
             </>
           ) : null}
         </InfoPill>
@@ -376,10 +384,10 @@ export default function MapScreen() {
             exiting={FadeOut.duration(200)}
           >
             <InfoPill>
-              <Mono size={14} weight="bold" color={theme.signal}>
+              <Mono size={15} weight="bold" color={SKIN.ledGreen} style={LED_GLOW(SKIN.ledGreen)}>
                 {money(last.cents, { sign: true })}
               </Mono>
-              <T size={13} muted numberOfLines={1} style={{ maxWidth: 160 }}>
+              <T size={13} color="#C9CCE6" numberOfLines={1} style={{ maxWidth: 160 }}>
                 {game.machines.find((m) => m.id === last.machineId)?.venue.name ?? ''}
               </T>
             </InfoPill>

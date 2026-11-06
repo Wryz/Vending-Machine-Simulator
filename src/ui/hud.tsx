@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { haptic } from '@/services/haptics';
-
 import { Icon, type IconName } from './icons';
 import { T } from './kit';
 import { RollingMoney } from './RollingMoney';
 import { sfx } from './sfx';
+import { Key, keyInk, SKIN } from './skin';
 import { useTheme } from './ThemeProvider';
 import { RADIUS, SPACE, TOUCH } from './theme';
 
@@ -17,7 +16,7 @@ export function RoundButton({
   onPress,
   active,
   badge,
-  size = TOUCH + 4,
+  size = TOUCH + 2,
 }: {
   icon: IconName;
   label: string;
@@ -26,33 +25,23 @@ export function RoundButton({
   badge?: string;
   size?: number;
 }) {
-  const theme = useTheme();
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={badge ? `${label}, ${badge}` : label}
-      accessibilityState={{ selected: !!active }}
-      hitSlop={6}
-      onPress={() => {
-        haptic.select();
-        sfx('pop');
-        onPress();
-      }}
-      style={({ pressed }) => [
-        styles.round,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: active ? theme.brand : theme.hud,
-          shadowColor: theme.shadow,
-          transform: [{ scale: pressed ? 0.9 : 1 }],
-        },
-      ]}
-    >
-      <Icon name={icon} size={size * 0.46} color={active ? theme.onBrand : theme.ink} />
+    <View>
+      <Key
+        round
+        tone={active ? 'brand' : 'white'}
+        height={size}
+        accessibilityLabel={badge ? `${label}, ${badge}` : label}
+        onPress={() => {
+          sfx('pop');
+          onPress();
+        }}
+        faceStyle={{ paddingHorizontal: 0, width: size }}
+      >
+        <Icon name={icon} size={size * 0.46} color={keyInk(active ? 'brand' : 'white')} />
+      </Key>
       {badge ? <Badge text={badge} /> : null}
-    </Pressable>
+    </View>
   );
 }
 
@@ -67,26 +56,20 @@ export function Badge({ text }: { text: string }) {
   );
 }
 
-/** Cash as a floating pill with a coin. */
+/** Cash on the machine's LED display, with a coin. */
 export function CashPill({ cents, onPress }: { cents: number; onPress?: () => void }) {
-  const theme = useTheme();
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : 'text'}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.pill,
-        {
-          backgroundColor: theme.hud,
-          shadowColor: theme.shadow,
-          transform: [{ scale: pressed ? 0.96 : 1 }],
-        },
-      ]}
+      style={({ pressed }) => [styles.cash, { transform: [{ scale: pressed ? 0.96 : 1 }] }]}
     >
-      <View style={[styles.coin, { backgroundColor: theme.amber }]}>
-        <Icon name="coin" size={18} color="#FFFFFF" />
+      <View style={styles.coin}>
+        <Icon name="coin" size={20} color="#FFFFFF" />
       </View>
-      <RollingMoney cents={cents} size={18} />
+      <View style={styles.cashLed}>
+        <RollingMoney cents={cents} size={19} color={SKIN.ledGreen} glow />
+      </View>
     </Pressable>
   );
 }
@@ -113,11 +96,14 @@ export function StatChip({
     <View
       accessible
       accessibilityLabel={value ? `${label}: ${value}` : label}
-      style={[styles.stat, { backgroundColor: theme.surface }]}
+      style={[
+        styles.stat,
+        { backgroundColor: theme.dark ? theme.raised : SKIN.chrome, borderColor: SKIN.chromeDark },
+      ]}
     >
-      <Icon name={icon} size={18} color={color ?? theme.muted} />
+      <Icon name={icon} size={18} color={color ?? SKIN.keyInk} />
       {value ? (
-        <T size={14} weight="bold" color={color}>
+        <T size={14} weight="bold" color={color ?? SKIN.keyInk}>
           {value}
         </T>
       ) : null}
@@ -169,7 +155,13 @@ export function InfoPill({
 }) {
   const theme = useTheme();
   return (
-    <View style={[styles.info, { backgroundColor: theme.hud, shadowColor: theme.shadow }, style]}>
+    <View
+      style={[
+        styles.info,
+        { backgroundColor: SKIN.led, borderColor: '#0E1020', shadowColor: theme.shadow },
+        style,
+      ]}
+    >
       {children}
     </View>
   );
@@ -207,19 +199,36 @@ const styles = StyleSheet.create({
     ...shadow,
   },
   coin: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: SKIN.ledAmber,
+    borderWidth: 3,
+    borderColor: '#E8A21A',
+    zIndex: 1,
   },
   stat: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 36,
+    height: 34,
     paddingHorizontal: SPACE.m,
-    borderRadius: RADIUS.pill,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderBottomWidth: 3,
+  },
+  cash: { flexDirection: 'row', alignItems: 'center', gap: -10 },
+  cashLed: {
+    backgroundColor: SKIN.led,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: SKIN.chrome,
+    paddingLeft: SPACE.l,
+    paddingRight: SPACE.m,
+    paddingVertical: 4,
+    ...shadow,
   },
   locked: {
     flexDirection: 'row',
@@ -248,8 +257,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: SPACE.m,
-    height: 32,
-    borderRadius: RADIUS.pill,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 2,
     ...shadow,
   },
 });

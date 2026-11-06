@@ -103,10 +103,17 @@ Custom MapLibre style, not a default basemap:
 - **Machines on the map:** rendered as pre-rendered low-poly sprites of the actual 3D models (§7.3) with a soft glowing pad in the family color. They never shrink below a readable size (about 32 pt tall), so machines are always the stars of the map. Status rings: low stock is amber, cash full is green, broken is red.
 - **Views:** a tilted 3D view and a straight top-down view (one toggle). Zooming far out hands off to a low-poly globe showing every city and machine (MapLibre Native has no globe projection yet, so the globe is a flat-shaded low-poly sphere drawn with SVG, lit by the real sun, with a pin per city).
 
-### 3.6 UI: soft, rounded, map-first
-The map is always the screen. Controls float over it as round buttons and pills; details open in bottom sheets (`@gorhom/bottom-sheet`) instead of new pages. Buttons are pills, cards are rounded and borderless with soft shadows; no boxy panels, no all-caps labels. Show numbers and icons before text.
+### 3.6 UI: the vending machine skin, map-first
+The map is always the home screen. Controls float over it; details open in bottom sheets (`@gorhom/bottom-sheet`) instead of new pages. Every panel is part of a vending machine, so the game never looks like a generic app (`src/ui/skin.tsx`):
+- **Cabinet:** glossy tangerine body with a soft vertical gloss, darker sides and screw heads. Backgrounds are never a blank fill.
+- **Marquee:** screen and sheet titles sit on a lit marquee sign with a row of bulbs.
+- **Glass:** content sits behind a glass window in a chrome frame, with a diagonal reflection streak.
+- **Keys:** buttons are chunky keypad keys with a visible bottom edge that press down when tapped.
+- **LED:** money, time, weather and progress show on dark displays with glowing digits and segment bars.
+- **Plates:** section titles are engraved chrome label plates; stats are small chrome plates with an icon.
+- **Shelves:** cards are white shelf faces with a chrome lip.
 
-Physical objects remain as themes for specific moments, drawn in the same bright flat style:
+Show numbers and icons before text; sentences are for VoiceOver hints. Physical objects remain as themes for specific moments, drawn in the same bright flat style:
 
 | Object | Used for |
 |---|---|
