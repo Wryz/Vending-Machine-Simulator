@@ -315,3 +315,51 @@ To continue, install Xcode (Xcode 26+ from the App Store), run `sudo xcode-selec
 **iPhone 13 mini (iOS 26.6.2): not built yet.** xcodebuild: "The developer disk image could not be mounted on this device". Xcode 26.3 doesn't support iOS 26.6. Fix: update Xcode (26.4+), then `npx expo run:ios --device`. The signing team is set only in the generated, gitignored `ios/` project.
 
 **Playthrough:** not done. This session has no way to tap the Simulator: no Accessibility permission, and installing a third-party Simulator driver was not allowed. Onboarding and Diagnostics render. The user's review of the first screens asked for a UI redesign (full-screen map, bottom sheets, less text, globe zoom-out), which supersedes a QA pass of the current screens.
+
+---
+
+## 8. Simulator QA and the redesign (2026-11-05, later the same day)
+
+### Latest numbers (iPhone 17 Simulator, Hermes, Apple-silicon Mac)
+
+| Check | Result | Target |
+|---|---|---|
+| h3-js, 2,000 × latLngToCell + gridDisk | 180 ms | — |
+| Offline catch-up 72 h, 16 machines | **140 ms** | < 300 ms ✅ |
+| Offline catch-up 72 h, 200 machines | **1,015 ms** (was 1,400–1,700) | < 300 ms ❌ |
+| 3D close-up, busy street | 58 fps avg, 55 min | 60 fps |
+
+The catch-up speedups keep the simulation bit-identical. Tests compare the incremental competition against a full rebuild, and the benchmarks' final cash, units, lost contracts and rival fleet are unchanged:
+- competition is updated incrementally instead of rebuilt; it had been rebuilt every step once any contract was lost;
+- nested fit caches replace string keys;
+- place affinity is cached per cell and tag.
+
+In Node: 274 → 98 ms (synthetic) and 150 → 115 ms (`scripts/bench/offline-catchup-real.ts`, which mirrors Diagnostics).
+
+**Still over target at 200 machines.** The remaining lever changes the simulated outcome, so it's the owner's call. Options:
+- coarser steps for long absences, e.g. 15 min for the first 6 h, then 60 min (`TIME.offlineStepMinutes`; about 3× faster);
+- run catch-up off the JS thread;
+- show the "While you were away" receipt printing while it computes.
+
+**Balance note:** in both 200-machine benchmarks every contract is lost within 72 h when nobody restocks or collects. Worth checking that venue mood isn't too harsh for absent players with drivers.
+
+### Bugs found on the Simulator and fixed
+- **Every map overlay was invisible on iOS** (machines, cars and people, events, district boundary, heat). MapLibre RN adds a GeoJSON source to the style that's current when it mounts. On iOS the map first loads its default style, then ours, so all overlay sources were dropped. Overlays now mount after our style loads.
+- Three.js CJS build crash (`process.emitWarning`) on every 3D screen; patched `expo-modules-jsi` for Xcode 26. See §7.
+- Orbit drag selected the slot it started on. See §7.
+
+### Redesign (owner's direction)
+- **Art direction** (SPEC §3, CLAUDE.md): bright flat-shaded low-poly. The UI is a **vending machine skin**, not app panels:
+  - cabinet backgrounds, marquee titles and glass windows;
+  - keypad keys that press down;
+  - LED displays and segment bars;
+  - chrome label plates.
+- **Map-first:** full-screen map with LED cash, an LED clock/weather strip with day/night and weather icons, and round keypad buttons (settings, 3D/top-down, busy streets, locate). A gorhom home sheet holds the chapter goal, actions and fleet; the spot sheet opens over the map.
+- **Globe:** pinch far out for a flat-shaded low-poly SVG globe lit by the real sun, with the unlit side dark and a pin per city.
+- **Less text everywhere:** icon chips, locked-feature cards, numbers before sentences.
+- **Product art:** 48 unbranded game icons, made with ChatGPT image generation (`scripts/products/PROMPTS.md`) and sliced by `scripts/products/slice.mjs`. They show on the coils, in the restock picker and in the cold open.
+- **Brand:** Nunito font, tangerine icon and splash (`scripts/brand/build-flat-brand.mjs`).
+
+### Open issues
+- **3D in the Simulator is unreliable.** After many relaunches its GL stops presenting frames until the Simulator is rebooted. The close-up opened from the map shows only sky, and its JS frame loop stalls; the scene renders fine from Diagnostics. The likely cause is software GL in the Simulator with a far start camera (the whole street, with shadows, at 1206² px), but it isn't proven. **Check on a real iPhone first.** That needs Xcode 26.4+ for iOS 26.6.
+- No tap automation was available here, so the full playthrough (place, restock, collect, orbit) hasn't been done by hand. The flows were checked with temporary auto-triggers and screenshots.
