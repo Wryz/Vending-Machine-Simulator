@@ -94,7 +94,7 @@ export const GLOBE = {
   flatDetail: 12,
   landHeight: 0.022,
   /** Flat light steps from night to full sun. */
-  shadeSteps: 4,
+  shadeSteps: 5,
   /** Redraw rate while spinning (frames per second). */
   fps: 30,
   colors: {
@@ -105,8 +105,8 @@ export const GLOBE = {
     snow: '#F4F7FF',
     /** Above this |latitude| land turns to snow. */
     snowLatDeg: 62,
-    /** What the night side tints toward (soft periwinkle, never black). */
-    night: '#9AA0EE',
+    /** What the unlit side shades toward: deep night blue. */
+    night: '#1B2350',
     /** Sky behind the globe, and its soft halo. */
     sky: '#CFE9FF',
     halo: '#FFFFFF',

@@ -228,9 +228,9 @@ export function projectGlobe(
   const paths: ProjectedGlobe['paths'] = [];
   for (const [key, parts] of buckets) {
     const [kind, s] = key.split('|');
-    // Step 0 is the night side: a soft periwinkle tint, never black.
+    // Step 0 is the night side: deep blue, so you can see where the sun isn't shining.
     const lit = steps === 1 ? 1 : Number(s) / (steps - 1);
-    const fill = mix(c.night, baseColor[kind as FaceKind], 0.62 + 0.38 * lit);
+    const fill = mix(c.night, baseColor[kind as FaceKind], 0.18 + 0.82 * lit);
     paths.push({ d: parts.join(''), fill });
   }
   return { paths, faces };
