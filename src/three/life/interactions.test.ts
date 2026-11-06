@@ -19,7 +19,8 @@ describe('restock plan', () => {
     expect(p.ticksMs).toHaveLength(CLOSEUP_MOTION.restock.maxTicks);
     expect(p.ticksMs[0]).toBe(CLOSEUP_MOTION.restock.slideMs);
     expect(p.ticksMs[p.ticksMs.length - 1]).toBe(p.doneMs);
-    for (let i = 1; i < p.ticksMs.length; i++) expect(p.ticksMs[i]).toBeGreaterThan(p.ticksMs[i - 1]);
+    for (let i = 1; i < p.ticksMs.length; i++)
+      expect(p.ticksMs[i]).toBeGreaterThan(p.ticksMs[i - 1]);
     expect(restockPlan(3).ticksMs).toHaveLength(3);
     expect(restockPlan(0)).toEqual({ delaysMs: [], ticksMs: [], doneMs: 0 });
   });

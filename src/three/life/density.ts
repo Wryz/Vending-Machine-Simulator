@@ -14,7 +14,8 @@ export function streetDensity(
   const crowd = Math.min(1, Math.sqrt(t / cfg.crowdFullTraffic));
   const traffic = Math.min(
     1,
-    cfg.carsFloor + (1 - cfg.carsFloor) * Math.sqrt(Math.max(0, trafficTotal) / cfg.carsFullTraffic),
+    cfg.carsFloor +
+      (1 - cfg.carsFloor) * Math.sqrt(Math.max(0, trafficTotal) / cfg.carsFullTraffic),
   );
   return { crowd, traffic };
 }

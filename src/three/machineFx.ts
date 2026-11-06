@@ -61,7 +61,8 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
   let screen: THREE.MeshStandardMaterial | null = null;
   let coinReturn: THREE.Object3D | null = null;
   model.group.traverse((o) => {
-    if (o instanceof THREE.Mesh && o.name === 'screen') screen = o.material as THREE.MeshStandardMaterial;
+    if (o instanceof THREE.Mesh && o.name === 'screen')
+      screen = o.material as THREE.MeshStandardMaterial;
     if (o.name === 'coin-return') coinReturn = o;
   });
   const screenMat = screen as THREE.MeshStandardMaterial | null;
@@ -111,8 +112,9 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
   const coins = new THREE.InstancedMesh(coinGeo, coinMat, M.coins.count);
   coins.frustumCulled = false;
   coins.count = 0;
-  const coinBase = Array.from({ length: M.coins.count }, (_, i) =>
-    new THREE.Color(i % 3 === 0 ? '#C8CCD0' : '#D2B163'),
+  const coinBase = Array.from(
+    { length: M.coins.count },
+    (_, i) => new THREE.Color(i % 3 === 0 ? '#C8CCD0' : '#D2B163'),
   );
   const coinColor = new THREE.Color();
   for (let i = 0; i < M.coins.count; i++) coins.setColorAt(i, coinBase[i]);
@@ -249,7 +251,8 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
 
       // Cash door and coins.
       const el = nowMs - collectAt;
-      const total = M.coins.firstCoinMs + M.coins.count * M.coins.staggerMs + M.coins.slideMs + M.coins.holdMs;
+      const total =
+        M.coins.firstCoinMs + M.coins.count * M.coins.staggerMs + M.coins.slideMs + M.coins.holdMs;
       if (!Number.isNaN(collectAt) && el >= 0 && el <= total) {
         const open = clamp01(el / M.coins.doorMs) * (1 - clamp01((el - total + 300) / 300));
         hinge.rotation.y = -1.25 * (1 - (1 - open) ** 3);
@@ -260,7 +263,11 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
           if (u < 0) continue;
           const uc = clamp01(u);
           const lateral = ((i * 37) % 7) / 7 - 0.5;
-          p.set(ctrlX + lateral * 0.08, 0.24 - 0.1 * uc * uc + 0.004 * i, frontZ + 0.02 + 0.07 * uc);
+          p.set(
+            ctrlX + lateral * 0.08,
+            0.24 - 0.1 * uc * uc + 0.004 * i,
+            frontZ + 0.02 + 0.07 * uc,
+          );
           q.setFromEuler(e.set(0.4 + uc * 1.1, lateral * 2, uc * 6 + i));
           const fade = 1 - clamp01((el - total + 250) / 250);
           s.setScalar(Math.max(0.001, fade));
@@ -325,7 +332,10 @@ export function createMachineMirror(model: VendingMachineModel): {
     if (!(o instanceof THREE.Mesh) || slotNames.has(o.name)) return;
     const mat = o.material as THREE.Material;
     const parts = byMaterial.get(mat) ?? [];
-    parts.push({ geo: o.geometry, matrix: new THREE.Matrix4().multiplyMatrices(toLocal, o.matrixWorld) });
+    parts.push({
+      geo: o.geometry,
+      matrix: new THREE.Matrix4().multiplyMatrices(toLocal, o.matrixWorld),
+    });
     byMaterial.set(mat, parts);
   });
   for (const [mat, parts] of byMaterial) {

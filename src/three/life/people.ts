@@ -4,14 +4,7 @@ import { PEDESTRIANS } from '@/config/streetLife';
 
 import { dynamicInstances, mirrorInstances } from './geometry';
 import { hash01, pick } from './random';
-import {
-  emptyCycle,
-  legHeight,
-  SHIN_M,
-  THIGH_M,
-  walkCycle,
-  type WalkerState,
-} from './walkers';
+import { emptyCycle, legHeight, SHIN_M, THIGH_M, walkCycle, type WalkerState } from './walkers';
 
 /**
  * Low-poly pedestrians (SPEC §3.3): real proportions, faceted, muted
@@ -118,7 +111,11 @@ export interface Crowd {
    * Pose everyone for this frame. `reach[i]` (0..1) bends walker `i` toward
    * the pickup bin. Returns the number of people drawn.
    */
-  update(walkers: readonly WalkerState[], enabled: readonly boolean[], reach: ArrayLike<number>): number;
+  update(
+    walkers: readonly WalkerState[],
+    enabled: readonly boolean[],
+    reach: ArrayLike<number>,
+  ): number;
   /** Right-hand position of walker `i` from the last update (crowd-group space). */
   hand(i: number, out: THREE.Vector3): THREE.Vector3;
   dispose(): void;

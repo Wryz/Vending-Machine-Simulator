@@ -19,7 +19,9 @@ const layout = streetLayout(0.9);
 const SEED = 12345;
 
 function sample(t: number, seed = SEED): WalkerState[] {
-  return Array.from({ length: PEDESTRIANS.max }, (_, i) => walkerAt(emptyWalker(), seed, i, t, layout));
+  return Array.from({ length: PEDESTRIANS.max }, (_, i) =>
+    walkerAt(emptyWalker(), seed, i, t, layout),
+  );
 }
 
 describe('walkers', () => {
@@ -66,7 +68,8 @@ describe('walkers', () => {
         expect(w.speed).toBe(0);
         expect(Math.abs(w.x - layout.standX)).toBeLessThan(1e-6);
         expect(Math.abs(w.z - layout.standZ)).toBeLessThan(1e-6);
-        if (w.turn > 0.99) expect(Math.abs(lerpAngle(w.yaw, Math.PI, 1) - w.yaw)).toBeLessThan(0.05);
+        if (w.turn > 0.99)
+          expect(Math.abs(lerpAngle(w.yaw, Math.PI, 1) - w.yaw)).toBeLessThan(0.05);
       } else if (run > 0) {
         stops.push(run);
         run = 0;

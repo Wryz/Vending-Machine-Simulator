@@ -166,10 +166,11 @@ export function pickLifeTime(seed: number, crowd: number, from = 0, to = 900): n
         // Bonus if they were already standing there a second ago (a sale can play out).
         walkerAt(before, seed, i, t - 1, layout);
         score += before.atMachine && before.stopLeft > 1.8 ? 4 : 3;
-      }
-      else if (w.z > layout.walkWestZ - 0.2 && Math.abs(w.x) < 2.6) score -= 3; // right in front of the lens
+      } else if (w.z > layout.walkWestZ - 0.2 && Math.abs(w.x) < 2.6)
+        score -= 3; // right in front of the lens
       else if (Math.abs(w.x) > 0.9 && Math.abs(w.x) < 2.2) score += 2;
-      else if (Math.abs(w.x) < 0.9) score -= 2; // would hide the machine
+      else if (Math.abs(w.x) < 0.9)
+        score -= 2; // would hide the machine
       else if (Math.abs(w.x) < 7) score += 0.5;
     }
     if (score > bestScore) {
@@ -191,7 +192,8 @@ export function pickWideTime(seed: number, crowd: number, traffic: number, aroun
   for (let t = around - 40; t < around + 40; t += 0.2) {
     let score = 0;
     const k = carsAt(cars, seed, t, traffic, layout, false);
-    for (let i = 0; i < k; i++) if (Math.abs(cars[i].x - 2) < 4) score += cars[i].lane === 1 ? 3 : 2;
+    for (let i = 0; i < k; i++)
+      if (Math.abs(cars[i].x - 2) < 4) score += cars[i].lane === 1 ? 3 : 2;
     for (let i = 0; i < n; i++) {
       walkerAt(w, seed, i, t, layout);
       if (w.active && Math.abs(w.x) < 6) score += w.atMachine ? 2 : 1;
@@ -246,7 +248,10 @@ export function renderCloseupLife(o: LifeShot) {
   if (o.selectedSlot !== undefined) fx.setSelected(o.selectedSlot);
   if (o.collectAgoMs !== undefined) fx.collect(nowMs - o.collectAgoMs);
   if (o.restockAgoMs !== undefined)
-    fx.restock(Array.from({ length: 30 }, (_, i) => i), nowMs - o.restockAgoMs);
+    fx.restock(
+      Array.from({ length: 30 }, (_, i) => i),
+      nowMs - o.restockAgoMs,
+    );
   life.update(o.tS, params);
   fx.update(nowMs, l.machineGlow);
   mirror.sync();
@@ -256,7 +261,11 @@ export function renderCloseupLife(o: LifeShot) {
     const c = closeupCamera(HEADING, type.dims.heightM, CLOSEUP_CAMERA);
     const r = (o.orbitDeg * Math.PI) / 180;
     const [x, , z] = c.position;
-    cam.position.set(x * Math.cos(r) + z * Math.sin(r), c.position[1], -x * Math.sin(r) + z * Math.cos(r));
+    cam.position.set(
+      x * Math.cos(r) + z * Math.sin(r),
+      c.position[1],
+      -x * Math.sin(r) + z * Math.cos(r),
+    );
     cam.lookAt(...c.target);
   } else {
     // From across the road, a little above eye level: people, machine and traffic.

@@ -76,7 +76,8 @@ export function carsAt(
       for (let j = 0; j < count; j++) {
         const f = count === 1 ? f0 : j === 0 ? lo : hi;
         const enter = cycleStart + f * slack + j * C.minHeadwayS;
-        const speed = C.speedMps[0] + hash01(seed, lane, k * 4 + j, 12) * (C.speedMps[1] - C.speedMps[0]);
+        const speed =
+          C.speedMps[0] + hash01(seed, lane, k * 4 + j, 12) * (C.speedMps[1] - C.speedMps[0]);
         const d = (t - enter) * speed;
         if (d < 0 || d > span || n >= out.length) continue;
         const c = out[n++];

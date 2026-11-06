@@ -14,7 +14,11 @@ export interface IdleOffset {
   dy: number;
 }
 
-export function idleCamera(out: IdleOffset, sinceSettleS: number, cfg = CLOSEUP_MOTION): IdleOffset {
+export function idleCamera(
+  out: IdleOffset,
+  sinceSettleS: number,
+  cfg = CLOSEUP_MOTION,
+): IdleOffset {
   if (sinceSettleS <= 0) {
     out.yawDeg = 0;
     out.dy = 0;
@@ -48,7 +52,12 @@ export function orbitWeight(cameraDistanceM: number, cfg = CLOSEUP_MOTION): numb
 }
 
 /** Rotate (x, z) about the y axis by `deg`, writing into `out`. */
-export function rotateY(out: [number, number], x: number, z: number, deg: number): [number, number] {
+export function rotateY(
+  out: [number, number],
+  x: number,
+  z: number,
+  deg: number,
+): [number, number] {
   const r = (deg * Math.PI) / 180;
   const c = Math.cos(r);
   const s = Math.sin(r);

@@ -46,9 +46,17 @@ export function createStreet(layout: StreetLayout, machineWidthM: number): Stree
   const mats = {
     sidewalk: std('#BDB9B1'),
     curb: std('#C9C6BF', 0.8),
-    joint: std('#A8A49C', 0.95, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+    joint: std('#A8A49C', 0.95, {
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+    }),
     asphalt: std('#7E8083', 0.95),
-    marking: std('#E3DFD3', 0.85, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+    marking: std('#E3DFD3', 0.85, {
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+    }),
     land: std('#D8D4CC', 1),
     facade: std('#E2DDD3', 0.92),
     stone: std('#B9B2A6', 0.85),
@@ -93,9 +101,13 @@ export function createStreet(layout: StreetLayout, machineWidthM: number): Stree
   const merged = (parts: Part[]) => mergeParts(parts);
 
   // Ground: land, road, sidewalks, curbs, paving joints, lane markings.
-  add(new THREE.PlaneGeometry(400, 400).rotateX(-Math.PI / 2).translate(0, roadY - 0.01, 0), mats.land, {
-    name: 'land',
-  });
+  add(
+    new THREE.PlaneGeometry(400, 400).rotateX(-Math.PI / 2).translate(0, roadY - 0.01, 0),
+    mats.land,
+    {
+      name: 'land',
+    },
+  );
   add(
     new THREE.PlaneGeometry(2 * L, roadFarZ - curbZ)
       .rotateX(-Math.PI / 2)
@@ -104,9 +116,13 @@ export function createStreet(layout: StreetLayout, machineWidthM: number): Stree
     { reflect: true, name: 'road' },
   );
   // The strip under the facade is not reflected (its mirror would z-fight in front of the glass).
-  add(new THREE.BoxGeometry(2 * L, -roadY, 0.4).translate(0, roadY / 2, wallZ - 0.2), mats.sidewalk, {
-    name: 'sidewalk-under-facade',
-  });
+  add(
+    new THREE.BoxGeometry(2 * L, -roadY, 0.4).translate(0, roadY / 2, wallZ - 0.2),
+    mats.sidewalk,
+    {
+      name: 'sidewalk-under-facade',
+    },
+  );
   add(
     merged([
       boxPart(2 * L, -roadY, curbZ - wallZ, 0, roadY / 2, (wallZ + curbZ) / 2),
@@ -243,8 +259,16 @@ export function createStreet(layout: StreetLayout, machineWidthM: number): Stree
   const lampZ = curbZ - S.lamp.fromCurbM;
   const LH = S.lamp.heightM;
   {
-    const pole = new THREE.CylinderGeometry(0.05, 0.065, LH, 6, 1).translate(S.lamp.x, LH / 2, lampZ);
-    const base = new THREE.CylinderGeometry(0.1, 0.12, 0.45, 6, 1).translate(S.lamp.x, 0.225, lampZ);
+    const pole = new THREE.CylinderGeometry(0.05, 0.065, LH, 6, 1).translate(
+      S.lamp.x,
+      LH / 2,
+      lampZ,
+    );
+    const base = new THREE.CylinderGeometry(0.1, 0.12, 0.45, 6, 1).translate(
+      S.lamp.x,
+      0.225,
+      lampZ,
+    );
     add(
       mergeParts([
         { geo: pole },
@@ -319,11 +343,19 @@ export function createStreet(layout: StreetLayout, machineWidthM: number): Stree
     const B = S.bin;
     const x = -machineWidthM / 2 - B.gapM - B.radiusM;
     const z = wallZ + B.radiusM + 0.06;
-    add(new THREE.CylinderGeometry(B.radiusM, B.radiusM * 0.92, B.heightM, 8, 1).translate(x, B.heightM / 2, z), mats.bin, {
-      cast: true,
-      reflect: true,
-      name: 'bin',
-    });
+    add(
+      new THREE.CylinderGeometry(B.radiusM, B.radiusM * 0.92, B.heightM, 8, 1).translate(
+        x,
+        B.heightM / 2,
+        z,
+      ),
+      mats.bin,
+      {
+        cast: true,
+        reflect: true,
+        name: 'bin',
+      },
+    );
     add(
       new THREE.CylinderGeometry(B.radiusM + 0.015, B.radiusM + 0.015, 0.05, 8, 1).translate(
         x,

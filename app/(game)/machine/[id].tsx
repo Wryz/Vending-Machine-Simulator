@@ -40,7 +40,7 @@ import {
 } from '@/sim';
 import { weatherTrafficFactor } from '@/sim/demand';
 import { adsAvailable, showRewarded } from '@/services/ads';
-import { sound } from '@/services/audio';
+import { sound, soundscape } from '@/services/audio';
 import { haptic } from '@/services/haptics';
 import { track } from '@/services/analytics';
 import { useGame } from '@/store/game';
@@ -152,6 +152,19 @@ export default function MachineCloseup() {
     const t = baseTraffic(cell, local.hour, local.restDay);
     return streetDensity(t.total, weatherTrafficFactor(t, world.weatherAt(now)));
   }, [machine?.cellId, now, world]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close-up soundscape: compressor hum up front, the street around it at the
+  // level of this spot's real foot traffic. The map re-feeds 'map' on focus.
+  useEffect(() => {
+    const w = world.weatherAt(now);
+    soundscape.update({
+      zoom: 20,
+      tod: tod.weights,
+      weather: w ? { condition: w.condition, tempC: w.tempC } : null,
+      traffic: Math.max(street.crowd, street.traffic),
+      scene: 'closeup',
+    });
+  }, [street.crowd, street.traffic, tod.weights, now, world]);
 
   // A sale while you watch: a product drops into the bin. The snapshot follows
   // every stock change (restocks too); only a rise in units sold plays a drop.

@@ -198,10 +198,13 @@ function World(props: MachineSceneProps) {
     });
     return { model, mirror, fx, street };
   }, [accent, type, seed, leftHandTraffic]);
-  useEffect(() => () => {
-    world.street.dispose();
-    world.fx.dispose();
-  }, [world]);
+  useEffect(
+    () => () => {
+      world.street.dispose();
+      world.fx.dispose();
+    },
+    [world],
+  );
 
   const glow = palette.machineEmissive;
   const night = Math.min(1, Math.max(0, (glow - 0.05) / 0.95));
@@ -343,12 +346,7 @@ export function MachineScene(props: MachineSceneProps) {
         >
           <Lights sun={props.sun} palette={props.palette} />
           <World {...props} />
-          <CameraRig
-            from={props.from}
-            to={props.to}
-            durationMs={props.durationMs}
-            orbit={orbit}
-          />
+          <CameraRig from={props.from} to={props.to} durationMs={props.durationMs} orbit={orbit} />
           <FpsMeter onFps={props.onFps} />
         </Canvas>
       </View>
