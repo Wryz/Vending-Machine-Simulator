@@ -8,7 +8,15 @@ import {
   type LayerSpecification,
   type MapRef,
 } from '@maplibre/maplibre-react-native';
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { getMachineType } from '@/config/machines';
 import { DISTRICTS } from '@/config/progression';
@@ -129,6 +137,8 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
     pitch: Math.round(initial.pitch / 10) * 10,
   });
   const lifeRef = useRef<StreetLifeHandle>(null);
+  /** Counts style loads; overlay sources remount on each (see the overlay block below). */
+  const [styleGen, setStyleGen] = useState(0);
   const machinePoints = useMemo(
     () => game.machines.filter((m) => m.status === 'active'),
     [game.machines],
@@ -297,6 +307,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         if (ev.features && ev.features.length) return;
         props.onMapPress(ev.lngLat[1], ev.lngLat[0]);
       }}
+      onDidFinishLoadingStyle={() => setStyleGen((g) => g + 1)}
       onRegionIsChanging={(e) => {
         const v = e.nativeEvent;
         camera.current = {
@@ -340,201 +351,219 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         <Layer key={l.id} {...(l as LayerSpecification)} />
       ))}
 
-      {district ? (
-        <GeoJSONSource id="district" data={district}>
-          <Layer
-            id="district-line"
-            type="line"
-            paint={{
-              'line-color': tod.palette.label,
-              'line-width': 1.5,
-              'line-dasharray': [2, 3],
-              'line-opacity': 0.6,
-            }}
+      {/* GeoJSON overlays mount once our style has loaded, and remount after any style
+          load: MapLibre RN adds a GeoJSON source to whichever style is current when it
+          mounts, and on iOS the map first loads its default style, then ours, which
+          dropped every overlay source (machines, street life, events, district). */}
+      {styleGen > 0 ? (
+        <Fragment key={styleGen}>
+          {district ? (
+            <GeoJSONSource id="district" data={district}>
+              <Layer
+                id="district-line"
+                type="line"
+                paint={{
+                  'line-color': tod.palette.label,
+                  'line-width': 1.5,
+                  'line-dasharray': [2, 3],
+                  'line-opacity': 0.6,
+                }}
+              />
+            </GeoJSONSource>
+          ) : null}
+
+          {heatData ? (
+            <GeoJSONSource id="heat" data={heatData}>
+              <Layer
+                id="heat-fill"
+                type="fill"
+                beforeId="buildings"
+                paint={{
+                  'fill-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['get', 'v'],
+                    0,
+                    theme.signal,
+                    0.5,
+                    theme.amber,
+                    1,
+                    theme.alert,
+                  ],
+                  'fill-opacity': ['interpolate', ['linear'], ['get', 'v'], 0, 0.04, 1, 0.42],
+                }}
+              />
+            </GeoJSONSource>
+          ) : null}
+
+          {selectedData ? (
+            <GeoJSONSource id="selected" data={selectedData}>
+              <Layer
+                id="selected-spot"
+                type="circle"
+                filter={['==', ['get', 'kind'], 'spot']}
+                paint={{
+                  'circle-radius': 9,
+                  'circle-color': theme.ink,
+                  'circle-stroke-color': theme.paper,
+                  'circle-stroke-width': 3,
+                  'circle-pitch-alignment': 'map',
+                }}
+              />
+              <Layer
+                id="selected-places"
+                type="circle"
+                filter={['==', ['get', 'kind'], 'place']}
+                paint={{
+                  'circle-radius': 4,
+                  'circle-color': theme.paper,
+                  'circle-stroke-color': theme.ink,
+                  'circle-stroke-width': 1.5,
+                }}
+              />
+              <Layer
+                id="selected-place-labels"
+                type="symbol"
+                filter={['==', ['get', 'kind'], 'place']}
+                layout={{
+                  'text-field': ['get', 'label'],
+                  'text-font': ['Noto Sans Regular'],
+                  'text-size': 11,
+                  'text-offset': [0, 1.1],
+                  'text-anchor': 'top',
+                  'text-max-width': 9,
+                  'text-optional': true,
+                }}
+                paint={{
+                  'text-color': tod.palette.label,
+                  'text-halo-color': tod.palette.labelHalo,
+                  'text-halo-width': 1.2,
+                }}
+              />
+            </GeoJSONSource>
+          ) : null}
+
+          <GeoJSONSource id="events" data={eventData}>
+            <Layer
+              id="event-pins"
+              type="circle"
+              paint={{
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 5, 17, 9],
+                'circle-color': theme.amber,
+                'circle-opacity': ['case', ['==', ['get', 'live'], 1], 1, 0.55],
+                'circle-stroke-color': theme.paper,
+                'circle-stroke-width': 2,
+              }}
+            />
+            <Layer
+              id="event-labels"
+              type="symbol"
+              minzoom={13}
+              layout={{
+                'text-field': ['get', 'label'],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': 11,
+                'text-offset': [0, 1.3],
+                'text-anchor': 'top',
+                'text-optional': true,
+              }}
+              paint={{
+                'text-color': tod.palette.label,
+                'text-halo-color': tod.palette.labelHalo,
+                'text-halo-width': 1.2,
+              }}
+            />
+          </GeoJSONSource>
+
+          {/* Cars and pedestrians at close zoom, under the buildings and machines. */}
+          <StreetLifeLayer
+            ref={lifeRef}
+            mapRef={mapRef}
+            cameraRef={camera}
+            world={world}
+            now={game.now}
+            tod={tod}
+            paused={props.lifePaused}
+            onLifeStats={props.onLifeStats}
           />
-        </GeoJSONSource>
+
+          <GeoJSONSource
+            id="machines"
+            data={machines}
+            cluster
+            clusterMaxZoom={13}
+            clusterRadius={40}
+            onPress={(e) => {
+              const f = e.nativeEvent.features.find((x) => x.properties?.mine && x.properties?.id);
+              if (f) props.onMachinePress(String(f.properties?.id));
+            }}
+          >
+            <Layer
+              id="machine-clusters"
+              type="circle"
+              filter={['has', 'point_count']}
+              paint={{
+                'circle-radius': ['step', ['get', 'point_count'], 14, 10, 18, 50, 24],
+                'circle-color': theme.ink,
+                'circle-opacity': 0.85,
+                'circle-stroke-color': theme.paper,
+                'circle-stroke-width': 2,
+              }}
+            />
+            <Layer
+              id="machine-cluster-count"
+              type="symbol"
+              filter={['has', 'point_count']}
+              layout={{
+                'text-field': ['get', 'point_count_abbreviated'],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': 12,
+              }}
+              paint={{ 'text-color': theme.paper }}
+            />
+            <Layer
+              id="machine-rings"
+              type="circle"
+              filter={['all', ['!', ['has', 'point_count']], ['!=', ['get', 'ring'], '']]}
+              paint={{
+                'circle-pitch-alignment': 'map',
+                'circle-radius': [
+                  'interpolate',
+                  ['exponential', 2],
+                  ['zoom'],
+                  14,
+                  6,
+                  18,
+                  14,
+                  21,
+                  60,
+                ],
+                'circle-color': 'rgba(0,0,0,0)',
+                'circle-stroke-color': ['get', 'ring'],
+                'circle-stroke-width': 2,
+                'circle-stroke-opacity': 0.85,
+              }}
+            />
+            <Layer
+              id="machine-sprites"
+              type="symbol"
+              filter={['!', ['has', 'point_count']]}
+              layout={{
+                'icon-image': iconImage as never,
+                'icon-size': ['interpolate', ['exponential', 2], ['zoom'], ...sizeStops] as never,
+                'icon-anchor': 'bottom',
+                // The machine's base sits above the image bottom (contact shadow below it).
+                'icon-offset': SPRITE_ICON_OFFSET,
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-pitch-alignment': 'viewport',
+                'icon-rotation-alignment': 'viewport',
+                'symbol-sort-key': ['-', 0, ['get', 'hb']],
+              }}
+            />
+          </GeoJSONSource>
+        </Fragment>
       ) : null}
-
-      {heatData ? (
-        <GeoJSONSource id="heat" data={heatData}>
-          <Layer
-            id="heat-fill"
-            type="fill"
-            beforeId="buildings"
-            paint={{
-              'fill-color': [
-                'interpolate',
-                ['linear'],
-                ['get', 'v'],
-                0,
-                theme.signal,
-                0.5,
-                theme.amber,
-                1,
-                theme.alert,
-              ],
-              'fill-opacity': ['interpolate', ['linear'], ['get', 'v'], 0, 0.04, 1, 0.42],
-            }}
-          />
-        </GeoJSONSource>
-      ) : null}
-
-      {selectedData ? (
-        <GeoJSONSource id="selected" data={selectedData}>
-          <Layer
-            id="selected-spot"
-            type="circle"
-            filter={['==', ['get', 'kind'], 'spot']}
-            paint={{
-              'circle-radius': 9,
-              'circle-color': theme.ink,
-              'circle-stroke-color': theme.paper,
-              'circle-stroke-width': 3,
-              'circle-pitch-alignment': 'map',
-            }}
-          />
-          <Layer
-            id="selected-places"
-            type="circle"
-            filter={['==', ['get', 'kind'], 'place']}
-            paint={{
-              'circle-radius': 4,
-              'circle-color': theme.paper,
-              'circle-stroke-color': theme.ink,
-              'circle-stroke-width': 1.5,
-            }}
-          />
-          <Layer
-            id="selected-place-labels"
-            type="symbol"
-            filter={['==', ['get', 'kind'], 'place']}
-            layout={{
-              'text-field': ['get', 'label'],
-              'text-font': ['Noto Sans Regular'],
-              'text-size': 11,
-              'text-offset': [0, 1.1],
-              'text-anchor': 'top',
-              'text-max-width': 9,
-              'text-optional': true,
-            }}
-            paint={{
-              'text-color': tod.palette.label,
-              'text-halo-color': tod.palette.labelHalo,
-              'text-halo-width': 1.2,
-            }}
-          />
-        </GeoJSONSource>
-      ) : null}
-
-      <GeoJSONSource id="events" data={eventData}>
-        <Layer
-          id="event-pins"
-          type="circle"
-          paint={{
-            'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 5, 17, 9],
-            'circle-color': theme.amber,
-            'circle-opacity': ['case', ['==', ['get', 'live'], 1], 1, 0.55],
-            'circle-stroke-color': theme.paper,
-            'circle-stroke-width': 2,
-          }}
-        />
-        <Layer
-          id="event-labels"
-          type="symbol"
-          minzoom={13}
-          layout={{
-            'text-field': ['get', 'label'],
-            'text-font': ['Noto Sans Regular'],
-            'text-size': 11,
-            'text-offset': [0, 1.3],
-            'text-anchor': 'top',
-            'text-optional': true,
-          }}
-          paint={{
-            'text-color': tod.palette.label,
-            'text-halo-color': tod.palette.labelHalo,
-            'text-halo-width': 1.2,
-          }}
-        />
-      </GeoJSONSource>
-
-      {/* Cars and pedestrians at close zoom, under the buildings and machines. */}
-      <StreetLifeLayer
-        ref={lifeRef}
-        mapRef={mapRef}
-        cameraRef={camera}
-        world={world}
-        now={game.now}
-        tod={tod}
-        paused={props.lifePaused}
-        onLifeStats={props.onLifeStats}
-      />
-
-      <GeoJSONSource
-        id="machines"
-        data={machines}
-        cluster
-        clusterMaxZoom={13}
-        clusterRadius={40}
-        onPress={(e) => {
-          const f = e.nativeEvent.features.find((x) => x.properties?.mine && x.properties?.id);
-          if (f) props.onMachinePress(String(f.properties?.id));
-        }}
-      >
-        <Layer
-          id="machine-clusters"
-          type="circle"
-          filter={['has', 'point_count']}
-          paint={{
-            'circle-radius': ['step', ['get', 'point_count'], 14, 10, 18, 50, 24],
-            'circle-color': theme.ink,
-            'circle-opacity': 0.85,
-            'circle-stroke-color': theme.paper,
-            'circle-stroke-width': 2,
-          }}
-        />
-        <Layer
-          id="machine-cluster-count"
-          type="symbol"
-          filter={['has', 'point_count']}
-          layout={{
-            'text-field': ['get', 'point_count_abbreviated'],
-            'text-font': ['Noto Sans Regular'],
-            'text-size': 12,
-          }}
-          paint={{ 'text-color': theme.paper }}
-        />
-        <Layer
-          id="machine-rings"
-          type="circle"
-          filter={['all', ['!', ['has', 'point_count']], ['!=', ['get', 'ring'], '']]}
-          paint={{
-            'circle-pitch-alignment': 'map',
-            'circle-radius': ['interpolate', ['exponential', 2], ['zoom'], 14, 6, 18, 14, 21, 60],
-            'circle-color': 'rgba(0,0,0,0)',
-            'circle-stroke-color': ['get', 'ring'],
-            'circle-stroke-width': 2,
-            'circle-stroke-opacity': 0.85,
-          }}
-        />
-        <Layer
-          id="machine-sprites"
-          type="symbol"
-          filter={['!', ['has', 'point_count']]}
-          layout={{
-            'icon-image': iconImage as never,
-            'icon-size': ['interpolate', ['exponential', 2], ['zoom'], ...sizeStops] as never,
-            'icon-anchor': 'bottom',
-            // The machine's base sits above the image bottom (contact shadow below it).
-            'icon-offset': SPRITE_ICON_OFFSET,
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
-            'icon-pitch-alignment': 'viewport',
-            'icon-rotation-alignment': 'viewport',
-            'symbol-sort-key': ['-', 0, ['get', 'hb']],
-          }}
-        />
-      </GeoJSONSource>
 
       {props.salePops ? (
         <SalePops
