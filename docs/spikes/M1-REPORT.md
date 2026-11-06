@@ -247,3 +247,49 @@ Then on the phone, go to Settings and long-press the version number to open Diag
 - "Show scene and measure fps".
 
 These are the remaining spike numbers.
+
+---
+
+## 7. First native build attempt (2026-11-05, macOS 15.7.4)
+
+This pass ran on a Mac, but **Xcode is not installed** (only the Command Line Tools), so there is still no compiled app, Simulator run or device run. Everything up to the Xcode compile step was done and passes.
+
+### What passes
+- `npm run typecheck`, `npm run lint` (now clean on a fresh clone, see below), `npm test`: **157 tests** in 15 suites.
+- Worker: 41 tests (`workers/data-api`, vitest).
+- `npx expo-doctor`: 18/18 checks.
+- `npx expo prebuild --platform ios`: generates the project with every config plugin (MapLibre, expo-gl, google-mobile-ads, RevenueCat, location, notifications, tracking transparency).
+- `pod install`: resolves and installs. Key pods: ExpoGL 58.0.4, Google-Mobile-Ads-SDK 13.10.0, RNGoogleMobileAds 17.4.0, RevenueCat 5.99.0 / PurchasesHybridCommon 19.17.0, MapLibreReactNative 11.5.1 (MapLibre Native itself comes in through SwiftPM, resolved by Xcode at build time).
+- `expo export --platform ios`: Hermes bytecode bundle, **9.4 MB**.
+
+### Fixed in this pass
+1. **RevenueCat pods would not install.** `react-native-purchases` 11.x pins `PurchasesHybridCommon` 20.x, which RevenueCat has not published to CocoaPods: per their 20.0.0 release notes, CocoaPods trunk is read-only until after Nov 7, so 20.x is SwiftPM-only for now. Pinned `react-native-purchases` to **10.16.0** (PurchasesHybridCommon 19.17.0, on trunk). The app only uses `configure`, `getCustomerInfo`, `getProducts`, `purchaseStoreProduct` and `restorePurchases`, which are unchanged. **Return to 11.x once 20.x appears on trunk.**
+2. **Location permission strings.** The expo-location plugin added generic "Always" usage strings, a temporary full-accuracy string and a motion string, even with background location off. They're now disabled (`false`), and `NSLocationDefaultAccuracyReduced` is on, so iOS offers approximate location by default. This matches the approximate-only rule; the onboarding request was already `Accuracy.Lowest`.
+3. **`newArchEnabled` removed from `app.json`.** It's no longer a valid key: the New Architecture is always on.
+4. **Root lint failed on a fresh clone** because `pipeline/` and `workers/data-api/` are separate npm packages whose `node_modules` aren't installed. `import/no-unresolved` is off for those two folders; they have their own `tsc`.
+5. **An orbit drag that starts on a slot also selected it.** Found by reading the event path, not on a device:
+   - R3F's native canvas fires `click` from `onPanResponderEnd` when the finger moved < 20 pt.
+   - The orbit Pan (gesture handler) activates at 12 pt and cancels the JS touch.
+   - React Native dispatches `responderEnd` for a cancel as well as for a lift.
+   - So every horizontal drag that began on a slot also selected that slot, with a haptic tick.
+
+   `src/three/life/tapGate.ts` holds 3D clicks while the Pan is tracking a touch, and fires them only if the Pan never activated. It doesn't depend on the order of the two event streams; 5 unit tests cover both orders. Orbiting does **not** block taps: the Pan doesn't delay touches, and taps under 12 pt reach the canvas unchanged. The guard window is `CLOSEUP_MOTION.orbitTapGuardMs`.
+
+### Audio, checked offline
+Decoded with `afconvert`, which uses the same Core Audio decoder as AVFoundation. expo-audio loops with an `AVQueuePlayer` that re-enqueues the item, so playback is gapless if the decoded file is.
+
+| Loop | Decoded length | Seam jump ÷ file's 99.9th-pct sample step | Silent head/tail |
+|---|---|---|---|
+| amb-birds / crickets / crowd / rain / traffic / wind | 24 / 16 / 24 / 12 / 20 / 20 s (exact) | 0.24 / 0.00 / 0.62 / 0.13 / 0.41 / 0.24 | none |
+| city-day / city-night | 16 / 16 s | 0.74 / 0.51 | none |
+| music-day / music-night | 91.429 / 71.111 s | 0.04 / 0.16 | none |
+| hum.wav | 2 s | 0.33 | none |
+
+- **Loop clicks: none in the files.** The MP4 edit lists are honored: lengths are exact with no AAC priming or padding, and every seam is smaller than the file's normal sample-to-sample motion. A click heard on a device would come from the player (queue item hand-off), not the assets.
+- **Crowd vs. hiss:** `amb-crowd` has 99% of its energy below 1 kHz, spectral flatness 0.002 (white noise ≈ 1) and 35% of its envelope modulation at the 2–8 Hz syllable rate. It shouldn't read as hiss. With only 3% of energy in 1–3 kHz, it may sound muffled. Rain is the only hiss-like bed (flatness 0.59), which is correct for rain.
+
+### Still not measured (need Xcode and a device)
+- Diagnostics: h3 on Hermes, offline catch-up (15 and 200 machines), 3D fps.
+- Playthrough: onboarding, first machine, restock, sale, collect, zoom 17+ street life, close-up transition, frame drops, visual bugs, audio heard on hardware, and orbit-vs-tap on a real touchscreen.
+
+To continue, install Xcode (Xcode 26+ from the App Store), run `sudo xcode-select -s /Applications/Xcode.app`, then `npx expo run:ios`. The `ios/` folder is generated and gitignored; `npx expo prebuild --clean` regenerates it.
