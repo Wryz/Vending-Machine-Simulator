@@ -32,7 +32,7 @@
       "package": "app.coinline.vending",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#1B1F23",
+        "backgroundColor": "#FF6B2C",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -46,9 +46,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#1B1F23",
+          "backgroundColor": "#FF6B2C",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 120
+          "imageWidth": 170
         }
       ],
       "@maplibre/maplibre-react-native",
