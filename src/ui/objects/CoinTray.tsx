@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -11,9 +11,10 @@ import Animated, {
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
 
-import { useTheme } from '../ThemeProvider';
 import { Mono, T } from '../kit';
 import { money } from '../format';
+import { Icon, type IconName } from '../icons';
+import { SKIN } from '../skin';
 import { SPACE } from '../theme';
 
 const MAX_COINS = 24;
@@ -65,7 +66,6 @@ export function CoinTray({
   grossCents: number;
   commissionCents: number;
 }) {
-  const theme = useTheme();
   const coins = Math.min(MAX_COINS, Math.max(1, Math.round(grossCents / 2000)));
   const onLand = useMemo(
     () => () => {
@@ -98,20 +98,76 @@ export function CoinTray({
           </T>
         ) : null}
       </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Mono muted>Cash box</Mono>
-        <Mono>{money(grossCents)}</Mono>
-      </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Mono muted>Venue commission</Mono>
-        <Mono color={theme.alert}>{money(-commissionCents)}</Mono>
-      </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Mono weight="bold">You keep</Mono>
-        <Mono weight="bold" color={theme.signal}>
-          {money(grossCents - commissionCents)}
-        </Mono>
+      {/* The receipt as an LED panel: box, the venue's cut, what you keep. */}
+      <View
+        accessible
+        accessibilityLabel={`Cash box ${money(grossCents)}, venue commission ${money(commissionCents)}, you keep ${money(grossCents - commissionCents)}`}
+        style={styles.panel}
+      >
+        <Readout icon="coin" label="Box" value={money(grossCents)} color={SKIN.ledAmber} />
+        <Readout
+          icon="handshake"
+          label="Venue"
+          value={money(-commissionCents)}
+          color={SKIN.ledRed}
+        />
+        <Readout
+          icon="bag"
+          label="You keep"
+          value={money(grossCents - commissionCents)}
+          color={SKIN.ledGreen}
+          big
+        />
       </View>
     </View>
   );
 }
+
+function Readout({
+  icon,
+  label,
+  value,
+  color,
+  big,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+  color: string;
+  big?: boolean;
+}) {
+  return (
+    <View style={{ flex: big ? 1.3 : 1, alignItems: 'center', gap: 2 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <Icon name={icon} size={13} color="#AEB3D6" />
+        <T size={11} weight="bold" color="#AEB3D6">
+          {label.toUpperCase()}
+        </T>
+      </View>
+      <Mono
+        size={big ? 18 : 15}
+        weight="bold"
+        color={color}
+        style={{
+          textShadowColor: color,
+          textShadowRadius: 8,
+          textShadowOffset: { width: 0, height: 0 },
+        }}
+      >
+        {value}
+      </Mono>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  panel: {
+    flexDirection: 'row',
+    paddingVertical: SPACE.s,
+    paddingHorizontal: SPACE.s,
+    borderRadius: 12,
+    backgroundColor: SKIN.led,
+    borderWidth: 3,
+    borderColor: SKIN.chrome,
+  },
+});
