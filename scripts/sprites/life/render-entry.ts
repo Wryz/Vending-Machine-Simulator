@@ -39,8 +39,8 @@ const LIGHTS: Record<
     sun: { altitudeDeg: -20, bearingDeg: 0, rising: false },
     preset: 'night',
     shadow: 0.5,
-    fill: 2.6,
-    key: 1.2,
+    fill: 4.2,
+    key: 2,
   },
 };
 
@@ -60,10 +60,10 @@ export function jobs(): { kind: string; model: string; frame: number }[] {
 function allJobs(): Job[] {
   const out: Job[] = [];
   for (const m of LIFE_CAR_MODELS)
-    out.push({ kind: 'car', model: m, frame: 0, build: () => createCarModel(m), extentM: 6.2 });
+    out.push({ kind: 'car', model: m, frame: 0, build: () => createCarModel(m), extentM: 7 });
   for (const m of LIFE_PEOPLE_MODELS)
     for (let f = 0; f < LIFE_WALK_FRAMES; f++)
-      out.push({ kind: 'ped', model: m, frame: f, build: () => createPerson(m, f), extentM: 2.6 });
+      out.push({ kind: 'ped', model: m, frame: f, build: () => createPerson(m, f), extentM: 4 });
   return out;
 }
 
@@ -119,7 +119,7 @@ export function renderJob(index: number, cfg: LifeSpriteConfig) {
     scene.add(pivot);
     const rig = addLights(scene, lighting);
     rig.glow.intensity = 0;
-    rig.hemi.intensity *= L.fill * (job.kind === 'ped' && light === 'night' ? 1.25 : 1);
+    rig.hemi.intensity *= L.fill * (job.kind === 'ped' && light === 'night' ? 1.2 : 1);
     rig.sun.intensity *= L.key;
     (shadow.material as THREE.MeshBasicMaterial).opacity = L.shadow;
     for (const l of model.lamps) {
@@ -129,6 +129,7 @@ export function renderJob(index: number, cfg: LifeSpriteConfig) {
       l.material.toneMapped = !night;
       l.material.needsUpdate = true;
     }
+    for (const g of model.glows) g.visible = light === 'night';
     for (let h = 0; h < LIFE_HEADINGS; h++) {
       pivot.rotation.y = headingToRotationY(180 + h * (360 / LIFE_HEADINGS));
       for (const pitch of LIFE_PITCHES) {
@@ -139,7 +140,7 @@ export function renderJob(index: number, cfg: LifeSpriteConfig) {
         cam.updateProjectionMatrix();
         renderer.render(scene, cam);
         const small = downsample(renderer.domElement, ss);
-        if (light === 'night' && job.kind === 'car') bloom(small, 0.66, 1.6, 0.9);
+        if (light === 'night' && job.kind === 'car') bloom(small, 0.6, 2, 1.1);
         const name =
           job.kind === 'car'
             ? carSpriteName(job.model, h, pitch, light)

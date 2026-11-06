@@ -9,4 +9,10 @@ export { StreetLife } from './sim';
 export { carActivity, peopleActivity, trafficLevel, lifeTargets, hourCurve } from './density';
 export * from './sprites';
 export { lifeGeoJSON, type LifeRenderOptions } from './render';
-export { lifeIconSizeStops, lifeBeamRadiusStops, lifeViewRadiusM } from './layout';
+export {
+  lifeIconSizeStops,
+  lifeBeamRadiusStops,
+  lifeViewRadiusM,
+  lifeSymbolLayer,
+  lifeBeamLayer,
+} from './layout';

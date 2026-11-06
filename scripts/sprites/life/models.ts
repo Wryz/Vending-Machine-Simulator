@@ -12,6 +12,8 @@ export interface LifeModel {
   group: THREE.Group;
   /** Materials that glow at night (lights, taxi sign), with their night intensity. */
   lamps: { material: THREE.MeshStandardMaterial; night: number; dayColor: string; nightColor: string }[];
+  /** Camera-facing glow discs shown only in night renders. */
+  glows: THREE.Object3D[];
   footprint: { w: number; d: number };
   triangles: number;
 }
@@ -63,11 +65,44 @@ function countTris(g: THREE.Object3D): number {
 
 // ------------------------------------------------------------------ cars
 
+let radial: THREE.CanvasTexture | null = null;
+/** White radial falloff (alpha map / sprite texture). */
+function radialTexture(): THREE.CanvasTexture {
+  if (radial) return radial;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.35, 'rgba(255,255,255,0.55)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  radial = new THREE.CanvasTexture(c);
+  return radial;
+}
+
+function glowSprite(color: string, size: number, x: number, y: number, z: number) {
+  const s = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      color,
+      map: radialTexture(),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      toneMapped: false,
+    }),
+  );
+  s.scale.set(size, size, 1);
+  s.position.set(x, y, z);
+  return s;
+}
+
 export const CAR_PAINT: Record<string, string> = {
-  graphite: '#3A3E44',
+  graphite: '#454A51',
   silver: '#A7ABB0',
   white: '#E4E2DC',
-  navy: '#2C3950',
+  navy: '#3A4B68',
   oxblood: '#6B2B2A',
   sage: '#86937E',
   slate: '#5A6875',
@@ -188,7 +223,7 @@ export function createCar(bodyId: 'sedan' | 'hatch' | 'van' | 'taxi', paintHex: 
   const b = BODIES[bodyId === 'taxi' ? 'sedan' : bodyId];
   const group = new THREE.Group();
   const paint = mat(paintHex, { roughness: 0.38, metalness: 0.25 });
-  const glass = mat(GLASS, { roughness: 0.12, metalness: 0.4 });
+  const glass = mat(GLASS, { roughness: 0.35, metalness: 0.1 });
   const trim = mat(TRIM, { roughness: 0.8 });
   const rubber = mat(RUBBER, { roughness: 0.9, metalness: 0 });
 
@@ -214,12 +249,37 @@ export function createCar(bodyId: 'sedan' | 'hatch' | 'van' | 'taxi', paintHex: 
   // Lights: emissive at night (bloomed), plain lenses by day.
   const head = mat('#D9DCDD', { roughness: 0.2, emissive: '#FFF1D2', emissiveIntensity: 0 });
   const tail = mat('#7E2621', { roughness: 0.3, emissive: '#FF3A2A', emissiveIntensity: 0 });
-  const lw = 0.34;
+  const lw = 0.36;
   for (const sx of [-1, 1]) {
-    group.add(box(lw, 0.12, 0.06, head, sx * (b.width / 2 - 0.12 - lw / 2), b.lightY, b.length / 2));
+    group.add(box(lw, 0.15, 0.08, head, sx * (b.width / 2 - 0.12 - lw / 2), b.lightY, b.length / 2));
     group.add(
-      box(lw * 0.8, 0.12, 0.06, tail, sx * (b.width / 2 - 0.1 - lw * 0.4), b.lightY + 0.08, -b.length / 2),
+      box(lw * 0.8, 0.14, 0.08, tail, sx * (b.width / 2 - 0.1 - lw * 0.4), b.lightY + 0.08, -b.length / 2),
     );
+  }
+  // Night: soft camera-facing glows on the lamps (occluded by the body when
+  // seen from the other end), plus a short warm spill on the road ahead.
+  const glows: THREE.Object3D[] = [];
+  for (const sx of [-1, 1]) {
+    const hx = sx * (b.width / 2 - 0.12 - lw / 2);
+    glows.push(glowSprite('#FFF3DC', 0.75, hx, b.lightY, b.length / 2 + 0.12));
+    glows.push(glowSprite('#FF4432', 0.5, hx, b.lightY + 0.08, -b.length / 2 - 0.1));
+  }
+  const spill = new THREE.Mesh(
+    new THREE.PlaneGeometry(b.width * 0.95, 1.5).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({
+      color: '#FFE2B0',
+      alphaMap: radialTexture(),
+      transparent: true,
+      opacity: 0.26,
+      depthWrite: false,
+      toneMapped: false,
+    }),
+  );
+  spill.position.set(0, 0.01, b.length / 2 + 0.85);
+  glows.push(spill);
+  for (const g of glows) {
+    g.visible = false;
+    group.add(g);
   }
   const lamps: LifeModel['lamps'] = [
     { material: head, night: 3.2, dayColor: '#D9DCDD', nightColor: '#FFF6E2' },
@@ -239,6 +299,7 @@ export function createCar(bodyId: 'sedan' | 'hatch' | 'van' | 'taxi', paintHex: 
   return {
     group,
     lamps,
+    glows,
     footprint: { w: b.width, d: b.length },
     triangles: countTris(group),
   };
@@ -339,5 +400,5 @@ export function createPerson(outfitId: string, frame: number): LifeModel {
   group.traverse((m) => {
     if (m instanceof THREE.Mesh) m.castShadow = true;
   });
-  return { group, lamps: [], footprint: { w: 0.5, d: 0.35 }, triangles: countTris(group) };
+  return { group, lamps: [], glows: [], footprint: { w: 0.5, d: 0.35 }, triangles: countTris(group) };
 }

@@ -121,7 +121,8 @@ export function countSceneTriangles(root: THREE.Object3D): number {
     if (!o.visible) return;
     if (o instanceof THREE.Mesh) {
       const g = o.geometry as THREE.BufferGeometry;
-      const per = (g.index ? g.index.count : g.attributes.position.count) / 3;
+      const n = g.index ? g.index.count : (g.attributes.position?.count ?? 0);
+      const per = n / 3;
       tris += o instanceof THREE.InstancedMesh ? per * o.count : per;
     }
     for (const c of o.children) walk(c);

@@ -2,10 +2,25 @@
  * Browser entry for the 3D close-up preview: the GLB machine on a sidewalk in
  * front of a facade, lit by `sceneLighting` for the real New York sun.
  */
-import { CLOSEUP_CAMERA } from '@/config/machines';
-import { bearingToVector } from '@/map/cameraMatch';
+import {
+  CLOSEUP_CAMERA,
+  FAMILY_ACCENT,
+  getMachineType,
+  SNACK_MACHINE_DIMENSIONS,
+} from '@/config/machines';
+import { bearingToVector, closeupCamera, headingToRotationY } from '@/map/cameraMatch';
 import { getTimeOfDay } from '@/map/timeOfDay';
+import { countSceneTriangles } from '@/three/life/geometry';
+import { streetLayout } from '@/three/life/layout';
+import { createStreetScene } from '@/three/life/streetScene';
+import { activeWalkerCount, emptyWalker, walkerAt } from '@/three/life/walkers';
 import { sceneLighting } from '@/three/lightingRig';
+import { createMachineFx, createMachineMirror } from '@/three/machineFx';
+import {
+  countTriangles,
+  createVendingMachine,
+  setMachineGlow,
+} from '@/three/models/vendingMachine';
 
 import {
   addLights,
@@ -99,5 +114,136 @@ export async function renderCloseup(opts: {
     preset: tod.dominant,
     sun: tod.sun,
     lighting: l,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Street life close-up: the procedural machine as the app builds it, with
+// pedestrians, cars, the street set and the shop-window reflection, framed by
+// the app's own close-up camera (optionally orbited) or a wide establishing view.
+
+export interface LifeShot {
+  dateIso: string;
+  lat: number;
+  lng: number;
+  width: number;
+  height: number;
+  supersample: number;
+  crowd: number;
+  traffic: number;
+  /** Seconds on the street-life clock (pick with `pickLifeTime`). */
+  tS: number;
+  view: 'closeup' | 'wide';
+  orbitDeg: number;
+  seed: number;
+  /** Optional: a sale `saleAgoMs` before the shot (product falling / customer reaching). */
+  saleAgoMs?: number;
+}
+
+const HEADING = 180;
+
+/** Find a street-life time with a customer at the machine and someone passing in frame. */
+export function pickLifeTime(seed: number, crowd: number, from = 0, to = 900): number {
+  const layout = streetLayout(SNACK_MACHINE_DIMENSIONS.depthM);
+  const n = activeWalkerCount(crowd);
+  const w = emptyWalker();
+  let best = from;
+  let bestScore = -1;
+  for (let t = from; t < to; t += 0.25) {
+    let score = 0;
+    for (let i = 0; i < n; i++) {
+      walkerAt(w, seed, i, t, layout);
+      if (!w.active) continue;
+      if (w.atMachine && w.stopLeft > 1.5 && w.turn > 0.9) score += 3;
+      else if (Math.abs(w.x) > 0.9 && Math.abs(w.x) < 2.2) score += 2;
+      else if (Math.abs(w.x) < 0.9) score -= 2; // would hide the machine
+      else if (Math.abs(w.x) < 7) score += 0.5;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = t;
+    }
+  }
+  return best;
+}
+
+export function renderCloseupLife(o: LifeShot) {
+  const tod = getTimeOfDay(new Date(o.dateIso), o.lat, o.lng);
+  const l = sceneLighting(tod.sun, tod.palette);
+  const type = getMachineType('snack');
+  const model = createVendingMachine({
+    accent: FAMILY_ACCENT.snacks,
+    dims: type.dims,
+    rows: type.grid.rows,
+    cols: type.grid.cols,
+  });
+  setMachineGlow(model, l.machineGlow);
+  const mirror = createMachineMirror(model);
+  const fx = createMachineFx(model);
+  model.group.add(fx.group);
+  const night = Math.min(1, Math.max(0, (l.machineGlow - 0.05) / 0.95));
+  const life = createStreetScene({ dims: type.dims, seed: o.seed, reflect: [mirror.group] });
+  life.setPalette(tod.palette, night);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(l.skyColor);
+  const world = new THREE.Group();
+  world.rotation.y = headingToRotationY(HEADING);
+  world.add(model.group, life.root);
+  scene.add(world);
+  addLights(scene, l, {
+    shadow: true,
+    glowAt: new THREE.Vector3(0, 1.2, type.dims.depthM / 2 + 0.75),
+  });
+
+  const params = { crowd: o.crowd, traffic: o.traffic, night };
+  const nowMs = o.tS * 1000;
+  if (o.saleAgoMs !== undefined) {
+    // Replay the sale a little before the shot so the customer is mid-reach.
+    life.update(o.tS - o.saleAgoMs / 1000, params);
+    const color = fx.sale(13, nowMs - o.saleAgoMs);
+    if (color) life.offerProduct(color, o.tS - o.saleAgoMs / 1000);
+  }
+  life.update(o.tS, params);
+  fx.update(nowMs, l.machineGlow);
+  mirror.sync();
+
+  const cam = new THREE.PerspectiveCamera(CLOSEUP_CAMERA.fovDeg, o.width / o.height, 0.1, 400);
+  if (o.view === 'closeup') {
+    const c = closeupCamera(HEADING, type.dims.heightM, CLOSEUP_CAMERA);
+    const r = (o.orbitDeg * Math.PI) / 180;
+    const [x, , z] = c.position;
+    cam.position.set(x * Math.cos(r) + z * Math.sin(r), c.position[1], -x * Math.sin(r) + z * Math.cos(r));
+    cam.lookAt(...c.target);
+  } else {
+    // From across the road, a little above eye level: people, machine and traffic.
+    const r = (o.orbitDeg * Math.PI) / 180;
+    cam.fov = 40;
+    cam.position.set(Math.sin(r) * 13, 3.4, Math.cos(r) * 13);
+    cam.lookAt(0, 1.1, 1.8);
+  }
+  cam.updateProjectionMatrix();
+
+  const ss = o.supersample;
+  const renderer = rendererFor(undefined, o.width * ss, o.height * ss, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.render(scene, cam);
+  const info = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+  const small = downsample(renderer.domElement, ss);
+  if (l.machineGlow > 0.5) bloom(small, 0.7, 6 * (o.width / 390), 0.45 * l.machineGlow);
+  renderer.dispose();
+  const stats = life.stats();
+  return {
+    rgba: canvasToB64(small),
+    preset: tod.dominant,
+    sun: tod.sun,
+    night,
+    stats: {
+      ...stats,
+      machineTriangles: countTriangles(model.group),
+      sceneTriangles: countSceneTriangles(scene),
+      drawn: info,
+    },
   };
 }

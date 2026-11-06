@@ -5,12 +5,14 @@
  * plus three.js close-ups, into docs/spikes/images/.
  *
  *   node scripts/preview/render-previews.mjs --pmtiles=/path/to/nyc-midtown.pmtiles
- *       [--only=map|closeup] [--zoom=15.5] [--shots=day,night] [--light-mix=0.6]
+ *       [--only=map|closeup|life] [--zoom=15.5] [--shots=day,night] [--light-mix=0.6]
+ *
+ * `--only=life` renders only the street-life close-ups (no tiles or sprites needed).
  *
  * Needs `npm run sprites` first (atlas + GLBs).
  */
 import { createReadStream } from 'node:fs';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 
@@ -29,16 +31,25 @@ const TILES_OVERRIDE =
     ? { kind: 'tilejson', url: 'https://tiles.openfreemap.org/planet', schema: 'openmaptiles' }
     : null;
 const ONLY = arg('only');
-const SHOTS_FILTER = arg('shots')?.split(',');
+const SHOTS_FILTER = arg('shots', process.argv.includes('--life') ? 'day,night' : undefined)?.split(
+  ',',
+);
 /**
  * Experiment: blend the map light color toward white by this fraction
  * (0 = style as built). Dawn/dusk extrusions go saturated orange otherwise.
  */
 const LIGHT_MIX = Number(arg('light-mix', 0));
 const OUT = path.join(ROOT, 'docs/spikes/images');
+/**
+ * --life: street life (cars, pedestrians) from the real sim on the rendered
+ * roads, at zoom 17.5 by default, day + night -> map-life-{day,night}.png.
+ * Needs `npm run life-sprites` first. --life-above draws it above buildings.
+ */
+const LIFE = process.argv.includes('--life');
+const LIFE_ABOVE = process.argv.includes('--life-above');
 
 const CENTER = { lat: 40.754, lng: -73.984 };
-const CAMERA = { zoom: Number(arg('zoom', 15.5)), pitch: 55, bearing: -20 };
+const CAMERA = { zoom: Number(arg('zoom', LIFE ? 17.5 : 15.5)), pitch: 55, bearing: -20 };
 const VIEWPORT = { width: 390, height: 700 };
 
 /** A few machines around Bryant Park (hb = world heading / 45°). */
@@ -100,6 +111,15 @@ async function renderMaps(browser) {
   if (!PMTILES && !TILES_OVERRIDE)
     throw new Error('pass --pmtiles=<file> (or PMTILES_PATH), or --tiles=openfreemap');
   const code = await bundle('scripts/preview/map-entry.ts', 'Preview');
+  const lifeCode = LIFE ? await bundle('scripts/preview/life-entry.ts', 'LifePreview') : '';
+  const lifeDir = path.join(ROOT, 'assets/sprites/life');
+  const lifeFiles = LIFE
+    ? Object.fromEntries(
+        (await readdir(lifeDir))
+          .filter((f) => f.endsWith('.png'))
+          .map((f) => [`/life/${f}`, { file: path.join(lifeDir, f), type: 'image/png' }]),
+      )
+    : {};
   const spritesDir = path.join(ROOT, 'assets/sprites');
   const html = `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="${MAPLIBRE}/maplibre-gl.css">
@@ -107,6 +127,7 @@ async function renderMaps(browser) {
 <body><div id="map"></div>
 <script src="${PMTILES_JS}"></script>
 <script src="/bundle.js"></script>
+${LIFE ? '<script src="/life.js"></script>' : ''}
 <script type="module">
 import * as ml from '${MAPLIBRE}/maplibre-gl.mjs';
 const maplibregl = ml.default ?? ml;
@@ -120,6 +141,8 @@ window.mapReady = true;
   const server = await serve({
     '/': { body: html, type: 'text/html' },
     '/bundle.js': { body: code, type: 'text/javascript' },
+    '/life.js': { body: lifeCode, type: 'text/javascript' },
+    ...lifeFiles,
     ...(PMTILES
       ? { '/tiles/nyc.pmtiles': { file: PMTILES, type: 'application/octet-stream' } }
       : {}),
@@ -202,6 +225,37 @@ window.mapReady = true;
       },
       { when, CENTER, CAMERA, MACHINES, origin, iconOffset, LIGHT_MIX, TILES_OVERRIDE },
     );
+    if (LIFE) {
+      const life = await page.evaluate(
+        async ({ when, origin, LIFE_ABOVE }) => {
+          const map = window.__map;
+          const stats = await window.LifePreview.addLife(map, {
+            date: when,
+            spriteBase: `${origin}/life`,
+            seed: 7,
+            seconds: 25,
+            beforeId: LIFE_ABOVE ? 'machines' : 'buildings',
+          });
+          await new Promise((resolve) => {
+            const t = setTimeout(resolve, 20_000);
+            map.once('idle', () => {
+              clearTimeout(t);
+              resolve();
+            });
+          });
+          await new Promise((r) => setTimeout(r, 300));
+          stats.drawn = map.queryRenderedFeatures({ layers: ['life-sprites'] }).length;
+          return stats;
+        },
+        { when, origin, LIFE_ABOVE },
+      );
+      console.log('    life:', JSON.stringify(life));
+      const file = path.join(OUT, `map-life-${shot.name}${LIFE_ABOVE ? '-above' : ''}.png`);
+      await page.screenshot({ path: file });
+      console.log(`  ${path.relative(ROOT, file)}`);
+      findings.push({ shot: shot.name, life });
+      continue;
+    }
     const suffix =
       (CAMERA.zoom === 15.5 ? '' : `-z${CAMERA.zoom}`) +
       (LIGHT_MIX > 0 ? `-lightmix${LIGHT_MIX}` : '') +
@@ -264,6 +318,65 @@ async function renderCloseups(browser) {
   await page.close();
 }
 
+/** Street life (pedestrians, cars, reflection) in the app's close-up framing, day and night. */
+async function renderLife(browser) {
+  const code = await bundle('scripts/preview/closeup-entry.ts', 'Closeup');
+  const page = await browser.newPage({ viewport: { width: 400, height: 400 } });
+  page.on('pageerror', (e) => console.error('[page error]', e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error') console.error('[page]', m.text());
+  });
+  await page.setContent('<!doctype html><html><body></body></html>');
+  await page.addScriptTag({ content: code });
+  const date = await page.evaluate((c) => window.Closeup.pickDate(c.lat, c.lng), CENTER);
+  // The close-up viewport is the top 46% of a 390 × 844 pt phone.
+  const W = 390 * 2;
+  const H = Math.round(844 * 0.46) * 2;
+  const SEED = 20261105;
+  const shots = [
+    { name: 'day', hh: 13, mm: 0, crowd: 0.8, traffic: 0.75, orbitDeg: 14, sale: 900 },
+    { name: 'night', hh: 22, mm: 0, crowd: 0.55, traffic: 0.6, orbitDeg: -16 },
+  ];
+  for (const shot of shots.filter((s) => !SHOTS_FILTER || SHOTS_FILTER.includes(s.name))) {
+    const dateIso = await page.evaluate(
+      ([d, s]) => window.Closeup.nyDate(d.y, d.m, d.d, s.hh, s.mm).toISOString(),
+      [date, shot],
+    );
+    const tS = await page.evaluate(
+      ([seed, crowd]) => window.Closeup.pickLifeTime(seed, crowd),
+      [SEED, shot.crowd],
+    );
+    for (const view of ['closeup', 'wide']) {
+      const r = await page.evaluate((o) => window.Closeup.renderCloseupLife(o), {
+        dateIso,
+        lat: CENTER.lat,
+        lng: CENTER.lng,
+        width: view === 'closeup' ? W : 390 * 2,
+        height: view === 'closeup' ? H : 520 * 2,
+        supersample: 2,
+        crowd: shot.crowd,
+        traffic: shot.traffic,
+        tS: view === 'closeup' ? tS : tS + 1.5,
+        view,
+        orbitDeg: view === 'closeup' ? shot.orbitDeg : 18,
+        seed: SEED,
+        saleAgoMs: view === 'closeup' ? shot.sale : undefined,
+      });
+      const w = view === 'closeup' ? W : 390 * 2;
+      const h = view === 'closeup' ? H : 520 * 2;
+      const png = encodePNG({ width: w, height: h, data: b64ToBuf(r.rgba) }, { alpha: false });
+      const file = `closeup-life-${shot.name}${view === 'wide' ? '-wide' : ''}.png`;
+      await writeFile(path.join(OUT, file), png);
+      console.log(
+        `  ${file}: preset ${r.preset}, night ${r.night.toFixed(2)}, t=${tS}s, walkers ${r.stats.walkers}, cars ${r.stats.cars}, ` +
+          `street tris ${r.stats.triangles}, machine tris ${r.stats.machineTriangles}, scene tris ${r.stats.sceneTriangles}, ` +
+          `drawn ${r.stats.drawn.triangles} tris / ${r.stats.drawn.calls} calls (incl. shadow pass)`,
+      );
+    }
+  }
+  await page.close();
+}
+
 async function main() {
   await mkdir(OUT, { recursive: true });
   const { chromium } = loadPlaywright();
@@ -271,8 +384,9 @@ async function main() {
     args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
   });
   try {
-    if (ONLY !== 'closeup') await renderMaps(browser);
-    if (ONLY !== 'map') await renderCloseups(browser);
+    if (!ONLY || ONLY === 'map') await renderMaps(browser);
+    if (!ONLY || ONLY === 'closeup') await renderCloseups(browser);
+    if (!ONLY || ONLY === 'life') await renderLife(browser);
   } finally {
     await browser.close();
   }

@@ -19,7 +19,7 @@ export const MAP_LIFE = {
 
   cars: {
     /** Cars per km of drivable road in view at full density (calm, not gridlock). */
-    perKm: { highway: 16, major: 14, minor: 7, service: 1.5 },
+    perKm: { highway: 22, major: 22, minor: 10, service: 1.5 },
     /** Cruise speed range by road kind, km/h. */
     speedKmh: {
       highway: [34, 40],
@@ -100,7 +100,7 @@ export const MAP_LIFE = {
   },
 
   /** Night headlight pools on the road ahead of each car. */
-  beams: { aheadM: 5.5, radiusM: 4, color: '#FFE7B8', opacity: 0.32 },
+  beams: { aheadM: 5, radiusM: 4.5, color: '#FFE7B8', opacity: 0.22 },
 } as const;
 
 /** Car sprite models (body-color). The sprite script renders exactly these. */
