@@ -20,6 +20,7 @@ import {
   tutorialStep,
   visibleEvents,
 } from '@/sim';
+import type { SoundscapeEnv } from '@/audio/soundscape';
 import { soundscape } from '@/services/audio';
 import { haptic } from '@/services/haptics';
 import { cityKey, useProfile } from '@/store/profile';
@@ -38,6 +39,9 @@ import { MoneyPanel, type IncomingSale } from '@/ui/MoneyPanel';
 import { SpotSheet, type SpotPoint } from '@/ui/sheets/SpotSheet';
 import { sfx } from '@/ui/sfx';
 import { SPACE } from '@/ui/theme';
+
+/** A map press this soon after a machine press belongs to the same tap. */
+const MACHINE_TAP_GUARD_MS = 450;
 
 /** A sale shows in its own pill under the money panel for this long. */
 const SALE_PILL_MS = 6_000;
@@ -112,11 +116,13 @@ export default function MapScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Living soundscape: city bed, crowd, birds/crickets, rain/wind,
-  // richer as you zoom in; driven by zoom, real time of day, weather and how
-  // busy the streets in view are (street-life stats when available).
+  // Living soundscape: waves by water, crowd, birds/crickets by parks,
+  // rain/wind, richer as you zoom in; driven by zoom, what is near the view
+  // center (map env probe), real time of day, weather and how busy the
+  // streets in view are (street-life stats when available).
   const cameraNow = useRef<MapCameraState>(initial);
   const lifeBusy = useRef<number | null>(null);
+  const envNear = useRef<SoundscapeEnv | undefined>(undefined);
   const feedSoundscape = useCallback(() => {
     const cam = cameraNow.current;
     const [lng, lat] = cam.center;
@@ -133,6 +139,7 @@ export default function MapScreen() {
       weather: w ? { condition: w.condition, tempC: w.tempC } : null,
       busy: level,
       scene: 'map',
+      env: envNear.current,
     });
   }, [world, tod.weights]);
   useEffect(() => {
@@ -177,7 +184,12 @@ export default function MapScreen() {
     [spot, world, game],
   );
 
+  const lastMachinePress = useRef(0);
   const onMapPress = (lat: number, lng: number) => {
+    // One tap can reach both a machine (source press) and the map underneath, in
+    // either order. A map press right after a machine press is that same tap:
+    // ignore it, or the spot sheet would replace the machine's sheet.
+    if (Date.now() - lastMachinePress.current < MACHINE_TAP_GUARD_MS) return;
     if (machineId) {
       // A tap on the map closes the machine's sheet first.
       machineSheetRef.current?.dismiss();
@@ -212,9 +224,10 @@ export default function MapScreen() {
 
   // Tapping a machine opens its sheet at once while the map flies to it.
   const onMachinePress = (id: string) => {
-    if (busy) return;
     if (!game.machines.some((x) => x.id === id)) return;
+    lastMachinePress.current = Date.now();
     spotRef.current?.dismiss();
+    setSpot(null);
     setMachineId(id);
     machineSheetRef.current?.present();
     frameMachine(id, framePadding);
@@ -222,7 +235,7 @@ export default function MapScreen() {
 
   // A rival machine: Rex's card (prices, a taunt, the counter-moves).
   const onRivalPress = (id: string) => {
-    if (busy) return;
+    lastMachinePress.current = Date.now();
     spotRef.current?.dismiss();
     machineSheetRef.current?.dismiss();
     setRivalId(id);
@@ -236,7 +249,7 @@ export default function MapScreen() {
       onRivalPress(params.rival);
       router.setParams({ rival: undefined });
       // Once per request.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
     }, [params.rival]),
   );
 
@@ -402,6 +415,13 @@ export default function MapScreen() {
           }
           feedSoundscape();
         }}
+        onEnvProbe={(env) => {
+          const prev = envNear.current;
+          if (prev && prev.waterDistM === env.waterDistM && prev.parkDistM === env.parkDistM)
+            return;
+          envNear.current = env;
+          feedSoundscape();
+        }}
         onLifeStats={(st) => {
           // Street life in view (zoom >= 16) makes the soundscape busier or quieter.
           const next = st.people > 0 ? st.busy : null;
@@ -454,27 +474,17 @@ export default function MapScreen() {
           active={heat}
           onPress={() => setHeat((h) => !h)}
         />
-        {unlocked('locate') ? (
-          <RoundButton icon="locate" label={t('map.a11y.myMachines')} onPress={locate} />
-        ) : null}
       </View>
 
-      {/* Zoom keys, bottom right above the tab bar. */}
-      <View
-        pointerEvents="box-none"
-        style={[styles.zoom, { right: SPACE.l, bottom: tabBarHeight + SPACE.m }]}
-      >
-        <RoundButton
-          icon="plus"
-          label={t('map.a11y.zoomIn')}
-          onPress={() => mapRef.current?.zoomBy(CAMERA.zoomStep, CAMERA.zoomStepMs)}
-        />
-        <RoundButton
-          icon="minus"
-          label={t('map.a11y.zoomOut')}
-          onPress={() => mapRef.current?.zoomBy(-CAMERA.zoomStep, CAMERA.zoomStepMs)}
-        />
-      </View>
+      {/* "My machines" key, bottom right above the tab bar (pinch to zoom). */}
+      {unlocked('locate') ? (
+        <View
+          pointerEvents="box-none"
+          style={[styles.zoom, { right: SPACE.l, bottom: tabBarHeight + SPACE.m }]}
+        >
+          <RoundButton icon="locate" label={t('map.a11y.myMachines')} onPress={locate} />
+        </View>
+      ) : null}
 
       {hint && !machineId ? (
         <Animated.View
