@@ -1,6 +1,6 @@
 # App Store listing (ready to paste)
 
-> **Status (2026-11-06):** entered in App Store Connect (app 6831590229): name, subtitle, category, content rights, age rating (13+), privacy policy URL, App Privacy answers (saved, **not published**: the account holder publishes after review), promotional text, description, keywords, URLs, copyright, 4 screenshots, Free pricing, all 175 regions, and the 5 in-app purchases (availability, price, English name and description). Still to do by hand: review contact (name, phone, email) and notes, in-app purchase review screenshots (take them from a build with the store live), the Paid Applications Schedule, and publishing App Privacy.
+> **Status (2026-11-06):** entered in App Store Connect (app 6831590229): everything below, plus the review contact and notes. Left for the account holder: accept the updated Paid Apps agreement (Business), publish App Privacy (an attestation), and add in-app purchase review screenshots from a build with the store live. AdMob payments are set to the United States; identity verification comes later, at the earnings threshold. GitHub Pages publishes from `main` /docs.
 
 Everything App Store Connect asks for, with Apple's limits checked. Prepared on 2026-11-06.
 
@@ -135,7 +135,7 @@ Description lengths: 41, 40, 37, 40, 41 (all ≤ 45).
 ```
 Coinline is a single-player vending business game on a real map. No account or login.
 
-- On first launch the game asks for approximate location to build your city. You can decline; the game then offers a list of 9 cities and plays the same.
+- On first launch the game offers a list of cities to start in (location is not requested in this version).
 - Ads are optional rewarded ads only (for example, "x2 earnings"). They are requested as non-personalized. The App Tracking Transparency prompt appears only if the player turns on "Personalized ads" in Settings.
 - In-app purchases are in Company tab › Shop, with a Restore purchases button.
 - The Starter Pack appears after chapter 1 (about 10 minutes of play: place the first machine, stock it, collect $1,000 in sales).
