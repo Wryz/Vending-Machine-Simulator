@@ -37,10 +37,9 @@ import {
 import { cityInfoFor, hasSave, useGame } from '@/store/game';
 import { cityKey, useProfile } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
-import { money, pct } from '@/ui/format';
+import { money, moneyShort, pct } from '@/ui/format';
 import {
   Button,
-  Divider,
   Mono,
   Paper,
   ProgressBar,
@@ -52,14 +51,12 @@ import {
 } from '@/ui/kit';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { Receipt, type ReceiptLine } from '@/ui/objects/Receipt';
+import { LockedCard, StatChip } from '@/ui/hud';
+import { Icon } from '@/ui/icons';
 import { PermitCard } from '@/ui/objects/small';
 import { SPACE, TOUCH } from '@/ui/theme';
 
 const FAMILIES = Object.keys(FAMILY_LABEL) as MachineFamily[];
-
-function chapterTitle(n: number): string {
-  return CHAPTERS.find((c) => c.n === n)?.title ?? `Chapter ${n}`;
-}
 
 interface Goal {
   label: string;
@@ -81,7 +78,7 @@ function chapterGoals(game: GameState): Goal[] {
       return [
         {
           label: 'Sales',
-          value: `${money(Math.min(need, game.ledger.lifetimeSalesCents))} / ${money(need)}`,
+          value: `${moneyShort(Math.min(need, game.ledger.lifetimeSalesCents))} / ${moneyShort(need)}`,
           progress: game.ledger.lifetimeSalesCents / need,
         },
       ];
@@ -268,10 +265,9 @@ export default function Company() {
         {/* Chapter progress */}
         <Section title={`Chapter ${game.chapter}`}>
           <Paper tone="surface">
-            <T size={18} weight="bold">
+            <T size={18} weight="bold" accessibilityHint={chapter?.goal}>
               {chapter?.title ?? 'Prestige'}
             </T>
-            <T muted>{chapter?.goal}</T>
             {goals.length > 0 ? <Spacer h={SPACE.m} /> : null}
             {goals.map((g) => (
               <View key={g.label} style={{ gap: SPACE.xs, marginBottom: SPACE.s }}>
@@ -282,51 +278,71 @@ export default function Company() {
                 <ProgressBar value={g.progress} />
               </View>
             ))}
-            {game.chapter === 5 && !game.rival.active ? (
-              <T size={13} muted>
-                {RIVAL.name} hasn&apos;t arrived yet.
-              </T>
-            ) : null}
             {chapter && chapter.n < 6 ? (
-              <T size={13} muted style={{ marginTop: SPACE.xs }}>
-                Unlocks: {chapter.unlocks.join(', ')}
-              </T>
+              <Row style={{ flexWrap: 'wrap', marginTop: SPACE.xs }}>
+                {chapter.unlocks.map((u) => (
+                  <StatChip
+                    key={u}
+                    icon="star"
+                    label="Unlocks next"
+                    value={u}
+                    color={theme.brand}
+                  />
+                ))}
+              </Row>
             ) : null}
           </Paper>
-          <View>
+          {/* Chapter steps: done, current, ahead. */}
+          <Row style={{ justifyContent: 'space-between', paddingHorizontal: SPACE.s }}>
             {CHAPTERS.map((c) => {
               const done = !!game.chapterDoneAt[c.n];
               const current = c.n === game.chapter;
               return (
-                <Row key={c.n} style={{ minHeight: 32 }} gap={SPACE.m}>
-                  <Mono
-                    size={13}
-                    color={done ? theme.signal : current ? theme.ink : theme.muted}
-                    style={{ width: 20 }}
-                  >
-                    {done ? '✓' : String(c.n)}
-                  </Mono>
-                  <T
-                    size={14}
-                    weight={current ? 'bold' : 'regular'}
-                    color={done || current ? theme.ink : theme.muted}
-                    accessibilityLabel={`Chapter ${c.n}, ${c.title}${done ? ', done' : current ? ', current' : ''}`}
-                  >
-                    {c.title}
-                  </T>
-                </Row>
+                <View
+                  key={c.n}
+                  accessible
+                  accessibilityLabel={`Chapter ${c.n}, ${c.title}${done ? ', done' : current ? ', current' : ''}`}
+                  style={{
+                    width: current ? 40 : 32,
+                    height: current ? 40 : 32,
+                    borderRadius: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: done ? theme.signal : current ? theme.brand : theme.line,
+                  }}
+                >
+                  {done ? (
+                    <Icon name="star" size={16} color="#FFFFFF" />
+                  ) : (
+                    <T size={14} weight="bold" color={current ? theme.onBrand : theme.muted}>
+                      {String(c.n)}
+                    </T>
+                  )}
+                </View>
               );
             })}
-          </View>
+          </Row>
         </Section>
 
         {/* Finances */}
         <Section title="Finances">
-          <Row style={{ justifyContent: 'space-between' }}>
-            <T>Cash</T>
-            <Mono weight="bold" size={16}>
-              {money(game.cashCents)}
-            </Mono>
+          <Row style={{ flexWrap: 'wrap' }}>
+            <StatChip icon="coin" label="Cash" value={money(game.cashCents)} />
+            <StatChip
+              icon="bag"
+              label="Lifetime sales"
+              value={moneyShort(game.ledger.lifetimeSalesCents)}
+            />
+            <StatChip
+              icon="box"
+              label="Units sold"
+              value={game.ledger.lifetimeUnits.toLocaleString('en-US')}
+            />
+            <StatChip
+              icon="minus"
+              label="Lifetime costs"
+              value={moneyShort(game.ledger.lifetimeCostsCents)}
+            />
           </Row>
           <Receipt
             title="Today"
@@ -354,72 +370,62 @@ export default function Company() {
               }}
             />
           ) : null}
-          <Paper tone="surface">
-            {(
-              [
-                ['Lifetime sales', money(game.ledger.lifetimeSalesCents)],
-                ['Cash collected', money(game.ledger.lifetimeNetCents)],
-                ['Lifetime costs', money(-game.ledger.lifetimeCostsCents)],
-                ['Units sold', game.ledger.lifetimeUnits.toLocaleString('en-US')],
-              ] as const
-            ).map(([k, v]) => (
-              <Row key={k} style={{ justifyContent: 'space-between', minHeight: 28 }}>
-                <T size={14} muted>
-                  {k}
-                </T>
-                <Mono size={14}>{v}</Mono>
-              </Row>
-            ))}
-          </Paper>
         </Section>
 
         {/* Staff & warehouse */}
         <Section title="Staff and warehouse">
-          <Paper tone="surface">
-            <Row style={{ justifyContent: 'space-between' }}>
-              <T weight="medium">
-                {machines} machines placed{stored ? ` · ${stored} in storage` : ''}
-              </T>
-            </Row>
-            <Row style={{ justifyContent: 'space-between', marginTop: SPACE.xs }}>
-              <T size={14} muted>
-                {game.drivers.length === 1 ? '1 driver' : `${game.drivers.length} drivers`}
-              </T>
-              <Mono size={14}>{money(-game.drivers.length * STAFF.driverWageCentsPerDay)}/day</Mono>
-            </Row>
-            <Button
-              style={{ marginTop: SPACE.m }}
-              kind="secondary"
-              label="Route clipboard"
-              onPress={() => router.push('/routes')}
-            />
-            <Divider />
-            <T weight="bold">Warehouse</T>
-            {game.warehouse ? (
-              <T size={13} muted>
-                Yours. {pct(STAFF.warehouseDiscount)} off wholesale, drivers carry{' '}
-                {STAFF.warehouseDriverCapacity} items. Rent {money(STAFF.warehouseRentCentsPerDay)}{' '}
-                a day.
-              </T>
-            ) : game.chapter < 3 ? (
-              <T size={13} muted>
-                Unlocks in chapter 3 ({chapterTitle(3)}).
-              </T>
-            ) : (
-              <>
-                <T size={13} muted>
-                  {pct(STAFF.warehouseDiscount)} off wholesale and bigger driver loads. Rent{' '}
-                  {money(STAFF.warehouseRentCentsPerDay)} a day.
-                </T>
+          <Row style={{ flexWrap: 'wrap' }}>
+            <StatChip icon="grid" label="Machines placed" value={String(machines)} />
+            {stored ? <StatChip icon="box" label="In storage" value={String(stored)} /> : null}
+            <StatChip icon="people" label="Drivers" value={String(game.drivers.length)} />
+            {game.drivers.length ? (
+              <StatChip
+                icon="coin"
+                label="Wages per day"
+                value={moneyShort(game.drivers.length * STAFF.driverWageCentsPerDay)}
+              />
+            ) : null}
+          </Row>
+          <Button
+            kind="secondary"
+            icon={<Icon name="route" size={20} color={theme.ink} />}
+            label="Routes"
+            onPress={() => router.push('/routes')}
+          />
+          {game.chapter < 3 ? (
+            <LockedCard icon="box" title="Warehouse" chapter={3} />
+          ) : (
+            <Paper tone="surface" style={{ gap: SPACE.s }}>
+              <T weight="bold">Warehouse</T>
+              <Row style={{ flexWrap: 'wrap' }}>
+                <StatChip
+                  icon="percent"
+                  label="Off wholesale"
+                  value={`−${pct(STAFF.warehouseDiscount)}`}
+                />
+                <StatChip
+                  icon="box"
+                  label="Driver load"
+                  value={String(STAFF.warehouseDriverCapacity)}
+                />
+                <StatChip
+                  icon="coin"
+                  label="Rent per day"
+                  value={moneyShort(STAFF.warehouseRentCentsPerDay)}
+                />
+              </Row>
+              {game.warehouse ? (
+                <StatChip icon="star" label="Owned" value="Yours" color={theme.signal} />
+              ) : (
                 <Button
-                  style={{ marginTop: SPACE.s }}
-                  label={`Buy warehouse · ${money(STAFF.warehouseBuyCents)}`}
+                  icon={<Icon name="plus" size={20} color={theme.onBrand} />}
+                  label={`Buy · ${moneyShort(STAFF.warehouseBuyCents)}`}
                   disabled={game.cashCents < STAFF.warehouseBuyCents}
                   onPress={() => run((d) => buyWarehouse(d), 'Warehouse bought')}
                 />
-              </>
-            )}
-          </Paper>
+              )}
+            </Paper>
+          )}
         </Section>
 
         {/* Permits */}
@@ -436,9 +442,7 @@ export default function Company() {
           />
           {!game.liquorPermit && alcoholAllowed ? (
             game.chapter < 5 ? (
-              <T size={13} muted>
-                Unlocks in chapter 5 ({chapterTitle(5)}).
-              </T>
+              <LockedCard icon="lock" title="Liquor permit" chapter={5} />
             ) : (
               <Button
                 label={`Apply · ${money(LIQUOR_PERMIT_CENTS)}`}
@@ -451,9 +455,6 @@ export default function Company() {
 
         {/* Research */}
         <Section title="Research">
-          <T size={13} muted>
-            Upgrades apply to every machine of a family, now and later.
-          </T>
           {RESEARCH.map((r: Research) => {
             const locked = game.chapter < r.unlockChapter;
             const families =
@@ -463,8 +464,10 @@ export default function Company() {
               <Paper key={r.id} tone="surface" style={{ gap: SPACE.xs }}>
                 <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <View style={{ flex: 1 }}>
-                    <T weight="bold">{r.name}</T>
-                    <T size={13} muted>
+                    <T weight="bold" accessibilityHint={r.description}>
+                      {r.name}
+                    </T>
+                    <T size={13} muted numberOfLines={1}>
                       {r.description}
                     </T>
                   </View>
@@ -474,14 +477,14 @@ export default function Company() {
                   </Mono>
                 </Row>
                 {locked ? (
-                  <T size={13} muted>
-                    Unlocks in chapter {r.unlockChapter} ({chapterTitle(r.unlockChapter)}).
-                  </T>
+                  <StatChip
+                    icon="lock"
+                    label={`Unlocks in chapter ${r.unlockChapter}`}
+                    value={`Ch. ${r.unlockChapter}`}
+                  />
                 ) : r.global ? (
                   globalDone ? (
-                    <T size={13} color={theme.signal}>
-                      Researched ✓
-                    </T>
+                    <StatChip icon="star" label="Researched" value="Done" color={theme.signal} />
                   ) : (
                     <Button
                       kind="secondary"
@@ -491,9 +494,7 @@ export default function Company() {
                     />
                   )
                 ) : families.length === 0 ? (
-                  <T size={13} muted>
-                    No machines of this kind yet.
-                  </T>
+                  <StatChip icon="grid" label="No machines of this kind yet" value="—" />
                 ) : (
                   <Row gap={SPACE.s} style={{ flexWrap: 'wrap', marginTop: SPACE.xs }}>
                     {families.map((f) => (
@@ -530,39 +531,36 @@ export default function Company() {
                 </T>
                 <Mono muted>{pct(1 - share)}</Mono>
               </Row>
-              <T size={13} muted>
-                Rolling share of vending sales in the city. Good service, exclusive contracts and
-                fair prices win it back.
-              </T>
             </Paper>
           ) : (
-            <T size={13} muted>
-              {RIVAL.name} arrives in chapter {RIVAL.arrivesChapter} (
-              {chapterTitle(RIVAL.arrivesChapter)}).
-            </T>
+            <LockedCard icon="people" title={RIVAL.name} chapter={RIVAL.arrivesChapter} />
           )}
         </Section>
 
         {/* Prestige */}
         <Section title="Prestige">
           <Paper tone="surface" style={{ gap: SPACE.xs }}>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <T>Valuation</T>
-              <Mono weight="bold">{money(valuation)}</Mono>
+            <Row style={{ flexWrap: 'wrap' }}>
+              <StatChip icon="coin" label="Valuation" value={moneyShort(valuation)} />
+              <StatChip
+                icon="star"
+                label="Reputation from a sale"
+                value={`+${reputation}`}
+                color={theme.brand}
+              />
+              <StatChip
+                icon="star"
+                label="Reputation banked"
+                value={String(game.prestige.reputation)}
+              />
+              {game.prestige.sales > 0 ? (
+                <StatChip
+                  icon="handshake"
+                  label="Companies sold"
+                  value={String(game.prestige.sales)}
+                />
+              ) : null}
             </Row>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <T>Reputation from a sale</T>
-              <Mono>+{reputation}</Mono>
-            </Row>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <T>Reputation banked</T>
-              <Mono>{game.prestige.reputation}</Mono>
-            </Row>
-            {game.prestige.sales > 0 ? (
-              <T size={13} muted>
-                Companies sold: {game.prestige.sales}
-              </T>
-            ) : null}
             <Spacer h={SPACE.s} />
             {canSellCompany(game) ? (
               <>
@@ -574,9 +572,6 @@ export default function Company() {
                 />
                 {picking ? (
                   <View style={{ marginTop: SPACE.s }}>
-                    <T size={13} muted>
-                      Pick where to start again.
-                    </T>
                     {FALLBACK_CITIES.map((c) => (
                       <Pressable
                         key={c.id}
@@ -604,9 +599,7 @@ export default function Company() {
                 ) : null}
               </>
             ) : (
-              <T size={13} muted>
-                Finish chapter 5 ({chapterTitle(5)}) to sell the company.
-              </T>
+              <LockedCard icon="handshake" title="Sell the company" chapter={5} />
             )}
           </Paper>
           {PRESTIGE_PERKS.map((p) => {
@@ -620,13 +613,11 @@ export default function Company() {
                     {level}/{p.maxLevel}
                   </Mono>
                 </Row>
-                <T size={13} muted>
+                <T size={13} muted numberOfLines={1}>
                   {p.description}
                 </T>
                 {maxed ? (
-                  <T size={13} color={theme.signal}>
-                    Maxed
-                  </T>
+                  <StatChip icon="star" label="Maxed" value="Max" color={theme.signal} />
                 ) : (
                   <Button
                     kind="secondary"

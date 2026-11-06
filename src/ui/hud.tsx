@@ -126,6 +126,39 @@ export function StatChip({
   );
 }
 
+/** A feature that isn't open yet: one icon, a short name, the chapter that opens it. */
+export function LockedCard({
+  icon,
+  title,
+  chapter,
+}: {
+  icon: IconName;
+  title: string;
+  chapter: number;
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${title}, unlocks in chapter ${chapter}`}
+      style={[styles.locked, { backgroundColor: theme.surface }]}
+    >
+      <View style={[styles.lockedIcon, { backgroundColor: theme.line }]}>
+        <Icon name={icon} size={22} color={theme.muted} />
+      </View>
+      <T weight="bold" muted style={{ flex: 1 }}>
+        {title}
+      </T>
+      <View style={[styles.lockedChip, { backgroundColor: theme.line }]}>
+        <Icon name="lock" size={14} color={theme.muted} />
+        <T size={13} weight="bold" muted>
+          {`Ch. ${chapter}`}
+        </T>
+      </View>
+    </View>
+  );
+}
+
 /** A small floating pill for one line of status (time, weather, a sale). */
 export function InfoPill({
   children,
@@ -186,6 +219,28 @@ const styles = StyleSheet.create({
     gap: 6,
     height: 36,
     paddingHorizontal: SPACE.m,
+    borderRadius: RADIUS.pill,
+  },
+  locked: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.m,
+    padding: SPACE.m,
+    borderRadius: RADIUS.m,
+  },
+  lockedIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 28,
+    paddingHorizontal: SPACE.s + 2,
     borderRadius: RADIUS.pill,
   },
   info: {

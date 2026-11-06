@@ -7,20 +7,20 @@ import { haptic } from '@/services/haptics';
 import { useCelebrations } from '@/store/celebrations';
 import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
-import { money } from '@/ui/format';
-import { Button, Mono, ProgressBar, Row, Screen, Section, T } from '@/ui/kit';
-import { Clipboard } from '@/ui/objects/Clipboard';
+import { moneyShort } from '@/ui/format';
+import { StatChip } from '@/ui/hud';
+import { Icon } from '@/ui/icons';
+import { Button, Mono, Paper, ProgressBar, Row, Screen, Section, T } from '@/ui/kit';
 import { SPACE } from '@/ui/theme';
 
 function label(g: DailyGoal): string {
-  const n =
-    g.kind === 'sales' ? money(g.target, { compact: true }) : g.target.toLocaleString('en-US');
+  const n = g.kind === 'sales' ? moneyShort(g.target) : g.target.toLocaleString('en-US');
   return g.title.replace('{n}', n);
 }
 
 function progressText(g: DailyGoal, have: number): string {
   if (g.kind === 'sales')
-    return `${money(Math.min(have, g.target), { compact: true })} / ${money(g.target, { compact: true })}`;
+    return `${moneyShort(Math.min(have, g.target))} / ${moneyShort(g.target)}`;
   return `${Math.min(have, g.target).toLocaleString('en-US')} / ${g.target.toLocaleString('en-US')}`;
 }
 
@@ -53,61 +53,66 @@ export default function Orders() {
   const unlocked = ACHIEVEMENTS.filter((a) => a.id in game.achievements).length;
 
   return (
-    <Screen
-      title="Orders"
-      subtitle={`Today · streak ${goals.streak} day${goals.streak === 1 ? '' : 's'}`}
-    >
-      <Clipboard title="Today's orders">
-        {goals.items.length === 0 ? (
-          <T color={theme.paperInk}>New orders arrive with the day. Check back in a moment.</T>
-        ) : null}
+    <Screen title="Orders">
+      <Row style={{ flexWrap: 'wrap' }}>
+        <StatChip
+          icon="flame"
+          label="Streak in days"
+          value={`${goals.streak} day${goals.streak === 1 ? '' : 's'}`}
+          color={goals.streak > 0 ? theme.brand : undefined}
+        />
+        <StatChip
+          icon="coin"
+          label={`Finish all three for a streak bonus, times the streak, up to ${STREAK_BONUS.cap}. Miss a day and it starts again.`}
+          value={`${moneyShort(STREAK_BONUS.baseCentsByChapter[ci])} × streak`}
+          color={theme.signal}
+        />
+      </Row>
+
+      <View style={{ gap: SPACE.s }}>
+        {goals.items.length === 0 ? <T muted>New orders arrive with the day.</T> : null}
         {goals.items.map((g, i) => {
           const have = goals.day[g.kind];
           const p = goalProgress(game, g);
           return (
             <Animated.View
               key={g.id}
-              entering={FadeInDown.delay(i * 80).duration(300)}
-              style={{ gap: 6, paddingVertical: SPACE.s }}
+              entering={FadeInDown.delay(i * 80)
+                .springify()
+                .damping(16)}
             >
-              <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <T
-                  weight="bold"
-                  color={theme.paperInk}
-                  style={{ flex: 1, textDecorationLine: g.claimed ? 'line-through' : 'none' }}
-                >
-                  {label(g)}
-                </T>
-                <Mono size={13} color="#2E7D5B">
-                  {money(g.rewardCents, { sign: true, compact: true })}
-                </Mono>
-              </Row>
-              <ProgressBar value={p} color={p >= 1 ? '#2E7D5B' : '#D9932B'} />
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Mono size={12} color="#5C6066">
-                  {progressText(g, have)}
-                </Mono>
-                {g.claimed ? (
-                  <T size={12} color="#2E7D5B">
-                    Claimed
+              <Paper tone="surface" style={{ gap: SPACE.s, opacity: g.claimed ? 0.6 : 1 }}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <T weight="bold" style={{ flex: 1 }}>
+                    {label(g)}
                   </T>
-                ) : p >= 1 ? (
-                  <Button
-                    label="Claim"
-                    onPress={() => claim(g)}
-                    style={{ minHeight: 40, paddingHorizontal: SPACE.m }}
-                  />
-                ) : null}
-              </Row>
+                  <Mono size={15} weight="bold" color={theme.signal}>
+                    {`+${moneyShort(g.rewardCents)}`}
+                  </Mono>
+                </Row>
+                <ProgressBar value={p} color={p >= 1 ? theme.signal : theme.brand} />
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Mono size={13} muted>
+                    {progressText(g, have)}
+                  </Mono>
+                  {g.claimed ? (
+                    <StatChip icon="star" label="Claimed" value="Done" color={theme.signal} />
+                  ) : p >= 1 ? (
+                    <Button
+                      label="Claim"
+                      icon={<Icon name="coin" size={18} color={theme.onBrand} />}
+                      onPress={() => claim(g)}
+                      style={{ minHeight: 40, paddingHorizontal: SPACE.l }}
+                    />
+                  ) : null}
+                </Row>
+              </Paper>
             </Animated.View>
           );
         })}
-        <T size={12} color="#5C6066">
-          {`Finish all three for a streak bonus of ${money(STREAK_BONUS.baseCentsByChapter[ci], { compact: true })} × streak (up to ${STREAK_BONUS.cap}). Miss a day and it starts again.`}
-        </T>
-      </Clipboard>
+      </View>
 
-      <Section title={`Trophies · ${unlocked}/${ACHIEVEMENTS.length}`}>
+      <Section title={`Trophies ${unlocked}/${ACHIEVEMENTS.length}`}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s }}>
           {ACHIEVEMENTS.map((a) => {
             const got = a.id in game.achievements;
@@ -117,28 +122,42 @@ export default function Orders() {
                 accessible
                 accessibilityLabel={`${a.title}: ${a.description}${got ? ', unlocked' : ', locked'}`}
                 style={{
-                  width: '48%',
+                  width: '48.5%',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: SPACE.s,
                   padding: SPACE.m,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: got ? theme.amber : theme.line,
-                  backgroundColor: got ? theme.paper : 'transparent',
-                  opacity: got ? 1 : 0.6,
-                  gap: 2,
+                  borderRadius: 18,
+                  backgroundColor: theme.surface,
+                  opacity: got ? 1 : 0.55,
                 }}
               >
-                <T weight="bold" size={14} color={got ? theme.paperInk : theme.ink}>
-                  {got ? '★ ' : ''}
-                  {a.title}
-                </T>
-                <T size={12} color={got ? '#5C6066' : theme.muted}>
-                  {a.description}
-                </T>
-                {a.rewardCents ? (
-                  <Mono size={11} color={got ? '#2E7D5B' : theme.muted}>
-                    {money(a.rewardCents, { compact: true })}
-                  </Mono>
-                ) : null}
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: got ? theme.amber : theme.line,
+                  }}
+                >
+                  <Icon
+                    name={got ? 'star' : 'lock'}
+                    size={18}
+                    color={got ? '#FFFFFF' : theme.muted}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <T weight="bold" size={13} numberOfLines={1}>
+                    {a.title}
+                  </T>
+                  {a.rewardCents ? (
+                    <Mono size={12} color={got ? theme.signal : theme.muted}>
+                      {moneyShort(a.rewardCents)}
+                    </Mono>
+                  ) : null}
+                </View>
               </View>
             );
           })}

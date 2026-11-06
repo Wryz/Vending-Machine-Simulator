@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
 import { SERVICE, STAFF } from '@/config/economy';
-import { CHAPTERS, CHAPTER_GOALS, RESEARCH } from '@/config/progression';
+import { CHAPTER_GOALS, RESEARCH } from '@/config/progression';
 import { haptic } from '@/services/haptics';
 import {
   assignRoute,
@@ -22,7 +22,9 @@ import {
 } from '@/sim';
 import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
-import { duration, money } from '@/ui/format';
+import { duration, money, moneyShort } from '@/ui/format';
+import { LockedCard, StatChip } from '@/ui/hud';
+import { Icon } from '@/ui/icons';
 import { Button, Divider, Mono, Paper, Row, Screen, Section, StatusDot, T } from '@/ui/kit';
 import { machineLabel, machineStatus } from '@/ui/machineStatus';
 import { Clipboard } from '@/ui/objects/Clipboard';
@@ -31,11 +33,6 @@ import { STATUS_LABEL, statusColor } from '@/ui/objects/KeyTag';
 import { SPACE, TOUCH } from '@/ui/theme';
 
 const VAN_NAMES = ['Car boot', 'Van', 'Box van', 'Truck'];
-
-function chapterName(n: number): string {
-  const c = CHAPTERS.find((x) => x.n === n);
-  return c ? `chapter ${n} (${c.title})` : `chapter ${n}`;
-}
 
 /** One checklist line: a box you tick to put a machine on this route. */
 function Stop({
@@ -173,58 +170,65 @@ export default function Routes() {
         subtitle={`${active.length} machines · ${game.drivers.length} drivers`}
       >
         <Section title="Van">
-          <Paper tone="surface">
+          <Paper tone="surface" style={{ gap: SPACE.m }}>
             <Row style={{ justifyContent: 'space-between' }}>
-              <View style={{ flex: 1 }}>
-                <T weight="bold">{VAN_NAMES[Math.min(game.vanLevel, VAN_NAMES.length - 1)]}</T>
-                <T size={13} muted>
-                  Level {game.vanLevel}
-                </T>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Mono weight="bold">{vanCapacity(game)}</Mono>
-                <T size={12} muted>
-                  items per trip
-                </T>
-              </View>
-            </Row>
-            {game.chapter === 2 && game.vanLevel < CHAPTER_GOALS[2].vanLevel ? (
-              <T size={13} color={theme.amber} style={{ marginTop: SPACE.s }}>
-                Chapter 2 goal: buy a van.
+              <T size={17} weight="bold">
+                {VAN_NAMES[Math.min(game.vanLevel, VAN_NAMES.length - 1)]}
               </T>
-            ) : null}
+              <Row gap={SPACE.s}>
+                <StatChip icon="box" label="Items per trip" value={String(vanCapacity(game))} />
+                {game.chapter === 2 && game.vanLevel < CHAPTER_GOALS[2].vanLevel ? (
+                  <StatChip
+                    icon="star"
+                    label="Chapter goal: buy a van"
+                    value="Goal"
+                    color={theme.brand}
+                  />
+                ) : null}
+              </Row>
+            </Row>
             {nextVanCost !== undefined ? (
               <Button
-                style={{ marginTop: SPACE.m }}
-                kind="secondary"
-                label={`Upgrade to ${VAN_NAMES[game.vanLevel + 1] ?? `level ${game.vanLevel + 1}`} · ${money(nextVanCost)}`}
+                kind={game.cashCents >= nextVanCost ? 'primary' : 'secondary'}
+                icon={
+                  <Icon
+                    name="plus"
+                    size={20}
+                    color={game.cashCents >= nextVanCost ? theme.onBrand : theme.ink}
+                  />
+                }
+                label={`${VAN_NAMES[game.vanLevel + 1] ?? `Level ${game.vanLevel + 1}`} · ${moneyShort(nextVanCost)}`}
                 disabled={game.cashCents < nextVanCost}
-                accessibilityHint={`Carries ${SERVICE.vanCapacityByLevel[game.vanLevel + 1]} items per trip`}
+                accessibilityHint={`Upgrade: carries ${SERVICE.vanCapacityByLevel[game.vanLevel + 1]} items per trip`}
                 onPress={() => run((d) => buyVan(d), 'Van upgraded')}
               />
-            ) : (
-              <T size={13} muted style={{ marginTop: SPACE.s }}>
-                This is the biggest vehicle.
-              </T>
-            )}
+            ) : null}
           </Paper>
         </Section>
 
         <Section title="Drivers">
           {!driversUnlocked ? (
-            <Paper tone="surface">
-              <T weight="medium">Drivers unlock in {chapterName(3)}.</T>
-              <T size={13} muted>
-                Until then, restock by hand from each machine&apos;s close-up.
-              </T>
-            </Paper>
+            <LockedCard icon="people" title="Drivers" chapter={3} />
           ) : (
             <Clipboard title="Routes">
-              <T size={13} color="#5C6066">
-                Each driver runs up to {STAFF.stopsPerRoute} stops every {STAFF.routeIntervalHours}{' '}
-                business hours and carries {driverCapacity(game)} items. Wage{' '}
-                {money(STAFF.driverWageCentsPerDay)} a day each.
-              </T>
+              <Row style={{ flexWrap: 'wrap' }}>
+                <StatChip icon="route" label="Stops per route" value={`≤${STAFF.stopsPerRoute}`} />
+                <StatChip
+                  icon="clock"
+                  label="Run every (business hours)"
+                  value={`${STAFF.routeIntervalHours} h`}
+                />
+                <StatChip
+                  icon="box"
+                  label="Items per driver"
+                  value={String(driverCapacity(game))}
+                />
+                <StatChip
+                  icon="coin"
+                  label="Wage per day"
+                  value={moneyShort(STAFF.driverWageCentsPerDay)}
+                />
+              </Row>
               {game.drivers.length === 0 ? (
                 <T size={14} color={ink}>
                   No drivers yet.
@@ -338,29 +342,35 @@ export default function Routes() {
         </Section>
 
         <Section title="Auto-reorder">
-          <Paper tone="surface">
-            <Row style={{ justifyContent: 'space-between' }}>
-              <T weight="bold">Auto-reorder rules</T>
-              <T size={13} color={autoReorder ? theme.signal : theme.muted}>
-                {autoReorder ? 'On' : 'Off'}
-              </T>
-            </Row>
-            <T size={13} muted style={{ marginTop: SPACE.xs }}>
-              {autoReorder
-                ? "Drivers restock each slot to its par level. Set par levels in each machine's close-up."
-                : game.chapter < (autoReorderInfo?.unlockChapter ?? 4)
-                  ? `Unlocks in ${chapterName(autoReorderInfo?.unlockChapter ?? 4)}. Until then, drivers top up to what you last stocked.`
-                  : `Research it in Company for ${money(autoReorderInfo?.costCents ?? 0)}.`}
-            </T>
-            {!autoReorder && game.chapter >= (autoReorderInfo?.unlockChapter ?? 4) ? (
-              <Button
-                style={{ marginTop: SPACE.m }}
-                kind="secondary"
-                label="Open Company"
-                onPress={() => router.push('/company')}
-              />
-            ) : null}
-          </Paper>
+          {game.chapter < (autoReorderInfo?.unlockChapter ?? 4) ? (
+            <LockedCard
+              icon="box"
+              title="Auto-reorder"
+              chapter={autoReorderInfo?.unlockChapter ?? 4}
+            />
+          ) : (
+            <Paper tone="surface" style={{ gap: SPACE.m }}>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <T weight="bold">Auto-reorder</T>
+                <StatChip
+                  icon={autoReorder ? 'star' : 'lock'}
+                  label={
+                    autoReorder ? 'Drivers refill each coil to its par level' : 'Not researched yet'
+                  }
+                  value={autoReorder ? 'On' : 'Off'}
+                  color={autoReorder ? theme.signal : undefined}
+                />
+              </Row>
+              {!autoReorder ? (
+                <Button
+                  kind="secondary"
+                  icon={<Icon name="star" size={20} color={theme.ink} />}
+                  label={`Research · ${moneyShort(autoReorderInfo?.costCents ?? 0)}`}
+                  onPress={() => router.push('/company')}
+                />
+              ) : null}
+            </Paper>
+          )}
         </Section>
       </Screen>
       <FlashToast flash={flash} />

@@ -59,7 +59,7 @@ export default function Keys() {
       <Section title="Placed">
         {active.length === 0 ? (
           <Paper tone="surface">
-            <T muted>No machines placed yet. Pick a spot on the map to place one.</T>
+            <T muted>None placed yet.</T>
           </Paper>
         ) : (
           <View style={{ gap: SPACE.xs }}>
@@ -107,10 +107,6 @@ export default function Keys() {
           </View>
         </Section>
       ) : null}
-
-      <T size={13} muted>
-        Without telemetry, a key shows what you saw on your last visit.
-      </T>
     </Screen>
   );
 }
