@@ -23,12 +23,10 @@ export const MachineSheet = forwardRef<
     machineId: string | null;
     bottomInset: number;
     onDismiss: () => void;
-    /** Open the 3D close-up of this machine. */
-    onOpen3d: (id: string) => void;
     /** The sheet moved between its detents (the map keeps the machine above it). */
     onSnap?: (index: number) => void;
   }
->(function MachineSheet({ machineId, bottomInset, onDismiss, onOpen3d, onSnap }, ref) {
+>(function MachineSheet({ machineId, bottomInset, onDismiss, onSnap }, ref) {
   const t = useT();
   const snapPoints = useMemo(
     () => MACHINE_SHEET.snapPoints.map((p) => `${Math.round(p * 100)}%`),
@@ -68,25 +66,10 @@ export const MachineSheet = forwardRef<
           style={[style, { borderTopLeftRadius: RADIUS.l + 4, borderTopRightRadius: RADIUS.l + 4 }]}
         />
       )}
-      // The grabber row carries the keys: 3D on the left, close on the right.
+      // The grabber row: the grabber in the middle, the close key on the right.
       handleComponent={() => (
         <View style={styles.handle}>
-          {machineId ? (
-            <Key
-              round
-              height={TOUCH - 6}
-              accessibilityLabel={t('machineSheet.a11y.open3d')}
-              onPress={() => {
-                sfx('pop');
-                onOpen3d(machineId);
-              }}
-              faceStyle={{ paddingHorizontal: 0, width: TOUCH - 6 }}
-            >
-              <Icon name="cube" size={20} color={SKIN.keyInk} />
-            </Key>
-          ) : (
-            <View />
-          )}
+          <View style={{ width: TOUCH - 6 }} />
           <View style={styles.grabber} />
           <Key
             round

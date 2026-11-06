@@ -224,21 +224,6 @@ export default function MapScreen() {
     }, [params.focus]),
   );
 
-  const open3d = (id: string) => {
-    const m = game.machines.find((x) => x.id === id);
-    if (!m) return;
-    setBusy(true);
-    const cam = mapRef.current?.getCamera() ?? initial;
-    const framed: MapCameraState = {
-      center: [m.lng, m.lat],
-      zoom: CAMERA.closeupZoom,
-      pitch: CAMERA.closeupPitch,
-      bearing: (m.heading + 180) % 360,
-    };
-    transition.set({ machineId: id, framed, returnTo: cam, viewportHeight: height });
-    router.push({ pathname: '/machine/[id]', params: { id } });
-  };
-
   // The globe: every city you play, with this one highlighted.
   const globePins = useMemo<GlobePin[]>(() => {
     const here = city ? cityKey(city) : '';
@@ -492,7 +477,6 @@ export default function MapScreen() {
         machineId={machineId}
         bottomInset={insets.bottom}
         onDismiss={() => setMachineId(null)}
-        onOpen3d={open3d}
         onSnap={(i) => {
           const share = MACHINE_SHEET.snapPoints[i];
           if (share !== undefined) setSheetShare(share);
