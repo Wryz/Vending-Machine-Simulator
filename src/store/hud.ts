@@ -7,19 +7,24 @@ import { create } from 'zustand';
  */
 interface HudStore {
   tabBarHeight: number;
-  /** Neighbourhood / district name at the map's center, if known. */
+  /** Neighbourhood at the map's center, if known. */
   area: string | null;
+  /** The district / municipality around it, if known. */
+  district: string | null;
   setTabBarHeight(h: number): void;
-  setArea(name: string | null): void;
+  setArea(names: { area: string | null; district: string | null } | null): void;
 }
 
 export const useHud = create<HudStore>((set, get) => ({
   tabBarHeight: 0,
   area: null,
+  district: null,
   setTabBarHeight(h) {
     if (Math.abs(get().tabBarHeight - h) > 0.5) set({ tabBarHeight: h });
   },
-  setArea(name) {
-    if (get().area !== name) set({ area: name });
+  setArea(names) {
+    const area = names?.area ?? null;
+    const district = names?.district ?? null;
+    if (get().area !== area || get().district !== district) set({ area, district });
   },
 }));

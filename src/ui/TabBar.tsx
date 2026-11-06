@@ -16,7 +16,7 @@ import { Mono, T } from './kit';
 import { sfx } from './sfx';
 import { Key, SKIN } from './skin';
 import { SPACE } from './theme';
-import { dayIcon, LED_GLOW, temperature, WEATHER_ICON } from './weather';
+import { dayIcon, temperature, WEATHER_ICON } from './weather';
 
 export interface TabItem {
   name: string;
@@ -101,10 +101,25 @@ export function TabBar({
   );
 }
 
-/** Neighbourhood on the left; local time, weather and temperature on the right. */
+/** The city's date, e.g. "Fri 6 Nov". */
+function shortDate(t: number, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(t));
+}
+
+/**
+ * The dark orange band on top of the bar: where you are (neighbourhood, then
+ * district / municipality and city) on the left; the city's local time, date
+ * and weather on the right.
+ */
 function StatusStrip() {
   const world = useGame((s) => s.world);
   const area = useHud((s) => s.area);
+  const district = useHud((s) => s.district);
   // Weather changes by the hour: re-read it when the clock ticks.
   const { now, tod } = useCityClock(world?.city.lat ?? 0, world?.city.lng ?? 0);
   const [, force] = useState(0);
@@ -115,13 +130,19 @@ function StatusStrip() {
   if (!world) return null;
   const weather = world.weatherAt(now);
   const day = dayIcon(tod);
-  const place = area ?? world.city.name;
+  const city = world.city.name;
+  // Most specific name first; the line under it says where that is.
+  const title = area ?? district ?? city;
+  const under = [area ? district : null, title !== city ? city : null].filter(Boolean).join(' · ');
+  const time = clock(now, world.city.timeZone);
+  const date = shortDate(now, world.city.timeZone);
+  const temp = weather ? temperature(weather.tempC, world.city.countryCode) : null;
   return (
     <View style={styles.strip}>
       <Pressable
         style={({ pressed }) => [styles.where, { opacity: pressed ? 0.7 : 1 }]}
         accessibilityRole="button"
-        accessibilityLabel={area ? `${area}, ${world.city.name}` : world.city.name}
+        accessibilityLabel={[title, under].filter(Boolean).join(', ')}
         accessibilityHint="Explore other cities"
         hitSlop={8}
         onPress={() => {
@@ -129,33 +150,43 @@ function StatusStrip() {
           router.push('/cities');
         }}
       >
-        <Icon name="pin" size={16} color="#FFE3D4" />
-        <T size={14} weight="bold" color="#FFFFFF" numberOfLines={1} style={{ flexShrink: 1 }}>
-          {place}
-        </T>
+        <Icon name="pin" size={18} color="#FFE3D4" />
+        <View style={{ flexShrink: 1 }}>
+          <T size={14} weight="bold" color="#FFFFFF" numberOfLines={1}>
+            {title}
+          </T>
+          {under ? (
+            <T size={11} weight="medium" color="#FFD9C4" numberOfLines={1}>
+              {under}
+            </T>
+          ) : null}
+        </View>
         <Icon name="chevron" size={14} color="#FFE3D4" />
       </Pressable>
       <View
-        style={styles.led}
+        style={styles.when}
         accessible
-        accessibilityLabel={`${clock(now, world.city.timeZone)}${
-          weather ? `, ${temperature(weather.tempC, world.city.countryCode)}` : ''
-        }`}
+        accessibilityLabel={[time, date, temp].filter(Boolean).join(', ')}
       >
-        <Icon name={day.name} size={15} color={day.color} />
-        <Mono size={13} weight="bold" color={SKIN.ledGreen} style={LED_GLOW(SKIN.ledGreen)}>
-          {clock(now, world.city.timeZone)}
-        </Mono>
-        {weather ? (
-          <>
-            {weather.condition !== 'clear' ? (
-              <Icon name={WEATHER_ICON[weather.condition]} size={15} color={SKIN.ledAmber} />
-            ) : null}
-            <Mono size={13} weight="bold" color={SKIN.ledAmber} style={LED_GLOW(SKIN.ledAmber)}>
-              {temperature(weather.tempC, world.city.countryCode)}
-            </Mono>
-          </>
-        ) : null}
+        <View style={styles.whenRow}>
+          <Icon name={day.name} size={15} color={day.color} />
+          <Mono size={14} weight="bold" color="#FFFFFF">
+            {time}
+          </Mono>
+          {weather ? (
+            <>
+              {weather.condition !== 'clear' ? (
+                <Icon name={WEATHER_ICON[weather.condition]} size={15} color="#FFE3D4" />
+              ) : null}
+              <Mono size={14} weight="bold" color="#FFFFFF">
+                {temp}
+              </Mono>
+            </>
+          ) : null}
+        </View>
+        <T size={11} weight="medium" color="#FFD9C4">
+          {date}
+        </T>
       </View>
     </View>
   );
@@ -167,9 +198,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: SPACE.s,
-    paddingHorizontal: SPACE.s,
-    backgroundColor: SKIN.cabinetDark,
+    backgroundColor: SKIN.cabinet,
     borderTopLeftRadius: CORNER,
     borderTopRightRadius: CORNER,
     gap: SPACE.s,
@@ -183,20 +212,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: SPACE.s,
-    paddingHorizontal: SPACE.s,
-    minHeight: 28,
+    gap: SPACE.m,
+    paddingHorizontal: SPACE.l,
+    paddingVertical: SPACE.s,
+    backgroundColor: SKIN.cabinetDark,
+    borderTopLeftRadius: CORNER,
+    borderTopRightRadius: CORNER,
   },
-  where: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
-  led: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    height: 26,
-    paddingHorizontal: SPACE.s + 2,
-    borderRadius: 8,
-    backgroundColor: SKIN.led,
-  },
-  keys: { flexDirection: 'row', justifyContent: 'space-around' },
+  where: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  when: { alignItems: 'flex-end' },
+  whenRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  keys: { flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: SPACE.s },
   tab: { alignItems: 'center', gap: 4, minWidth: 58 },
 });

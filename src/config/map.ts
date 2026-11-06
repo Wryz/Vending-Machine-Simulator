@@ -197,6 +197,8 @@ export const TILES = {
 export const AREA_NAME = {
   /** Areas further than this from the center don't count, meters. */
   maxDistanceM: 2500,
+  /** Same for the larger district / municipality, meters. */
+  districtMaxDistanceM: 8000,
   /** Most remembered area points (oldest dropped). */
   cacheSize: 400,
   /** Wait after the camera settles before looking, ms. */

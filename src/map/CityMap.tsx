@@ -58,7 +58,13 @@ import {
   SPRITE_SIZE,
 } from './spriteImages';
 import { tileSourceFor } from './tiles';
-import { AREA_PROBE_LAYER_ID, AreaBook, areaPoints, areaProbeLayer } from './areaName';
+import {
+  AREA_PROBE_LAYER_ID,
+  AreaBook,
+  areaPoints,
+  areaProbeLayer,
+  type AreaNames,
+} from './areaName';
 import { buildBaseLayers, schemaOf, buildMapLight, buildMapStyle } from './style';
 import type { TimeOfDay } from './timeOfDay';
 
@@ -133,8 +139,8 @@ interface Props {
   onMachinePress(id: string): void;
   /** `byUser` is true when a gesture moved the camera (not a fly-to or the initial load). */
   onCameraChanged?(c: MapCameraState, byUser: boolean): void;
-  /** The neighbourhood name nearest the center changed (null = none known). */
-  onAreaName?(name: string | null): void;
+  /** Neighbourhood and district nearest the center (null = none known). */
+  onAreaName?(names: AreaNames): void;
   /**
    * Street-life stats (≤ 2×/s): busy level 0..1 for the soundscape, current
    * zoom, and how many people are on screen (0 below zoom 16).
@@ -187,9 +193,9 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         // Style not ready: try again on the next camera change.
       }
       const [lng, lat] = camera.current.center;
-      onAreaName(areas.current.nearest(lng, lat));
+      onAreaName(areas.current.nearest(lng, lat, world.city.name));
     }, AREA_NAME.debounceMs);
-  }, [onAreaName]);
+  }, [onAreaName, world.city.name]);
   useEffect(
     () => () => {
       if (areaTimer.current) clearTimeout(areaTimer.current);
