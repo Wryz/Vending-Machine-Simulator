@@ -1,4 +1,12 @@
-import type { LngLatBox, RoadInput, RoadKind } from './types';
+import type {
+  AsphaltInput,
+  AsphaltKind,
+  LifeSurfaceInput,
+  LngLatBox,
+  RoadInput,
+  RoadKind,
+  WaterInput,
+} from './types';
 
 /**
  * Road network for the street-life sim: the rendered road features of the
@@ -233,7 +241,7 @@ export class RoadNetwork {
     cy: number,
     radius: number,
   ): Record<RoadKind, number> {
-    const out: Record<RoadKind, number> = { major: 0, minor: 0 };
+    const out: Record<RoadKind, number> = { major: 0, minor: 0, path: 0, pedestrian: 0 };
     const r2 = radius * radius;
     for (const r of this.roads) {
       for (let i = 0; i < r.xs.length - 1; i++) {
@@ -249,37 +257,113 @@ export class RoadNetwork {
 }
 
 /**
+ * Rendered map layers street life reads (ids shared by both tile schemas,
+ * see src/map/style.ts): streets, paths and water.
+ */
+export const LIFE_QUERY_LAYERS = ['roads-minor', 'roads-major', 'paths', 'water'] as const;
+
+/**
+ * Rendered features of LIFE_QUERY_LAYERS -> sim inputs: the ways people walk,
+ * plus the drawn asphalt and water they keep off.
+ */
+export function lifeInputsFromFeatures(features: readonly GeoJSON.Feature[]): {
+  roads: RoadInput[];
+  surface: LifeSurfaceInput;
+} {
+  return {
+    roads: roadsFromFeatures(features),
+    surface: { asphalt: asphaltFromFeatures(features), water: waterFromFeatures(features) },
+  };
+}
+
+/** Each line of a (Multi)LineString feature. */
+function linesOf(g: GeoJSON.Geometry | null): [number, number][][] {
+  if (!g) return [];
+  if (g.type === 'LineString') return [g.coordinates as [number, number][]];
+  if (g.type === 'MultiLineString') return g.coordinates as [number, number][][];
+  return [];
+}
+
+/**
  * Basemap road features (OpenMapTiles or Protomaps schema, as returned by
- * `queryRenderedFeatures`) -> sim roads: only streets with sidewalks.
- * Tunnels are already filtered out by the road layers.
+ * `queryRenderedFeatures`) -> sim roads: streets with sidewalks, paths and
+ * pedestrian streets. Tunnels are already filtered out by the layers; bridges
+ * are left out (their sidewalks would hang over water or traffic).
  */
 export function roadsFromFeatures(features: readonly GeoJSON.Feature[]): RoadInput[] {
   const out: RoadInput[] = [];
   for (const f of features) {
-    const g = f.geometry;
-    if (!g) continue;
     const p = (f.properties ?? {}) as Record<string, unknown>;
     const kind = roadKindOf(p);
     if (!kind) continue;
-    if (g.type === 'LineString') out.push({ coords: g.coordinates as [number, number][], kind });
-    else if (g.type === 'MultiLineString')
-      for (const line of g.coordinates) out.push({ coords: line as [number, number][], kind });
+    for (const coords of linesOf(f.geometry)) out.push({ coords, kind });
+  }
+  return out;
+}
+
+/** Every drawn roadway (walked or not, bridges included): asphalt to keep off. */
+export function asphaltFromFeatures(features: readonly GeoJSON.Feature[]): AsphaltInput[] {
+  const out: AsphaltInput[] = [];
+  for (const f of features) {
+    const kind = asphaltKindOf((f.properties ?? {}) as Record<string, unknown>);
+    if (!kind) continue;
+    for (const coords of linesOf(f.geometry)) out.push({ coords, kind });
+  }
+  return out;
+}
+
+/** Water polygons of the rendered `water` fill. */
+export function waterFromFeatures(features: readonly GeoJSON.Feature[]): WaterInput[] {
+  const out: WaterInput[] = [];
+  for (const f of features) {
+    const g = f.geometry;
+    if (!g) continue;
+    if (g.type === 'Polygon') out.push({ rings: g.coordinates as [number, number][][] });
+    else if (g.type === 'MultiPolygon')
+      for (const poly of g.coordinates) out.push({ rings: poly as [number, number][][] });
   }
   return out;
 }
 
 const OMT_MAJOR = new Set(['primary', 'secondary', 'tertiary']);
+const OMT_ASPHALT_MAJOR = new Set(['motorway', 'trunk', 'primary', 'secondary', 'tertiary']);
+const OMT_ASPHALT_MINOR = new Set(['minor', 'service', 'track', 'raceway']);
 
-/** Street kind of a road feature, or null where nobody walks (highways, service roads, paths, rail). */
+const isBridge = (p: Record<string, unknown>) =>
+  p.brunnel === 'bridge' || p.is_bridge === true || p.is_bridge === 1 || p.is_bridge === 'true';
+
+/**
+ * Walk kind of a road feature, or null where nobody walks (highways, service
+ * roads, rail, bridges).
+ */
 export function roadKindOf(p: Record<string, unknown>): RoadKind | null {
+  if (isBridge(p)) return null;
   const cls = typeof p.class === 'string' ? p.class : null;
   if (cls) {
+    // OpenMapTiles
     if (OMT_MAJOR.has(cls)) return 'major';
     if (cls === 'minor') return 'minor';
+    if (cls === 'pedestrian') return 'pedestrian';
+    if (cls === 'path') return p.subclass === 'pedestrian' ? 'pedestrian' : 'path';
     return null;
   }
   const kind = typeof p.kind === 'string' ? p.kind : null; // Protomaps v4
   if (kind === 'major_road') return 'major';
   if (kind === 'minor_road' && p.kind_detail !== 'service') return 'minor';
+  if (kind === 'path') return p.kind_detail === 'pedestrian' ? 'pedestrian' : 'path';
+  return null;
+}
+
+/** Drawn roadway class of a feature (as styled by roads-minor / roads-major), or null. */
+export function asphaltKindOf(p: Record<string, unknown>): AsphaltKind | null {
+  const cls = typeof p.class === 'string' ? p.class : null;
+  if (cls) {
+    if (OMT_ASPHALT_MAJOR.has(cls)) return 'major';
+    if (OMT_ASPHALT_MINOR.has(cls)) return 'minor';
+    return null;
+  }
+  const kind = typeof p.kind === 'string' ? p.kind : null;
+  if (kind === 'major_road' || kind === 'highway') return 'major';
+  if (kind === 'minor_road' || kind === 'other') return 'minor';
   return null;
 }

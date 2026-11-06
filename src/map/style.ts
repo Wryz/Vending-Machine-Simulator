@@ -19,7 +19,8 @@ import { mixColors } from './timeOfDay';
  * - Protomaps v4 (self-hosted PMTiles): earth, water, landuse, roads,
  *   buildings, places.
  * Layer ids are identical in both, so the rest of the app (heat overlay
- * `beforeId`, street-life road queries) doesn't care which is in use.
+ * `beforeId`, street-life queries of roads-minor / roads-major / paths /
+ * water) doesn't care which is in use.
  *
  * Everything colored comes from a `Palette`, so the same builder serves every
  * time-of-day blend. No default POI icons are ever rendered.
@@ -86,6 +87,58 @@ export function roadWidth(
   return ['interpolate', ['exponential', 2], ['zoom'], ...stops] as RoadWidth;
 }
 
+/**
+ * `line-width` of the paths layer: true scale from MAP_STYLE.paths.minZoom,
+ * wider where `isPedestrian` (a pedestrian street).
+ */
+export function pathWidth(
+  isPedestrian: ExpressionLike,
+  latitude: number = MAP_STYLE.roads.referenceLatitude,
+): RoadWidth {
+  const { minZoom, widthM } = MAP_STYLE.paths;
+  const stops: unknown[] = [];
+  for (let z = minZoom; z <= 22; z++) {
+    const mpp = metersPerPoint(z, latitude);
+    stops.push(z, ['case', isPedestrian, widthM.pedestrian / mpp, widthM.path / mpp]);
+  }
+  return ['interpolate', ['exponential', 2], ['zoom'], ...stops] as RoadWidth;
+}
+
+/** Footways / park paths / pedestrian streets: a soft cream, faded in at their min zoom. */
+function pathsLayer(
+  p: Palette,
+  sourceLayer: string,
+  filter: ExpressionLike,
+  isPedestrian: ExpressionLike,
+  latitude: number,
+): LayerSpecification {
+  const { minZoom, roadShare } = MAP_STYLE.paths;
+  // Cast: the filter is assembled from untyped expression pieces (as in the OMT builder).
+  return {
+    id: 'paths',
+    type: 'line',
+    source: BASEMAP_SOURCE_ID,
+    'source-layer': sourceLayer,
+    minzoom: minZoom,
+    filter: ['all', LINES, filter],
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: {
+      'line-color': mixColors([
+        [p.road, roadShare],
+        [p.land, 1 - roadShare],
+      ]),
+      'line-width': pathWidth(isPedestrian, latitude),
+      'line-opacity': ['interpolate', ['linear'], ['zoom'], minZoom, 0, minZoom + 0.5, 1],
+    },
+  } as unknown as LayerSpecification;
+}
+
+const LINES: ExpressionLike = [
+  'in',
+  ['geometry-type'],
+  ['literal', ['LineString', 'MultiLineString']],
+];
+
 const PARK_KINDS = [
   'park',
   'garden',
@@ -136,6 +189,14 @@ export function buildBaseLayers(
       'source-layer': 'water',
       paint: { 'fill-color': p.water },
     },
+    // Under the roads (a path meeting a street tucks under it), above parks.
+    pathsLayer(
+      p,
+      'roads',
+      ['all', ['==', ['get', 'kind'], 'path'], ['!', ['to-boolean', ['get', 'is_tunnel']]]],
+      ['==', ['get', 'kind_detail'], 'pedestrian'],
+      latitude,
+    ),
     {
       id: 'roads-minor',
       type: 'line',
@@ -247,6 +308,8 @@ const OMT_PARK_LANDCOVER = ['grass', 'wood', 'farmland', 'wetland'];
 const OMT_PARK_LANDUSE = ['cemetery', 'pitch', 'playground', 'stadium', 'garden'];
 const OMT_MINOR = ['minor', 'service', 'track', 'raceway'];
 const OMT_MAJOR = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'];
+/** Footways, park paths, steps, cycleways (subclasses of `path`) and pedestrian streets. */
+const OMT_PATHS = ['path', 'pedestrian'];
 const NOT_TUNNEL: ExpressionLike = ['!=', ['get', 'brunnel'], 'tunnel'];
 type ExpressionLike = unknown[];
 
@@ -289,6 +352,13 @@ function buildOpenMapTilesLayers(p: Palette, latitude: number): LayerSpecificati
       filter: NOT_TUNNEL,
       paint: { 'fill-color': p.water },
     },
+    pathsLayer(
+      p,
+      'transportation',
+      ['all', ['in', ['get', 'class'], ['literal', OMT_PATHS]], NOT_TUNNEL],
+      ['any', ['==', ['get', 'class'], 'pedestrian'], ['==', ['get', 'subclass'], 'pedestrian']],
+      latitude,
+    ),
     {
       id: 'roads-minor',
       type: 'line',

@@ -4,7 +4,17 @@
  * layer that drives it is src/map/life/StreetLifeLayer.tsx.
  */
 export * from './types';
-export { RoadNetwork, roadsFromFeatures, roadKindOf } from './network';
+export {
+  RoadNetwork,
+  LIFE_QUERY_LAYERS,
+  lifeInputsFromFeatures,
+  roadsFromFeatures,
+  asphaltFromFeatures,
+  waterFromFeatures,
+  roadKindOf,
+  asphaltKindOf,
+} from './network';
+export { Surface, WaterIndex } from './surface';
 export { StreetLife } from './sim';
 export { cityActivity, peopleActivity, busyLevel, peopleTarget, hourCurve } from './density';
 export * from './sprites';

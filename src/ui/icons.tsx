@@ -50,7 +50,9 @@ export type IconName =
   | 'star'
   | 'grid'
   | 'map'
-  | 'cube';
+  | 'cube'
+  | 'pin'
+  | 'trend';
 
 export function Icon({
   name,
@@ -98,6 +100,15 @@ export function Icon({
             <Path d="M4 12h16M12 4v16" {...s} />
           </>
         );
+      case 'pin':
+        return (
+          <>
+            <Path d="M12 21.5s-6.5-6.2-6.5-11.2a6.5 6.5 0 0 1 13 0c0 5-6.5 11.2-6.5 11.2z" {...s} />
+            <Circle cx={12} cy={10.3} r={2.4} {...s} />
+          </>
+        );
+      case 'trend':
+        return <Path d="M3.5 17l6-6 4 4 7-7.5M15 7.5h5.5V13" {...s} />;
       case 'flame':
         return (
           <Path

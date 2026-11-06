@@ -223,6 +223,7 @@ describe('tile hosting', () => {
     for (const id of [
       'background',
       'water',
+      'paths',
       'roads-minor',
       'roads-major',
       'buildings',

@@ -116,3 +116,8 @@ export function getCity(id: CityId): City {
   if (!city) throw new Error(`Unknown city: ${id}`);
   return city;
 }
+
+/** "Use my location": start in a city if the player is within this distance of it. */
+export const NEAR_CITY_KM = 60;
+/** Give up waiting for a location fix after this long. */
+export const LOCATION_TIMEOUT_MS = 12_000;

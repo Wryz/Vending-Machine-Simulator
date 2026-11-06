@@ -12,7 +12,7 @@
       "buildNumber": "2",
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Coinline uses your approximate location once, to build your city on the map. It is rounded to about 1 km and never stored.",
+        "NSLocationWhenInUseUsageDescription": "Coinline uses your approximate location once, to start your business in the closest city. It is never stored.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "privacyManifests": {
@@ -58,7 +58,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Coinline uses your approximate location once, to build your city on the map. It is rounded to about 1 km and never stored.",
+          "locationWhenInUsePermission": "Coinline uses your approximate location once, to start your business in the closest city. It is never stored.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
           "locationFullAccuracyPermission": false,

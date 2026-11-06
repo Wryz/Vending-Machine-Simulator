@@ -1,6 +1,6 @@
 import { MAP_LIFE } from '@/config/mapLife';
 
-import type { LifeConditions, RoadKind } from './types';
+import { ROAD_KINDS, type LifeConditions, type RoadKind } from './types';
 
 const D = MAP_LIFE.density;
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
@@ -62,11 +62,11 @@ export function busyLevel(c: LifeConditions): number {
   return clamp01(0.6 * cityActivity(c) + 0.4 * peopleActivity(c));
 }
 
-/** Target number of people for the streets in view (meters of street per kind). */
-export function peopleTarget(c: LifeConditions, roadM: Record<RoadKind, number>): number {
-  const perKm = MAP_LIFE.people.perKm;
-  // Two sidewalks per street.
-  const people =
-    ((2 * (roadM.major * perKm.major + roadM.minor * perKm.minor)) / 1000) * peopleActivity(c);
+/** Target number of people for the ways in view (meters of way per kind). */
+export function peopleTarget(c: LifeConditions, roadM: Partial<Record<RoadKind, number>>): number {
+  const { perKm, lines } = MAP_LIFE.people;
+  let perActivity = 0;
+  for (const k of ROAD_KINDS) perActivity += ((roadM[k] ?? 0) * lines[k] * perKm[k]) / 1000;
+  const people = perActivity * peopleActivity(c);
   return Math.min(MAP_LIFE.maxPeople, Math.round(people));
 }

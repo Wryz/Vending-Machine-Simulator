@@ -3,12 +3,25 @@ import { nextRandom, type RngState } from '@/sim/rng';
 
 import { peopleTarget } from './density';
 import { RoadNetwork, type RoadHit } from './network';
-import type { Customer, LifeConditions, LifeView, Person, RoadInput } from './types';
+import { Surface } from './surface';
+import type {
+  AsphaltInput,
+  Customer,
+  LifeConditions,
+  LifeSurfaceInput,
+  LifeView,
+  Person,
+  RoadInput,
+  RoadKind,
+} from './types';
 
 /**
  * Street-life simulation (pure, deterministic for a seed and a sequence of
- * calls): people walk the sidewalks of the rendered roads and customers walk
- * up to machines. Positions are in local meters (east, north) around the network
+ * calls): people walk the sidewalks of the rendered streets (just outside the
+ * drawn asphalt), park paths and pedestrian streets, and customers walk up to
+ * machines. Nobody walks on water or along another road's asphalt: each
+ * walking line is checked against the rendered water and roads (`Surface`)
+ * when first used. Positions are in local meters (east, north) around the network
  * origin, mirrored to lng/lat for the map each step.
  *
  * Allocation-light: agents are plain objects mutated in place, dead ones are
@@ -25,6 +38,13 @@ const WALK_CYCLE = [1, 0, 2, 0] as const;
 const PED_SPAN = 2;
 /** Positional smoothing after switching roads, seconds. */
 const PED_BLEND_TAU = 0.5;
+const SAMPLE_M = MAP_LIFE.surface.sampleM;
+
+/** Middle of a kind's walking band (where its line is checked against the surface). */
+const midOffset = (kind: RoadKind) => {
+  const [lo, hi] = P.sidewalkOffsetM[kind];
+  return kind === 'major' || kind === 'minor' ? (lo + hi) / 2 : 0;
+};
 
 interface Vec {
   x: number;
@@ -44,6 +64,8 @@ export class StreetLife {
   /** People walking up to a machine to buy (see addCustomer). */
   readonly customers: Customer[] = [];
   net: RoadNetwork | null = null;
+  /** Water and drawn asphalt around the walkways (set with the roads). */
+  surface: Surface | null = null;
   /** How many people the view should have. */
   targetPeople = 0;
 
@@ -56,6 +78,11 @@ export class StreetLife {
   private radius = 0;
   private conditions: LifeConditions = { hour: 12, restDay: false, footTraffic: 0 };
   private pedCum: Float64Array = new Float64Array(0);
+  /**
+   * Blocked samples per walking line (key road * 2 + side), every SAMPLE_M
+   * meters, computed the first time someone uses the line.
+   */
+  private readonly lines = new Map<number, Uint8Array>();
   /** Fractional spawns owed (spawning is rate-limited). */
   private budget = 0;
   private readonly v1: Vec = { x: 0, y: 0 };
@@ -96,11 +123,17 @@ export class StreetLife {
   /**
    * New road data (after the camera settles). Agents already on screen are
    * re-attached to the new network so a small pan doesn't reset the street.
+   * `surface`: the drawn asphalt (defaults to the walked streets) and water.
    */
-  setRoads(roads: readonly RoadInput[], view: LifeView): void {
+  setRoads(roads: readonly RoadInput[], view: LifeView, surface: LifeSurfaceInput = {}): void {
     const old = this.net;
     const net = new RoadNetwork(roads, view.center);
     this.net = net;
+    const asphalt =
+      surface.asphalt ??
+      roads.filter((r): r is AsphaltInput => r.kind === 'major' || r.kind === 'minor');
+    this.surface = new Surface(asphalt, surface.water ?? [], view.center);
+    this.lines.clear();
     this.setView(view);
     this.pedCum = this.weights(net);
     if (old) for (const p of this.people) this.reattachPerson(p, net);
@@ -114,6 +147,8 @@ export class StreetLife {
     this.customers.length = 0;
     this.arrivals.length = 0;
     this.net = null;
+    this.surface = null;
+    this.lines.clear();
   }
 
   private updateTargets() {
@@ -125,12 +160,50 @@ export class StreetLife {
     this.targetPeople = peopleTarget(this.conditions, lengths);
   }
 
-  /** Cumulative spawn weights: road length × people per km for its kind. */
+  /** Cumulative spawn weights: road length × walking lines × people per km for its kind. */
   private weights(net: RoadNetwork): Float64Array {
     const cum = new Float64Array(net.roads.length);
     let acc = 0;
-    net.roads.forEach((r, i) => (cum[i] = acc += r.length * P.perKm[r.kind]));
+    net.roads.forEach((r, i) => (cum[i] = acc += r.length * P.lines[r.kind] * P.perKm[r.kind]));
     return cum;
+  }
+
+  /**
+   * May nobody walk here? Distance `s` along road `ri` on its `side` walking
+   * line (paths: the way itself): water, or another road's asphalt alongside.
+   */
+  lineBlocked(ri: number, side: 1 | -1, s: number): boolean {
+    const net = this.net;
+    const surface = this.surface;
+    if (!net || !surface) return false;
+    const road = net.roads[ri];
+    const centered = road.kind === 'path' || road.kind === 'pedestrian';
+    const key = ri * 2 + (centered || side > 0 ? 1 : 0);
+    let line = this.lines.get(key);
+    if (!line) {
+      const n = Math.floor(road.length / SAMPLE_M) + 1;
+      line = new Uint8Array(n);
+      const off = midOffset(road.kind) * side;
+      const pt = { x: 0, y: 0 };
+      const tg = { x: 0, y: 0 };
+      for (let i = 0; i < n; i++) {
+        const si = Math.min(road.length, i * SAMPLE_M);
+        net.pointAt(road, si, pt);
+        net.tangentAt(road, si, PED_SPAN, tg);
+        const x = pt.x + tg.y * off;
+        const y = pt.y - tg.x * off;
+        // Sidewalks may cross a street at a corner; paths stop at the curb.
+        const blocked = centered
+          ? surface.blockedPoint(x, y)
+          : surface.blockedWalk(x, y, tg.x, tg.y);
+        line[i] = blocked ? 1 : 0;
+      }
+      this.lines.set(key, line);
+    }
+    // Blocked if either neighboring sample is (conservative by up to a sample).
+    const u = Math.min(road.length, Math.max(0, s)) / SAMPLE_M;
+    const last = line.length - 1;
+    return line[Math.min(last, Math.floor(u))] === 1 || line[Math.min(last, Math.ceil(u))] === 1;
   }
 
   private pickRoad(cum: Float64Array): number {
@@ -177,6 +250,7 @@ export class StreetLife {
         if (this.inView(x, y) || !this.inView(x, y, pad * 0.6)) continue;
         if (this.v2.x * dir * (this.cx - x) + this.v2.y * dir * (this.cy - y) <= 0) continue;
       } else if (!this.inView(x, y)) continue;
+      if (this.lineBlocked(ri, side, s)) continue;
       const speed = kmh(this.uniform(P.speedKmh[0], P.speedKmh[1]));
       const p: Person = {
         id: this.nextId++,
@@ -245,6 +319,8 @@ export class StreetLife {
     p.dir = bestDir;
     p.side = bestSide;
     p.offset = best.d;
+    // New water / asphalt data says nobody walks here: fade out.
+    if (this.lineBlocked(p.road, p.side, p.s)) p.dying = true;
     this.personTarget(p, net);
     p.bx = x - this.v1.x;
     p.by = y - this.v1.y;
@@ -268,7 +344,12 @@ export class StreetLife {
         p.s += ds * p.dir;
         p.phase += ds;
         p.frame = WALK_CYCLE[Math.floor(p.phase / P.strideM) % 4];
-        if (p.s > road.length || p.s < 0) {
+        if (p.s >= 0 && p.s <= road.length && this.lineBlocked(p.road, p.side, p.s)) {
+          // Water or asphalt ahead: turn back after a moment.
+          p.s -= ds * p.dir;
+          p.dir = p.dir === 1 ? -1 : 1;
+          p.pause = this.uniform(0.6, 1.6);
+        } else if (p.s > road.length || p.s < 0) {
           if (!this.transfer(p)) {
             // Dead end: turn around after a moment.
             p.s = Math.min(road.length, Math.max(0, p.s));
@@ -325,44 +406,66 @@ export class StreetLife {
     const standX = mx + fx * CU.standM + fy * spread;
     const standY = my + fy * CU.standM - fx * spread;
 
-    // Start and exit on the nearest sidewalk, on the machine's side of the street.
-    let sx: number;
-    let sy: number;
-    let ex: number;
-    let ey: number;
+    // Start and exit on the nearest sidewalk, on the machine's side of the
+    // street; never in water or on asphalt (else they appear at the machine).
+    const clear = (x: number, y: number) => !this.surface?.blockedPoint(x, y);
+    let sx = standX;
+    let sy = standY;
+    let ex = standX;
+    let ey = standY;
     const hits = net.near(mx, my, CU.sidewalkSearchM, this.hits);
     let best: RoadHit | null = null;
     for (const h of hits) if (!best || h.d < best.d) best = h;
     if (best) {
       const road = net.roads[best.road];
-      net.pointAt(road, best.s, this.v1);
-      net.tangentAt(road, best.s, PED_SPAN, this.v2);
+      const bestS = best.s;
+      net.pointAt(road, bestS, this.v1);
+      net.tangentAt(road, bestS, PED_SPAN, this.v2);
       const cross = (mx - this.v1.x) * this.v2.y - (my - this.v1.y) * this.v2.x;
       const sideSign = cross >= 0 ? 1 : -1;
       const [lo, hi] = P.sidewalkOffsetM[road.kind];
-      const off = Math.min(best.d, this.uniform(lo, hi));
+      const off = this.uniform(lo, hi);
       const dir = this.rand() < 0.5 ? 1 : -1;
       const at = (ds: number, out: Vec) => {
-        const s = Math.min(road.length, Math.max(0, best!.s + ds));
+        const s = Math.min(road.length, Math.max(0, bestS + ds));
         net.pointAt(road, s, out);
         net.tangentAt(road, s, PED_SPAN, this.v2);
         out.x += this.v2.y * sideSign * off;
         out.y -= this.v2.x * sideSign * off;
       };
-      at(dir * this.uniform(CU.startM[0], CU.startM[1]), this.v1);
-      sx = this.v1.x;
-      sy = this.v1.y;
-      at(-dir * this.uniform(CU.exitM[0], CU.exitM[1]), this.v1);
-      ex = this.v1.x;
-      ey = this.v1.y;
+      const startM = this.uniform(CU.startM[0], CU.startM[1]);
+      const exitM = this.uniform(CU.exitM[0], CU.exitM[1]);
+      // Either way along the sidewalk, whichever is open.
+      for (const d of [dir, -dir]) {
+        at(d * startM, this.v1);
+        if (!clear(this.v1.x, this.v1.y)) continue;
+        sx = this.v1.x;
+        sy = this.v1.y;
+        break;
+      }
+      for (const d of [-dir, dir]) {
+        at(d * exitM, this.v1);
+        if (!clear(this.v1.x, this.v1.y)) continue;
+        ex = this.v1.x;
+        ey = this.v1.y;
+        break;
+      }
     } else {
       // No sidewalk nearby: come from somewhere in front of the machine.
       const a = this.uniform(-1, 1);
       const r = this.uniform(CU.startM[0], CU.startM[1]);
-      sx = standX + (fx * Math.cos(a) - fy * Math.sin(a)) * r;
-      sy = standY + (fy * Math.cos(a) + fx * Math.sin(a)) * r;
-      ex = standX + (fx * Math.cos(-a) - fy * Math.sin(-a)) * r;
-      ey = standY + (fy * Math.cos(-a) + fx * Math.sin(-a)) * r;
+      const ax = standX + (fx * Math.cos(a) - fy * Math.sin(a)) * r;
+      const ay = standY + (fy * Math.cos(a) + fx * Math.sin(a)) * r;
+      const bx = standX + (fx * Math.cos(-a) - fy * Math.sin(-a)) * r;
+      const by = standY + (fy * Math.cos(-a) + fx * Math.sin(-a)) * r;
+      if (clear(ax, ay)) {
+        sx = ax;
+        sy = ay;
+      }
+      if (clear(bx, by)) {
+        ex = bx;
+        ey = by;
+      }
     }
     const dx = standX - sx;
     const dy = standY - sy;
@@ -521,39 +624,49 @@ export class StreetLife {
         cands.push({ road: h.road, s, dir, align, d: h.d });
       }
     }
-    if (!cands.length) return false;
-    let pick: Candidate | null = null;
-    const straight = cands.filter((c) => c.align > 0.8);
-    const turns = cands.filter((c) => c.align <= 0.8);
-    if (straight.length && (!turns.length || this.rand() >= 0.5)) {
-      // The closest aligned piece (tile splits overlap exactly).
-      pick = straight.reduce((b, c) => (c.d - c.align * 2 < b.d - b.align * 2 ? c : b));
-    } else if (turns.length) {
-      pick = turns[Math.floor(this.rand() * turns.length)];
+    // Try the picks in turn until one leads onto open sidewalk.
+    while (cands.length) {
+      const straight = cands.filter((c) => c.align > 0.8);
+      const turns = cands.filter((c) => c.align <= 0.8);
+      // The closest aligned piece (tile splits overlap exactly), or a turn.
+      const pick =
+        straight.length && (!turns.length || this.rand() >= 0.5)
+          ? straight.reduce((b, c) => (c.d - c.align * 2 < b.d - b.align * 2 ? c : b))
+          : turns[Math.floor(this.rand() * turns.length)];
+      cands.splice(cands.indexOf(pick), 1);
+      const r = net.roads[pick.road];
+      const room = pick.dir > 0 ? r.length - pick.s : pick.s;
+      const s = pick.s + pick.dir * Math.min(Math.max(0, over), room - 1);
+      const [lo, hi] = P.sidewalkOffsetM[r.kind];
+      const offset = this.uniform(lo, hi);
+      // Stay on the same corner: pick the sidewalk nearest to where we are.
+      net.pointAt(r, s, this.v1);
+      net.tangentAt(r, s, PED_SPAN, this.v2);
+      const rx = this.v1.x + this.v2.y * offset;
+      const ry = this.v1.y - this.v2.x * offset;
+      const lx = this.v1.x - this.v2.y * offset;
+      const ly = this.v1.y + this.v2.x * offset;
+      const side: 1 | -1 =
+        (rx - a.x) ** 2 + (ry - a.y) ** 2 <= (lx - a.x) ** 2 + (ly - a.y) ** 2 ? 1 : -1;
+      // Never onto water / alongside asphalt (a bridge's approach, a quay).
+      if (
+        this.lineBlocked(pick.road, side, s) ||
+        this.lineBlocked(pick.road, side, s + pick.dir * SAMPLE_M)
+      )
+        continue;
+      const prevX = a.x;
+      const prevY = a.y;
+      a.road = pick.road;
+      a.dir = pick.dir;
+      a.s = s;
+      a.offset = offset;
+      a.side = side;
+      this.personTarget(a, net);
+      a.bx = prevX - this.v1.x;
+      a.by = prevY - this.v1.y;
+      return true;
     }
-    if (!pick) return false;
-    const r = net.roads[pick.road];
-    const prevX = a.x;
-    const prevY = a.y;
-    a.road = pick.road;
-    a.dir = pick.dir;
-    const room = pick.dir > 0 ? r.length - pick.s : pick.s;
-    a.s = pick.s + pick.dir * Math.min(Math.max(0, over), room - 1);
-    const [lo, hi] = P.sidewalkOffsetM[r.kind];
-    a.offset = this.uniform(lo, hi);
-    // Stay on the same corner: pick the sidewalk nearest to where we are.
-    net.pointAt(r, a.s, this.v1);
-    net.tangentAt(r, a.s, PED_SPAN, this.v2);
-    const rx = this.v1.x + this.v2.y * a.offset;
-    const ry = this.v1.y - this.v2.x * a.offset;
-    const lx = this.v1.x - this.v2.y * a.offset;
-    const ly = this.v1.y + this.v2.x * a.offset;
-    a.side =
-      (rx - prevX) ** 2 + (ry - prevY) ** 2 <= (lx - prevX) ** 2 + (ly - prevY) ** 2 ? 1 : -1;
-    this.personTarget(a, net);
-    a.bx = prevX - this.v1.x;
-    a.by = prevY - this.v1.y;
-    return true;
+    return false;
   }
 
   /**

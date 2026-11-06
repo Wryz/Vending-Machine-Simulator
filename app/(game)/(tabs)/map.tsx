@@ -1,60 +1,43 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { router, useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CAMERA, GLOBE, MACHINE_SHEET } from '@/config/map';
-import { CHAPTERS } from '@/config/progression';
+import type { Feature } from '@/config/progression';
 import { useCityClock } from '@/hooks/useCityClock';
 import { CityMap, type CityMapHandle, type MapCameraState, type SalePop } from '@/map/CityMap';
 import { WeatherOverlay } from '@/map/WeatherOverlay';
-import type { WeatherCondition } from '@/data/types';
-import { activeMachines, baseTraffic, localTime, nearbyPlaces, visibleEvents } from '@/sim';
+import {
+  activeMachines,
+  baseTraffic,
+  featureUnlocked,
+  localTime,
+  nearbyPlaces,
+  tutorialStep,
+  visibleEvents,
+} from '@/sim';
 import { soundscape } from '@/services/audio';
 import { haptic } from '@/services/haptics';
 import { cityKey, useProfile } from '@/store/profile';
 import { useGame } from '@/store/game';
+import { useHud } from '@/store/hud';
 import { GlobeView, type GlobePin } from '@/three/globe/GlobeView';
 import { transition } from '@/store/transition';
 import { useTheme } from '@/ui/ThemeProvider';
-import { clock, money } from '@/ui/format';
-import { chapterProgress } from '@/ui/chapter';
 import { CashPill, InfoPill, RoundButton } from '@/ui/hud';
-import { Icon, type IconName } from '@/ui/icons';
-import { Button, Mono, T } from '@/ui/kit';
+import { Button, T } from '@/ui/kit';
+import { Coach } from '@/ui/Coach';
 import { MachineSheet } from '@/ui/sheets/MachineSheet';
+import { MoneyPanel, type IncomingSale } from '@/ui/MoneyPanel';
 import { SpotSheet, type SpotPoint } from '@/ui/sheets/SpotSheet';
-import { LedBar, SKIN } from '@/ui/skin';
 import { sfx } from '@/ui/sfx';
 import { SPACE } from '@/ui/theme';
 
-/** A sale shows in its own pill under the clock for this long. */
+/** A sale shows in its own pill under the money panel for this long. */
 const SALE_PILL_MS = 6_000;
-
-const WEATHER_ICON: Record<WeatherCondition, IconName> = {
-  clear: 'sun',
-  cloudy: 'cloud',
-  rain: 'rain',
-  snow: 'snow',
-  storm: 'storm',
-  fog: 'fog',
-};
-
-/** The glow of an LED digit. */
-const LED_GLOW = (color: string) => ({
-  textShadowColor: color,
-  textShadowRadius: 8,
-  textShadowOffset: { width: 0, height: 0 },
-});
-
-/** °F where people read °F, °C elsewhere. */
-function temperature(tempC: number, countryCode: string): string {
-  return ['US', 'LR', 'MM'].includes(countryCode)
-    ? `${Math.round((tempC * 9) / 5 + 32)}°F`
-    : `${Math.round(tempC)}°C`;
-}
 
 /**
  * A soft register "ding" and a light haptic tick when a sale lands on screen
@@ -337,44 +320,37 @@ export default function MapScreen() {
   );
   const saleFeedback = useSaleFeedback();
 
-  // The latest sale on screen shows briefly in its own pill under the clock.
-  const [last, setLast] = useState<SalePop | null>(null);
+  // Sales on screen print under the money panel for a few seconds, naming their source.
+  const [incoming, setIncoming] = useState<IncomingSale[]>([]);
   const onSalesShown = useCallback(
     (pops: SalePop[]) => {
-      setLast(pops[pops.length - 1]);
+      const machines = useGame.getState().game?.machines ?? [];
+      const fresh = pops.map((p) => ({
+        id: p.id,
+        cents: p.cents,
+        source: machines.find((m) => m.id === p.machineId)?.venue.name ?? '',
+      }));
+      setIncoming((cur) => [...cur, ...fresh].slice(-3));
       saleFeedback();
     },
     [saleFeedback],
   );
   useEffect(() => {
-    if (!last) return;
-    const t = setTimeout(() => setLast(null), SALE_PILL_MS);
+    if (!incoming.length) return;
+    const t = setTimeout(() => setIncoming((cur) => cur.slice(1)), SALE_PILL_MS);
     return () => clearTimeout(t);
-  }, [last]);
-  const showSale = !!last;
+  }, [incoming]);
   const weather = world.weatherAt(game.now);
-  // Day / night at a glance, from the city's real sun.
-  const dayIcon: IconName =
-    tod.dominant === 'day' ? 'sun' : tod.dominant === 'night' ? 'moon' : 'twilight';
-  const dayIconColor =
-    tod.dominant === 'day' ? SKIN.ledAmber : tod.dominant === 'night' ? '#C3C8FF' : '#FF9561';
-
-  const active = activeMachines(game);
-  const stored = game.machines.filter((m) => m.status === 'stored');
-  const hint = (() => {
-    if (params.placeMachineId) return 'Tap a spot to place this machine';
-    if (!active.length && stored.length) return 'Tap a busy spot to place your machine';
-    if (
-      active.length === 1 &&
-      active[0].stats.unitsTotal === 0 &&
-      active[0].slots.every((s) => s.qty === 0)
-    )
-      return 'Tap your machine to stock it';
-    if (active.length && game.ledger.lifetimeUnits === 0) return 'Waiting for a first customer…';
-    return null;
-  })();
-  const progress = chapterProgress(game);
-  const chapter = CHAPTERS.find((c) => c.n === game.chapter) ?? CHAPTERS[CHAPTERS.length - 1];
+  // One plain hint while placing; otherwise the first-machine tutorial.
+  const hint = params.placeMachineId ? 'Tap a spot to place this machine' : null;
+  const tutorialHidden = useProfile((s) => s.tutorialHidden);
+  const coachStep = tutorialHidden ? null : tutorialStep(game);
+  const unlocked = (f: Feature) => featureUnlocked(game, f);
+  const company = unlocked('company');
+  const tabBarHeight = useHud((s) => s.tabBarHeight);
+  const setArea = useHud((s) => s.setArea);
+  // A new city starts without a neighbourhood name.
+  useEffect(() => () => setArea(null), [setArea]);
 
   return (
     <View style={{ flex: 1, backgroundColor: tod.palette.land }}>
@@ -391,6 +367,7 @@ export default function MapScreen() {
         minZoom={GLOBE.mapMinZoom}
         onMapPress={onMapPress}
         onMachinePress={onMachinePress}
+        onAreaName={setArea}
         onCameraChanged={(c, byUser) => {
           cameraNow.current = c;
           // Pinched far out: hand off to the globe (only for the player's own gestures).
@@ -417,61 +394,16 @@ export default function MapScreen() {
         night={tod.weights.night > 0.5}
       />
 
-      {/* Top left: cash, then one status pill (latest sale, or clock and weather). */}
+      {/* Top left: cash, chapter meter, money coming in, and the latest sales. */}
       <View
         pointerEvents="box-none"
         style={[styles.topLeft, { top: insets.top + SPACE.s, left: SPACE.l }]}
       >
-        <CashPill cents={game.cashCents} onPress={() => router.navigate('/company')} />
-        <InfoPill>
-          <Icon name={dayIcon} size={18} color={dayIconColor} />
-          <Mono size={15} weight="bold" color={SKIN.ledGreen} style={LED_GLOW(SKIN.ledGreen)}>
-            {clock(game.now, world.city.timeZone)}
-          </Mono>
-          {weather ? (
-            <>
-              {weather.condition !== 'clear' ? (
-                <Icon name={WEATHER_ICON[weather.condition]} size={18} color={SKIN.ledAmber} />
-              ) : null}
-              <Mono size={15} weight="bold" color={SKIN.ledAmber} style={LED_GLOW(SKIN.ledAmber)}>
-                {temperature(weather.tempC, world.city.countryCode)}
-              </Mono>
-            </>
-          ) : null}
-        </InfoPill>
-        {/* The chapter goal: number, meter, and how far along (tap for the company). */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Chapter ${chapter.n}, ${chapter.title}. ${progress.text}`}
-          onPress={() => router.navigate('/company')}
-        >
-          <InfoPill style={styles.goal}>
-            <View style={styles.chapter}>
-              <T size={12} weight="bold" color={SKIN.marqueeInk}>
-                {chapter.n}
-              </T>
-            </View>
-            <View style={{ width: 84 }}>
-              <LedBar value={progress.value} segments={10} color={SKIN.ledAmber} />
-            </View>
-          </InfoPill>
-        </Pressable>
-        {showSale && last ? (
-          <Animated.View
-            key={last.id}
-            entering={FadeIn.duration(200)}
-            exiting={FadeOut.duration(200)}
-          >
-            <InfoPill>
-              <Mono size={15} weight="bold" color={SKIN.ledGreen} style={LED_GLOW(SKIN.ledGreen)}>
-                {money(last.cents, { sign: true })}
-              </Mono>
-              <T size={13} color="#C9CCE6" numberOfLines={1} style={{ maxWidth: 160 }}>
-                {game.machines.find((m) => m.id === last.machineId)?.venue.name ?? ''}
-              </T>
-            </InfoPill>
-          </Animated.View>
-        ) : null}
+        <MoneyPanel
+          game={game}
+          sales={incoming}
+          onPress={company ? () => router.navigate('/company') : undefined}
+        />
       </View>
 
       {/* Top right: settings and map controls. */}
@@ -480,22 +412,29 @@ export default function MapScreen() {
         style={[styles.topRight, { top: insets.top + SPACE.s, right: SPACE.l }]}
       >
         <RoundButton icon="gear" label="Settings" onPress={() => router.push('/settings')} />
-        <RoundButton
-          icon={topDown ? 'tilt' : 'topdown'}
-          label={topDown ? '3D view' : 'Top-down view'}
-          onPress={toggleTopDown}
-        />
+        {unlocked('topDown') ? (
+          <RoundButton
+            icon={topDown ? 'tilt' : 'topdown'}
+            label={topDown ? '3D view' : 'Top-down view'}
+            onPress={toggleTopDown}
+          />
+        ) : null}
         <RoundButton
           icon="flame"
           label="Busy streets"
           active={heat}
           onPress={() => setHeat((h) => !h)}
         />
-        <RoundButton icon="locate" label="My machines" onPress={locate} />
+        {unlocked('locate') ? (
+          <RoundButton icon="locate" label="My machines" onPress={locate} />
+        ) : null}
       </View>
 
       {/* Zoom keys, bottom right above the tab bar. */}
-      <View pointerEvents="box-none" style={[styles.zoom, { right: SPACE.l, bottom: SPACE.l }]}>
+      <View
+        pointerEvents="box-none"
+        style={[styles.zoom, { right: SPACE.l, bottom: tabBarHeight + SPACE.m }]}
+      >
         <RoundButton
           icon="plus"
           label="Zoom in"
@@ -514,7 +453,7 @@ export default function MapScreen() {
           entering={FadeIn.duration(300)}
           exiting={FadeOut.duration(200)}
           pointerEvents="none"
-          style={[styles.hint, { bottom: SPACE.l + 6 }]}
+          style={[styles.hint, { bottom: tabBarHeight + SPACE.m + 6 }]}
         >
           <InfoPill style={{ height: 40, backgroundColor: theme.ink }}>
             <T size={14} weight="medium" color={theme.bg}>
@@ -523,9 +462,20 @@ export default function MapScreen() {
           </InfoPill>
         </Animated.View>
       ) : null}
+      {coachStep && !hint && !machineId && !spot ? (
+        <Coach
+          step={coachStep}
+          bottom={tabBarHeight + SPACE.m}
+          onClose={() =>
+            useProfile.getState().update((p) => {
+              p.tutorialHidden = true;
+            })
+          }
+        />
+      ) : null}
 
       {/* ODbL attribution stays visible (SPEC §6.4). */}
-      <View pointerEvents="none" style={[styles.attribution, { bottom: 4 }]}>
+      <View pointerEvents="none" style={[styles.attribution, { bottom: tabBarHeight + 2 }]}>
         <T size={9} color={tod.palette.label} style={{ opacity: 0.8 }}>
           © OpenFreeMap © OpenMapTiles © OpenStreetMap
         </T>
@@ -579,15 +529,6 @@ const styles = StyleSheet.create({
   topRight: { position: 'absolute', gap: SPACE.s, alignItems: 'flex-end' },
   hint: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   zoom: { position: 'absolute', gap: SPACE.s },
-  goal: { gap: SPACE.s, paddingLeft: 5 },
-  chapter: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: SKIN.marquee,
-  },
   attribution: { position: 'absolute', left: SPACE.m },
   globeBack: { position: 'absolute', left: SPACE.xl, right: SPACE.xl },
 });

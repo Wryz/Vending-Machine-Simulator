@@ -1,12 +1,38 @@
 /** Street-life simulation types (pure; no React Native). */
 
-/** Streets with sidewalks people walk (from the basemap's road layers). */
-export type RoadKind = 'major' | 'minor';
+/**
+ * Ways people walk (from the basemap's road and path layers): streets are
+ * walked on their two sidewalks, paths and pedestrian streets on the way itself.
+ */
+export type RoadKind = 'major' | 'minor' | 'path' | 'pedestrian';
+
+/** Drawn roadway classes (asphalt people keep off). */
+export type AsphaltKind = 'major' | 'minor';
+
+export const ROAD_KINDS: readonly RoadKind[] = ['major', 'minor', 'path', 'pedestrian'];
 
 export interface RoadInput {
   /** [lng, lat] vertices. */
   coords: readonly (readonly [number, number])[];
   kind: RoadKind;
+}
+
+/** A drawn roadway (any road class, walked or not). */
+export interface AsphaltInput {
+  coords: readonly (readonly [number, number])[];
+  kind: AsphaltKind;
+}
+
+/** A water polygon: outer ring first, then holes; [lng, lat] vertices. */
+export interface WaterInput {
+  rings: readonly (readonly (readonly [number, number])[])[];
+}
+
+/** What else is drawn around the walkways (see StreetLife.setRoads). */
+export interface LifeSurfaceInput {
+  /** Every drawn roadway. Defaults to the streets among the walked roads. */
+  asphalt?: readonly AsphaltInput[];
+  water?: readonly WaterInput[];
 }
 
 export interface LngLatBox {

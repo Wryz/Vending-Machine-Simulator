@@ -10,6 +10,7 @@ import {
 } from '@maplibre/maplibre-react-native';
 import {
   Fragment,
+  useEffect,
   forwardRef,
   useCallback,
   useImperativeHandle,
@@ -18,7 +19,8 @@ import {
   useState,
 } from 'react';
 
-import { MACHINE_SPRITE } from '@/config/map';
+import { AREA_NAME, MACHINE_PIN, MACHINE_SPRITE } from '@/config/map';
+import { MAP_LIFE } from '@/config/mapLife';
 import { getMachineType } from '@/config/machines';
 import { DISTRICTS } from '@/config/progression';
 import { cellPolygon } from '@/data/h3';
@@ -37,6 +39,14 @@ import {
   spriteLightFor,
 } from './machineSprites';
 import { metersPerPoint } from './cameraMatch';
+import {
+  crossfadeOpacity,
+  crossfadeRange,
+  pinImageName,
+  pinSizeAt,
+  pinSizeExpression,
+} from './machinePins';
+import { PIN_ICON_OFFSET, PIN_IMAGES, PIN_SIZE } from './pinImages';
 import { SalePops, type SalePop } from './life/SalePops';
 import { StreetLifeLayer, type LifeStats, type StreetLifeHandle } from './life/StreetLifeLayer';
 import {
@@ -48,15 +58,23 @@ import {
   SPRITE_SIZE,
 } from './spriteImages';
 import { tileSourceFor } from './tiles';
+import { AREA_PROBE_LAYER_ID, AreaBook, areaPoints, areaProbeLayer } from './areaName';
 import { buildBaseLayers, schemaOf, buildMapLight, buildMapStyle } from './style';
 import type { TimeOfDay } from './timeOfDay';
 
 /**
  * The real-city map (SPEC §3.5, §7.3): custom MapLibre style over Protomaps
  * tiles, fill-extrusion buildings tinted by the real time of day, machines as
- * pre-rendered low-poly sprites with subtle status rings, rival machines,
- * event pins, heat overlay and the selected spot's nearby places.
+ * pre-rendered low-poly sprites with subtle status rings at street-life zoom
+ * and as flat family-colored pins further out, rival machines, event pins,
+ * heat overlay and the selected spot's nearby places.
  */
+
+/** Machine sprites and pins, registered once. */
+const MACHINE_IMAGES = { ...SPRITE_IMAGES, ...PIN_IMAGES };
+
+/** Pins fade out / sprites fade in over this zoom range, ending where pedestrians appear. */
+const [SPRITE_FADE_START, SPRITE_FADE_END] = crossfadeRange(MAP_LIFE.minZoom);
 
 export interface MapCameraState {
   center: [number, number];
@@ -115,6 +133,8 @@ interface Props {
   onMachinePress(id: string): void;
   /** `byUser` is true when a gesture moved the camera (not a fly-to or the initial load). */
   onCameraChanged?(c: MapCameraState, byUser: boolean): void;
+  /** The neighbourhood name nearest the center changed (null = none known). */
+  onAreaName?(name: string | null): void;
   /**
    * Street-life stats (≤ 2×/s): busy level 0..1 for the soundscape, current
    * zoom, and how many people are on screen (0 below zoom 16).
@@ -134,8 +154,11 @@ const MAX_ZOOM = 21.5;
 /** Minimum machine icon-size (readable at mid zoom); true scale above it. */
 const MACHINE_MIN_ICON_SIZE = MACHINE_SPRITE.minIconSize;
 
-/** On-screen height of a machine sprite above its base, points. */
+/** On-screen height of a machine (pin below the street-life zoom, else sprite) above its base, points. */
 function machineHeightPt(zoom: number, lat: number): number {
+  if (zoom < (SPRITE_FADE_START + SPRITE_FADE_END) / 2) {
+    return pinSizeAt(zoom) * (PIN_SIZE.height - PIN_ICON_OFFSET[1]);
+  }
   const size = Math.max(
     MACHINE_MIN_ICON_SIZE,
     1 / metersPerPoint(zoom, lat) / SPRITE_PTS_PER_METER,
@@ -146,6 +169,33 @@ function machineHeightPt(zoom: number, lat: number): number {
 export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, ref) {
   const { game, world, tod, theme, heat, events, selected, initial } = props;
   const mapRef = useRef<MapRef>(null);
+
+  // Neighbourhood under the center, for the tab bar (see areaName.ts).
+  const areas = useRef(new AreaBook());
+  const areaTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onAreaName = props.onAreaName;
+  const lookUpArea = useCallback(() => {
+    if (!onAreaName) return;
+    if (areaTimer.current) clearTimeout(areaTimer.current);
+    areaTimer.current = setTimeout(async () => {
+      const map = mapRef.current;
+      if (!map) return;
+      try {
+        const features = await map.queryRenderedFeatures({ layers: [AREA_PROBE_LAYER_ID] });
+        areas.current.add(areaPoints(features));
+      } catch {
+        // Style not ready: try again on the next camera change.
+      }
+      const [lng, lat] = camera.current.center;
+      onAreaName(areas.current.nearest(lng, lat));
+    }, AREA_NAME.debounceMs);
+  }, [onAreaName]);
+  useEffect(
+    () => () => {
+      if (areaTimer.current) clearTimeout(areaTimer.current);
+    },
+    [],
+  );
   const camRef = useRef<CameraRef>(null);
   const camera = useRef<MapCameraState>(initial);
   /** Bottom padding of the last fly-to (kept for zoom steps). */
@@ -237,6 +287,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
       if (m.status !== 'active') continue;
       const status = machineStatus(game, m);
       const ring = STATUS_RING[status];
+      const family = getMachineType(m.typeId).family;
       features.push({
         type: 'Feature',
         id: m.id,
@@ -246,7 +297,8 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           model: modelFor(m.typeId),
           hb: headingBucket(m.heading),
           ring: ring ? theme[ring] : '',
-          accent: theme.family[getMachineType(m.typeId).family],
+          accent: theme.family[family],
+          pin: pinImageName(family, ring),
           mine: true,
         },
       });
@@ -262,6 +314,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           hb: headingBucket((r.lat * 1e5) % 360),
           ring: '',
           accent: MACHINE_SPRITE.rivalPad,
+          pin: pinImageName('rival', null),
           mine: false,
         },
       });
@@ -365,7 +418,10 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         if (ev.features && ev.features.length) return;
         props.onMapPress(ev.lngLat[1], ev.lngLat[0]);
       }}
-      onDidFinishLoadingStyle={() => setStyleGen((g) => g + 1)}
+      onDidFinishLoadingStyle={() => {
+        setStyleGen((g) => g + 1);
+        lookUpArea();
+      }}
       onRegionIsChanging={(e) => {
         const v = e.nativeEvent;
         camera.current = {
@@ -391,6 +447,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         trackView(v.zoom, v.pitch);
         lifeRef.current?.regionDidChange(v);
         props.onCameraChanged?.(camera.current, !!v.userInteraction);
+        lookUpArea();
       }}
     >
       <Camera
@@ -404,10 +461,11 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         minZoom={props.minZoom ?? 11}
         maxZoom={MAX_ZOOM}
       />
-      <Images images={SPRITE_IMAGES} />
+      <Images images={MACHINE_IMAGES} />
       {baseLayers.map((l) => (
         <Layer key={l.id} {...(l as LayerSpecification)} />
       ))}
+      <Layer {...(areaProbeLayer(schemaOf(tiles)) as unknown as LayerSpecification)} />
 
       {/* GeoJSON overlays mount once our style has loaded, and remount after any style
           load: MapLibre RN adds a GeoJSON source to whichever style is current when it
@@ -584,6 +642,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             <Layer
               id="machine-pads"
               type="circle"
+              minzoom={SPRITE_FADE_START}
               filter={['!', ['has', 'point_count']]}
               paint={{
                 'circle-pitch-alignment': 'map',
@@ -594,13 +653,18 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
                   ...MACHINE_SPRITE.padRadius.flat(),
                 ] as never,
                 'circle-color': ['get', 'accent'],
-                'circle-opacity': MACHINE_SPRITE.padOpacity,
+                'circle-opacity': crossfadeOpacity(
+                  MAP_LIFE.minZoom,
+                  0,
+                  MACHINE_SPRITE.padOpacity,
+                ) as never,
                 'circle-blur': MACHINE_SPRITE.padBlur,
               }}
             />
             <Layer
               id="machine-rings"
               type="circle"
+              minzoom={SPRITE_FADE_START}
               filter={['all', ['!', ['has', 'point_count']], ['!=', ['get', 'ring'], '']]}
               paint={{
                 'circle-pitch-alignment': 'map',
@@ -618,12 +682,13 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
                 'circle-color': 'rgba(0,0,0,0)',
                 'circle-stroke-color': ['get', 'ring'],
                 'circle-stroke-width': 2,
-                'circle-stroke-opacity': 0.85,
+                'circle-stroke-opacity': crossfadeOpacity(MAP_LIFE.minZoom, 0, 0.85) as never,
               }}
             />
             <Layer
               id="machine-sprites"
               type="symbol"
+              minzoom={SPRITE_FADE_START}
               filter={['!', ['has', 'point_count']]}
               layout={{
                 'icon-image': iconImage as never,
@@ -636,6 +701,33 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
                 'icon-pitch-alignment': 'viewport',
                 'icon-rotation-alignment': 'viewport',
                 'symbol-sort-key': ['-', 0, ['get', 'hb']],
+              }}
+              paint={{ 'icon-opacity': crossfadeOpacity(MAP_LIFE.minZoom, 0, 1) as never }}
+            />
+            {/* Below the street-life zoom: a flat pin per machine, tip on the spot. */}
+            <Layer
+              id="machine-pins"
+              type="symbol"
+              maxzoom={SPRITE_FADE_END}
+              filter={['!', ['has', 'point_count']]}
+              layout={{
+                'icon-image': ['get', 'pin'],
+                'icon-size': pinSizeExpression() as never,
+                'icon-anchor': 'bottom',
+                'icon-offset': PIN_ICON_OFFSET,
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-pitch-alignment': 'viewport',
+                'icon-rotation-alignment': 'viewport',
+                // Nearer pins (lower on screen) draw over the ones behind them.
+                'symbol-z-order': 'viewport-y',
+              }}
+              paint={{
+                'icon-opacity': crossfadeOpacity(
+                  MAP_LIFE.minZoom,
+                  ['case', ['to-boolean', ['get', 'mine']], 1, MACHINE_PIN.rivalOpacity],
+                  0,
+                ) as never,
               }}
             />
           </GeoJSONSource>

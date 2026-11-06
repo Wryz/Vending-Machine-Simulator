@@ -3,6 +3,23 @@
  * the simulation lives in src/map/life/, the sprites in assets/sprites/life/.
  * (The 3D close-up street has its own tuning in config/streetLife.ts.)
  */
+import { MAP_STYLE } from './map';
+
+/** Ways people walk (mirrors RoadKind in src/map/life/types.ts). */
+type WalkKind = 'major' | 'minor' | 'path' | 'pedestrian';
+
+const ROAD_W = MAP_STYLE.roads.widthM;
+const PATH_W = MAP_STYLE.paths.widthM;
+/**
+ * The sprite's feet sit a little in front of its anchor at a tilted camera,
+ * so the walking line keeps about a meter clear of the drawn curb.
+ */
+const CURB_MARGIN_M = 1;
+const SIDEWALK_BAND_M = 1.5;
+const sidewalkBand = (roadWidthM: number): readonly [number, number] => [
+  roadWidthM / 2 + CURB_MARGIN_M,
+  roadWidthM / 2 + CURB_MARGIN_M + SIDEWALK_BAND_M,
+];
 
 export const MAP_LIFE = {
   /** Agents appear from this zoom and are fully opaque at `fadeInEndZoom`. */
@@ -21,13 +38,27 @@ export const MAP_LIFE = {
   maxPeople: 80,
 
   people: {
-    /** People per km of sidewalk (each side) at full density. */
-    perKm: { major: 34, minor: 26 },
-    /** Walking-line offset from the road centerline, meters. */
-    sidewalkOffsetM: { major: [8, 9.5], minor: [5.2, 6.8] } as Record<
-      'major' | 'minor',
-      readonly [number, number]
-    >,
+    /**
+     * People per km of walking line at full density: each sidewalk of a
+     * street, or a whole path / pedestrian street (see `lines`).
+     */
+    perKm: { major: 34, minor: 26, path: 14, pedestrian: 40 } as Record<WalkKind, number>,
+    /** Walking lines per way: streets have two sidewalks, paths are walked down the middle. */
+    lines: { major: 2, minor: 2, path: 1, pedestrian: 1 } as Record<WalkKind, number>,
+    /**
+     * Walking-line offset from the centerline, meters. Streets: a sidewalk
+     * band just past the drawn asphalt (half the drawn width + curb margin);
+     * paths: on the path; pedestrian streets: anywhere across their width.
+     */
+    sidewalkOffsetM: {
+      major: sidewalkBand(ROAD_W.majorCasing),
+      minor: sidewalkBand(ROAD_W.minor),
+      path: [0, PATH_W.path / 2 - 0.5],
+      pedestrian: [0, PATH_W.pedestrian / 2 - 0.8],
+    } as Record<WalkKind, readonly [number, number]>,
+    /** Curb margin past the drawn asphalt edge, and the sidewalk band width, meters. */
+    curbMarginM: CURB_MARGIN_M,
+    sidewalkBandM: SIDEWALK_BAND_M,
     /** Walking speed range, km/h. */
     speedKmh: [3.9, 5.1] as const,
     /** Chance per second to pause (window shopping, phone) and for how long. */
@@ -58,6 +89,24 @@ export const MAP_LIFE = {
     max: 10,
     /** Customers per sale at most (a sale of several items brings a small group). */
     perSale: 2,
+  },
+
+  /**
+   * Where people may not walk: water (the rendered `water` fill) and other
+   * roads' drawn asphalt running alongside (dual carriageways, service roads,
+   * motorways). Checked once per walking line, every `sampleM` meters.
+   */
+  surface: {
+    sampleM: 2.5,
+    /** Drawn asphalt half-width per road class, meters (major includes its casing). */
+    asphaltHalfM: { major: ROAD_W.majorCasing / 2, minor: ROAD_W.minor / 2 },
+    /** Clearance kept from another road's drawn edge, meters. */
+    asphaltClearM: 0.5,
+    /**
+     * Another road only blocks a walking line it runs alongside (|cos| of the
+     * angle above this); crossing a street at a corner is a crosswalk.
+     */
+    parallelCos: 0.8,
   },
 
   /** Spawned agents fade in/out over this many seconds. */

@@ -23,6 +23,16 @@ export const MAP_STYLE = {
     /** Used when the style is built without a city latitude. */
     referenceLatitude: 40,
   },
+  /**
+   * Footways, park paths, cycleways and pedestrian streets (the `paths`
+   * layer): drawn true scale from `minZoom`, subtly, in a cream mixed from the
+   * street and land colors (`roadShare` of the street color).
+   */
+  paths: {
+    minZoom: 15,
+    widthM: { path: 2.6, pedestrian: 7 },
+    roadShare: 0.6,
+  },
   label: {
     font: ['Noto Sans Regular'] as const,
     districtMinZoom: 12,
@@ -62,6 +72,28 @@ export const MACHINE_SPRITE = {
   padOpacity: 0.55,
   padBlur: 0.55,
   rivalPad: '#8C8FA8',
+} as const;
+
+/**
+ * Machines as map pins below the street-life zoom (MAP_LIFE.minZoom): the 3D
+ * sprite only shows where pedestrians do; further out each machine is a flat
+ * teardrop pin in its family color (images: `node scripts/sprites/build-pins.mjs`).
+ */
+export const MACHINE_PIN = {
+  /** icon-size by zoom ([zoom, size] stops); size 1 ≈ 38 pt tall (tip to top). */
+  sizeByZoom: [
+    [12, 0.84],
+    [15, 0.95],
+    [17, 1.06],
+  ],
+  /**
+   * Zoom span of the pin → sprite crossfade. It ends at MAP_LIFE.minZoom, so
+   * the 3D machine is fully in when the first pedestrians fade in.
+   */
+  crossfadeZooms: 0.5,
+  /** Rival pins are smaller and slightly see-through so yours read first. */
+  rivalScale: 0.86,
+  rivalOpacity: 0.85,
 } as const;
 
 /**
@@ -159,4 +191,14 @@ export const TILES = {
   openFreeMapTileJson: 'https://tiles.openfreemap.org/planet',
   openFreeMapAttribution: '© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors',
   protomapsAttribution: '© Protomaps © OpenStreetMap contributors',
+} as const;
+
+/** The neighbourhood name in the tab bar (nearest named area to the map's center). */
+export const AREA_NAME = {
+  /** Areas further than this from the center don't count, meters. */
+  maxDistanceM: 2500,
+  /** Most remembered area points (oldest dropped). */
+  cacheSize: 400,
+  /** Wait after the camera settles before looking, ms. */
+  debounceMs: 400,
 } as const;

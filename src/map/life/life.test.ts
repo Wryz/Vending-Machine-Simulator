@@ -1,7 +1,13 @@
+import { MAP_STYLE } from '@/config/map';
 import { LIFE_WALK_FRAMES, MAP_LIFE } from '@/config/mapLife';
+
+import { metersPerPoint } from '../cameraMatch';
+import { roadWidth } from '../style';
 
 import {
   allLifeSpriteNames,
+  LIFE_QUERY_LAYERS,
+  lifeInputsFromFeatures,
   busyLevel,
   cityActivity,
   lifeGeoJSON,
@@ -13,9 +19,11 @@ import {
   RoadNetwork,
   roadsFromFeatures,
   StreetLife,
+  WaterIndex,
   type LifeConditions,
   type LifeView,
   type RoadInput,
+  type WaterInput,
 } from './index';
 
 const LNG0 = -73.984;
@@ -61,6 +69,8 @@ const VIEW: LifeView = {
   center: [LNG0, LAT0],
   radiusM: 400,
 };
+
+const ROAD_W = MAP_STYLE.roads.widthM;
 
 const BUSY: LifeConditions = { hour: 17.5, restDay: false, footTraffic: 320, weather: 'clear' };
 const QUIET: LifeConditions = { hour: 3, restDay: false, footTraffic: 15, weather: 'clear' };
@@ -118,6 +128,13 @@ describe('street life: density', () => {
     expect(big).toBeGreaterThan(small * 1.8);
     expect(huge).toBe(MAP_LIFE.maxPeople);
   });
+
+  it('parks are alive but calmer than streets (one line per path)', () => {
+    const park = peopleTarget(BUSY, { path: 1000 });
+    const street = peopleTarget(BUSY, { minor: 1000 });
+    expect(park).toBeGreaterThan(5);
+    expect(park).toBeLessThan(street * 0.5);
+  });
 });
 
 describe('street life: simulation', () => {
@@ -150,8 +167,12 @@ describe('street life: simulation', () => {
       if (p.road < 0) continue;
       const own = distToRoad(net, p.road, p.x, p.y);
       if (Math.hypot(p.bx, p.by) < 0.3) {
-        expect(own.d).toBeGreaterThanOrEqual(5);
-        expect(own.d).toBeLessThanOrEqual(9.8);
+        const [lo, hi] = MAP_LIFE.people.sidewalkOffsetM[net.roads[p.road].kind];
+        expect(own.d).toBeGreaterThanOrEqual(lo - 0.05);
+        expect(own.d).toBeLessThanOrEqual(hi + 0.05);
+        // Clear of the drawn asphalt (major roads: including the casing).
+        const half = net.roads[p.road].kind === 'major' ? ROAD_W.majorCasing / 2 : ROAD_W.minor / 2;
+        expect(own.d).toBeGreaterThan(half + 0.5);
       }
       // Away from intersections, no road centerline is closer than the curb.
       let nearest = Infinity;
@@ -161,7 +182,7 @@ describe('street life: simulation', () => {
       const nearAvenue = Math.min(ax, 260 - ax) < 14;
       const sy = ((p.y % 80) + 80) % 80;
       const nearStreet = Math.min(sy, 80 - sy) < 12;
-      if (!(nearAvenue && nearStreet)) expect(nearest).toBeGreaterThanOrEqual(4.5);
+      if (!(nearAvenue && nearStreet)) expect(nearest).toBeGreaterThan(ROAD_W.minor / 2 + 0.5);
       checked++;
     }
     expect(checked).toBeGreaterThan(20);
@@ -262,8 +283,13 @@ describe('street life: sprites and output', () => {
     const roads = roadsFromFeatures([
       { type: 'Feature', geometry: line, properties: { class: 'primary' } },
       { type: 'Feature', geometry: line, properties: { class: 'minor' } },
-      { type: 'Feature', geometry: line, properties: { class: 'path' } },
+      { type: 'Feature', geometry: line, properties: { class: 'path', subclass: 'footway' } },
+      { type: 'Feature', geometry: line, properties: { class: 'path', subclass: 'pedestrian' } },
+      { type: 'Feature', geometry: line, properties: { class: 'minor', brunnel: 'bridge' } },
+      { type: 'Feature', geometry: line, properties: { class: 'service' } },
       { type: 'Feature', geometry: line, properties: { kind: 'major_road' } },
+      { type: 'Feature', geometry: line, properties: { kind: 'path', kind_detail: 'footway' } },
+      { type: 'Feature', geometry: line, properties: { kind: 'major_road', is_bridge: true } },
       {
         type: 'Feature',
         geometry: line,
@@ -275,11 +301,193 @@ describe('street life: sprites and output', () => {
         properties: { class: 'motorway' },
       },
     ]);
-    // Paths, service roads and motorways have no sidewalks: dropped.
-    expect(roads.map((r) => r.kind)).toEqual(['major', 'minor', 'major']);
+    // Service roads, motorways and bridges have no walkable sidewalks: dropped.
+    expect(roads.map((r) => r.kind)).toEqual([
+      'major',
+      'minor',
+      'path',
+      'pedestrian',
+      'major',
+      'path',
+    ]);
     // Duplicate tile features collapse into one road.
     const net = new RoadNetwork([roads[1], roads[1]], [LNG0, LAT0]);
     expect(net.roads.length).toBe(1);
+  });
+
+  it('splits rendered features into walkways, asphalt and water', () => {
+    const line = { type: 'LineString' as const, coordinates: [ll(0, 0), ll(0, 50)] };
+    const square = [ll(0, 0), ll(10, 0), ll(10, 10), ll(0, 10), ll(0, 0)];
+    const { roads, surface } = lifeInputsFromFeatures([
+      { type: 'Feature', geometry: line, properties: { class: 'motorway' } },
+      { type: 'Feature', geometry: line, properties: { class: 'service' } },
+      { type: 'Feature', geometry: line, properties: { class: 'minor', brunnel: 'bridge' } },
+      { type: 'Feature', geometry: line, properties: { class: 'path' } },
+      { type: 'Feature', geometry: { type: 'Polygon', coordinates: [square] }, properties: {} },
+      {
+        type: 'Feature',
+        geometry: { type: 'MultiPolygon', coordinates: [[square], [square]] },
+        properties: { class: 'lake' },
+      },
+    ]);
+    expect(roads.map((r) => r.kind)).toEqual(['path']);
+    // Bridges are still drawn asphalt; paths are not.
+    expect(surface.asphalt!.map((r) => r.kind)).toEqual(['major', 'minor', 'minor']);
+    expect(surface.water).toHaveLength(3);
+    expect(LIFE_QUERY_LAYERS).toEqual(['roads-minor', 'roads-major', 'paths', 'water']);
+  });
+});
+
+/** A water rectangle in local meters (lng/lat rings). */
+const waterRect = (x0: number, y0: number, x1: number, y1: number): WaterInput => ({
+  rings: [[ll(x0, y0), ll(x1, y0), ll(x1, y1), ll(x0, y1), ll(x0, y0)]],
+});
+
+describe('street life: sidewalks, paths and water', () => {
+  it('the drawn roads stay inside the sidewalks at every zoom people show', () => {
+    // Evaluate the exponential line-width stops (points) at a zoom.
+    const widthAt = (expr: unknown[], z: number) => {
+      const stops = expr.slice(3) as number[];
+      for (let i = 0; i < stops.length - 2; i += 2) {
+        const [z0, w0, z1, w1] = stops.slice(i, i + 4);
+        if (z < z0 || z > z1) continue;
+        const t = (2 ** (z - z0) - 1) / (2 ** (z1 - z0) - 1);
+        return w0 + (w1 - w0) * t;
+      }
+      return stops[stops.length - 1];
+    };
+    for (const lat of [0, 40.75, 60]) {
+      const minor = roadWidth([12, 0.5, 15, 3], ROAD_W.minor, lat) as unknown[];
+      const casing = roadWidth([8, 0.8, 15, 7], ROAD_W.majorCasing, lat) as unknown[];
+      for (let z = MAP_LIFE.minZoom; z <= 22; z += 0.25) {
+        const m = metersPerPoint(z, lat);
+        const minorHalf = (widthAt(minor, z) * m) / 2;
+        const majorHalf = (widthAt(casing, z) * m) / 2;
+        expect(minorHalf).toBeLessThan(MAP_LIFE.people.sidewalkOffsetM.minor[0] - 0.5);
+        expect(majorHalf).toBeLessThan(MAP_LIFE.people.sidewalkOffsetM.major[0] - 0.5);
+      }
+    }
+    expect(MAP_LIFE.fadeInEndZoom).toBeGreaterThan(MAP_LIFE.minZoom);
+  });
+
+  it('point-in-water handles holes, and tile-split pieces on their own', () => {
+    const toLocal = (lng: number, lat: number): [number, number] => [
+      (lng - LNG0) * KX,
+      (lat - LAT0) * KY,
+    ];
+    const lake: WaterInput = {
+      rings: [
+        waterRect(0, 0, 100, 100).rings[0],
+        // An island.
+        waterRect(40, 40, 60, 60).rings[0],
+      ],
+    };
+    // The same water twice (overlapping tile buffers) must not cancel out.
+    const w = new WaterIndex([lake, waterRect(90, 0, 200, 100)], toLocal);
+    expect(w.contains(20, 20)).toBe(true);
+    expect(w.contains(50, 50)).toBe(false);
+    expect(w.contains(95, 50)).toBe(true);
+    expect(w.contains(150, 50)).toBe(true);
+    expect(w.contains(-5, 50)).toBe(false);
+    expect(w.contains(50, 130)).toBe(false);
+  });
+
+  it('nobody spawns or walks in water; customers start on dry land', () => {
+    // A river 60 m wide across the grid at y = 100..160.
+    const river = waterRect(-700, 100, 700, 160);
+    const life = new StreetLife(11);
+    life.setConditions(BUSY);
+    life.setRoads(grid(), VIEW, { water: [river] });
+    const dt = 1 / 14;
+    let checked = 0;
+    for (let t = 0; t < 60; t += dt) {
+      life.step(dt);
+      for (const p of life.people) {
+        if (p.alpha <= 0) continue;
+
+        expect(p.y < 100 || p.y > 160).toBe(true);
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(1000);
+    // A machine on the quay facing the river: the customer comes along the bank.
+    const quay = ll(-11, 96);
+    for (let i = 0; i < 6; i++) life.addCustomer(`q${i}`, quay[0], quay[1], 0);
+    for (const c of life.customers) {
+      expect(c.y).toBeLessThan(100);
+      expect(c.exitY).toBeLessThan(100);
+    }
+  });
+
+  it('keeps off a parallel carriageway (dual roads) and service roads', () => {
+    // A dual carriageway: two one-way majors 14 m apart along x = ±7.
+    const roads: RoadInput[] = [
+      { coords: [ll(-7, -400), ll(-7, 400)], kind: 'major' },
+      { coords: [ll(7, -400), ll(7, 400)], kind: 'major' },
+    ];
+    const life = new StreetLife(3);
+    life.setConditions(BUSY);
+    life.setRoads(roads, VIEW, {
+      asphalt: [
+        ...roads.map((r) => ({ coords: r.coords, kind: 'major' as const })),
+        // A service road alongside, 10 m out from the west carriageway's sidewalk.
+        { coords: [ll(-25, -400), ll(-25, 400)], kind: 'minor' },
+      ],
+    });
+    const dt = 1 / 14;
+    let checked = 0;
+    for (let t = 0; t < 30; t += dt) {
+      life.step(dt);
+      for (const p of life.people) {
+        if (p.alpha <= 0) continue;
+        // Never in the median or on the service road's asphalt.
+        expect(Math.abs(p.x)).toBeGreaterThan(7 + ROAD_W.majorCasing / 2);
+        expect(Math.abs(p.x + 25)).toBeGreaterThan(ROAD_W.minor / 2);
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(100);
+  });
+
+  it('paths are walked down the middle, both ways, and stop at the curb', () => {
+    const roads: RoadInput[] = [
+      // A park path crossing the view, ending on a street at y = 200.
+      { coords: [ll(-300, -50), ll(0, -50), ll(0, 200)], kind: 'path' },
+      { coords: [ll(-400, 200), ll(400, 200)], kind: 'minor' },
+    ];
+    const life = new StreetLife(5);
+    life.setConditions(BUSY);
+    life.setRoads(roads, VIEW);
+    const dt = 1 / 14;
+    let onPath = 0;
+    const dirs = new Set<number>();
+    for (let t = 0; t < 120; t += dt) {
+      life.step(dt);
+      for (const p of life.people) {
+        if (p.alpha <= 0 || p.road < 0 || Math.hypot(p.bx, p.by) > 0.3) continue;
+        if (life.net!.roads[p.road].kind !== 'path') continue;
+        const d = distToRoad(life.net!, p.road, p.x, p.y).d;
+        expect(d).toBeLessThanOrEqual(MAP_LIFE.people.sidewalkOffsetM.path[1] + 0.05);
+        // Never on the street's asphalt.
+        expect(Math.abs(p.y - 200)).toBeGreaterThan(ROAD_W.minor / 2);
+        dirs.add(p.dir);
+        onPath++;
+      }
+    }
+    expect(onPath).toBeGreaterThan(50);
+    expect(dirs.size).toBe(2);
+  });
+
+  it('pedestrian streets are walked across their width', () => {
+    const life = new StreetLife(8);
+    life.setConditions(BUSY);
+    life.setRoads([{ coords: [ll(0, -300), ll(0, 300)], kind: 'pedestrian' }], VIEW);
+    for (let t = 0; t < 5; t += 0.1) life.step(0.1);
+    const xs = life.people.map((p) => p.x);
+    expect(xs.length).toBeGreaterThan(5);
+    const [, hi] = MAP_LIFE.people.sidewalkOffsetM.pedestrian;
+    for (const x of xs) expect(Math.abs(x)).toBeLessThanOrEqual(hi + 0.05);
+    expect(Math.max(...xs.map(Math.abs))).toBeGreaterThan(hi * 0.5);
   });
 });
 

@@ -14,6 +14,7 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useHud } from '@/store/hud';
 import { haptic } from '@/services/haptics';
 
 import { Icon } from './icons';
@@ -298,6 +299,8 @@ export function Screen({
   tab?: boolean;
 }) {
   const insets = useSafeAreaInsets();
+  // The tab bar floats over tab screens: leave room for it.
+  const tabBar = useHud((st) => st.tabBarHeight);
   const Body = scroll ? ScrollView : View;
   return (
     <Cabinet style={{ flex: 1 }} screws={false}>
@@ -331,7 +334,7 @@ export function Screen({
         </Body>
       </Glass>
       {/* Kick plate with the pickup bin. */}
-      <View style={[styles.kick, { paddingBottom: (tab ? 0 : insets.bottom) + SPACE.s }]}>
+      <View style={[styles.kick, { paddingBottom: (tab ? tabBar : insets.bottom) + SPACE.s }]}>
         <View style={styles.bin} />
       </View>
     </Cabinet>

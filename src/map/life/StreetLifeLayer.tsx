@@ -28,10 +28,11 @@ import type { TimeOfDay } from '../timeOfDay';
 import {
   busyLevel,
   lifeGeoJSON,
+  lifeInputsFromFeatures,
   lifeLightFor,
+  LIFE_QUERY_LAYERS,
   lifeSymbolLayer,
   lifeViewRadiusM,
-  roadsFromFeatures,
   StreetLife,
   type LifeConditions,
   type LifeView,
@@ -41,8 +42,9 @@ import {
 /**
  * Pedestrians and customers on the map at close zoom (RN side of src/map/life).
  *
- * - Roads: queried from the rendered road layers when the camera settles
- *   (debounced), so the sim always matches what is drawn.
+ * - Roads: queried from the rendered road, path and water layers when the
+ *   camera settles (debounced), so the sim always matches what is drawn:
+ *   people walk outside the drawn asphalt, on paths, and never on water.
  * - Animation: a ~14 fps timer steps the pure sim and pushes one GeoJSON
  *   string to the `life` source. Only this component re-renders per frame,
  *   never the CityMap.
@@ -191,11 +193,10 @@ export const StreetLifeLayer = memo(
       const v = lastView.current;
       if (!map || !v || v.zoom < MAP_LIFE.minZoom - 0.3) return;
       try {
-        const features = await map.queryRenderedFeatures({
-          layers: ['roads-minor', 'roads-major'],
-        });
+        const features = await map.queryRenderedFeatures({ layers: [...LIFE_QUERY_LAYERS] });
         const view = lifeViewOf(v, height);
-        simRef.current!.setRoads(roadsFromFeatures(features), view);
+        const { roads, surface } = lifeInputsFromFeatures(features);
+        simRef.current!.setRoads(roads, view, surface);
         setHasRoads(true);
       } catch {
         // Style not ready yet; the next camera change retries.

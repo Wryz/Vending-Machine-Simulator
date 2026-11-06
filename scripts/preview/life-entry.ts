@@ -12,7 +12,8 @@ import {
   lifePitchBucket,
   lifeSymbolLayer,
   lifeViewRadiusM,
-  roadsFromFeatures,
+  lifeInputsFromFeatures,
+  LIFE_QUERY_LAYERS,
   StreetLife,
   type LifeConditions,
 } from '@/map/life';
@@ -59,8 +60,8 @@ export async function addLife(
     footTraffic: hour >= 22 || hour < 6 ? 110 : 330,
   };
 
-  const features = map.queryRenderedFeatures({ layers: ['roads-minor', 'roads-major'] });
-  const roads = roadsFromFeatures(features);
+  const features = map.queryRenderedFeatures({ layers: [...LIFE_QUERY_LAYERS] });
+  const { roads, surface } = lifeInputsFromFeatures(features);
   const b = map.getBounds();
   const view = {
     bounds: { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
@@ -69,7 +70,7 @@ export async function addLife(
   };
   const life = new StreetLife(opts.seed);
   life.setConditions(cond);
-  life.setRoads(roads, view);
+  life.setRoads(roads, view, surface);
   const dt = 1 / MAP_LIFE.fps;
   for (let t = 0; t < opts.seconds; t += dt) life.step(dt);
 

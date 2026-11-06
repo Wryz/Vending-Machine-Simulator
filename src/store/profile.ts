@@ -43,6 +43,12 @@ export interface Profile {
   cities: Record<string, CityInfo>;
   settings: Settings;
   entitlements: Entitlements;
+  /** Unlocked features the player has opened at least once (for the NEW badge). */
+  seenFeatures?: string[];
+  /** The player closed the first-machine tutorial. */
+  tutorialHidden?: boolean;
+  /** UI language (BCP 47), or null to follow the phone. */
+  language?: string | null;
 }
 
 const DEFAULT: Profile = {

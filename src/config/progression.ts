@@ -634,3 +634,32 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   },
   { id: 'sold-company', title: 'Exit', description: 'Sell the company.', rewardCents: 0 },
 ];
+
+/**
+ * Features open up as the player reaches milestones, so the first minutes show
+ * only what's needed (place a machine, stock it, watch a sale). A feature opens
+ * when ANY of its conditions is met; `chapter` also opens it for older saves.
+ */
+export type Feature = 'orders' | 'company' | 'keys' | 'routes' | 'topDown' | 'locate';
+
+export interface FeatureRule {
+  /** Opens at this chapter. */
+  chapter: number;
+  /** ...or once this many items have sold. */
+  sales?: number;
+  /** ...or once cash has been collected at least once. */
+  collected?: boolean;
+  /** ...or once the player owns this many machines. */
+  machines?: number;
+  /** ...or once this many machines are placed on the map. */
+  placed?: number;
+}
+
+export const FEATURE_UNLOCKS: Record<Feature, FeatureRule> = {
+  locate: { chapter: 2, placed: 1 },
+  orders: { chapter: 2, sales: 1 },
+  company: { chapter: 2, collected: true },
+  keys: { chapter: 2, machines: 2 },
+  routes: { chapter: 2 },
+  topDown: { chapter: 2 },
+};

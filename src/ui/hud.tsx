@@ -56,7 +56,7 @@ export function Badge({ text }: { text: string }) {
   );
 }
 
-/** Cash on the machine's LED display, with a coin. */
+/** Cash on the machine's LED display. */
 export function CashPill({ cents, onPress }: { cents: number; onPress?: () => void }) {
   return (
     <Pressable
@@ -64,9 +64,6 @@ export function CashPill({ cents, onPress }: { cents: number; onPress?: () => vo
       onPress={onPress}
       style={({ pressed }) => [styles.cash, { transform: [{ scale: pressed ? 0.96 : 1 }] }]}
     >
-      <View style={styles.coin}>
-        <Icon name="coin" size={20} color="#FFFFFF" />
-      </View>
       <View style={styles.cashLed}>
         <RollingMoney cents={cents} size={19} color={SKIN.ledGreen} glow />
       </View>
@@ -225,8 +222,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 3,
     borderColor: SKIN.chrome,
-    paddingLeft: SPACE.l,
-    paddingRight: SPACE.m,
+    paddingHorizontal: SPACE.m,
     paddingVertical: 4,
     ...shadow,
   },
