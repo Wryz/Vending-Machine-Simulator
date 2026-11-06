@@ -11,7 +11,7 @@ import { getTimeOfDay } from '@/map/timeOfDay';
 import { advance, cloneState, placeMachine, restockMachine, suggestRestock } from '@/sim';
 import { offsetPoint } from '@/sim/geo';
 import { useGame } from '@/store/game';
-import { MachineScene } from '@/three/MachineScene';
+import { MachineScene, type SceneStats } from '@/three/MachineScene';
 import { Button, Mono, Paper, Screen, Section, T } from '@/ui/kit';
 
 /**
@@ -23,6 +23,8 @@ export default function Diagnostics() {
   const [lines, setLines] = useState<string[]>([]);
   const [fps, setFps] = useState<number[]>([]);
   const [show3d, setShow3d] = useState(false);
+  const [busy, setBusy] = useState(true);
+  const [stats, setStats] = useState<SceneStats | null>(null);
   const log = (s: string) => setLines((l) => [...l, s]);
 
   const runH3 = () => {
@@ -103,6 +105,11 @@ export default function Diagnostics() {
           kind="secondary"
           onPress={() => setShow3d((v) => !v)}
         />
+        <Button
+          label={busy ? 'Street: busy (worst case)' : 'Street: quiet night'}
+          kind="secondary"
+          onPress={() => setBusy((v) => !v)}
+        />
         {show3d ? (
           <View style={{ height: 360 }}>
             <MachineScene
@@ -118,11 +125,19 @@ export default function Diagnostics() {
               from={to}
               to={to}
               durationMs={0}
+              crowd={busy ? 1 : 0.15}
+              traffic={busy ? 1 : 0.15}
               onFps={(f) => setFps((x) => [...x.slice(-59), f])}
+              onStats={setStats}
             />
           </View>
         ) : null}
         <Mono>{`fps: ${avg ? avg.toFixed(1) : '—'} (avg of last ${Math.min(10, fps.length)} s)`}</Mono>
+        <Mono>
+          {stats
+            ? `walkers ${stats.walkers} · cars ${stats.cars} · ${stats.triangles.toLocaleString()} tris (budget 30,000)`
+            : 'walkers — · cars — · tris —'}
+        </Mono>
       </Section>
       <Paper>
         {lines.length === 0 ? <T muted>Run a check above.</T> : null}

@@ -21,21 +21,23 @@ import type { CarState } from './traffic';
  * the road (no extra lights, no shadows from them).
  */
 
+/** Real streets skew to white, silver and gray; a few muted colors. */
 const PAINT = [
+  '#E6E4DF',
+  '#A6A9AD',
   '#7A8088',
   '#2F3238',
-  '#E6E4DF',
+  '#D9D8D4',
   '#3D4A5C',
   '#6B2F2F',
-  '#4F5B4C',
   '#8C7A66',
   '#1F2124',
-  '#A6A9AD',
   '#5D6F7F',
+  '#C4C6C8',
+  '#4F5B4C',
 ];
 const VAN_PAINT = ['#E6E4DF', '#D9D8D4', '#A6A9AD', '#2F3238', '#3D4A5C'];
 
-const GLASS = '#1E2328';
 const SIDES = [-1, 1] as const;
 const TRIM = '#2A2C2F';
 
@@ -47,6 +49,7 @@ interface KindSpec {
   parts: Part[];
   head: [number, number];
   tail: [number, number];
+  glass: Part[];
 }
 
 function kinds(): KindSpec[] {
@@ -71,6 +74,10 @@ function kinds(): KindSpec[] {
         ],
         1.8,
       ),
+      boxPart(1.2, 0.05, 1.5, -0.39, 1.385, 0),
+      boxPart(4.7, 0.16, 1.84, 0, 0.36, 0, TRIM),
+    ],
+    glass: [
       profilePart(
         [
           [1.05, 0.879],
@@ -79,10 +86,7 @@ function kinds(): KindSpec[] {
           [-1.5, 0.919],
         ],
         1.6,
-        GLASS,
       ),
-      boxPart(1.2, 0.05, 1.5, -0.39, 1.385, 0),
-      boxPart(4.7, 0.16, 1.84, 0, 0.36, 0, TRIM),
     ],
   };
   const hatch: KindSpec = {
@@ -106,6 +110,10 @@ function kinds(): KindSpec[] {
         ],
         1.76,
       ),
+      boxPart(1.72, 0.05, 1.48, -0.76, 1.44, 0),
+      boxPart(4.12, 0.16, 1.8, 0, 0.36, 0, TRIM),
+    ],
+    glass: [
       profilePart(
         [
           [0.95, 0.899],
@@ -114,10 +122,7 @@ function kinds(): KindSpec[] {
           [-1.95, 0.949],
         ],
         1.58,
-        GLASS,
       ),
-      boxPart(1.72, 0.05, 1.48, -0.76, 1.44, 0),
-      boxPart(4.12, 0.16, 1.8, 0, 0.36, 0, TRIM),
     ],
   };
   const van: KindSpec = {
@@ -142,6 +147,9 @@ function kinds(): KindSpec[] {
         ],
         1.95,
       ),
+      boxPart(5.02, 0.18, 1.99, 0, 0.38, 0, TRIM),
+    ],
+    glass: [
       profilePart(
         [
           [1.66, 1.13],
@@ -150,10 +158,8 @@ function kinds(): KindSpec[] {
           [1.56, 1.11],
         ],
         1.8,
-        GLASS,
       ),
-      boxPart(0.62, 0.52, 1.97, 1.2, 1.45, 0, GLASS),
-      boxPart(5.02, 0.18, 1.99, 0, 0.38, 0, TRIM),
+      boxPart(0.62, 0.52, 1.97, 1.2, 1.45, 0),
     ],
   };
   return [sedan, hatch, van];
@@ -191,6 +197,12 @@ export function createCars(roadY: number, capacity = CARS.capacity): CarFleet {
     metalness: 0.25,
     flatShading: true,
   });
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: '#4A5662',
+    roughness: 0.18,
+    metalness: 0.2,
+    flatShading: true,
+  });
   const lightMat = new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false });
   const wheelMat = new THREE.MeshStandardMaterial({
     color: '#1E1F21',
@@ -213,9 +225,18 @@ export function createCars(roadY: number, capacity = CARS.capacity): CarFleet {
     m.receiveShadow = true;
     return m;
   });
-  const lights = specs.map((k, i) =>
-    dynamicInstances(lightsGeometry(k), lightMat, capacity, `car-lights-${i}`),
-  );
+  // Glass and lights draw at the shell's instance transforms (shared buffer, no paint tint).
+  const glass = specs.map((k, i) => {
+    const m = dynamicInstances(mergeParts(k.glass), glassMat, capacity, `car-glass-${i}`);
+    m.instanceMatrix = shells[i].instanceMatrix;
+    m.castShadow = true;
+    return m;
+  });
+  const lights = specs.map((k, i) => {
+    const m = dynamicInstances(lightsGeometry(k), lightMat, capacity, `car-lights-${i}`);
+    m.instanceMatrix = shells[i].instanceMatrix;
+    return m;
+  });
   const wheelGeo = new THREE.CylinderGeometry(R, R, 0.22, 8, 1).rotateX(Math.PI / 2);
   const wheels = dynamicInstances(wheelGeo, wheelMat, capacity * 4, 'car-wheels');
   wheels.castShadow = true;
@@ -225,7 +246,7 @@ export function createCars(roadY: number, capacity = CARS.capacity): CarFleet {
 
   const white = new THREE.Color('#ffffff');
   for (const s of shells) for (let i = 0; i < capacity; i++) s.setColorAt(i, white);
-  const all = [...shells, ...lights, wheels, beams];
+  const all = [...shells, ...glass, ...lights, wheels, beams];
 
   const group = new THREE.Group();
   group.name = 'cars';
@@ -255,7 +276,6 @@ export function createCars(roadY: number, capacity = CARS.capacity): CarFleet {
       shells[car.kind].setMatrixAt(idx, root);
       paint.set(pick(car.kind === 2 ? VAN_PAINT : PAINT, car.look));
       shells[car.kind].setColorAt(idx, paint);
-      lights[car.kind].setMatrixAt(idx, root);
       const spin = -car.distance / R;
       for (const wx of k.wheelX)
         for (const side of SIDES) {
@@ -272,10 +292,7 @@ export function createCars(roadY: number, capacity = CARS.capacity): CarFleet {
       s.instanceMatrix.needsUpdate = true;
       if (s.instanceColor) s.instanceColor.needsUpdate = true;
     });
-    lights.forEach((l, i) => {
-      l.count = counts[i];
-      l.instanceMatrix.needsUpdate = true;
-    });
+    for (let i = 0; i < specs.length; i++) glass[i].count = lights[i].count = counts[i];
     wheels.count = w;
     wheels.instanceMatrix.needsUpdate = true;
     beams.count = night > 0.05 ? drawn : 0;
@@ -293,6 +310,7 @@ export function createCars(roadY: number, capacity = CARS.capacity): CarFleet {
     dispose() {
       for (const o of all) o.geometry.dispose();
       shellMat.dispose();
+      glassMat.dispose();
       lightMat.dispose();
       wheelMat.dispose();
       beamMat.alphaMap?.dispose();

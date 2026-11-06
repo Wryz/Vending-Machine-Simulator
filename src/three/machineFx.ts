@@ -45,7 +45,8 @@ interface SlotBase {
 
 const AMBER = new THREE.Color('#D9932B');
 const WARM = new THREE.Color('#FFE6BF');
-const BLACK = new THREE.Color('#000000');
+/** Emissive share of a product's own color at full night glow. */
+const PRODUCT_GLOW = 0.32;
 const MAX_DROPS = 3;
 
 export function createMachineFx(model: VendingMachineModel): MachineFx {
@@ -193,6 +194,7 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
     },
     update(nowMs, glow) {
       const tS = nowMs / 1000;
+      const productGlow = PRODUCT_GLOW * glow * (broken ? 0.5 : 1);
       // Slots: restock slide + flash, selection pulse, stuck product.
       for (let i = 0; i < slots.length; i++) {
         const sl = slots[i];
@@ -215,13 +217,14 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
         const sel = i === selected ? 0.22 + 0.33 * pulse(tS) : 0;
         if (sel > 0) {
           sl.material.emissive.copy(AMBER);
-          sl.material.emissiveIntensity = sel;
+          sl.material.emissiveIntensity = sel + productGlow;
         } else if (flash > 0) {
           sl.material.emissive.copy(WARM);
-          sl.material.emissiveIntensity = 0.5 * flash;
-        } else if (sl.material.emissiveIntensity !== 0) {
-          sl.material.emissive.copy(BLACK);
-          sl.material.emissiveIntensity = 0;
+          sl.material.emissiveIntensity = 0.5 * flash + productGlow;
+        } else {
+          // Product lighting behind the glass after dusk (LED strips).
+          sl.material.emissive.copy(sl.material.color);
+          sl.material.emissiveIntensity = productGlow;
         }
       }
 

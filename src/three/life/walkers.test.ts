@@ -3,8 +3,12 @@ import { PEDESTRIANS } from '@/config/streetLife';
 import { streetLayout } from './layout';
 import {
   activeWalkerCount,
+  emptyCycle,
   emptyWalker,
+  legHeight,
   lerpAngle,
+  SHIN_M,
+  THIGH_M,
   walkCycle,
   walkerAt,
   walkerSlot,
@@ -104,14 +108,23 @@ describe('walkers', () => {
   });
 
   it('settles the walk cycle when standing and repeats every stride', () => {
-    const c = { leg: 0, arm: 0, bob: 0 };
-    walkCycle(c, 3.3, 0);
-    expect([c.leg, c.arm, c.bob].every((v) => v === 0)).toBe(true);
-    const a = { ...walkCycle(c, 0.4, 1) };
-    const b = walkCycle({ leg: 0, arm: 0, bob: 0 }, 0.4 + PEDESTRIANS.strideM, 1);
-    expect(b.leg).toBeCloseTo(a.leg, 6);
-    expect(b.bob).toBeCloseTo(a.bob, 6);
-    expect(Math.sign(a.arm)).toBe(-Math.sign(a.leg));
-    expect(Math.abs(a.bob)).toBeLessThanOrEqual(PEDESTRIANS.bobM / 2 + 1e-9);
+    const c = walkCycle(emptyCycle(), 3.3, 0);
+    expect([c.hipL, c.hipR, c.kneeL, c.kneeR, c.arm, c.bob].every((v) => v === 0)).toBe(true);
+    for (let d = 0; d < 3; d += 0.05) {
+      const a = { ...walkCycle(emptyCycle(), d, 1) };
+      const b = walkCycle(emptyCycle(), d + PEDESTRIANS.strideM, 1);
+      expect(b.hipL).toBeCloseTo(a.hipL, 6);
+      expect(b.bob).toBeCloseTo(a.bob, 6);
+      expect(a.hipR).toBeCloseTo(-a.hipL, 9);
+      if (Math.abs(a.hipL) > 1e-3) expect(Math.sign(a.arm)).toBe(-Math.sign(a.hipL));
+      expect(a.kneeL).toBeGreaterThanOrEqual(0);
+      expect(a.kneeR).toBeGreaterThanOrEqual(0);
+      // Only the swing leg bends.
+      expect(Math.min(a.kneeL, a.kneeR)).toBe(0);
+      // Natural, not bouncy: hips move a few centimeters at most.
+      expect(a.bob).toBeLessThanOrEqual(0);
+      expect(a.bob).toBeGreaterThan(-0.04);
+    }
+    expect(legHeight(0, 0)).toBeCloseTo(THIGH_M + SHIN_M);
   });
 });

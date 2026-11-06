@@ -4,20 +4,27 @@ import { PEDESTRIANS } from '@/config/streetLife';
 
 import { dynamicInstances, mirrorInstances } from './geometry';
 import { hash01, pick } from './random';
-import { walkCycle, type WalkCycle, type WalkerState } from './walkers';
+import {
+  emptyCycle,
+  legHeight,
+  SHIN_M,
+  THIGH_M,
+  walkCycle,
+  type WalkerState,
+} from './walkers';
 
 /**
  * Low-poly pedestrians (SPEC §3.3): real proportions, faceted, muted
  * clothes. One InstancedMesh per body part (torso, head, hair, limbs, shoes)
- * for the whole crowd, ~180 triangles a person. A second set of meshes shares
+ * for the whole crowd, ~210 triangles a person; legs bend at the knee. A second set of meshes shares
  * the same instance buffers to draw the shop-window reflection for free.
  */
 
 const REF_H = 1.75;
 const HIP_Y = 0.92;
 const HIP_X = 0.088;
-const LEG_L = 0.845;
-const LEG_R = 0.07;
+const THIGH_R = 0.078;
+const SHIN_R = 0.058;
 const TORSO_H = 0.56;
 const SHOULDER_Y = HIP_Y + TORSO_H - 0.045;
 const SHOULDER_X = 0.188;
@@ -26,6 +33,10 @@ const ARM_R = 0.048;
 const HEAD_Y = 1.6;
 const ARM_SPLAY = 0.07;
 const WALK_LEAN = (3 * Math.PI) / 180;
+/** Limb instances per person: thighs, shins, arms. */
+const LIMBS = 6;
+/** Crouching at the pickup bin: [hip, knee] per leg, torso lean, step back. */
+const CROUCH = { hipL: 1.1, kneeL: 1.75, hipR: 0.95, kneeR: 1.7, lean: 0.5, stepBack: 0.12 };
 
 const TOPS = [
   '#3B4A5C', // navy
@@ -79,18 +90,22 @@ function geometries() {
   torso.translate(0, TORSO_H / 2, 0);
   const head = new THREE.DodecahedronGeometry(0.104);
   head.scale(0.9, 1.13, 0.98);
+  // Hair shell: covers the crown, sides and back; the face stays clear in front.
   const hair = new THREE.DodecahedronGeometry(0.108);
-  hair.scale(0.96, 0.7, 1.0);
-  hair.translate(0, 0.05, -0.022);
+  hair.scale(0.98, 0.95, 0.96);
+  hair.translate(0, 0.024, -0.036);
   // Unit limb hanging from its top (pivot), tapered.
   const limb = new THREE.CylinderGeometry(1, 0.72, 1, 5, 1);
   limb.translate(0, -0.5, 0);
   const shoe = new THREE.BoxGeometry(0.098, 0.075, 0.25);
   shoe.translate(0, -0.0375, 0.045);
   for (const g of [torso, head, hair, limb, shoe]) {
-    const n = g.toNonIndexed();
-    g.copy(n);
-    n.dispose();
+    // Polyhedra are already non-indexed (toNonIndexed would return `g` itself).
+    if (g.index) {
+      const n = g.toNonIndexed();
+      g.copy(n);
+      n.dispose();
+    }
     g.computeVertexNormals();
   }
   return { torso, head, hair, limb, shoe };
@@ -120,7 +135,7 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
   const torso = dynamicInstances(g.torso, material, capacity, 'people-torso');
   const head = dynamicInstances(g.head, material, capacity, 'people-head');
   const hair = dynamicInstances(g.hair, material, capacity, 'people-hair');
-  const limbs = dynamicInstances(g.limb, material, capacity * 4, 'people-limbs');
+  const limbs = dynamicInstances(g.limb, material, capacity * LIMBS, 'people-limbs');
   const shoes = dynamicInstances(g.shoe, material, capacity * 2, 'people-shoes');
   const meshes = [torso, head, hair, limbs, shoes];
   const white = new THREE.Color('#ffffff');
@@ -149,9 +164,10 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
   }));
   const lookTrip = new Array<number>(capacity).fill(Number.NaN);
   const hands = Array.from({ length: capacity }, () => new THREE.Vector3());
-  const cycle: WalkCycle = { leg: 0, arm: 0, bob: 0 };
+  const cycle = emptyCycle();
   const root = new THREE.Matrix4();
   const upper = new THREE.Matrix4();
+  const hipM = new THREE.Matrix4();
   const m = new THREE.Matrix4();
   const tmp = new THREE.Matrix4();
   const q = new THREE.Quaternion();
@@ -159,13 +175,26 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
   const p = new THREE.Vector3();
   const s = new THREE.Vector3();
   const handLocal = new THREE.Vector3();
+  const LEG = THIGH_M + SHIN_M;
 
-  const compose = (out: THREE.Matrix4, x: number, y: number, z: number, rx: number, ry: number, rz: number, sx: number, sy: number, sz: number) => {
+  const compose = (
+    out: THREE.Matrix4,
+    x: number,
+    y: number,
+    z: number,
+    rx: number,
+    ry: number,
+    rz: number,
+    sx: number,
+    sy: number,
+    sz: number,
+  ) => {
     p.set(x, y, z);
     q.setFromEuler(e.set(rx, ry, rz, 'YXZ'));
     s.set(sx, sy, sz);
     return out.compose(p, q, s);
   };
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
   function update(
     walkers: readonly WalkerState[],
@@ -183,13 +212,28 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
       }
       walkCycle(cycle, w.distance, w.cruise > 0 ? w.speed / w.cruise : 0);
       const r = reach[i] ?? 0;
-      // Reaching into the bin: bend at the hips, stagger the legs, right arm down.
-      const lean = WALK_LEAN * (w.speed > 0 ? 1 : 0.3) + r * 0.95;
-      const legL = cycle.leg + r * 0.3;
-      const legR = -cycle.leg - r * 0.16;
-      const drop = LEG_L * (1 - Math.cos(Math.max(Math.abs(legL), Math.abs(legR))));
+      // Crouching at the pickup bin blends over the (standing) walk pose.
+      const hipL = lerp(cycle.hipL, CROUCH.hipL, r);
+      const hipR = lerp(cycle.hipR, CROUCH.hipR, r);
+      const kneeL = lerp(cycle.kneeL, CROUCH.kneeL, r);
+      const kneeR = lerp(cycle.kneeR, CROUCH.kneeR, r);
+      const crouchDrop = Math.max(legHeight(hipL, kneeL), legHeight(hipR, kneeR)) - LEG;
+      const drop = lerp(cycle.bob, crouchDrop, r);
+      const lean = WALK_LEAN * (w.speed > 0 ? 1 : 0.3) + r * CROUCH.lean;
       const sc = lk.scale;
-      compose(root, w.x, (cycle.bob - drop) * sc, w.z, 0, w.yaw, 0, sc, sc, sc);
+      const back = r * CROUCH.stepBack;
+      compose(
+        root,
+        w.x - Math.sin(w.yaw) * back,
+        drop * sc,
+        w.z - Math.cos(w.yaw) * back,
+        0,
+        w.yaw,
+        0,
+        sc,
+        sc,
+        sc,
+      );
       compose(upper, 0, HIP_Y, 0, lean, 0, 0, 1, 1, 1);
       upper.premultiply(root);
 
@@ -197,31 +241,39 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
       compose(m, 0, 0, 0, 0, 0, 0, lk.width, 1, 1);
       torso.setMatrixAt(n, tmp.multiplyMatrices(upper, m));
       torso.setColorAt(n, lk.top);
-      compose(m, 0, HEAD_Y - HIP_Y, 0.012, -lean * 0.4, 0, 0, 1, 1, 1);
+      compose(m, 0, HEAD_Y - HIP_Y, 0.012, -lean * 0.6, 0, 0, 1, 1, 1);
       tmp.multiplyMatrices(upper, m);
       head.setMatrixAt(n, tmp);
       hair.setMatrixAt(n, tmp);
       head.setColorAt(n, lk.skin);
       hair.setColorAt(n, lk.hair);
 
-      // Legs (+x is the walker's left) and shoes.
+      // Legs: thigh from the hip, shin from the knee (+x is the walker's left).
       for (let side = 0; side < 2; side++) {
         const sign = side === 0 ? 1 : -1;
-        const a = side === 0 ? legL : legR;
-        compose(m, sign * HIP_X * lk.width, HIP_Y, 0, -a, 0, 0, LEG_R, LEG_L, LEG_R);
-        limbs.setMatrixAt(n * 4 + side, tmp.multiplyMatrices(root, m));
-        limbs.setColorAt(n * 4 + side, lk.pants);
-        compose(m, sign * HIP_X * lk.width, HIP_Y, 0, -a, 0, 0, 1, 1, 1);
-        tmp.multiplyMatrices(root, m);
-        m.makeTranslation(0, -LEG_L, 0);
-        shoes.setMatrixAt(n * 2 + side, tmp.multiply(m));
+        const hip = side === 0 ? hipL : hipR;
+        const knee = side === 0 ? kneeL : kneeR;
+        compose(hipM, sign * HIP_X * lk.width, HIP_Y, 0, -hip, 0, 0, 1, 1, 1);
+        hipM.premultiply(root);
+        m.makeScale(THIGH_R, THIGH_M, THIGH_R);
+        limbs.setMatrixAt(n * LIMBS + side, tmp.multiplyMatrices(hipM, m));
+        limbs.setColorAt(n * LIMBS + side, lk.pants);
+        // Knee: down the thigh, then fold the shin back.
+        compose(m, 0, -THIGH_M, 0, knee, 0, 0, 1, 1, 1);
+        hipM.multiply(m);
+        m.makeScale(SHIN_R, SHIN_M, SHIN_R);
+        limbs.setMatrixAt(n * LIMBS + 2 + side, tmp.multiplyMatrices(hipM, m));
+        limbs.setColorAt(n * LIMBS + 2 + side, lk.pants);
+        // Shoe stays level-ish: undo most of the leg's net angle.
+        compose(m, 0, -SHIN_M, 0, (hip - knee) * 0.85, 0, 0, 1, 1, 1);
+        shoes.setMatrixAt(n * 2 + side, tmp.multiplyMatrices(hipM, m));
         shoes.setColorAt(n * 2 + side, lk.shoes);
       }
-      // Arms swing against the legs; the right arm reaches forward-down.
+      // Arms swing against the legs; the right arm reaches down to the bin.
       for (let side = 0; side < 2; side++) {
         const sign = side === 0 ? 1 : -1;
         const swing = side === 0 ? cycle.arm : -cycle.arm;
-        const a = side === 1 ? swing * (1 - r) + r * (lean + 0.35) : swing + r * 0.2;
+        const a = side === 1 ? lerp(swing, lean + 0.3, r) : lerp(swing, lean * 0.6, r);
         compose(
           m,
           sign * SHOULDER_X * lk.width,
@@ -235,8 +287,8 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
           ARM_R,
         );
         tmp.multiplyMatrices(upper, m);
-        limbs.setMatrixAt(n * 4 + 2 + side, tmp);
-        limbs.setColorAt(n * 4 + 2 + side, lk.top);
+        limbs.setMatrixAt(n * LIMBS + 4 + side, tmp);
+        limbs.setColorAt(n * LIMBS + 4 + side, lk.top);
         if (side === 1) hands[i].copy(handLocal.set(0, -1, 0)).applyMatrix4(tmp);
       }
       n++;
@@ -246,7 +298,7 @@ export function createCrowd(capacity = PEDESTRIANS.max): Crowd {
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
     torso.count = head.count = hair.count = n;
-    limbs.count = n * 4;
+    limbs.count = n * LIMBS;
     shoes.count = n * 2;
     mirrors.forEach((mm, j) => (mm.count = meshes[j].count));
     return n;

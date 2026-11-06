@@ -32,9 +32,9 @@ export const PEDESTRIANS = {
   /** Upper bound on people simulated at once (SPEC: 4–10 on a busy street). */
   max: 10,
   /** Walk-lane centers measured from the machine front, by walking direction. */
-  laneFromFrontM: { east: 0.95, west: 1.6 },
+  laneFromFrontM: { east: 0.86, west: 1.42 },
   /** Small lateral offsets so people never walk on one line. */
-  subLaneM: [-0.08, 0, 0.08],
+  subLaneM: [-0.05, 0, 0.05],
   /**
    * One speed per direction: start times are spaced, so nobody overtakes
    * (and walks through) anybody.
@@ -47,10 +47,12 @@ export const PEDESTRIANS = {
   startJitterS: 10,
   /** Two steps; the walk cycle is driven by distance so feet never skate. */
   strideM: 1.42,
-  legSwingDeg: 24,
+  legSwingDeg: 22,
+  /** Peak knee flexion in the swing phase. */
+  kneeBendDeg: 50,
   armSwingDeg: 13,
-  /** Peak-to-peak vertical bob. */
-  bobM: 0.024,
+  /** Share of the stance-leg hip drop kept (1 = rigid-leg bob, 0 = none). */
+  bobDamping: 0.6,
   heightM: [1.6, 1.86],
   shoulderScale: [0.88, 1.08],
   customer: {

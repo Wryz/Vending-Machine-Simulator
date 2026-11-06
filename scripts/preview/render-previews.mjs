@@ -49,7 +49,14 @@ const LIFE = process.argv.includes('--life');
 const LIFE_ABOVE = process.argv.includes('--life-above');
 
 const CENTER = { lat: 40.754, lng: -73.984 };
-const CAMERA = { zoom: Number(arg('zoom', LIFE ? 17.5 : 15.5)), pitch: 55, bearing: -20 };
+/** --life looks up 6th Avenue from W 43rd St (street canyon, not Bryant Park's lawn). */
+const VIEW_CENTER = LIFE ? { lat: 40.7551, lng: -73.984 } : CENTER;
+// --life looks up 6th Avenue (Manhattan's grid runs ~29° east of north).
+const CAMERA = {
+  zoom: Number(arg('zoom', LIFE ? 17.5 : 15.5)),
+  pitch: 55,
+  bearing: Number(arg('bearing', LIFE ? 29 : -20)),
+};
 const VIEWPORT = { width: 390, height: 700 };
 
 /** A few machines around Bryant Park (hb = world heading / 45°). */
@@ -169,7 +176,17 @@ window.mapReady = true;
       [date, shot],
     );
     const result = await page.evaluate(
-      async ({ when, CENTER, CAMERA, MACHINES, origin, iconOffset, LIGHT_MIX, TILES_OVERRIDE }) => {
+      async ({
+        when,
+        CENTER,
+        VIEW_CENTER,
+        CAMERA,
+        MACHINES,
+        origin,
+        iconOffset,
+        LIGHT_MIX,
+        TILES_OVERRIDE,
+      }) => {
         const { style, tod } = window.Preview.buildPreviewStyle({
           date: new Date(when),
           lat: CENTER.lat,
@@ -190,7 +207,7 @@ window.mapReady = true;
         const map = new window.maplibregl.Map({
           container: 'map',
           style,
-          center: [CENTER.lng, CENTER.lat],
+          center: [VIEW_CENTER.lng, VIEW_CENTER.lat],
           zoom: CAMERA.zoom,
           pitch: CAMERA.pitch,
           bearing: CAMERA.bearing,
@@ -223,7 +240,17 @@ window.mapReady = true;
           labels: [...new Set(labels)],
         };
       },
-      { when, CENTER, CAMERA, MACHINES, origin, iconOffset, LIGHT_MIX, TILES_OVERRIDE },
+      {
+        when,
+        CENTER,
+        VIEW_CENTER,
+        CAMERA,
+        MACHINES,
+        origin,
+        iconOffset,
+        LIGHT_MIX,
+        TILES_OVERRIDE,
+      },
     );
     if (LIFE) {
       const life = await page.evaluate(
@@ -333,6 +360,13 @@ async function renderLife(browser) {
   const W = 390 * 2;
   const H = Math.round(844 * 0.46) * 2;
   const SEED = 20261105;
+  for (const typeId of ['snack', 'combo']) {
+    const b = await page.evaluate((t) => window.Closeup.budgetReport(t), typeId);
+    console.log(
+      `  budget (${typeId}): worst case ${Math.round(b.total)} tris = static ${Math.round(b.staticTris)} (machine ${b.machine}, ×2 with reflection) + ` +
+        `10 people × ${b.perPerson} × 2 + 4 cars × ${b.perCar} × 2 (kinds ${b.carKinds.join('/')})`,
+    );
+  }
   const shots = [
     { name: 'day', hh: 13, mm: 0, crowd: 0.8, traffic: 0.75, orbitDeg: 14, sale: 900 },
     { name: 'night', hh: 22, mm: 0, crowd: 0.55, traffic: 0.6, orbitDeg: -16 },
@@ -346,6 +380,10 @@ async function renderLife(browser) {
       ([seed, crowd]) => window.Closeup.pickLifeTime(seed, crowd),
       [SEED, shot.crowd],
     );
+    const tWide = await page.evaluate(
+      ([seed, crowd, traffic, around]) => window.Closeup.pickWideTime(seed, crowd, traffic, around),
+      [SEED, shot.crowd, shot.traffic, tS],
+    );
     for (const view of ['closeup', 'wide']) {
       const r = await page.evaluate((o) => window.Closeup.renderCloseupLife(o), {
         dateIso,
@@ -356,7 +394,7 @@ async function renderLife(browser) {
         supersample: 2,
         crowd: shot.crowd,
         traffic: shot.traffic,
-        tS: view === 'closeup' ? tS : tS + 1.5,
+        tS: view === 'closeup' ? tS : tWide,
         view,
         orbitDeg: view === 'closeup' ? shot.orbitDeg : 18,
         seed: SEED,
@@ -368,7 +406,7 @@ async function renderLife(browser) {
       const file = `closeup-life-${shot.name}${view === 'wide' ? '-wide' : ''}.png`;
       await writeFile(path.join(OUT, file), png);
       console.log(
-        `  ${file}: preset ${r.preset}, night ${r.night.toFixed(2)}, t=${tS}s, walkers ${r.stats.walkers}, cars ${r.stats.cars}, ` +
+        `  ${file}: preset ${r.preset}, night ${r.night.toFixed(2)}, t=${view === 'closeup' ? tS : tWide.toFixed(1)}s, walkers ${r.stats.walkers}, cars ${r.stats.cars}, ` +
           `street tris ${r.stats.triangles}, machine tris ${r.stats.machineTriangles}, scene tris ${r.stats.sceneTriangles}, ` +
           `drawn ${r.stats.drawn.triangles} tris / ${r.stats.drawn.calls} calls (incl. shadow pass)`,
       );

@@ -221,27 +221,52 @@ export function walkerAt(
   return out;
 }
 
+/** Leg segments at the 1.75 m reference height (hip at 0.92 m, ankle at 0.075 m). */
+export const THIGH_M = 0.44;
+export const SHIN_M = 0.405;
+
 export interface WalkCycle {
-  /** Leg swing (radians, + = left leg forward). */
-  leg: number;
+  /** Hip angles (radians, + = thigh forward). */
+  hipL: number;
+  hipR: number;
+  /** Knee flexion (radians, ≥ 0, shin folds back). */
+  kneeL: number;
+  kneeR: number;
   /** Arm swing (radians, opposite to the same-side leg). */
   arm: number;
-  /** Vertical body offset (m). */
+  /** Hip drop so the stance foot stays on the ground (m, ≤ 0). */
   bob: number;
+}
+
+export function emptyCycle(): WalkCycle {
+  return { hipL: 0, hipR: 0, kneeL: 0, kneeR: 0, arm: 0, bob: 0 };
+}
+
+/** Height of the hip above the ankle for a leg pose. */
+export function legHeight(hip: number, knee: number): number {
+  return THIGH_M * Math.cos(hip) + SHIN_M * Math.cos(hip - knee);
 }
 
 /**
  * Walk cycle from distance walked (no foot skating) and speed fraction
- * (amplitude settles to a neutral stance as they stop). Natural, not bouncy:
- * highest at mid-stance, lowest at double support.
+ * (settles to a neutral stance as they stop). The swing leg bends at the
+ * knee; the hips ride on the stance leg, damped so it stays natural, not
+ * bouncy (~3 cm).
  */
 export function walkCycle(out: WalkCycle, distance: number, speedFrac: number): WalkCycle {
   const P = PEDESTRIANS;
   const amp = Math.min(1, Math.max(0, speedFrac * 1.4));
   const phase = (distance / P.strideM) * Math.PI * 2;
   const s = Math.sin(phase);
-  out.leg = ((P.legSwingDeg * Math.PI) / 180) * s * amp;
+  const c = Math.cos(phase);
+  const hip = ((P.legSwingDeg * Math.PI) / 180) * amp;
+  const knee = ((P.kneeBendDeg * Math.PI) / 180) * amp;
+  out.hipL = hip * s;
+  out.hipR = -hip * s;
+  out.kneeL = knee * Math.max(0, c) ** 2;
+  out.kneeR = knee * Math.max(0, -c) ** 2;
   out.arm = ((-P.armSwingDeg * Math.PI) / 180) * s * amp;
-  out.bob = P.bobM * 0.5 * Math.cos(2 * phase) * amp;
+  const stance = Math.max(legHeight(out.hipL, out.kneeL), legHeight(out.hipR, out.kneeR));
+  out.bob = (stance - (THIGH_M + SHIN_M)) * P.bobDamping;
   return out;
 }

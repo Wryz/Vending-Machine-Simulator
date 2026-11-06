@@ -63,7 +63,7 @@ export function createStreet(layout: StreetLayout, machineWidthM: number): Stree
       flatShading: true,
     }),
     upperWin: std('#4D555E', 0.25, { metalness: 0.3 }),
-    litWin: std('#4D555E', 0.4, { emissive: c('#FFD9A0'), emissiveIntensity: 0 }),
+    litWin: std('#4D555E', 0.4, { emissive: c('#F2B872'), emissiveIntensity: 0 }),
     interior: new THREE.MeshBasicMaterial({ color: '#C8D0D4', side: THREE.BackSide }),
     trunk: std('#5B5048', 0.95),
     leaf: std('#74835F', 0.9),
@@ -71,7 +71,7 @@ export function createStreet(layout: StreetLayout, machineWidthM: number): Stree
     pole: std('#3A3E42', 0.55, { metalness: 0.5 }),
     lens: std('#E8DCC4', 0.3, { emissive: c('#FFB25E'), emissiveIntensity: 0 }),
     wood: std('#8A6E52', 0.8),
-    bin: std('#46504C', 0.6, { metalness: 0.3 }),
+    bin: std('#5E6A64', 0.55, { metalness: 0.3 }),
   };
 
   const group = new THREE.Group();
@@ -357,7 +357,7 @@ export function createStreet(layout: StreetLayout, machineWidthM: number): Stree
     // What the glass reflects: the sky, a little darker.
     mats.interior.color.set(p.sky).lerp(tmp2.set('#11161B'), 0.2 + 0.2 * night);
     mats.lens.emissiveIntensity = 2.8 * night;
-    mats.litWin.emissiveIntensity = 0.85 * night;
+    mats.litWin.emissiveIntensity = 0.22 * night;
     lamp.intensity = 14 * night;
     lamp.visible = night > 0.02;
   }

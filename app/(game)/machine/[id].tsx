@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
   runOnJS,
@@ -20,7 +20,9 @@ import {
   applyAdReward,
   cashBoxCapacity,
   collectCash,
+  baseTraffic,
   hasResearch,
+  localTime,
   pickUpMachine,
   priceResponse,
   productsFor,
@@ -36,6 +38,7 @@ import {
   vanCapacity,
   type RestockLine,
 } from '@/sim';
+import { weatherTrafficFactor } from '@/sim/demand';
 import { adsAvailable, showRewarded } from '@/services/ads';
 import { sound } from '@/services/audio';
 import { haptic } from '@/services/haptics';
@@ -43,7 +46,11 @@ import { track } from '@/services/analytics';
 import { useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
 import { transition } from '@/store/transition';
-import { MachineScene, type SlotView } from '@/three/MachineScene';
+import { CLOSEUP_MOTION } from '@/config/streetLife';
+import { isLeftHandTraffic, streetDensity } from '@/three/life/density';
+import { coinGlintsMs, restockPlan, soldSlots } from '@/three/life/interactions';
+import { seedFrom } from '@/three/life/random';
+import { MachineScene, type SlotView, type SlotsEvent } from '@/three/MachineScene';
 import { useTheme } from '@/ui/ThemeProvider';
 import { duration, money, pct } from '@/ui/format';
 import { Button, Chip, Divider, Mono, Paper, ProgressBar, Row, Section, T, Toast } from '@/ui/kit';
@@ -66,7 +73,7 @@ export default function MachineCloseup() {
   const removeAds = useProfile((s) => s.entitlements.removeAds);
   const ownedWraps = useProfile((s) => s.entitlements.wraps).filter((w) => w in WRAPS);
   const machine = game.machines.find((m) => m.id === id);
-  const { tod } = useCityClock(world.city.lat, world.city.lng);
+  const { now, tod } = useCityClock(world.city.lat, world.city.lng);
   const [selected, setSelected] = useState<number | null>(null);
   const [plan, setPlan] = useState<Plan>({});
   const [coins, setCoins] = useState<{ gross: number; commission: number } | null>(null);
@@ -75,7 +82,21 @@ export default function MachineCloseup() {
   );
   const [fps, setFps] = useState<number | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const [restockEvent, setRestockEvent] = useState<SlotsEvent | null>(null);
+  const [saleEvent, setSaleEvent] = useState<SlotsEvent | null>(null);
+  const [collectEvent, setCollectEvent] = useState<number | null>(null);
+  const [collecting, setCollecting] = useState(false);
   const opacity = useSharedValue(0);
+  // Sound/haptic timers for the scene's animations; cleared when leaving.
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const eventSeq = useRef(0);
+  const later = (ms: number, fn: () => void) => {
+    timers.current.push(setTimeout(fn, ms));
+  };
+  useEffect(() => {
+    const list = timers.current;
+    return () => list.forEach(clearTimeout);
+  }, []);
 
   const type = machine ? getMachineType(machine.typeId) : null;
 
@@ -121,6 +142,40 @@ export default function MachineCloseup() {
   }, []);
 
   const fade = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  // Street life from the sim: real foot traffic at this cell and local hour (SPEC §5.2).
+  const street = useMemo(() => {
+    if (!machine) return { crowd: 0.3, traffic: 0.3 };
+    const local = localTime(now, world.city.timeZone, world.city.countryCode);
+    const cell = world.cells.get(machine.cellId);
+    if (!cell) return streetDensity(0);
+    const t = baseTraffic(cell, local.hour, local.restDay);
+    return streetDensity(t.total, weatherTrafficFactor(t, world.weatherAt(now)));
+  }, [machine?.cellId, now, world]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A sale while you watch: a product drops into the bin. The snapshot follows
+  // every stock change (restocks too); only a rise in units sold plays a drop.
+  const unitsTotal = machine?.stats.unitsTotal ?? 0;
+  const qtyKey = machine?.slots.map((s) => s.qty).join(',') ?? '';
+  const seenStock = useRef<{ units: number; qty: number[] } | null>(null);
+  useEffect(() => {
+    if (!machine) return;
+    const qty = machine.slots.map((s) => s.qty);
+    const prev = seenStock.current;
+    seenStock.current = { units: unitsTotal, qty };
+    if (!prev || unitsTotal <= prev.units) return;
+    const sold = soldSlots(prev.qty, qty);
+    if (!sold.length) return;
+    setSaleEvent({ id: ++eventSeq.current, slots: sold });
+    sold.forEach((_, i) =>
+      later(i * 280 + CLOSEUP_MOTION.drop.tipMs, () => {
+        sound.play('drop');
+        haptic.tick();
+      }),
+    );
+    // Stock and units sold are the inputs; `machine` itself changes identity every tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unitsTotal, qtyKey]);
 
   const leave = () => {
     if (leaving || !cams) return;
@@ -176,11 +231,25 @@ export default function MachineCloseup() {
   };
 
   const doCollect = () => {
+    if (collecting) return;
     const res = useGame.getState().act((d) => collectCash(d, machine.id));
     if (!res.ok) return show(res.error, 'error');
-    setCoins({ gross: res.grossCents, commission: res.commissionCents });
-    sound.play('coins');
-    if (res.pulledItem) show('Free collectible pull found in the cash box.', 'success');
+    // The cash door opens and coins glint in 3D first, then the coin tray slides in.
+    setCollecting(true);
+    setCollectEvent(++eventSeq.current);
+    sound.play('door');
+    coinGlintsMs().forEach((ms, i) =>
+      later(ms, () => {
+        haptic.tick();
+        if (i % 3 === 0) sound.play('coin');
+      }),
+    );
+    later(CLOSEUP_MOTION.coinTrayDelayMs, () => {
+      setCollecting(false);
+      setCoins({ gross: res.grossCents, commission: res.commissionCents });
+      sound.play('coins');
+      if (res.pulledItem) show('Free collectible pull found in the cash box.', 'success');
+    });
     track('collect', { count: Math.round(res.grossCents / 100) });
   };
 
@@ -215,8 +284,20 @@ export default function MachineCloseup() {
       return show(res.error, 'error');
     }
     setPlan({});
-    haptic.success();
-    sound.play('vend');
+    // Blocks slide in slot by slot; a thunk per landing (at most 8), success at the end.
+    const slotsIn = planned.map((l) => l.slot).sort((a, b) => a - b);
+    const plan3d = restockPlan(slotsIn.length);
+    setRestockEvent({ id: ++eventSeq.current, slots: slotsIn });
+    plan3d.ticksMs.forEach((ms) =>
+      later(ms, () => {
+        haptic.thunk();
+        sound.play('thunk');
+      }),
+    );
+    later(plan3d.doneMs + 120, () => {
+      haptic.success();
+      sound.play('success');
+    });
     show(`Restocked ${res.units} items`, 'success');
     track('restock', { count: res.units });
   };
@@ -264,6 +345,13 @@ export default function MachineCloseup() {
           durationMs={CLOSEUP_CAMERA.dollyMs}
           broken={!!machine.broken}
           selectedSlot={selected}
+          crowd={street.crowd}
+          traffic={street.traffic}
+          leftHandTraffic={isLeftHandTraffic(world.city.countryCode)}
+          seed={seedFrom(machine.id)}
+          restockEvent={restockEvent}
+          saleEvent={saleEvent}
+          collectEvent={collectEvent}
           onSlotPress={(i) => {
             setSelected(i);
             haptic.select();
@@ -378,9 +466,9 @@ export default function MachineCloseup() {
         >
           {coins ? <CoinTray grossCents={coins.gross} commissionCents={coins.commission} /> : null}
           <Button
-            label={coins ? 'Collected' : 'Open the cash box'}
+            label={coins ? 'Collected' : collecting ? 'Opening…' : 'Open the cash box'}
             kind={coins ? 'secondary' : 'primary'}
-            disabled={!!coins}
+            disabled={!!coins || collecting}
             onPress={doCollect}
           />
         </Section>
