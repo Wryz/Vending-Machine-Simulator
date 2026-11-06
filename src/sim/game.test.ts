@@ -371,7 +371,11 @@ describe('service, risks and contracts', () => {
   it('an empty machine upsets the venue until it ends the contract', () => {
     const s = startWithPlacedMachine(world);
     s.machines[0].slots.forEach((x) => (x.qty = 0));
-    const { state, report } = advance(s, world, s.now + 12 * 3_600_000);
+    // Venues judge on real time: a night empty is forgiven, days are not.
+    const night = advance(s, world, s.now + 12 * 3_600_000);
+    expect(night.state.machines[0].status).toBe('active');
+    expect(night.state.machines[0].mood).toBeLessThan(s.machines[0].mood);
+    const { state, report } = advance(s, world, s.now + 72 * 3_600_000);
     expect(report.contractsLost).toContain(s.machines[0].id);
     expect(state.machines[0].status).toBe('stored');
   });

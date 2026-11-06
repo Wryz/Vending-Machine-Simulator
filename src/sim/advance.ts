@@ -363,12 +363,13 @@ function contractStep(
   world: World,
   m: Machine,
   t: number,
-  bd: number,
+  /** Real hours this step covers (mood runs on real time, see CONTRACT). */
+  hours: number,
   report: AdvanceReport,
 ): void {
-  if (m.broken) m.mood -= CONTRACT.moodLossBrokenPerDay * bd;
-  else if (isEmpty(m)) m.mood -= CONTRACT.moodLossEmptyPerDay * bd;
-  else m.mood += CONTRACT.moodRecoverPerDay * bd;
+  if (m.broken) m.mood -= CONTRACT.moodLossBrokenPerHour * hours;
+  else if (isEmpty(m)) m.mood -= CONTRACT.moodLossEmptyPerHour * hours;
+  else m.mood += CONTRACT.moodRecoverPerHour * hours;
   m.mood = Math.min(1, Math.max(0, m.mood));
 
   const lose = (why: string) => {
@@ -385,7 +386,7 @@ function contractStep(
 
   if (m.mood < CONTRACT.terminateBelow) {
     m.lowMoodSince ??= t;
-    if (t - m.lowMoodSince >= businessDaysToMs(CONTRACT.terminateAfterDays)) {
+    if (t - m.lowMoodSince >= CONTRACT.terminateAfterHours * 3_600_000) {
       lose('poor service');
       return;
     }
@@ -564,7 +565,7 @@ export function advance(
       powerCents += type.powerCentsPerDay * bd;
       costs += risksStep(s, world, m, type, local, tMid, bd, report);
       spoilStep(s, m, tMid, report);
-      contractStep(s, world, m, tMid, bd, report);
+      contractStep(s, world, m, tMid, dt / 3_600_000, report);
       if (m.status === 'active' && isEmpty(m) && !emptyBefore.has(m.id)) {
         emptyBefore.add(m.id);
         report.becameEmpty.push(m.id);

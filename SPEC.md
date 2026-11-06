@@ -202,7 +202,7 @@ Each machine has:
 ### 4.5 Location contracts (real names)
 - Each spot is attached to the nearest suitable real place (from map data) by **real name, no logos**. Example: "Lakeview Fitness · Gym · 40 m".
 - The contract sets the commission % the venue takes (10–35%), the term (30, 90 or 180 game-days) and exclusivity options.
-- Venue "mood" depends on service quality: empty or broken machines lower satisfaction, which can lead to contract termination.
+- Venue "mood" depends on service quality: empty or broken machines lower satisfaction, which can lead to contract termination. Mood runs on **real time** (not the faster business clock): a machine empty overnight is forgiven; a venue walks away after roughly two days of neglect (`CONTRACT` in `src/config/economy.ts`).
 - Show a small in-game disclaimer: "Places shown from open map data. No affiliation or endorsement." Add a "Report this place" option that hides a venue.
 
 ### 4.6 Events

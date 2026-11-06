@@ -137,13 +137,19 @@ export const CONTRACT = {
   commissionMax: 0.35,
   /** Renegotiation (chapter-1 unlock) can shave this much, once per contract. */
   renegotiateDiscount: 0.03,
-  /** Mood (0..1) changes per business day. */
-  moodRecoverPerDay: 0.12,
-  moodLossEmptyPerDay: 0.25,
-  moodLossBrokenPerDay: 0.35,
+  /**
+   * Venue mood (0..1) moves in REAL hours, not business days. Venues judge
+   * service on a human clock: on the 60× business clock an unattended machine
+   * lost its contract within an hour of selling out, so every chapter-1
+   * player lost their machines overnight. Now an empty machine survives a
+   * night away; a contract ends after roughly two days of neglect.
+   */
+  moodRecoverPerHour: 0.05,
+  moodLossEmptyPerHour: 0.02,
+  moodLossBrokenPerHour: 0.03,
   terminateBelow: 0.2,
-  /** Days the mood must stay below `terminateBelow` before termination. */
-  terminateAfterDays: 2,
+  /** Real hours the mood must stay below `terminateBelow` before termination. */
+  terminateAfterHours: 24,
 } as const;
 
 export const RISK = {
