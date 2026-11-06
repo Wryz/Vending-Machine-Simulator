@@ -393,7 +393,7 @@ In Node: 274 → 98 ms (synthetic) and 150 → 115 ms (`scripts/bench/offline-ca
 - **Globe:** pinch far out for a flat-shaded low-poly SVG globe lit by the real sun, with the unlit side dark and a pin per city.
 - **Less text everywhere:** icon chips, locked-feature cards, numbers before sentences.
 - **Product art:** 48 unbranded game icons, made with ChatGPT image generation (`scripts/products/PROMPTS.md`) and sliced by `scripts/products/slice.mjs`. They show on the coils, in the restock picker and in the cold open.
-- **Brand:** Nunito font, tangerine icon and splash (`scripts/brand/build-flat-brand.mjs`).
+- **Brand:** Nunito font. The mark is our soda can on tangerine with lighter orange rays behind it, made with ChatGPT from the in-game can; `scripts/brand/build-brand.mjs` builds the icon, splash, Android icons, favicon and website images from `assets/brand/`.
 
 ### Open issues
 - **3D in the Simulator is unreliable.** After many relaunches its GL stops presenting frames until the Simulator is rebooted. The close-up opened from the map shows only sky, and its JS frame loop stalls; the scene renders fine from Diagnostics. The likely cause is software GL in the Simulator with a far start camera (the whole street, with shadows, at 1206² px), but it isn't proven. **Check on a real iPhone first.** That needs Xcode 26.4+ for iOS 26.6.

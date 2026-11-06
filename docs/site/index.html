@@ -3,24 +3,114 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coinline</title>
-<meta name="description" content="Coinline: a vending machine tycoon on a real map of your own city.">
+<title>Coinline: Vending Tycoon</title>
+<meta name="description" content="Start with one used vending machine and grow a vending empire on a real map of your own city. Real places, real time, real weather.">
+<meta name="theme-color" content="#FF6B2C">
 <link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Coinline: Vending Tycoon">
+<meta property="og:description" content="A vending machine tycoon on a real map of your own city.">
+<meta property="og:image" content="https://wryz.github.io/Vending-Machine-Simulator/site/og.png">
+<meta property="og:url" content="https://wryz.github.io/Vending-Machine-Simulator/site/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><div class="wrap"><a href="index.html">Coinline</a><p>A vending machine tycoon on a real map</p></div></header>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="icon.png" alt="" width="40" height="40">Coinline</a>
+    <nav><a href="support.html">Support</a><a href="privacy.html">Privacy</a></nav>
+  </div>
+</header>
+
 <main>
-<img src="icon.png" alt="" width="96" height="96" style="border-radius:22px">
-<h1>Start with one used machine. Build a vending empire in your own city.</h1>
-<p>Coinline puts your vending business on a real map. Every spot sells according to real-world data: who lives and walks by, what's nearby, the real local time and the real weather. Pick spots, stock what sells, collect the coins, and grow until drivers and smart machines run it for you.</p>
-<ul>
-<li>A bright, low-poly city that follows your real day and night</li>
-<li>Watch customers walk up to buy</li>
-<li>No forced ads, no accounts; your save stays on your phone</li>
-</ul>
-<p><a href="support.html">Support</a> · <a href="privacy.html">Privacy policy</a></p>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <div>
+        <h1 id="hero-title">One used machine.<br>A whole city.</h1>
+        <p class="lede">Coinline is a vending machine tycoon on a real map of your own city. Every spot sells like the real world: the people walking by, the places around it, the real time and the real weather.</p>
+        <div class="ctas">
+          <span class="key" aria-label="Coming soon to the App Store">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+            Coming soon on iPhone
+          </span>
+          <a class="key ghost" href="#how">See how it plays</a>
+        </div>
+      </div>
+      <img class="can" src="img/can.png" alt="Coinline's soda can" width="420" height="415">
+    </div>
+  </section>
+
+  <div class="ticker" aria-hidden="true">
+    <div class="row">
+      <span>Sale <b>+$1.75</b> · Cold drinks</span><span>Sale <b>+$2.50</b> · Coffee</span><span>Cash box full</span><span>Heatwave · drinks up</span><span>Sale <b>+$3.00</b> · Snacks</span><span>Rush hour</span><span>Driver restocked 40 items</span><span>Sale <b>+$2.25</b> · Juice</span>
+      <span>Sale <b>+$1.75</b> · Cold drinks</span><span>Sale <b>+$2.50</b> · Coffee</span><span>Cash box full</span><span>Heatwave · drinks up</span><span>Sale <b>+$3.00</b> · Snacks</span><span>Rush hour</span><span>Driver restocked 40 items</span><span>Sale <b>+$2.25</b> · Juice</span>
+    </div>
+  </div>
+
+  <section id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <p class="eyebrow">How it plays</p>
+      <h2 id="how-title">Pick a spot. Stock it. Watch it sell.</h2>
+      <p class="sub">Start with a $250 used machine and grow until drivers and smart machines run your business for you.</p>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><h3>Find the spot</h3><p>Tap anywhere in your city to see who passes by, when, and why a spot is good or bad.</p></div>
+        <div class="step"><div class="n">2</div><h3>Stock what sells</h3><p>Snacks, cold drinks, coffee, hot food, capsule toys. Set your prices and fill the coils.</p></div>
+        <div class="step"><div class="n">3</div><h3>Grow the business</h3><p>Collect the coins, hire drivers, plan routes and outplay a rival operator across five chapters.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screens" aria-labelledby="screens-title">
+    <div class="wrap">
+      <p class="eyebrow">In the game</p>
+      <h2 id="screens-title">Your machines, your streets</h2>
+      <p class="sub">A bright, low-poly city that follows your real day and night. Customers walk up to buy, and every sale pops on the map.</p>
+      <div class="phones">
+        <figure class="phone"><img src="img/shot-1.jpg" alt="A customer buying from a vending machine near Trafalgar Square, with the machine's controls below" loading="lazy" width="600" height="1304"><figcaption>Customers walk up to buy</figcaption></figure>
+        <figure class="phone"><img src="img/shot-2.jpg" alt="The London map with three vending machines" loading="lazy" width="600" height="1304"><figcaption>Your city, on a real map</figcaption></figure>
+        <figure class="phone"><img src="img/shot-3.jpg" alt="Company screen with chapter progress and finances" loading="lazy" width="600" height="1304"><figcaption>Chapters and finances</figcaption></figure>
+        <figure class="phone"><img src="img/shot-4.jpg" alt="Daily orders and trophies" loading="lazy" width="600" height="1304"><figcaption>Daily orders and trophies</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="features-title">
+    <div class="wrap">
+      <p class="eyebrow">Why it's different</p>
+      <h2 id="features-title">Built on the real world</h2>
+      <p class="sub">Open map data, the real clock and live weather drive every sale.</p>
+      <div class="features">
+        <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg></div><div><h3>A real map</h3><p>Real streets and places from open map data. Start in your own city or one of nine world cities.</p></div></div>
+        <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg></div><div><h3>Real time and weather</h3><p>Coffee peaks at 8 am, cold drinks sell out in a heatwave, and nights are cozy.</p></div></div>
+        <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7.5" r="3"/><path d="M3.5 20c0-3.3 2.5-6 5.5-6s5.5 2.7 5.5 6"/><path d="M16 4.5a3 3 0 0 1 0 6M18 14c1.8.7 3 2.9 3 6"/></svg></div><div><h3>Customers you can see</h3><p>Zoom in and watch people walk up to your machine. The sale lands when they buy.</p></div></div>
+        <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/></svg></div><div><h3>Grow into an empire</h3><p>Drivers, routes, a warehouse and smart machines, until the business runs itself.</p></div></div>
+        <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.5 3.2 8 7.5 9.5 4.3-1.5 7.5-5 7.5-9.5V6z"/><path d="m9 12 2 2 4-4"/></svg></div><div><h3>Fair by design</h3><p>No forced ads, ever. Watch an ad only when you want a reward.</p></div></div>
+        <div class="feature"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></div><div><h3>Your save, your phone</h3><p>No accounts. Your game stays on your device, and it keeps selling while you're away.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" aria-labelledby="band-title">
+    <div class="wrap">
+      <img src="img/can.png" alt="" width="140" height="138">
+      <h2 id="band-title">Your first machine is waiting</h2>
+      <p class="lede">Coinline is coming to iPhone soon.</p>
+      <div class="ctas"><a class="key" href="support.html">Questions? Visit support</a></div>
+    </div>
+  </section>
 </main>
-<footer>© 2026 Coinline</footer>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <a href="support.html">Support</a><a href="privacy.html">Privacy policy</a>
+      <small>Map data © OpenStreetMap contributors · © OpenFreeMap · © OpenMapTiles. Weather from MET Norway. All products and brands in the game are invented.</small>
+    </div>
+    <div>© 2026 Coinline</div>
+  </div>
+</footer>
 </body>
 </html>
