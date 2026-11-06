@@ -52,12 +52,13 @@ import { coinGlintsMs, restockPlan, soldSlots } from '@/three/life/interactions'
 import { seedFrom } from '@/three/life/random';
 import { MachineScene, type SlotView, type SlotsEvent } from '@/three/MachineScene';
 import { useTheme } from '@/ui/ThemeProvider';
-import { duration, money, pct } from '@/ui/format';
-import { Button, Chip, Divider, Mono, Paper, ProgressBar, Row, Section, T, Toast } from '@/ui/kit';
+import { money, moneyShort, pct } from '@/ui/format';
+import { RoundButton, StatChip } from '@/ui/hud';
+import { Icon, type IconName } from '@/ui/icons';
+import { Button, Chip, Mono, Paper, Row, T, Toast } from '@/ui/kit';
 import { hasTelemetry, machineStatus } from '@/ui/machineStatus';
 import { CoinTray } from '@/ui/objects/CoinTray';
 import { STATUS_LABEL, statusColor } from '@/ui/objects/KeyTag';
-import { SpecTag } from '@/ui/objects/small';
 import { SPACE, TOUCH } from '@/ui/theme';
 
 type Plan = Record<number, RestockLine>;
@@ -372,14 +373,7 @@ export default function MachineCloseup() {
           onFps={setFps}
         />
         <View style={[styles.topRow, { top: insets.top + SPACE.xs }]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Back to map"
-            onPress={leave}
-            style={[styles.round, { backgroundColor: theme.hud }]}
-          >
-            <T size={22}>{'‹'}</T>
-          </Pressable>
+          <RoundButton icon="back" label="Back to map" onPress={leave} />
           {__DEV__ && fps !== null ? (
             <View style={[styles.fps, { backgroundColor: theme.hud }]}>
               <Mono size={11}>{`${fps.toFixed(0)} fps`}</Mono>
@@ -396,65 +390,95 @@ export default function MachineCloseup() {
           gap: SPACE.l,
         }}
       >
-        <View style={{ gap: 2 }}>
+        {/* Who and how it's doing: one line of text, the rest as icons. */}
+        <View style={{ gap: SPACE.s }}>
           <Row style={{ justifyContent: 'space-between' }}>
-            <T size={19} weight="bold" accessibilityRole="header" style={{ flex: 1 }}>
-              {type.name}
-            </T>
-            <Row gap={4}>
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: statusColor(status, theme),
-                }}
-              />
+            <View style={{ flex: 1 }}>
+              <T size={21} weight="bold" accessibilityRole="header" numberOfLines={1}>
+                {machine.venue.name}
+              </T>
               <T size={13} muted>
+                {type.name}
+              </T>
+            </View>
+            <View style={[styles.status, { backgroundColor: theme.surface }]}>
+              <View
+                style={[
+                  styles.dot,
+                  { backgroundColor: status === 'ok' ? theme.signal : statusColor(status, theme) },
+                ]}
+              />
+              <T size={13} weight="bold">
                 {STATUS_LABEL[status]}
               </T>
-            </Row>
-          </Row>
-          <T size={13} muted>
-            {machine.venue.name} · {pct(machine.contract.commission, 1)} commission ·{' '}
-            {contractLeft > 0 ? `${duration(contractLeft)} left` : 'renewing'}
-          </T>
-          <Row style={{ marginTop: 6 }}>
-            <T size={12} muted style={{ width: 92 }}>
-              Venue mood
-            </T>
-            <View style={{ flex: 1 }}>
-              <ProgressBar
-                value={machine.mood}
-                color={
-                  machine.mood < CONTRACT.terminateBelow + 0.15
-                    ? theme.alert
-                    : machine.mood < 0.55
-                      ? theme.amber
-                      : theme.signal
-                }
-              />
             </View>
           </Row>
-          {!live ? (
-            <T size={12} muted>
-              No telemetry: you see stock when you visit.
-            </T>
-          ) : null}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: SPACE.s }}
+          >
+            <StatChip
+              icon="coin"
+              label="Cash box"
+              value={`${moneyShort(machine.cashBoxCents)} / ${moneyShort(cashBoxCapacity(game, type))}`}
+              color={
+                machine.cashBoxCents >= cashBoxCapacity(game, type) * 0.95
+                  ? theme.signal
+                  : undefined
+              }
+            />
+            <StatChip
+              icon="percent"
+              label="Venue commission"
+              value={pct(machine.contract.commission)}
+            />
+            <StatChip
+              icon="clock"
+              label="Contract"
+              value={contractLeft > 0 ? shortDuration(contractLeft) : 'renewing'}
+            />
+            <StatChip icon="smile" label={`Venue mood ${Math.round(machine.mood * 100)}%`}>
+              <View style={[styles.mood, { backgroundColor: theme.line }]}>
+                <View
+                  style={{
+                    width: `${Math.round(machine.mood * 100)}%`,
+                    height: '100%',
+                    borderRadius: 4,
+                    backgroundColor:
+                      machine.mood < CONTRACT.terminateBelow + 0.15
+                        ? theme.alert
+                        : machine.mood < 0.55
+                          ? theme.amber
+                          : theme.signal,
+                  }}
+                />
+              </View>
+            </StatChip>
+            {!live ? (
+              <StatChip icon="eyeOff" label="No telemetry: stock shown from your last visit" />
+            ) : null}
+          </ScrollView>
         </View>
 
         {machine.broken ? (
-          <Paper style={{ borderColor: theme.alert, borderWidth: 1 }}>
-            <T weight="bold" color={theme.alert}>
-              {machine.broken.kind === 'fridge' ? 'Refrigeration failure' : 'Coil jammed'}
-            </T>
-            <T size={13} muted>
-              {machine.broken.techFixAt
-                ? `Technician arrives in ${duration(Math.max(0, machine.broken.techFixAt - game.now))}.`
-                : 'It sells nothing until it is fixed.'}
-            </T>
+          <Paper style={{ gap: SPACE.s }}>
+            <Row>
+              <Icon name="wrench" size={22} color={theme.alert} />
+              <T weight="bold" color={theme.alert} style={{ flex: 1 }}>
+                {machine.broken.kind === 'fridge' ? 'Fridge broken' : 'Coil jammed'}
+              </T>
+              {machine.broken.techFixAt ? (
+                <StatChip
+                  icon="clock"
+                  label="Technician arrives in"
+                  value={shortDuration(Math.max(0, machine.broken.techFixAt - game.now))}
+                />
+              ) : null}
+            </Row>
             <Button
-              label={`Fix it by hand · ${money(SERVICE.manualRepairCostCents)}`}
+              label={`Fix · ${moneyShort(SERVICE.manualRepairCostCents)}`}
+              icon={<Icon name="wrench" size={20} color={theme.onBrand} />}
               onPress={() => {
                 const r = useGame.getState().act((d) => repairMachine(d, machine.id));
                 if (!r.ok) show(r.error, 'error');
@@ -464,98 +488,124 @@ export default function MachineCloseup() {
                   show('Repaired', 'success');
                 }
               }}
-              style={{ marginTop: SPACE.s }}
             />
           </Paper>
         ) : null}
 
-        <Section
-          title="Cash box"
-          right={
-            <Mono
-              size={13}
-            >{`${money(machine.cashBoxCents)} / ${money(cashBoxCapacity(game, type), { compact: true })}`}</Mono>
-          }
-        >
-          {coins ? <CoinTray grossCents={coins.gross} commissionCents={coins.commission} /> : null}
+        {coins ? <CoinTray grossCents={coins.gross} commissionCents={coins.commission} /> : null}
+
+        {/* The two jobs: take the cash, refill the coils. */}
+        <Row gap={SPACE.s}>
           <Button
-            label={coins ? 'Collected' : collecting ? 'Opening…' : 'Open the cash box'}
+            label={
+              coins ? 'Collected' : collecting ? '…' : `Collect ${moneyShort(machine.cashBoxCents)}`
+            }
+            icon={<Icon name="coin" size={20} color={coins ? theme.ink : theme.onBrand} />}
             kind={coins ? 'secondary' : 'primary'}
             disabled={!!coins || collecting}
             onPress={doCollect}
+            style={{ flex: 1 }}
           />
-        </Section>
-
-        <Section
-          title={`Van crate · ${plannedUnits}/${van} items`}
-          right={plannedUnits ? <Mono size={13}>{money(plannedCost)}</Mono> : null}
-        >
-          <Row style={{ flexWrap: 'wrap' }}>
-            <Chip label="Fill all" onPress={fillAll} />
-            {plannedUnits ? <Chip label="Clear" onPress={() => setPlan({})} /> : null}
-            {!removeAds && adsAvailable() ? (
-              <Chip label="Instant restock (ad)" onPress={adRestock} />
-            ) : null}
-          </Row>
-          {plannedUnits ? (
+          <Button
+            label="Fill"
+            icon={<Icon name="box" size={20} color={theme.ink} />}
+            kind="secondary"
+            onPress={fillAll}
+            accessibilityHint={`Plan a full restock from the van, up to ${van} items`}
+          />
+          {!removeAds && adsAvailable() ? (
             <Button
-              label={`Restock ${plannedUnits} items · ${money(plannedCost)}`}
-              onPress={commitRestock}
+              label="Instant restock (ad)"
+              hideLabel
+              icon={<Icon name="play" size={20} color={theme.ink} />}
+              kind="secondary"
+              onPress={adRestock}
+              accessibilityHint="Watch an ad for an instant restock"
             />
           ) : null}
-          <T size={12} muted>
-            Restocking by hand adds a fresh-stock bonus (+
-            {Math.round(SERVICE.freshStockBonus * 100)}% sales for a business day).
-          </T>
-        </Section>
+        </Row>
+        {plannedUnits ? (
+          <Row gap={SPACE.s}>
+            <Button
+              label={`Restock ${plannedUnits} · ${moneyShort(plannedCost)}`}
+              icon={<Icon name="box" size={20} color={theme.onBrand} />}
+              onPress={commitRestock}
+              style={{ flex: 1 }}
+              accessibilityHint={`Hand restocks sell ${Math.round(SERVICE.freshStockBonus * 100)}% more for a business day`}
+            />
+            <Button
+              label="Clear"
+              hideLabel
+              icon={<Icon name="close" size={20} color={theme.ink} />}
+              kind="secondary"
+              onPress={() => setPlan({})}
+              accessibilityHint="Clear the restock plan"
+            />
+          </Row>
+        ) : null}
 
-        <Section title="Slots">
-          <View style={styles.grid}>
-            {machine.slots.map((s, i) => {
-              const p = plan[i];
-              const pid = p?.productId ?? s.productId;
-              const qty = p ? (s.productId === p.productId ? s.qty : 0) + p.qty : s.qty;
-              const shownQty = live || p ? qty : (machine.seen.qty[i] ?? s.qty);
-              return (
-                <Pressable
-                  key={i}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Slot ${i + 1}, ${pid ? getProduct(pid).name : 'empty'}, ${shownQty} of ${cap}`}
-                  accessibilityState={{ selected: selected === i }}
-                  onPress={() => setSelected(i)}
+        {/* Coils: product color, fill level, price. */}
+        <View style={styles.grid}>
+          {machine.slots.map((s, i) => {
+            const p = plan[i];
+            const pid = p?.productId ?? s.productId;
+            const qty = p ? (s.productId === p.productId ? s.qty : 0) + p.qty : s.qty;
+            const shownQty = live || p ? qty : (machine.seen.qty[i] ?? s.qty);
+            const color = pid ? getProduct(pid).color : theme.line;
+            return (
+              <Pressable
+                key={i}
+                accessibilityRole="button"
+                accessibilityLabel={`Slot ${i + 1}, ${pid ? getProduct(pid).name : 'empty'}, ${shownQty} of ${cap}`}
+                accessibilityState={{ selected: selected === i }}
+                onPress={() => setSelected(i)}
+                style={[styles.slotCell, { width: `${100 / Math.min(5, type.grid.cols)}%` }]}
+              >
+                <View
                   style={[
                     styles.slot,
                     {
-                      borderColor: selected === i ? theme.amber : theme.line,
                       backgroundColor: theme.surface,
-                      width: `${100 / Math.min(5, type.grid.cols)}%`,
+                      borderColor: selected === i ? theme.brand : 'transparent',
                     },
                   ]}
                 >
-                  <View
-                    style={{
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor: pid ? getProduct(pid).color : theme.line,
-                      opacity: qty ? 1 : 0.35,
-                    }}
-                  />
-                  <Mono size={11}>{`${shownQty}/${cap}`}</Mono>
-                  <Mono size={11} muted>
-                    {pid ? money(s.priceCents || getProduct(pid).suggestedCents) : '—'}
+                  <View style={[styles.fill, { backgroundColor: theme.line }]}>
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: `${Math.round((shownQty / cap) * 100)}%`,
+                        backgroundColor: color,
+                        borderRadius: 6,
+                        opacity: p ? 0.7 : 1,
+                      }}
+                    />
+                  </View>
+                  <Mono size={12} weight="bold" center>
+                    {pid ? moneyShortPrice(s.priceCents || getProduct(pid).suggestedCents) : '—'}
                   </Mono>
-                </Pressable>
-              );
-            })}
-          </View>
-        </Section>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
 
         {selected !== null && sel ? (
-          <Paper tone="surface" style={{ gap: SPACE.s }}>
-            <T weight="bold">{`Slot ${selected + 1} · ${selProduct ? selProduct.name : 'Empty'}`}</T>
-            <T size={12} muted>
-              Load from the van:
-            </T>
+          <Paper tone="surface" style={{ gap: SPACE.m }}>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <T weight="bold">{selProduct ? selProduct.name : 'Empty coil'}</T>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                hitSlop={10}
+                onPress={() => setSelected(null)}
+              >
+                <Icon name="close" size={20} color={theme.muted} />
+              </Pressable>
+            </Row>
             <Row style={{ flexWrap: 'wrap' }}>
               {allowed.map((pr) => (
                 <Chip
@@ -569,64 +619,60 @@ export default function MachineCloseup() {
             </Row>
             {selProduct ? (
               <>
-                <Divider dashed />
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <T size={13}>Price tag</T>
-                  <Row>
-                    <Pressable
-                      accessibilityLabel="Lower price"
-                      accessibilityRole="button"
-                      disabled={!canPrice}
-                      onPress={() => changePrice(selected, -5)}
-                      style={[
-                        styles.step,
-                        { borderColor: theme.line, opacity: canPrice ? 1 : 0.4 },
-                      ]}
-                    >
-                      <T>{'−'}</T>
-                    </Pressable>
-                    <Mono size={16} weight="bold" style={{ minWidth: 64, textAlign: 'center' }}>
-                      {money(sel.priceCents)}
-                    </Mono>
-                    <Pressable
-                      accessibilityLabel="Raise price"
-                      accessibilityRole="button"
-                      disabled={!canPrice}
-                      onPress={() => changePrice(selected, 5)}
-                      style={[
-                        styles.step,
-                        { borderColor: theme.line, opacity: canPrice ? 1 : 0.4 },
-                      ]}
-                    >
-                      <T>+</T>
-                    </Pressable>
-                  </Row>
+                <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
+                  <Stepper
+                    icon="minus"
+                    label="Lower price"
+                    disabled={!canPrice}
+                    onPress={() => changePrice(selected, -5)}
+                  />
+                  <Mono size={26} weight="bold" style={{ minWidth: 90, textAlign: 'center' }}>
+                    {money(sel.priceCents)}
+                  </Mono>
+                  <Stepper
+                    icon="plus"
+                    label="Raise price"
+                    disabled={!canPrice}
+                    onPress={() => changePrice(selected, 5)}
+                  />
                 </Row>
-                <T size={12} muted>
-                  {`Suggested ${money(selProduct.suggestedCents)} · wholesale ${money(selProduct.wholesaleCents)} · demand at this price ${Math.round(priceResponse(sel.priceCents / selProduct.suggestedCents) * 100)}%`}
-                  {canPrice ? '' : ' · Price setting unlocks after chapter 1.'}
-                </T>
+                <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <StatChip
+                    icon="tag"
+                    label="Suggested price"
+                    value={money(selProduct.suggestedCents)}
+                  />
+                  <StatChip
+                    icon="box"
+                    label="Wholesale cost"
+                    value={money(selProduct.wholesaleCents)}
+                  />
+                  <StatChip
+                    icon="people"
+                    label="Demand at this price"
+                    value={pct(priceResponse(sel.priceCents / selProduct.suggestedCents))}
+                  />
+                  {!canPrice ? (
+                    <StatChip icon="lock" label="Prices unlock after chapter 1" value="Ch. 2" />
+                  ) : null}
+                </Row>
                 {hasResearch(game, 'auto-reorder', type.family) ? (
-                  <Row style={{ justifyContent: 'space-between' }}>
-                    <T size={13}>{`Driver par level: ${sel.par}`}</T>
-                    <Row>
-                      <Chip
-                        label="−"
-                        onPress={() =>
-                          useGame
-                            .getState()
-                            .act((d) => setPar(d, machine.id, selected, sel.par - 1))
-                        }
-                      />
-                      <Chip
-                        label="+"
-                        onPress={() =>
-                          useGame
-                            .getState()
-                            .act((d) => setPar(d, machine.id, selected, sel.par + 1))
-                        }
-                      />
-                    </Row>
+                  <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
+                    <Stepper
+                      icon="minus"
+                      label="Lower driver par level"
+                      onPress={() =>
+                        useGame.getState().act((d) => setPar(d, machine.id, selected, sel.par - 1))
+                      }
+                    />
+                    <StatChip icon="box" label="Driver refills to" value={String(sel.par)} />
+                    <Stepper
+                      icon="plus"
+                      label="Raise driver par level"
+                      onPress={() =>
+                        useGame.getState().act((d) => setPar(d, machine.id, selected, sel.par + 1))
+                      }
+                    />
                   </Row>
                 ) : null}
               </>
@@ -634,80 +680,89 @@ export default function MachineCloseup() {
           </Paper>
         ) : null}
 
-        <SpecTag
-          title="Spec"
-          rows={[
-            ['Slots', `${type.slots} × ${cap}`],
-            ['Power', `${money(type.powerCentsPerDay)}/day`],
-            ['Breakdowns', `${(type.breakdownPerDay * 100).toFixed(1)}%/day`],
-            ['Theft risk', type.theftRisk >= 1.4 ? 'High' : type.theftRisk >= 1 ? 'Medium' : 'Low'],
-            ['Sold', `${machine.stats.unitsTotal} items`],
-            ['Revenue', money(machine.stats.revenueTotalCents)],
-          ]}
-        >
-          <T size={12} color="#5C6066">
-            {ownedResearch.length
-              ? `Upgrades: ${ownedResearch.join(', ')}`
-              : 'No upgrades yet. Research them for the whole family in Company.'}
-          </T>
-        </SpecTag>
+        {/* Spec: icons and numbers. */}
+        <Row style={{ flexWrap: 'wrap' }}>
+          <StatChip icon="grid" label="Slots" value={`${type.slots}×${cap}`} />
+          <StatChip
+            icon="bolt"
+            label="Power per day"
+            value={moneyShortPrice(type.powerCentsPerDay)}
+          />
+          <StatChip
+            icon="wrench"
+            label="Breakdowns per day"
+            value={`${(type.breakdownPerDay * 100).toFixed(1)}%`}
+          />
+          <StatChip
+            icon="lock"
+            label="Theft risk"
+            value={type.theftRisk >= 1.4 ? 'High' : type.theftRisk >= 1 ? 'Med' : 'Low'}
+          />
+          <StatChip icon="bag" label="Items sold" value={String(machine.stats.unitsTotal)} />
+          <StatChip
+            icon="coin"
+            label="Revenue"
+            value={moneyShort(machine.stats.revenueTotalCents)}
+          />
+          {ownedResearch.map((r) => (
+            <StatChip key={r} icon="star" label="Upgrade" value={r} color={theme.brand} />
+          ))}
+        </Row>
 
-        <Section title="Machine">
-          <Row style={{ flexWrap: 'wrap' }}>
-            {ownedWraps.map((w) => (
-              <Chip
-                key={w}
-                label={`Wrap: ${WRAPS[w].name}`}
-                active={machine.wrap === w}
-                onPress={() =>
-                  useGame.getState().act((d) => {
-                    const m = d.machines.find((x) => x.id === machine.id);
-                    if (m) m.wrap = m.wrap === w ? null : w;
-                    return { ok: true };
-                  })
-                }
-              />
-            ))}
+        <Row style={{ flexWrap: 'wrap' }}>
+          {ownedWraps.map((w) => (
             <Chip
-              label="Rotate 90°"
+              key={w}
+              label={WRAPS[w].name}
+              color={WRAPS[w].color}
+              active={machine.wrap === w}
               onPress={() =>
-                useGame.getState().act((d) => rotateMachine(d, machine.id, machine.heading + 90))
+                useGame.getState().act((d) => {
+                  const m = d.machines.find((x) => x.id === machine.id);
+                  if (m) m.wrap = m.wrap === w ? null : w;
+                  return { ok: true };
+                })
               }
             />
-            {!machine.contract.renegotiated ? (
-              <Chip
-                label="Renegotiate"
-                onPress={() => {
-                  const r = useGame.getState().act((d) => renegotiate(d, machine.id));
-                  show(
-                    r.ok ? `Commission now ${pct(r.commission, 1)}` : r.error,
-                    r.ok ? 'success' : 'error',
-                  );
-                }}
-              />
-            ) : null}
-            <Chip
-              label="Pick up"
-              onPress={() =>
-                Alert.alert(
-                  'Pick up this machine?',
-                  'It goes back to storage; the contract ends.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Pick up',
-                      style: 'destructive',
-                      onPress: () => {
-                        useGame.getState().act((d) => pickUpMachine(d, machine.id));
-                        finishLeave();
-                      },
-                    },
-                  ],
-                )
-              }
+          ))}
+          <IconChip
+            icon="rotate"
+            label="Rotate"
+            onPress={() =>
+              useGame.getState().act((d) => rotateMachine(d, machine.id, machine.heading + 90))
+            }
+          />
+          {!machine.contract.renegotiated ? (
+            <IconChip
+              icon="handshake"
+              label="Renegotiate"
+              onPress={() => {
+                const r = useGame.getState().act((d) => renegotiate(d, machine.id));
+                show(
+                  r.ok ? `Commission now ${pct(r.commission, 1)}` : r.error,
+                  r.ok ? 'success' : 'error',
+                );
+              }}
             />
-          </Row>
-        </Section>
+          ) : null}
+          <IconChip
+            icon="box"
+            label="Pick up"
+            onPress={() =>
+              Alert.alert('Pick up this machine?', 'It goes back to storage; the contract ends.', [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Pick up',
+                  style: 'destructive',
+                  onPress: () => {
+                    useGame.getState().act((d) => pickUpMachine(d, machine.id));
+                    finishLeave();
+                  },
+                },
+              ])
+            }
+          />
+        </Row>
       </ScrollView>
       {toast ? (
         <View
@@ -724,6 +779,85 @@ export default function MachineCloseup() {
       ) : null}
     </Animated.View>
   );
+}
+
+/** Round − / + button for steppers. */
+function Stepper({
+  icon,
+  label,
+  onPress,
+  disabled,
+}: {
+  icon: 'plus' | 'minus';
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.stepper,
+        {
+          backgroundColor: theme.brandSoft,
+          opacity: disabled ? 0.4 : 1,
+          transform: [{ scale: pressed ? 0.9 : 1 }],
+        },
+      ]}
+    >
+      <Icon name={icon} size={22} color={theme.brand} />
+    </Pressable>
+  );
+}
+
+/** A chip with an icon and a one-word label. */
+function IconChip({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: IconName;
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={() => {
+        haptic.select();
+        onPress();
+      }}
+      style={({ pressed }) => [
+        styles.iconChip,
+        { backgroundColor: theme.surface, transform: [{ scale: pressed ? 0.95 : 1 }] },
+      ]}
+    >
+      <Icon name={icon} size={18} color={theme.ink} />
+      <T size={13} weight="bold">
+        {label}
+      </T>
+    </Pressable>
+  );
+}
+
+/** Prices on coils: "$1.50" (cents matter here, unlike the HUD). */
+function moneyShortPrice(cents: number): string {
+  return money(cents);
+}
+
+/** "12 h", "3 d", "45 m". */
+function shortDuration(ms: number): string {
+  const min = ms / 60_000;
+  if (min < 60) return `${Math.max(1, Math.round(min))} m`;
+  const h = min / 60;
+  if (h < 48) return `${Math.round(h)} h`;
+  return `${Math.round(h / 24)} d`;
 }
 
 const styles = StyleSheet.create({
@@ -743,15 +877,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fps: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -3 },
-  slot: {
-    padding: 6,
-    borderWidth: 1,
-    borderRadius: 6,
-    gap: 2,
-    minHeight: TOUCH + 8,
-    marginBottom: 6,
-    borderLeftWidth: 3,
+  status: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 32,
+    paddingHorizontal: SPACE.m,
+    borderRadius: 16,
+  },
+  dot: { width: 9, height: 9, borderRadius: 5 },
+  mood: { width: 44, height: 8, borderRadius: 4, overflow: 'hidden' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+  slotCell: { padding: 4 },
+  slot: { padding: 6, borderRadius: 14, gap: 4, borderWidth: 2 },
+  fill: { height: 34, borderRadius: 6, overflow: 'hidden' },
+  stepper: {
+    width: TOUCH + 4,
+    height: TOUCH + 4,
+    borderRadius: (TOUCH + 4) / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 38,
+    paddingHorizontal: SPACE.m,
+    borderRadius: 19,
   },
   step: {
     width: TOUCH,

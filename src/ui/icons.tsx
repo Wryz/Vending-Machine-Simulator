@@ -27,7 +27,28 @@ export type IconName =
   | 'rain'
   | 'snow'
   | 'storm'
-  | 'fog';
+  | 'fog'
+  | 'percent'
+  | 'clock'
+  | 'smile'
+  | 'eyeOff'
+  | 'box'
+  | 'play'
+  | 'tag'
+  | 'bolt'
+  | 'wrench'
+  | 'lock'
+  | 'bag'
+  | 'rotate'
+  | 'brush'
+  | 'handshake'
+  | 'people'
+  | 'plus'
+  | 'minus'
+  | 'close'
+  | 'back'
+  | 'star'
+  | 'grid';
 
 export function Icon({
   name,
@@ -210,6 +231,139 @@ export function Icon({
         );
       case 'fog':
         return <Path d="M4 9h14M6 13h14M4 17h12" {...s} />;
+      case 'percent':
+        return (
+          <>
+            <Path d="M18 6L6 18" {...s} />
+            <Circle cx={7.5} cy={7.5} r={2.5} {...s} />
+            <Circle cx={16.5} cy={16.5} r={2.5} {...s} />
+          </>
+        );
+      case 'clock':
+        return (
+          <>
+            <Circle cx={12} cy={12} r={8.5} {...s} />
+            <Path d="M12 7.5V12l3 2" {...s} />
+          </>
+        );
+      case 'smile':
+        return (
+          <>
+            <Circle cx={12} cy={12} r={8.5} {...s} />
+            <Path d="M8.5 14c.9 1.4 2.1 2 3.5 2s2.6-.6 3.5-2" {...s} />
+            <Circle cx={9} cy={10} r={1} {...s} fill={c} />
+            <Circle cx={15} cy={10} r={1} {...s} fill={c} />
+          </>
+        );
+      case 'eyeOff':
+        return (
+          <>
+            <Path d="M3 12s3.3-6 9-6 9 6 9 6-3.3 6-9 6-9-6-9-6z" {...s} />
+            <Circle cx={12} cy={12} r={2.6} {...s} />
+            <Path d="M4 4l16 16" {...s} />
+          </>
+        );
+      case 'box':
+        return (
+          <>
+            <Path d="M4 8l8-4 8 4v8l-8 4-8-4z" {...s} />
+            <Path d="M4 8l8 4 8-4M12 12v8" {...s} />
+          </>
+        );
+      case 'play':
+        return (
+          <>
+            <Rect x={3.5} y={5} width={17} height={14} rx={4} {...s} />
+            <Path d="M10.5 9.5v5l4-2.5z" {...s} fill={c} />
+          </>
+        );
+      case 'tag':
+        return (
+          <>
+            <Path d="M3.5 12.5V4.5h8l9 9-8 8z" {...s} />
+            <Circle cx={8} cy={9} r={1.4} {...s} fill={c} />
+          </>
+        );
+      case 'bolt':
+        return <Path d="M13 3L5 13.5h6l-1 7.5 8-10.5h-6z" {...s} />;
+      case 'wrench':
+        return (
+          <Path
+            d="M14.7 6.3a4 4 0 00-5.2 5.2L4 17l3 3 5.5-5.5a4 4 0 005.2-5.2l-2.5 2.5-2.6-.4-.4-2.6z"
+            {...s}
+          />
+        );
+      case 'lock':
+        return (
+          <>
+            <Rect x={5} y={10.5} width={14} height={10} rx={2.5} {...s} />
+            <Path d="M8 10.5V8a4 4 0 018 0v2.5" {...s} />
+          </>
+        );
+      case 'bag':
+        return (
+          <>
+            <Path d="M6 7h12l1 13H5z" {...s} />
+            <Path d="M9 9.5V6a3 3 0 016 0v3.5" {...s} />
+          </>
+        );
+      case 'rotate':
+        return (
+          <>
+            <Path d="M19.5 12a7.5 7.5 0 11-2.2-5.3" {...s} />
+            <Path d="M19.5 4.5v4h-4" {...s} />
+          </>
+        );
+      case 'brush':
+        return (
+          <>
+            <Path d="M19.5 4.5l-8.8 8.8" {...s} />
+            <Path
+              d="M10.7 13.3c-2.2-.6-4.4.9-4.4 3.3 0 1.2-.8 2.3-2.3 2.9 3.5 1.4 8.4.6 8.4-3.4"
+              {...s}
+            />
+          </>
+        );
+      case 'handshake':
+        return (
+          <>
+            <Path d="M2.5 11l4-4 3 1 3-2 3.5 2 3.5-1 2 4" {...s} />
+            <Path d="M6.5 13l3 3a1.5 1.5 0 002.1 0l4.9-4.9M9 15.5l-1.5 1.5M11.5 17.5l-1 1" {...s} />
+          </>
+        );
+      case 'people':
+        return (
+          <>
+            <Circle cx={9} cy={8.5} r={3} {...s} />
+            <Path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8" {...s} />
+            <Circle cx={17} cy={9.5} r={2.2} {...s} />
+            <Path d="M16.5 14.4c2.2.2 3.6 1.7 4 4" {...s} />
+          </>
+        );
+      case 'plus':
+        return <Path d="M12 5v14M5 12h14" {...s} />;
+      case 'minus':
+        return <Path d="M5 12h14" {...s} />;
+      case 'close':
+        return <Path d="M6 6l12 12M18 6L6 18" {...s} />;
+      case 'back':
+        return <Path d="M15 5l-7 7 7 7" {...s} />;
+      case 'star':
+        return (
+          <Path
+            d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"
+            {...s}
+          />
+        );
+      case 'grid':
+        return (
+          <>
+            <Rect x={4} y={4} width={7} height={7} rx={1.8} {...s} />
+            <Rect x={13} y={4} width={7} height={7} rx={1.8} {...s} />
+            <Rect x={4} y={13} width={7} height={7} rx={1.8} {...s} />
+            <Rect x={13} y={13} width={7} height={7} rx={1.8} {...s} />
+          </>
+        );
       case 'chevron':
         return <Path d="M9 5l7 7-7 7" {...s} />;
     }

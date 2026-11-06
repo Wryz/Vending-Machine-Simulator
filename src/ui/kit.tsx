@@ -94,6 +94,7 @@ export function Button({
   disabled,
   busy,
   icon,
+  hideLabel,
   style,
   accessibilityHint,
 }: {
@@ -103,6 +104,8 @@ export function Button({
   disabled?: boolean;
   busy?: boolean;
   icon?: ReactNode;
+  /** Icon-only button: `label` is still read by VoiceOver. */
+  hideLabel?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityHint?: string;
 }) {
@@ -140,7 +143,7 @@ export function Button({
       ]}
     >
       {busy ? <ActivityIndicator color={fg} /> : icon}
-      {!busy && (
+      {!busy && !hideLabel && (
         <T weight="bold" color={fg} size={15}>
           {label}
         </T>

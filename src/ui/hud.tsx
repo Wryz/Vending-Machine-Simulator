@@ -91,6 +91,41 @@ export function CashPill({ cents, onPress }: { cents: number; onPress?: () => vo
   );
 }
 
+/**
+ * An icon and a short value (SPEC §3.6: numbers and icons before sentences).
+ * `label` is for VoiceOver only.
+ */
+export function StatChip({
+  icon,
+  value,
+  label,
+  color,
+  children,
+}: {
+  icon: IconName;
+  value?: string;
+  label: string;
+  color?: string;
+  children?: ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      accessible
+      accessibilityLabel={value ? `${label}: ${value}` : label}
+      style={[styles.stat, { backgroundColor: theme.surface }]}
+    >
+      <Icon name={icon} size={18} color={color ?? theme.muted} />
+      {value ? (
+        <T size={14} weight="bold" color={color}>
+          {value}
+        </T>
+      ) : null}
+      {children}
+    </View>
+  );
+}
+
 /** A small floating pill for one line of status (time, weather, a sale). */
 export function InfoPill({
   children,
@@ -144,6 +179,14 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  stat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 36,
+    paddingHorizontal: SPACE.m,
+    borderRadius: RADIUS.pill,
   },
   info: {
     flexDirection: 'row',
