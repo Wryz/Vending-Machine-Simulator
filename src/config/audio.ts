@@ -3,6 +3,10 @@
  * soundscape mixer (src/audio/soundscape.ts) and the engine
  * (src/services/audio.ts). Asset loudness: music about -18 LUFS, ambience beds
  * about -20 LUFS, spice one-shots peak -6 dBFS; the trims below set the mix.
+ *
+ * There is no constant city bed (it read as a loud ocean wash far out): far
+ * out is near silent under the music, and each ambience comes from the places
+ * that make it, near the view center (src/map/envProbe.ts).
  */
 
 export const AUDIO_DEFAULTS = {
@@ -19,14 +23,36 @@ export const SOUNDSCAPE = {
   nearZoom: [14.5, 17.5] as const,
   /** Spice one-shots start a little after detail starts. */
   spiceZoom: [15, 16.5] as const,
-  /** City bed level far out, fully zoomed in, in the close-up and in menus. */
-  bed: { far: 0.9, near: 0.55, closeup: 0.45, menu: 0.5 },
+  /**
+   * Positional ambience: how near (meters from the view center) a source must
+   * be to be heard. Full at or inside `fullM`, silent from `zeroM`.
+   */
+  proximity: {
+    water: { fullM: 40, zeroM: 450 },
+    park: { fullM: 20, zeroM: 260 },
+  },
+  /**
+   * Waves near water: level far out and at street level (× proximity). Kept
+   * well under the other layers (see layerTrim.waves): a quiet swell, never a wash.
+   */
+  waves: { far: 0.3, near: 1, rainSuppress: 0.4 },
+  /**
+   * Birds and crickets away from any green (street trees, balconies), relative
+   * to right by a park. Used once the map has probed its surroundings.
+   */
+  awayFromGreen: { birds: 0.3, crickets: 0.2 },
+  /**
+   * Map probe for those sources (CityMap, on camera idle): how far around the
+   * view center to look (≥ the largest zeroM), and the debounce after a move.
+   */
+  probe: { rangeM: 500, debounceMs: 450 },
   /** Close-up scales the street layers down (the machine is the focus). */
-  closeup: { crowd: 0.55, birds: 0.7, crickets: 0.8, spice: 0.5, footsteps: 2 },
+  closeup: { crowd: 0.55, birds: 0.7, crickets: 0.8, waves: 0.7, spice: 0.5, footsteps: 2 },
   /** How much rain (0..1) suppresses birds and the crowd. */
   rainSuppress: { birds: 0.75, crowd: 0.35 },
   rainByCondition: { clear: 0, cloudy: 0, fog: 0, rain: 0.7, storm: 1, snow: 0 },
-  windByCondition: { clear: 0.08, cloudy: 0.15, fog: 0.05, rain: 0.25, storm: 0.9, snow: 0.5 },
+  /** Wind only when it is actually windy (no constant breeze far out). */
+  windByCondition: { clear: 0, cloudy: 0, fog: 0, rain: 0.2, storm: 0.85, snow: 0.4 },
   /** Crickets fade out below fullTempC and are silent at minTempC. */
   crickets: { minTempC: 5, fullTempC: 14 },
   /** Fewer birds in freezing weather. */
@@ -46,8 +72,8 @@ export const AUDIO_MIX = {
   musicTrim: 1,
   /** Player volume per ambience layer at mix 1.0 and ambienceVolume 1. */
   layerTrim: {
-    cityDay: 0.3,
-    cityNight: 0.28,
+    /** Waves sit ~7 dB under the other beds at full mix (≈ -40 LUFS in game). */
+    waves: 0.13,
     crowd: 0.28,
     birds: 0.3,
     crickets: 0.22,

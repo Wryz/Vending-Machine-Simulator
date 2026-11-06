@@ -19,6 +19,7 @@ import {
   useState,
 } from 'react';
 
+import { SOUNDSCAPE } from '@/config/audio';
 import { RIVAL } from '@/config/economy';
 import { AREA_NAME, MACHINE_PIN, MACHINE_SPRITE } from '@/config/map';
 import { MAP_LIFE } from '@/config/mapLife';
@@ -71,6 +72,7 @@ import {
   type AreaNames,
 } from './areaName';
 import { districtAt } from './districts';
+import { PARK_LAYER_IDS, probeFromFeatures, WATER_LAYER_ID, type EnvProbeResult } from './envProbe';
 import { buildBaseLayers, schemaOf, buildMapLight, buildMapStyle } from './style';
 import type { TimeOfDay } from './timeOfDay';
 
@@ -161,6 +163,11 @@ interface Props {
    * zoom, and how many people are on screen (0 below zoom 16).
    */
   onLifeStats?: (s: LifeStats) => void;
+  /**
+   * What is around the view center (water, green), once the camera settles
+   * (debounced): the soundscape places waves, birds and crickets by it.
+   */
+  onEnvProbe?: (env: EnvProbeResult) => void;
   /** Recent sales (already rate-limited): a receipt chip rises over the machine. */
   salePops?: readonly SalePop[];
   /** Freeze street life (e.g. during the close-up fly-in). */
@@ -230,6 +237,34 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
   );
   const camRef = useRef<CameraRef>(null);
   const camera = useRef<MapCameraState>(initial);
+
+  // Ambience sources near the view center (envProbe.ts), on camera idle.
+  const envTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onEnvProbe = props.onEnvProbe;
+  const probeSchema = schemaOf(useMemo(() => tileSourceFor(world.city.id), [world.city.id]));
+  const probeEnv = useCallback(() => {
+    if (!onEnvProbe) return;
+    if (envTimer.current) clearTimeout(envTimer.current);
+    envTimer.current = setTimeout(async () => {
+      const map = mapRef.current;
+      if (!map) return;
+      try {
+        const [water, parks] = await Promise.all([
+          map.queryRenderedFeatures({ layers: [WATER_LAYER_ID] }),
+          map.queryRenderedFeatures({ layers: [...PARK_LAYER_IDS[probeSchema]] }),
+        ]);
+        onEnvProbe(probeFromFeatures(camera.current.center, water, parks, SOUNDSCAPE.probe.rangeM));
+      } catch {
+        // Style not ready: try again on the next camera change.
+      }
+    }, SOUNDSCAPE.probe.debounceMs);
+  }, [onEnvProbe, probeSchema]);
+  useEffect(
+    () => () => {
+      if (envTimer.current) clearTimeout(envTimer.current);
+    },
+    [],
+  );
   /** Bottom padding of the last fly-to (kept for zoom steps). */
   const padding = useRef(0);
 
@@ -476,6 +511,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
       onDidFinishLoadingStyle={() => {
         setStyleGen((g) => g + 1);
         lookUpArea();
+        probeEnv();
       }}
       onRegionIsChanging={(e) => {
         const v = e.nativeEvent;
@@ -503,6 +539,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         lifeRef.current?.regionDidChange(v);
         props.onCameraChanged?.(camera.current, !!v.userInteraction);
         lookUpArea();
+        probeEnv();
       }}
     >
       <Camera

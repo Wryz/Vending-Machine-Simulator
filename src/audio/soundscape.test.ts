@@ -1,3 +1,5 @@
+import { AUDIO_MIX } from '@/config/audio';
+
 import {
   LAYER_NAMES,
   SPICE_NAMES,
@@ -6,6 +8,7 @@ import {
   musicMoodFor,
   nearness,
   pickSpice,
+  proximity,
   soundscapeMix,
   type SoundscapeInput,
   type SoundscapeMix,
@@ -65,13 +68,9 @@ describe('soundscapeMix', () => {
     }
   });
 
-  it('is mostly a soft city bed far out, with no spice', () => {
-    const m = soundscapeMix(base({ zoom: 12 }));
-    expect(m.layers.cityDay).toBeGreaterThan(0.7);
-    expect(m.layers.cityNight).toBe(0);
-    expect(m.layers.crowd).toBe(0);
-    expect(m.layers.birds).toBe(0);
-    expect(m.layers.hum).toBe(0);
+  it('is near silent far out on a calm day: no constant bed, no breeze, no spice', () => {
+    const m = soundscapeMix(base({ zoom: 12, env: { waterDistM: null, parkDistM: null } }));
+    for (const k of LAYER_NAMES) expect(m.layers[k]).toBe(0);
     expect(totalSpice(m)).toBe(0);
   });
 
@@ -83,7 +82,6 @@ describe('soundscapeMix', () => {
         expect(m.layers[k]).toBeGreaterThanOrEqual(prev.layers[k]);
       }
       expect(totalSpice(m)).toBeGreaterThanOrEqual(totalSpice(prev));
-      expect(m.layers.cityDay).toBeLessThanOrEqual(prev.layers.cityDay);
       prev = m;
     }
     const close = soundscapeMix(base({ zoom: 18 }));
@@ -102,8 +100,6 @@ describe('soundscapeMix', () => {
     expect(day.layers.crickets).toBe(0);
     expect(night.layers.birds).toBe(0);
     expect(night.layers.crickets).toBeGreaterThan(0.2);
-    expect(night.layers.cityNight).toBeGreaterThan(0);
-    expect(night.layers.cityDay).toBe(0);
     const cold = soundscapeMix(base({ tod: NIGHT, weather: { condition: 'clear', tempC: 2 } }));
     expect(cold.layers.crickets).toBe(0);
   });
@@ -146,22 +142,86 @@ describe('soundscapeMix', () => {
     expect(soundscapeMix(base({ zoom: 10, scene: 'closeup' })).layers.crowd).toBeGreaterThan(0.2);
   });
 
-  it('menu: beds only', () => {
-    const m = soundscapeMix(base({ scene: 'menu', weather: { condition: 'storm', tempC: 20 } }));
-    for (const k of LAYER_NAMES) {
-      if (k === 'cityDay' || k === 'cityNight') continue;
-      expect(m.layers[k]).toBe(0);
-    }
-    expect(m.layers.cityDay).toBeGreaterThan(0);
+  it('menu: silent (music only)', () => {
+    const m = soundscapeMix(
+      base({
+        scene: 'menu',
+        weather: { condition: 'storm', tempC: 20 },
+        env: { waterDistM: 0, parkDistM: 0 },
+      }),
+    );
+    for (const k of LAYER_NAMES) expect(m.layers[k]).toBe(0);
     expect(totalSpice(m)).toBe(0);
-  });
-
-  it('crossfades the city beds through twilight', () => {
-    const dusk = soundscapeMix(base({ zoom: 12, tod: { night: 0, dawn: 0, day: 0.5, dusk: 0.5 } }));
-    expect(dusk.layers.cityDay).toBeGreaterThan(0);
-    expect(dusk.layers.cityNight).toBeGreaterThan(0);
     expect(darkness(DAY)).toBe(0);
     expect(darkness(NIGHT)).toBe(1);
+  });
+});
+
+describe('positional ambience', () => {
+  const at = (zoom: number, waterDistM: number | null, parkDistM: number | null = null) =>
+    soundscapeMix(base({ zoom, env: { waterDistM, parkDistM } }));
+
+  it('proximity eases from 1 near the source to 0 at the edge of range', () => {
+    const r = { fullM: 40, zeroM: 400 };
+    expect(proximity(0, r)).toBe(1);
+    expect(proximity(40, r)).toBe(1);
+    expect(proximity(220, r)).toBeCloseTo(0.5);
+    expect(proximity(400, r)).toBe(0);
+    expect(proximity(null, r)).toBe(0);
+    expect(proximity(undefined, r)).toBe(0);
+    expect(proximity(Number.NaN, r)).toBe(0);
+  });
+
+  it('waves only near water, louder the closer the view center is', () => {
+    expect(at(17, null).layers.waves).toBe(0);
+    expect(at(17, 2000).layers.waves).toBe(0);
+    expect(soundscapeMix(base({ zoom: 17 })).layers.waves).toBe(0);
+    let prev = 0;
+    for (const d of [440, 350, 250, 150, 60, 0]) {
+      const w = at(17, d).layers.waves;
+      expect(w).toBeGreaterThanOrEqual(prev);
+      prev = w;
+    }
+    expect(prev).toBeGreaterThan(0.5);
+  });
+
+  it('waves are faint far out and grow toward street level', () => {
+    const far = at(12, 0).layers.waves;
+    const street = at(18, 0).layers.waves;
+    expect(far).toBeGreaterThan(0);
+    expect(far).toBeLessThan(0.4);
+    expect(street).toBeGreaterThan(far * 2);
+  });
+
+  it('waves always stay far below the other beds once trimmed', () => {
+    // At full mix, waves play several dB under any other layer at full mix.
+    const { layerTrim } = AUDIO_MIX;
+    for (const k of LAYER_NAMES) {
+      if (k === 'waves') continue;
+      expect(layerTrim.waves).toBeLessThan(layerTrim[k] * 0.6);
+    }
+  });
+
+  it('birds by parks, fewer on plain streets; crickets in green at night', () => {
+    const park = at(17, null, 0).layers.birds;
+    const street = at(17, null, null).layers.birds;
+    expect(park).toBeGreaterThan(street * 2);
+    expect(street).toBeGreaterThan(0);
+    const nightPark = soundscapeMix(
+      base({ zoom: 17, tod: NIGHT, env: { waterDistM: null, parkDistM: 10 } }),
+    ).layers.crickets;
+    const nightStreet = soundscapeMix(
+      base({ zoom: 17, tod: NIGHT, env: { waterDistM: null, parkDistM: null } }),
+    ).layers.crickets;
+    expect(nightPark).toBeGreaterThan(nightStreet * 2);
+    // Before the map has probed, birds keep the time-of-day level.
+    expect(soundscapeMix(base({ zoom: 17 })).layers.birds).toBeCloseTo(park);
+  });
+
+  it('wind only in windy weather', () => {
+    expect(at(12, null).layers.wind).toBe(0);
+    const storm = soundscapeMix(base({ zoom: 12, weather: { condition: 'storm', tempC: 10 } }));
+    expect(storm.layers.wind).toBeGreaterThan(0.5);
   });
 });
 

@@ -129,7 +129,8 @@ Show numbers and icons before text; sentences are for VoiceOver hints. Physical 
 
 - Touch targets are at least 44 pt. Use Dynamic Type where possible.
 - Haptics: light tick per coin, medium thunk when a product slots in, success notification on milestones.
-- Sound: soft mechanical clicks, coin clinks, compressor hum near machines, distant city ambience by time of day. No loud jingles.
+- Sound: soft mechanical clicks, coin clinks, compressor hum near machines. No loud jingles.
+- Ambience is positional, never a constant bed: each source follows zoom and its distance from the view center to the places that make it (probed from the map on camera idle): quiet rhythmic waves only near water, birds by parks by day, crickets in green on warm nights, crowd and steps where streets are busy, rain and wind with the weather. Far out it is near silent under the music.
 
 ### 3.7 Typography & color tokens (proposal)
 - **Type** (Google Fonts, OFL licensed; bundle the fonts):

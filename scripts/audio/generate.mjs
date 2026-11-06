@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Procedural SFX, ambience layers and "spice" one-shots (SPEC §3.6: soft
- * mechanical clicks, coin clinks, compressor hum, distant city by time of day;
+ * mechanical clicks, coin clinks, compressor hum, subtle ambience near the
+ * places that make it (waves by water, birds in parks);
  * no loud jingles). Music lives in music.mjs.
  *
  *   node scripts/audio/generate.mjs [name ...]   (needs ffmpeg for the .m4a files)
@@ -380,35 +381,59 @@ const loopNoise = (N, seed, fn, kind = 'white') =>
     fn,
   );
 
-function cityBed({ seed, lp, rumbleLp, swell, hiss }) {
-  const L = 16;
-  const N = L * SR;
-  const body = loopNoise(N, seed, (x) => {
-    biquad(x, 'lowpass', lp, 0.5);
-    biquad(x, 'highpass', 60);
-  });
-  const rumble = loopNoise(N, seed + 1, (x) => {
-    biquad(x, 'lowpass', rumbleLp);
-    biquad(x, 'lowpass', rumbleLp);
-  });
-  const air = loopNoise(N, seed + 2, (x) => {
-    biquad(x, 'highpass', 2500);
-    biquad(x, 'lowpass', 6000);
-  });
-  unit(body);
-  unit(rumble);
-  unit(air);
-  const x = new Float64Array(N);
-  for (let i = 0; i < N; i++) {
-    const t = i / SR;
-    const s =
-      1 +
-      swell * Math.sin(TAU * (t / L) + 0.4) +
-      swell * 0.6 * Math.sin(TAU * (t / (L / 2)) + 1.7) +
-      swell * 0.3 * Math.sin(TAU * (t / (L / 5)) + 2.9);
-    x[i] = s * (body[i] + 0.9 * rumble[i]) + hiss * air[i];
+/**
+ * Gentle waves on a shore (replaces the old broadband "city bed", which read as
+ * a loud constant ocean). Seven swells of 6.6-9.6 s, each a slow rise and a
+ * longer recede, over a very low floor: low-passed brown/pink noise whose
+ * cutoff opens a little with each swell, plus a faint, soft wash as it drains.
+ * Nothing below ~110 Hz (phone speakers) or above ~1.6 kHz (no hiss). Played
+ * only near water, very quietly.
+ */
+function waves() {
+  const periods = [7.4, 8.8, 6.6, 9.6, 7.9, 8.5, 6.8];
+  const peaks = [0.85, 1, 0.7, 0.95, 0.8, 0.9, 0.75];
+  const L = periods.reduce((a, b) => a + b, 0);
+  const N = Math.round(L * SR);
+  const swell = new Float64Array(N);
+  const wash = new Float64Array(N);
+  let t0 = 0;
+  for (let k = 0; k < periods.length; k++) {
+    const P = periods[k];
+    const rise = 0.38;
+    const s0 = Math.round(t0 * SR);
+    const n = Math.round(P * SR);
+    for (let i = 0; i < n; i++) {
+      const u = i / n;
+      const e =
+        u < rise
+          ? Math.sin(((Math.PI / 2) * u) / rise) ** 2
+          : Math.exp((-3.2 * (u - rise)) / (1 - rise));
+      // The wash drains during the recede: up just after the crest, then fades.
+      const w = u < rise ? 0 : Math.sin((Math.PI * (u - rise)) / (1 - rise)) ** 2;
+      swell[(s0 + i) % N] = peaks[k] * e;
+      wash[(s0 + i) % N] = peaks[k] * w;
+    }
+    t0 += P;
   }
-  return x;
+  // Round off the corners (crest and the hand-over between swells).
+  const env = circular(swell, (y) => (onePole(y, 1.2), onePole(y, 1.2)));
+  const washEnv = circular(wash, (y) => onePole(y, 1.5));
+  const at = (i) => env[i % N];
+  const body = unit(
+    loopNoise(
+      N,
+      1201,
+      // Highpassed so the swell reads on a phone speaker, not as sub rumble.
+      (y) => (biquadTV(y, 'lowpass', (i) => 240 + 700 * at(i), 0.6), biquad(y, 'highpass', 110)),
+      'brown',
+    ),
+  );
+  const foam = unit(
+    loopNoise(N, 1202, (y) => (biquad(y, 'bandpass', 900, 0.8), biquad(y, 'lowpass', 1600)), 'pink'),
+  );
+  const x = new Float64Array(N);
+  for (let i = 0; i < N; i++) x[i] = (0.1 + env[i]) * body[i] + 0.22 * washEnv[i] * foam[i];
+  return circular(x, (y) => (biquad(y, 'lowpass', 1500, 0.6), biquad(y, 'lowpass', 1800, 0.6)));
 }
 
 // Formants (F1, F2, F3) for a handful of vowels.
@@ -725,8 +750,7 @@ function wind() {
 }
 
 const BEDS = {
-  'city-day': () => cityBed({ seed: 101, lp: 1100, rumbleLp: 140, swell: 0.25, hiss: 0.08 }),
-  'city-night': () => cityBed({ seed: 202, lp: 520, rumbleLp: 110, swell: 0.18, hiss: 0.02 }),
+  'amb-waves': waves,
   'amb-crowd': crowd,
   'amb-birds': birds,
   'amb-crickets': crickets,
