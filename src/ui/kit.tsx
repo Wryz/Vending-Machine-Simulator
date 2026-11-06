@@ -132,7 +132,7 @@ export function Button({
           backgroundColor: bg,
           borderColor: kind === 'secondary' ? theme.line : 'transparent',
           opacity: disabled ? 0.45 : 1,
-          transform: [{ translateY: pressed ? 1 : 0 }],
+          transform: [{ translateY: pressed ? 1 : 0 }, { scale: pressed ? 0.98 : 1 }],
           shadowColor: theme.shadow,
           shadowOpacity: kind === 'quiet' || pressed ? 0 : 1,
         },

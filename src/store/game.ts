@@ -8,9 +8,13 @@ import { fetchWeather } from '@/data/api';
 import { syntheticWeather, WeatherBook } from '@/data/weather';
 import type { RegionPack } from '@/data/types';
 import { readJson, writeJson } from '@/services/storage';
+import { ACHIEVEMENTS, CHAPTERS } from '@/config/progression';
 import {
   advance,
   calibrateCells,
+  checkAchievements,
+  goalProgress,
+  visibleEvents,
   cloneState,
   localTime,
   migrateSave,
@@ -20,6 +24,7 @@ import {
   type World,
 } from '@/sim';
 
+import { useCelebrations } from './celebrations';
 import { cityKey, useProfile, type CityInfo } from './profile';
 
 export interface TickerEntry {
@@ -193,6 +198,7 @@ export const useGame = create<GameStore>((set, get) => ({
     for (const [machineId, v] of Object.entries(report.perMachine)) {
       if (v.cents > 0) ticker.push({ at: now, machineId, cents: v.cents, units: v.units });
     }
+    announceMoments(state, report);
     set({
       game: state,
       ticker: ticker.slice(-30),
@@ -207,12 +213,19 @@ export const useGame = create<GameStore>((set, get) => ({
     const { game, world } = get();
     if (!game || !world) return { ok: false, error: 'No game loaded.' } as never;
     // Bring the sim up to date first so actions happen "now".
-    const current =
-      Date.now() > game.now
-        ? advance(game, world, Date.now(), { offlineCapMultiplier: offlineCapMultiplier() }).state
-        : cloneState(game);
+    let current: GameState;
+    if (Date.now() > game.now) {
+      const caught = advance(game, world, Date.now(), {
+        offlineCapMultiplier: offlineCapMultiplier(),
+      });
+      announceMoments(caught.state, caught.report);
+      current = caught.state;
+    } else current = cloneState(game);
     const result = fn(current, world);
     if (result.ok) {
+      // Trophies earned by the action itself (first restock, first driver, ...).
+      for (const id of checkAchievements(current))
+        announceMoments(current, { ...EMPTY_REPORT, achievements: [id] });
       set({ game: current, version: get().version + 1 });
       get().save();
     }
@@ -240,6 +253,80 @@ export const useGame = create<GameStore>((set, get) => ({
     set({ status: 'idle', game: null, world: null, city: null, ticker: [] });
   },
 }));
+
+const EMPTY_REPORT: AdvanceReport = {
+  fromAt: 0,
+  toAt: 0,
+  skippedMs: 0,
+  salesCents: 0,
+  units: 0,
+  cashDeltaCents: 0,
+  costsCents: 0,
+  breakdowns: 0,
+  thefts: 0,
+  becameEmpty: [],
+  cashBoxFull: [],
+  contractsLost: [],
+  spoiledUnits: 0,
+  driverRuns: 0,
+  chaptersCompleted: [],
+  events: [],
+  perMachine: {},
+  achievements: [],
+};
+
+const seenEvents = new Set<string>();
+const readyOrders = new Set<string>();
+
+function goalLabel(g: { title: string; kind: string; target: number }): string {
+  const n =
+    g.kind === 'sales'
+      ? `$${Math.round(g.target / 100).toLocaleString('en-US')}`
+      : String(g.target);
+  return g.title.replace('{n}', n);
+}
+
+/** Turn sim outcomes into celebration moments: chapters, trophies, events, orders ready. */
+function announceMoments(state: GameState, report: AdvanceReport): void {
+  const push = useCelebrations.getState().push;
+  for (const ch of report.chaptersCompleted) {
+    const done = CHAPTERS.find((c) => c.n === ch);
+    const next = CHAPTERS.find((c) => c.n === ch + 1);
+    push({
+      kind: 'chapter',
+      title: `${ch}. ${done?.title ?? ''}`,
+      subtitle: next ? `Next: ${next.goal}` : undefined,
+      lines: (done?.unlocks ?? []).map((u) => ({ label: `Unlocked: ${u}`, value: '' })),
+    });
+  }
+  for (const id of report.achievements) {
+    const a = ACHIEVEMENTS.find((x) => x.id === id);
+    if (a)
+      push({
+        kind: 'trophy',
+        title: a.title,
+        subtitle: a.description,
+        amountCents: a.rewardCents || undefined,
+      });
+  }
+  for (const e of visibleEvents(state, state.now)) {
+    if (seenEvents.has(e.id)) continue;
+    seenEvents.add(e.id);
+    if (e.startsAt <= state.now) continue;
+    const mins = Math.round((e.startsAt - state.now) / 60_000);
+    push({
+      kind: 'event',
+      title: `${e.name} at ${e.placeName}`,
+      subtitle: mins < 90 ? `Starts in ${mins} min` : `Starts in ${Math.round(mins / 60)} h`,
+    });
+  }
+  for (const g of state.goals.items) {
+    const key = `${state.goals.dateKey}|${g.id}`;
+    if (g.claimed || readyOrders.has(key) || goalProgress(state, g) < 1) continue;
+    readyOrders.add(key);
+    push({ kind: 'info', title: 'Order ready to claim', subtitle: goalLabel(g) });
+  }
+}
 
 export function hasSave(city: CityInfo): boolean {
   return readJson<unknown>(saveKey(city)) !== null;

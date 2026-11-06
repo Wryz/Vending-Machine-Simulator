@@ -1,4 +1,4 @@
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -8,8 +8,9 @@ import { CAMERA } from '@/config/map';
 import { CHAPTERS, CHAPTER_GOALS } from '@/config/progression';
 import { useCityClock } from '@/hooks/useCityClock';
 import { CityMap, type CityMapHandle, type MapCameraState } from '@/map/CityMap';
-import { activeMachines, nearbyPlaces, visibleEvents, playerShare } from '@/sim';
+import { activeMachines, goalProgress, nearbyPlaces, visibleEvents, playerShare } from '@/sim';
 import { sound } from '@/services/audio';
+import { haptic } from '@/services/haptics';
 import { useGame } from '@/store/game';
 import { transition } from '@/store/transition';
 import { useTheme } from '@/ui/ThemeProvider';
@@ -17,6 +18,8 @@ import { clock, money } from '@/ui/format';
 import { Mono, ProgressBar, T } from '@/ui/kit';
 import { machineLabel } from '@/ui/machineStatus';
 import { Glyph } from '@/ui/objects/small';
+import { RollingMoney } from '@/ui/RollingMoney';
+import { sfx } from '@/ui/sfx';
 import { SPACE, TOUCH } from '@/ui/theme';
 
 function chapterProgress(game: NonNullable<ReturnType<typeof useGame.getState>['game']>): {
@@ -60,25 +63,31 @@ function HudButton({
   onPress,
   glyph,
   active,
+  badge,
 }: {
   label: string;
   onPress: () => void;
   glyph: Parameters<typeof Glyph>[0]['category'];
   active?: boolean;
+  badge?: string;
 }) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={badge ? `${label}, ${badge}` : label}
       accessibilityState={{ selected: !!active }}
-      onPress={onPress}
+      onPress={() => {
+        haptic.select();
+        sfx('pop');
+        onPress();
+      }}
       style={({ pressed }) => [
         styles.hudButton,
         {
           backgroundColor: active ? theme.ink : theme.hud,
           borderColor: theme.line,
-          opacity: pressed ? 0.8 : 1,
+          transform: [{ scale: pressed ? 0.95 : 1 }],
         },
       ]}
     >
@@ -86,8 +95,42 @@ function HudButton({
       <T size={11} weight="medium" color={active ? theme.bg : theme.ink}>
         {label}
       </T>
+      {badge ? (
+        <View style={[styles.badge, { backgroundColor: theme.signal }]}>
+          <T size={10} weight="bold" color="#FFFFFF">
+            {badge}
+          </T>
+        </View>
+      ) : null}
     </Pressable>
   );
+}
+
+/**
+ * A soft register "ding" and a light haptic tick when sales land, rate-limited
+ * so a busy fleet stays calm: at most one sound every 6 s and one tick every 10 s,
+ * and only while the map is the focused screen.
+ */
+function useSaleFeedback(ticker: { at: number; cents: number }[]) {
+  const focused = useIsFocused();
+  const lastSeen = useRef(0);
+  const lastSound = useRef(0);
+  const lastHaptic = useRef(0);
+  const latest = ticker[ticker.length - 1];
+  useEffect(() => {
+    if (!latest || latest.at <= lastSeen.current) return;
+    lastSeen.current = latest.at;
+    if (!focused) return;
+    const now = Date.now();
+    if (now - lastSound.current > 6_000) {
+      lastSound.current = now;
+      sfx('register');
+    }
+    if (now - lastHaptic.current > 10_000) {
+      lastHaptic.current = now;
+      haptic.tick();
+    }
+  }, [latest, focused]);
 }
 
 /** Map (home) — SPEC §8. */
@@ -162,6 +205,11 @@ export default function MapScreen() {
     );
   };
 
+  const ordersReady = game.goals.items.filter(
+    (g) => !g.claimed && goalProgress(game, g) >= 1,
+  ).length;
+  useSaleFeedback(ticker);
+
   const weather = world.weatherAt(game.now);
   const weatherLabel = weather
     ? `${Math.round(weather.tempC)}° ${weather.condition}`
@@ -207,9 +255,7 @@ export default function MapScreen() {
       <View pointerEvents="box-none" style={[styles.top, { paddingTop: insets.top + SPACE.xs }]}>
         <View style={[styles.topBar, { backgroundColor: theme.hud, borderColor: theme.line }]}>
           <View style={{ flex: 1 }}>
-            <Mono size={18} weight="bold" accessibilityLabel={`Cash ${money(game.cashCents)}`}>
-              {money(game.cashCents)}
-            </Mono>
+            <RollingMoney cents={game.cashCents} />
             <T size={12} muted numberOfLines={1}>
               {world.city.name} · {clock(game.now, world.city.timeZone)} · {weatherLabel}
             </T>
@@ -256,20 +302,23 @@ export default function MapScreen() {
       </View>
 
       {hint ? (
-        <View
+        <Animated.View
+          key={hint}
+          entering={FadeIn.duration(400)}
+          exiting={FadeOut.duration(250)}
           pointerEvents="none"
           style={[styles.hint, { bottom: insets.bottom + 100, backgroundColor: theme.ink }]}
         >
           <T size={14} color={theme.bg} center>
             {hint}
           </T>
-        </View>
+        </Animated.View>
       ) : null}
 
       {/* ODbL attribution, always visible (SPEC §6.4). */}
       <View pointerEvents="none" style={[styles.attribution, { bottom: insets.bottom + 74 }]}>
         <T size={10} color={tod.palette.label}>
-          © OpenStreetMap contributors
+          © OpenFreeMap © OpenMapTiles © OpenStreetMap contributors
         </T>
       </View>
 
@@ -277,6 +326,12 @@ export default function MapScreen() {
       <View style={[styles.bottom, { paddingBottom: insets.bottom + SPACE.s }]}>
         <HudButton label="Keys" glyph="office" onPress={() => router.push('/keys')} />
         <HudButton label="Routes" glyph="station" onPress={() => router.push('/routes')} />
+        <HudButton
+          label="Orders"
+          glyph="shopping"
+          badge={ordersReady > 0 ? String(ordersReady) : undefined}
+          onPress={() => router.push('/orders')}
+        />
         <HudButton label="Heat" glyph="event" active={heat} onPress={() => setHeat((h) => !h)} />
         <HudButton label="Company" glyph="convention" onPress={() => router.push('/company')} />
       </View>
@@ -327,8 +382,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     paddingHorizontal: SPACE.m,
   },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
   hudButton: {
-    minWidth: 72,
+    minWidth: 62,
     minHeight: TOUCH + 12,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,

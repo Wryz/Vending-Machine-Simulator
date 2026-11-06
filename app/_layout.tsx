@@ -16,6 +16,7 @@ import { initAds } from '@/services/ads';
 import { sound } from '@/services/audio';
 import { initPurchases } from '@/services/purchases';
 import { useProfile } from '@/store/profile';
+import { CelebrationHost } from '@/ui/CelebrationHost';
 import { ThemeProvider, useTheme } from '@/ui/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -76,6 +77,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <Navigator />
+          <CelebrationHost />
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
