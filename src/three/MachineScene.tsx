@@ -1,7 +1,7 @@
 'use no memo';
 // three.js objects are mutated every frame; keep the React Compiler out of this file.
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber/native';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as THREE from 'three';
@@ -15,6 +15,7 @@ import type { SunState } from '@/map/sun';
 import { dragOrbit, follow, idleCamera, orbitWeight, rotateY } from './life/camera';
 import { countSceneTriangles } from './life/geometry';
 import { createStreetScene } from './life/streetScene';
+import { createTapGate, gateActivate, gateBegin, gateClick, gateFinalize } from './life/tapGate';
 import { sceneLighting } from './lightingRig';
 import { createMachineFx, createMachineMirror, trimShadowCasters } from './machineFx';
 import { createVendingMachine, setMachineGlow } from './models/vendingMachine';
@@ -318,6 +319,13 @@ function Lights({ sun, palette }: { sun: SunState; palette: Palette }) {
 export function MachineScene(props: MachineSceneProps) {
   // Mutable orbit state shared by the gesture (JS thread) and the camera rig (frame loop).
   const orbit = useMemo<OrbitState>(() => ({ target: 0, current: 0, start: 0 }), []);
+  // Keeps an orbit drag that starts on a slot from also selecting it (see tapGate.ts).
+  const gate = useMemo(() => createTapGate(), []);
+  const onSlotPress = props.onSlotPress;
+  const gatedSlotPress = useCallback(
+    (i: number) => gateClick(gate, () => onSlotPress?.(i), Date.now()),
+    [gate, onSlotPress],
+  );
   const pan = useMemo(
     () =>
       Gesture.Pan()
@@ -326,13 +334,16 @@ export function MachineScene(props: MachineSceneProps) {
         // Horizontal drags orbit; taps and vertical scrolls pass through.
         .activeOffsetX([-12, 12])
         .failOffsetY([-12, 12])
+        .onBegin(() => gateBegin(gate))
         .onStart(() => {
+          gateActivate(gate);
           orbit.start = orbit.target;
         })
         .onUpdate((e) => {
           orbit.target = dragOrbit(orbit.start, e.translationX);
-        }),
-    [orbit, props.orbit],
+        })
+        .onFinalize(() => gateFinalize(gate, Date.now())),
+    [gate, orbit, props.orbit],
   );
   return (
     <GestureDetector gesture={pan}>
@@ -345,7 +356,7 @@ export function MachineScene(props: MachineSceneProps) {
           style={{ flex: 1 }}
         >
           <Lights sun={props.sun} palette={props.palette} />
-          <World {...props} />
+          <World {...props} onSlotPress={gatedSlotPress} />
           <CameraRig from={props.from} to={props.to} durationMs={props.durationMs} orbit={orbit} />
           <FpsMeter onFps={props.onFps} />
         </Canvas>

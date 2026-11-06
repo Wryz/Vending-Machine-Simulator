@@ -127,6 +127,8 @@ export const CLOSEUP_MOTION = {
   orbitFollow: 7,
   /** Camera distance range over which orbit/drift fade out (map ↔ close-up). */
   orbitFadeM: [6, 14],
+  /** A 3D slot tap arriving this soon after an orbit drag ended is the drag's tail, not a tap. */
+  orbitTapGuardMs: 150,
   restock: { slideMs: 250, staggerMs: 55, slideM: 0.05, maxTicks: 8, flashMs: 420 },
   drop: { tipMs: 130, fallMs: 430 },
   coins: { count: 8, doorMs: 240, firstCoinMs: 200, staggerMs: 70, slideMs: 420, holdMs: 900 },
