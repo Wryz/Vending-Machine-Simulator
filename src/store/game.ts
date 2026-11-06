@@ -70,7 +70,8 @@ export function cityInfoFor(id: CityId): CityInfo {
   };
 }
 
-function buildWorld(city: CityInfo, pack: RegionPack, weather: WeatherBook): World {
+/** Build the sim World for a city pack (also used by Diagnostics for a throwaway bench world). */
+export function buildWorld(city: CityInfo, pack: RegionPack, weather: WeatherBook): World {
   const calibrated = calibrateCells(pack.cells, city);
   const cells = new Map(calibrated.cells.map((c) => [c.id, c]));
   return {

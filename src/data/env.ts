@@ -19,4 +19,10 @@ export const ENV = {
   admobRewardedAndroid: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID ?? '',
   posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY ?? '',
   posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com',
+  /**
+   * Dev builds only: a route to open at launch, for unattended QA runs, e.g.
+   * `EXPO_PUBLIC_QA_ROUTE='/diagnostics?run=all' npm start`. Ignored in release.
+   */
+  qaRoute:
+    typeof __DEV__ !== 'undefined' && __DEV__ ? (process.env.EXPO_PUBLIC_QA_ROUTE ?? '') : '',
 } as const;

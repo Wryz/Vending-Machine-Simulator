@@ -1,16 +1,28 @@
 import Constants from 'expo-constants';
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { CLOSEUP_CAMERA, FAMILY_ACCENT, SNACK_MACHINE_DIMENSIONS } from '@/config/machines';
+import { loadCityPack } from '@/data/cityPack';
 import { cellOf, neighbors } from '@/data/h3';
+import { WeatherBook } from '@/data/weather';
 import { ENV } from '@/data/env';
 import { closeupCamera } from '@/map/cameraMatch';
 import { tileSourceFor } from '@/map/tiles';
 import { getTimeOfDay } from '@/map/timeOfDay';
-import { advance, cloneState, placeMachine, restockMachine, suggestRestock } from '@/sim';
+import {
+  advance,
+  cloneState,
+  newGame,
+  placeMachine,
+  restockMachine,
+  suggestRestock,
+  type GameState,
+  type World,
+} from '@/sim';
 import { offsetPoint } from '@/sim/geo';
-import { useGame } from '@/store/game';
+import { buildWorld, cityInfoFor, useGame } from '@/store/game';
 import { MachineScene, type SceneStats } from '@/three/MachineScene';
 import { Button, Mono, Paper, Screen, Section, T } from '@/ui/kit';
 
@@ -18,14 +30,35 @@ import { Button, Mono, Paper, Screen, Section, T } from '@/ui/kit';
  * Developer diagnostics for the Milestone-1 spikes, run on a real device:
  * h3-js on Hermes, 72 h offline catch-up timing, 3D close-up fps, tile route.
  * Reachable from Settings (long-press the version) — not part of play.
+ *
+ * `coinline://diagnostics?run=all` runs every check unattended (h3, both
+ * catch-ups, then ~15 s of the busy 3D scene) and also prints each result as a
+ * `[diag]` line to the JS console, so QA can collect numbers from the Metro log
+ * on a Simulator or device without tapping.
  */
+const AUTO_FPS_SAMPLES = 12;
+
+/** The open city, or a throwaway New York bench world that never touches a save. */
+async function benchState(): Promise<{ game: GameState; world: World }> {
+  const { game, world } = useGame.getState();
+  if (game && world) return { game, world };
+  const city = cityInfoFor('new-york');
+  const bench = buildWorld(city, await loadCityPack(city.id), new WeatherBook());
+  return { game: newGame({ cityId: city.id, now: Date.now(), seed: 1 }), world: bench };
+}
+
 export default function Diagnostics() {
   const [lines, setLines] = useState<string[]>([]);
   const [fps, setFps] = useState<number[]>([]);
   const [show3d, setShow3d] = useState(false);
   const [busy, setBusy] = useState(true);
   const [stats, setStats] = useState<SceneStats | null>(null);
-  const log = (s: string) => setLines((l) => [...l, s]);
+  const { run } = useLocalSearchParams<{ run?: string }>();
+  const auto = useRef<'idle' | 'fps' | 'done'>('idle');
+  const log = (s: string) => {
+    console.log(`[diag] ${s}`);
+    setLines((l) => [...l, s]);
+  };
 
   const runH3 = () => {
     try {
@@ -44,9 +77,8 @@ export default function Diagnostics() {
     );
   };
 
-  const runOffline = (count: number) => {
-    const { game, world } = useGame.getState();
-    if (!game || !world) return log('offline: open a city first');
+  const runOffline = async (count: number) => {
+    const { game, world } = await benchState();
     let s = cloneState(game);
     s.chapter = 5;
     s.cashCents = 1e12;
@@ -74,6 +106,34 @@ export default function Diagnostics() {
       `offline 72 h × ${s.machines.filter((m) => m.status === 'active').length} machines: ${(performance.now() - t0).toFixed(0)} ms (target < 300 ms)`,
     );
   };
+
+  useEffect(() => {
+    if (run !== 'all' || auto.current !== 'idle') return;
+    auto.current = 'fps';
+    (async () => {
+      runH3();
+      // Let the log render between the long synchronous runs.
+      await new Promise((r) => setTimeout(r, 300));
+      await runOffline(15);
+      await new Promise((r) => setTimeout(r, 300));
+      await runOffline(200);
+      setBusy(true);
+      setShow3d(true);
+    })().catch((e) => log(`auto: FAILED ${String(e)}`));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per open
+  }, [run]);
+
+  useEffect(() => {
+    if (auto.current !== 'fps' || fps.length < AUTO_FPS_SAMPLES) return;
+    auto.current = 'done';
+    const last = fps.slice(-10);
+    log(
+      `3D fps (busy street): avg ${(last.reduce((a, b) => a + b, 0) / last.length).toFixed(1)}, min ${Math.min(...last).toFixed(1)} over the last ${last.length} s` +
+        (stats ? ` · walkers ${stats.walkers} · cars ${stats.cars} · ${stats.triangles} tris` : ''),
+    );
+    log('auto: done');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires once
+  }, [fps]);
 
   const tod = getTimeOfDay(new Date(), 40.7128, -74.006);
   const to = closeupCamera(180, SNACK_MACHINE_DIMENSIONS.heightM, CLOSEUP_CAMERA);

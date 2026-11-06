@@ -5,13 +5,14 @@ import { InstrumentSans_600SemiBold } from '@expo-google-fonts/instrument-sans/6
 import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono/400Regular';
 import { JetBrainsMono_600SemiBold } from '@expo-google-fonts/jetbrains-mono/600SemiBold';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ENV } from '@/data/env';
 import { initAds } from '@/services/ads';
 import { sound } from '@/services/audio';
 import { initPurchases } from '@/services/purchases';
@@ -70,7 +71,15 @@ export default function RootLayout() {
     if ((fontsLoaded || fontError) && loaded) SplashScreen.hideAsync().catch(() => undefined);
   }, [fontsLoaded, fontError, loaded]);
 
-  if ((!fontsLoaded && !fontError) || !loaded) return null;
+  const ready = (fontsLoaded || fontError) && loaded;
+  useEffect(() => {
+    // Unattended QA (dev builds only): jump to a route once the app can navigate.
+    if (!ready || !ENV.qaRoute) return;
+    const t = setTimeout(() => router.push(ENV.qaRoute as never), 1500);
+    return () => clearTimeout(t);
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
