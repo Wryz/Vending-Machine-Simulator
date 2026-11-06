@@ -91,9 +91,9 @@ function geometries() {
   const head = new THREE.DodecahedronGeometry(0.104);
   head.scale(0.9, 1.13, 0.98);
   // Hair shell: covers the crown, sides and back; the face stays clear in front.
-  const hair = new THREE.DodecahedronGeometry(0.108);
-  hair.scale(0.98, 0.95, 0.96);
-  hair.translate(0, 0.024, -0.036);
+  const hair = new THREE.DodecahedronGeometry(0.112);
+  hair.scale(1, 1, 0.95);
+  hair.translate(0, 0.018, -0.03);
   // Unit limb hanging from its top (pivot), tapered.
   const limb = new THREE.CylinderGeometry(1, 0.72, 1, 5, 1);
   limb.translate(0, -0.5, 0);

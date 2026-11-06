@@ -12,6 +12,7 @@ import {
   slideProgress,
   type DropPose,
 } from './life/interactions';
+import { mergeParts, type Part } from './life/geometry';
 import type { VendingMachineModel } from './models/vendingMachine';
 
 /**
@@ -290,24 +291,54 @@ export function createMachineFx(model: VendingMachineModel): MachineFx {
 }
 
 /**
- * A copy of the machine for the shop-window reflection. Shares geometry and
- * materials (so glow and flicker follow); `sync` mirrors slot state.
+ * Tiny parts (keypad buttons, coin slot…) cast no visible shadow at close-up
+ * distance; dropping them from the shadow pass saves ~20 draw calls.
+ */
+export function trimShadowCasters(model: VendingMachineModel, minSizeM = 0.06): void {
+  const box = new THREE.Box3();
+  const size = new THREE.Vector3();
+  model.group.traverse((o) => {
+    if (!(o instanceof THREE.Mesh) || !o.castShadow) return;
+    o.geometry.computeBoundingBox();
+    box.copy(o.geometry.boundingBox!).getSize(size);
+    if (Math.max(size.x, size.y) < minSizeM) o.castShadow = false;
+  });
+}
+
+/**
+ * A copy of the machine for the shop-window reflection. Static parts are
+ * merged per material (a handful of draw calls instead of ~75); slots stay
+ * separate and `sync` mirrors their state. Shares materials, so glow and
+ * flicker follow.
  */
 export function createMachineMirror(model: VendingMachineModel): {
   group: THREE.Group;
   sync(): void;
 } {
-  const group = model.group.clone();
+  const group = new THREE.Group();
   group.name = 'vending-machine-mirror';
-  const bySlot = new Map<string, THREE.Object3D>();
-  group.traverse((o) => {
-    if (o instanceof THREE.Mesh) {
-      o.castShadow = false;
-      o.receiveShadow = false;
-    }
-    if (o.name.startsWith('slot-')) bySlot.set(o.name, o);
+  model.group.updateMatrixWorld(true);
+  const toLocal = new THREE.Matrix4().copy(model.group.matrixWorld).invert();
+  const byMaterial = new Map<THREE.Material, Part[]>();
+  const slotNames = new Set(model.slots.map((m) => m.name));
+  model.group.traverse((o) => {
+    if (!(o instanceof THREE.Mesh) || slotNames.has(o.name)) return;
+    const mat = o.material as THREE.Material;
+    const parts = byMaterial.get(mat) ?? [];
+    parts.push({ geo: o.geometry, matrix: new THREE.Matrix4().multiplyMatrices(toLocal, o.matrixWorld) });
+    byMaterial.set(mat, parts);
   });
-  const pairs = model.slots.map((src) => [src, bySlot.get(src.name)!] as const);
+  for (const [mat, parts] of byMaterial) {
+    const m = new THREE.Mesh(mergeParts(parts), mat);
+    m.name = 'machine-mirror-part';
+    group.add(m);
+  }
+  const pairs = model.slots.map((src) => {
+    const dst = new THREE.Mesh(src.geometry, src.material);
+    dst.name = `${src.name}-mirror`;
+    group.add(dst);
+    return [src, dst] as const;
+  });
   return {
     group,
     sync() {

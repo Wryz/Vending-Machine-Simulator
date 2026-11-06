@@ -16,7 +16,7 @@ import { dragOrbit, follow, idleCamera, orbitWeight, rotateY } from './life/came
 import { countSceneTriangles } from './life/geometry';
 import { createStreetScene } from './life/streetScene';
 import { sceneLighting } from './lightingRig';
-import { createMachineFx, createMachineMirror } from './machineFx';
+import { createMachineFx, createMachineMirror, trimShadowCasters } from './machineFx';
 import { createVendingMachine, setMachineGlow } from './models/vendingMachine';
 
 /**
@@ -186,6 +186,7 @@ function World(props: MachineSceneProps) {
       rows: type.grid.rows,
       cols: type.grid.cols,
     });
+    trimShadowCasters(model);
     const mirror = createMachineMirror(model);
     const fx = createMachineFx(model);
     model.group.add(fx.group);

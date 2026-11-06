@@ -17,7 +17,7 @@ import { carsAt, emptyCar } from '@/three/life/traffic';
 import { createStreetScene } from '@/three/life/streetScene';
 import { activeWalkerCount, emptyWalker, walkerAt } from '@/three/life/walkers';
 import { sceneLighting } from '@/three/lightingRig';
-import { createMachineFx, createMachineMirror } from '@/three/machineFx';
+import { createMachineFx, createMachineMirror, trimShadowCasters } from '@/three/machineFx';
 import {
   countTriangles,
   createVendingMachine,
@@ -140,6 +140,11 @@ export interface LifeShot {
   seed: number;
   /** Optional: a sale `saleAgoMs` before the shot (product falling / customer reaching). */
   saleAgoMs?: number;
+  /** Optional interaction states, for checking the machine animations. */
+  broken?: boolean;
+  collectAgoMs?: number;
+  restockAgoMs?: number;
+  selectedSlot?: number;
 }
 
 const HEADING = 180;
@@ -210,6 +215,7 @@ export function renderCloseupLife(o: LifeShot) {
     cols: type.grid.cols,
   });
   setMachineGlow(model, l.machineGlow);
+  trimShadowCasters(model);
   const mirror = createMachineMirror(model);
   const fx = createMachineFx(model);
   model.group.add(fx.group);
@@ -236,6 +242,11 @@ export function renderCloseupLife(o: LifeShot) {
     const color = fx.sale(13, nowMs - o.saleAgoMs);
     if (color) life.offerProduct(color, o.tS - o.saleAgoMs / 1000);
   }
+  if (o.broken) fx.setBroken(true);
+  if (o.selectedSlot !== undefined) fx.setSelected(o.selectedSlot);
+  if (o.collectAgoMs !== undefined) fx.collect(nowMs - o.collectAgoMs);
+  if (o.restockAgoMs !== undefined)
+    fx.restock(Array.from({ length: 30 }, (_, i) => i), nowMs - o.restockAgoMs);
   life.update(o.tS, params);
   fx.update(nowMs, l.machineGlow);
   mirror.sync();
