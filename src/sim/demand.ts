@@ -156,6 +156,14 @@ export function competitionShare(effectiveCompetitors: number): number {
   return Math.min(COMPETITION.maxShare, share);
 }
 
+/** The tag boost when no event is nearby (shared and frozen: never mutate). */
+const NO_BOOST: Record<string, number> = Object.freeze({}) as Record<string, number>;
+
+/** True when there is no event tag boost, so tagBoostFactor would be 1. */
+export function isNoBoost(boost: Record<string, number>): boolean {
+  return boost === NO_BOOST;
+}
+
 /** Event multiplier for a point at time t (strongest active event nearby). */
 export function eventFactor(
   events: readonly LocalEvent[],
@@ -165,7 +173,7 @@ export function eventFactor(
 ): { factor: number; tagBoost: Record<string, number>; event: LocalEvent | null } {
   let best = {
     factor: 1,
-    tagBoost: {} as Record<string, number>,
+    tagBoost: NO_BOOST,
     event: null as LocalEvent | null,
   };
   for (const e of events) {

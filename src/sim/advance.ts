@@ -9,6 +9,7 @@ import {
   baseTraffic,
   customersPerHour,
   hasResearch,
+  isNoBoost,
   priceResponse,
   productFit,
   productWeatherFactor,
@@ -28,8 +29,9 @@ import {
   driverCapacity,
   isEmpty,
   maxOfflineMs,
+  machineFresh,
   overheadCentsPerDay,
-  salesMultiplier,
+  salesMultiplierBase,
   slotCapacity,
   wholesaleCents,
 } from './rules';
@@ -102,17 +104,32 @@ function newReport(from: number): AdvanceReport {
   };
 }
 
-/** Per-step caches: traffic per cell and fit per (cell, product). */
-interface StepCache {
+/**
+ * Caches for one (local hour, rest day) pair. Traffic and fit depend only on the
+ * cell, the hour and the day type, so hourly catch-up steps reuse them every day.
+ */
+interface HourCache {
   /** Product fit by cell, then product id (nested maps: no string keys in the hot loop). */
   fit: Map<string, Map<string, number>>;
   /** Place affinity by cell, then product tag (products share tags). */
   affinity: Map<string, Map<string, number>>;
-  /** Base traffic by cell (same hour and day for every machine in a step). */
+  /** Base traffic by cell. */
   traffic: Map<string, TrafficBreakdown>;
+}
+
+/** Caches for one step: the hour caches plus what depends on this step's weather and perks. */
+interface StepCache extends HourCache {
   /** sqrt(productWeatherFactor) by product id (same weather for every machine in a step). */
   weatherFit: Map<string, number>;
+  /** salesMultiplier without the fresh-stock bonus, by machine family. */
+  salesBase: Map<string, number>;
 }
+
+/** Scratch arrays reused by sellStep (it never re-enters), to spare the garbage collector. */
+const FITS: number[] = [];
+const PRODUCTS: (Product | null)[] = [];
+const EXPECTED: number[] = [];
+const UNITS: number[] = [];
 
 function fitFor(
   cache: StepCache,
@@ -169,19 +186,26 @@ function sellStep(
     traffic: cellTraffic,
   });
   if (customers <= 0) return 0;
-  const mult = salesMultiplier(state, m, ctx.t);
+  let multBase = ctx.cache.salesBase.get(type.family);
+  if (multBase === undefined) {
+    multBase = salesMultiplierBase(state, type);
+    ctx.cache.salesBase.set(type.family, multBase);
+  }
+  const mult = machineFresh(m, ctx.t) ? multBase * (1 + SERVICE.freshStockBonus) : multBase;
   const cooler = hasResearch(state, 'cooler', type.family);
+  const noBoost = isNoBoost(tagBoost);
 
   // Each stocked slot draws customers in proportion to its fit; a thin
   // selection (fewer than SELECTION_REF slots) loses customers who don't find
   // what they want. Total purchases never exceed the customers who stopped.
-  const n = m.slots.length;
-  const fits: number[] = new Array(n);
-  const products: (Product | null)[] = new Array(n);
+  const slots = m.slots;
+  const n = slots.length;
+  const fits = FITS;
+  const products = PRODUCTS;
   let stocked = 0;
   let weatherSum = 0;
   for (let i = 0; i < n; i++) {
-    const s = m.slots[i];
+    const s = slots[i];
     if (s.qty <= 0 || !s.productId) {
       fits[i] = 0;
       products[i] = null;
@@ -200,7 +224,7 @@ function sellStep(
     weatherSum += w;
     fits[i] =
       fitFor(ctx.cache, cell.id, p, traffic, ctx.local.hour) *
-      tagBoostFactor(p, tagBoost) *
+      (noBoost ? 1 : tagBoostFactor(p, tagBoost)) *
       w *
       (cooler && HOT_COLD(p) ? 1.05 : 1);
     stocked++;
@@ -210,11 +234,11 @@ function sellStep(
   const customersPulled = customers * pull;
   const denom = Math.max(stocked, FIT.selectionRef);
   const cardShare = hasResearch(state, 'card-reader', type.family) ? CASH.cardShare : 0;
-  const expected: number[] = new Array(n);
+  const expected = EXPECTED;
   let sumExpected = 0;
   for (let i = 0; i < n; i++) {
     const p = products[i];
-    const s = m.slots[i];
+    const s = slots[i];
     const e =
       !fits[i] || !s.productId || !p
         ? 0
@@ -229,11 +253,13 @@ function sellStep(
   }
   const ceiling = customersPulled * mult * ctx.bh * FIT.maxBuy;
   const scale = sumExpected > ceiling ? ceiling / sumExpected : 1;
-  const units: number[] = m.slots.map((s, i) =>
-    expected[i] > 0 ? Math.min(s.qty, poisson(state, expected[i] * scale)) : 0,
-  );
+  const units = UNITS;
   let revenue = 0;
-  m.slots.forEach((s, i) => (revenue += units[i] * s.priceCents));
+  for (let i = 0; i < n; i++) {
+    const e = expected[i];
+    units[i] = e > 0 ? Math.min(slots[i].qty, poisson(state, e * scale)) : 0;
+    revenue += units[i] * slots[i].priceCents;
+  }
   if (revenue <= 0) return 0;
 
   // Cash box capacity: cash customers are turned away once it is full.
@@ -243,16 +269,18 @@ function sellStep(
   if (cashRevenue > room) {
     const allowed = cashRevenue > 0 ? room / cashRevenue : 0;
     const keep = cardShare + (1 - cardShare) * allowed;
-    for (let i = 0; i < units.length; i++) units[i] = Math.floor(units[i] * keep);
     revenue = 0;
-    m.slots.forEach((s, i) => (revenue += units[i] * s.priceCents));
+    for (let i = 0; i < n; i++) {
+      units[i] = Math.floor(units[i] * keep);
+      revenue += units[i] * slots[i].priceCents;
+    }
   }
 
   let sold = 0;
-  m.slots.forEach((s, i) => {
-    s.qty -= units[i];
+  for (let i = 0; i < n; i++) {
+    slots[i].qty -= units[i];
     sold += units[i];
-  });
+  }
   if (sold === 0) return 0;
 
   const card = Math.round(revenue * cardShare);
@@ -537,9 +565,36 @@ export function advance(
   to: number,
   opts: SimOptions = {},
 ): { state: GameState; report: AdvanceReport } {
+  const job = beginAdvance(state, world, to, opts);
+  job.run(Infinity);
+  return { state: job.state, report: job.report };
+}
+
+/**
+ * A catch-up that can run a few steps at a time, so the UI can paint between
+ * chunks. Running it in any number of chunks gives exactly the same result as
+ * `advance`. `state` is a private copy: don't touch it until `done`.
+ */
+export interface AdvanceJob {
+  readonly state: GameState;
+  readonly report: AdvanceReport;
+  /** Runs up to `maxSteps` steps; returns true once the job is done. */
+  run(maxSteps: number): boolean;
+  /** Share of the simulated time already covered, 0..1. */
+  progress(): number;
+  done(): boolean;
+}
+
+export function beginAdvance(
+  state: GameState,
+  world: World,
+  to: number,
+  opts: SimOptions = {},
+): AdvanceJob {
   const s = cloneState(state);
   const report = newReport(s.now);
-  if (to <= s.now) return { state: s, report };
+  if (to <= s.now)
+    return { state: s, report, run: () => true, progress: () => 1, done: () => true };
   const cap = maxOfflineMs(s, opts.offlineCapMultiplier ?? 1);
   if (to - s.now > cap) {
     report.skippedMs = to - s.now - cap;
@@ -556,6 +611,7 @@ export function advance(
         ? TIME.offlineStepMinutes * 60_000
         : TIME.offlineCoarseStepMinutes * 60_000;
   const startCash = s.cashCents;
+  const hourCaches = new Map<string, HourCache>();
   let compIdx = competition(s, world);
   let comp = compIdx.values;
   const emptyBefore = new Set(
@@ -564,7 +620,8 @@ export function advance(
       .map((m) => m.id),
   );
 
-  while (s.now < to) {
+  const from = s.now;
+  const step = () => {
     const lostBefore = report.contractsLost.length;
     const dt = Math.min(stepAt(s.now), to - s.now);
     const tMid = s.now + dt / 2;
@@ -578,26 +635,21 @@ export function advance(
     const weather = world.weatherAt(tMid);
     const bh = businessHours(dt);
     const bd = businessDays(dt);
-    const cache: StepCache = {
-      fit: new Map(),
-      affinity: new Map(),
-      traffic: new Map(),
-      weatherFit: new Map(),
-    };
+    const hourKey = `${local.hour}|${local.restDay}`;
+    let hc = hourCaches.get(hourKey);
+    if (!hc)
+      hourCaches.set(hourKey, (hc = { fit: new Map(), affinity: new Map(), traffic: new Map() }));
+    const cache: StepCache = { ...hc, weatherFit: new Map(), salesBase: new Map() };
     let costs = 0;
 
     let powerCents = 0;
+    // One context per step (only `competitors` changes per machine): no allocation per machine.
+    const sellCtx = { local, weather, competitors: 0, t: tMid, bh, cache };
     for (const m of s.machines) {
       if (m.status !== 'active') continue;
       const type = getMachineType(m.typeId);
-      sellStep(
-        s,
-        world,
-        m,
-        type,
-        { local, weather, competitors: comp.get(m.id) ?? 0, t: tMid, bh, cache },
-        report,
-      );
+      sellCtx.competitors = comp.get(m.id) ?? 0;
+      sellStep(s, world, m, type, sellCtx, report);
       powerCents += type.powerCentsPerDay * bd;
       costs += risksStep(
         s,
@@ -676,8 +728,18 @@ export function advance(
       const gone = new Set(report.contractsLost.slice(lostBefore));
       compIdx.remove(s.machines.filter((m) => gone.has(m.id)));
     }
-  }
-  report.toAt = s.now;
-  report.cashDeltaCents = s.cashCents - startCash;
-  return { state: s, report };
+  };
+
+  return {
+    state: s,
+    report,
+    run(maxSteps) {
+      for (let i = 0; i < maxSteps && s.now < to; i++) step();
+      report.toAt = s.now;
+      report.cashDeltaCents = s.cashCents - startCash;
+      return s.now >= to;
+    },
+    progress: () => (to > from ? Math.min(1, (s.now - from) / (to - from)) : 1),
+    done: () => s.now >= to,
+  };
 }

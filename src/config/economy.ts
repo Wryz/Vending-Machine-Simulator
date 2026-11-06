@@ -27,6 +27,8 @@ export const TIME = {
   offlineCoarseStepMinutes: 60,
   /** Offline progress cap (real hours) before upgrades — SPEC §5.1. */
   offlineCapHours: 72,
+  /** Long catch-ups run in slices of about this much JS time per frame (keeps the UI alive). */
+  catchUpSliceMs: 12,
 } as const;
 
 export const BUSINESS_DAY_REAL_MS = (24 * 60 * 60_000) / TIME.salesTimeScale;

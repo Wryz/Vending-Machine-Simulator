@@ -5,12 +5,13 @@ import { useGame } from '@/store/game';
 
 import { Icon } from './icons';
 import { T } from './kit';
-import { Led, SKIN } from './skin';
+import { Led, LedBar, SKIN } from './skin';
 import { SPACE } from './theme';
 
 /** While a long catch-up runs on return: the machine counts the coins. */
 export function CatchUpOverlay() {
   const busy = useGame((s) => s.catchingUp);
+  const progress = useGame((s) => s.catchUpProgress);
   if (!busy) return null;
   return (
     <Animated.View
@@ -31,6 +32,9 @@ export function CatchUpOverlay() {
         <Led size={16} color={SKIN.ledAmber}>
           COUNTING COINS
         </Led>
+        <View style={styles.meter}>
+          <LedBar value={progress} segments={12} color={SKIN.ledAmber} />
+        </View>
       </View>
     </Animated.View>
   );
@@ -53,6 +57,7 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: SKIN.cabinetEdge,
   },
+  meter: { alignSelf: 'stretch' },
   coin: {
     width: 64,
     height: 64,

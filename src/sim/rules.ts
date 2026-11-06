@@ -47,13 +47,21 @@ export function prestigePerk(id: string) {
 
 /** Global sales multiplier for a machine (collections, prestige, fresh stock). */
 export function salesMultiplier(state: GameState, machine: Machine, t: number): number {
-  const type = getMachineType(machine.typeId);
+  const m = salesMultiplierBase(state, getMachineType(machine.typeId));
+  return machineFresh(machine, t) ? m * (1 + SERVICE.freshStockBonus) : m;
+}
+
+/** salesMultiplier without the per-machine fresh-stock bonus (same for a whole family). */
+export function salesMultiplierBase(state: GameState, type: MachineType): number {
   let m = 1 + 0.04 * perkLevel(state, 'sharp-eye');
   for (const s of COLLECTIONS) {
     if (s.perkFamily === type.family && isSeriesComplete(state, s.id)) m *= 1 + s.perkSalesBonus;
   }
-  if (machine.freshUntil > t) m *= 1 + SERVICE.freshStockBonus;
   return m;
+}
+
+export function machineFresh(machine: Machine, t: number): boolean {
+  return machine.freshUntil > t;
 }
 
 export function isSeriesComplete(state: GameState, seriesId: string): boolean {

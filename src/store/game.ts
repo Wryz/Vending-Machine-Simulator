@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import { getCity, type CityId } from '@/config/cities';
-import { SAVE } from '@/config/economy';
+import { SAVE, TIME } from '@/config/economy';
 import { loadCityPack, loadRegionPack } from '@/data/cityPack';
 import { cellOf, neighbors } from '@/data/h3';
 import { fetchWeather } from '@/data/api';
@@ -11,6 +11,7 @@ import { readJson, writeJson } from '@/services/storage';
 import { ACHIEVEMENTS, CHAPTERS } from '@/config/progression';
 import {
   advance,
+  beginAdvance,
   calibrateCells,
   checkAchievements,
   goalProgress,
@@ -45,6 +46,8 @@ interface GameStore {
   ticker: TickerEntry[];
   /** True while a long catch-up runs after returning to the app (shows an overlay). */
   catchingUp: boolean;
+  /** Share of the catch-up done, 0..1 (drives the overlay's meter). */
+  catchUpProgress: number;
   /** Bumped on every state change (cheap selector for re-renders). */
   version: number;
   lastSavedAt: number;
@@ -113,93 +116,14 @@ function offlineCapMultiplier(): number {
   return useProfile.getState().entitlements.removeAds ? 1.25 : 1;
 }
 
-export const useGame = create<GameStore>((set, get) => ({
-  status: 'idle',
-  error: null,
-  city: null,
-  game: null,
-  world: null,
-  offlineReport: null,
-  ticker: [],
-  catchingUp: false,
-  version: 0,
-  lastSavedAt: 0,
-
-  async openCity(city, opts = {}) {
-    const token = ++loadToken;
-    set({ status: 'loading', error: null });
-    try {
-      const pack =
-        city.kind === 'fallback'
-          ? await loadCityPack(city.id)
-          : await loadRegionPack(city.res5 ?? '');
-      // A newer openCity() started while we were loading: let it win.
-      if (token !== loadToken) return;
-      const world = buildWorld(city, pack, weatherBook);
-      lastWeatherFetch = Date.now();
-      fetchWeather(city)
-        .then((w) => weatherBook.load(w.hours))
-        .catch(() => undefined);
-      const now = Date.now();
-      let game: GameState | null = null;
-      if (!opts.fresh) {
-        const raw = readJson<unknown>(saveKey(city));
-        if (raw) {
-          try {
-            game = migrateSave(raw);
-          } catch {
-            game = null;
-          }
-        }
-      }
-      let offlineReport: AdvanceReport | null = null;
-      if (!game) {
-        game = newGame({
-          cityId: city.id,
-          now,
-          seed: opts.seed ?? Math.floor(Math.random() * 2 ** 31),
-        });
-      } else if (now - game.now > 0) {
-        const { state, report } = advance(game, world, now, {
-          offlineCapMultiplier: offlineCapMultiplier(),
-        });
-        if (now - game.now >= OFFLINE_REPORT_MIN_MS) offlineReport = report;
-        game = state;
-      }
-      useProfile.getState().update((p) => {
-        p.cities[cityKey(city)] = city;
-        p.lastCityKey = cityKey(city);
-      });
-      set({
-        status: 'ready',
-        city,
-        game,
-        world,
-        offlineReport,
-        ticker: [],
-        version: get().version + 1,
-      });
-      get().save();
-    } catch (e) {
-      if (token === loadToken)
-        set({ status: 'error', error: e instanceof Error ? e.message : String(e) });
-    }
-  },
-
-  tick(now = Date.now()) {
-    const { game, world, city } = get();
-    if (!game || !world || now <= game.now) return null;
-    // Keep live weather fresh (cached; MET's Expires is respected in fetchWeather).
-    if (city && now - lastWeatherFetch > WEATHER_REFRESH_MS) {
-      lastWeatherFetch = now;
-      fetchWeather(city)
-        .then((w) => weatherBook.load(w.hours))
-        .catch(() => undefined);
-    }
-    const gap = now - game.now;
-    const { state, report } = advance(game, world, now, {
-      offlineCapMultiplier: offlineCapMultiplier(),
-    });
+export const useGame = create<GameStore>((set, get) => {
+  /** Applies a finished advance: ticker, moments, the away report and autosave. */
+  const commitAdvance = (
+    now: number,
+    gap: number,
+    state: GameState,
+    report: AdvanceReport,
+  ): AdvanceReport => {
     const ticker = [...get().ticker];
     for (const [machineId, v] of Object.entries(report.perMachine)) {
       if (v.cents > 0) ticker.push({ at: now, machineId, cents: v.cents, units: v.units });
@@ -213,70 +137,180 @@ export const useGame = create<GameStore>((set, get) => ({
     });
     if (now - get().lastSavedAt >= SAVE.autosaveMs) get().save();
     return report;
-  },
+  };
 
-  resume() {
-    const { game, catchingUp } = get();
-    if (!game || catchingUp) return;
-    if (Date.now() - game.now < OFFLINE_REPORT_MIN_MS) {
-      get().tick();
-      return;
-    }
-    // Let the "while you were away" overlay paint before the (blocking) catch-up runs.
-    set({ catchingUp: true });
-    setTimeout(() => {
+  return {
+    status: 'idle',
+    error: null,
+    city: null,
+    game: null,
+    world: null,
+    offlineReport: null,
+    ticker: [],
+    catchingUp: false,
+    catchUpProgress: 0,
+    version: 0,
+    lastSavedAt: 0,
+
+    async openCity(city, opts = {}) {
+      const token = ++loadToken;
+      set({ status: 'loading', error: null });
       try {
-        get().tick();
-      } finally {
-        set({ catchingUp: false });
+        const pack =
+          city.kind === 'fallback'
+            ? await loadCityPack(city.id)
+            : await loadRegionPack(city.res5 ?? '');
+        // A newer openCity() started while we were loading: let it win.
+        if (token !== loadToken) return;
+        const world = buildWorld(city, pack, weatherBook);
+        lastWeatherFetch = Date.now();
+        fetchWeather(city)
+          .then((w) => weatherBook.load(w.hours))
+          .catch(() => undefined);
+        const now = Date.now();
+        let game: GameState | null = null;
+        if (!opts.fresh) {
+          const raw = readJson<unknown>(saveKey(city));
+          if (raw) {
+            try {
+              game = migrateSave(raw);
+            } catch {
+              game = null;
+            }
+          }
+        }
+        let offlineReport: AdvanceReport | null = null;
+        if (!game) {
+          game = newGame({
+            cityId: city.id,
+            now,
+            seed: opts.seed ?? Math.floor(Math.random() * 2 ** 31),
+          });
+        } else if (now - game.now > 0) {
+          const { state, report } = advance(game, world, now, {
+            offlineCapMultiplier: offlineCapMultiplier(),
+          });
+          if (now - game.now >= OFFLINE_REPORT_MIN_MS) offlineReport = report;
+          game = state;
+        }
+        useProfile.getState().update((p) => {
+          p.cities[cityKey(city)] = city;
+          p.lastCityKey = cityKey(city);
+        });
+        set({
+          status: 'ready',
+          city,
+          game,
+          world,
+          offlineReport,
+          ticker: [],
+          version: get().version + 1,
+        });
+        get().save();
+      } catch (e) {
+        if (token === loadToken)
+          set({ status: 'error', error: e instanceof Error ? e.message : String(e) });
       }
-    }, 60);
-  },
+    },
 
-  act(fn) {
-    const { game, world } = get();
-    if (!game || !world) return { ok: false, error: 'No game loaded.' } as never;
-    // Bring the sim up to date first so actions happen "now".
-    let current: GameState;
-    if (Date.now() > game.now) {
-      const caught = advance(game, world, Date.now(), {
+    tick(now = Date.now()) {
+      const { game, world, city } = get();
+      if (!game || !world || now <= game.now) return null;
+      // Keep live weather fresh (cached; MET's Expires is respected in fetchWeather).
+      if (city && now - lastWeatherFetch > WEATHER_REFRESH_MS) {
+        lastWeatherFetch = now;
+        fetchWeather(city)
+          .then((w) => weatherBook.load(w.hours))
+          .catch(() => undefined);
+      }
+      const { state, report } = advance(game, world, now, {
         offlineCapMultiplier: offlineCapMultiplier(),
       });
-      announceMoments(caught.state, caught.report);
-      current = caught.state;
-    } else current = cloneState(game);
-    const result = fn(current, world);
-    if (result.ok) {
-      // Trophies earned by the action itself (first restock, first driver, ...).
-      for (const id of checkAchievements(current))
-        announceMoments(current, { ...EMPTY_REPORT, achievements: [id] });
-      set({ game: current, version: get().version + 1 });
+      return commitAdvance(now, now - game.now, state, report);
+    },
+    resume() {
+      const { game, world, catchingUp } = get();
+      if (!game || !world || catchingUp) return;
+      const now = Date.now();
+      if (now - game.now < OFFLINE_REPORT_MIN_MS) {
+        get().tick(now);
+        return;
+      }
+      // Long absence: run the catch-up a slice at a time so the "while you were away"
+      // overlay paints and its meter moves. Same result as one advance() call.
+      const job = beginAdvance(game, world, now, { offlineCapMultiplier: offlineCapMultiplier() });
+      set({ catchingUp: true, catchUpProgress: 0 });
+      const slice = () => {
+        // The city was closed or replaced meanwhile: drop this catch-up.
+        if (get().game !== game) {
+          set({ catchingUp: false });
+          return;
+        }
+        try {
+          const until = Date.now() + TIME.catchUpSliceMs;
+          while (!job.done() && Date.now() < until) job.run(1);
+        } catch (e) {
+          set({ catchingUp: false });
+          throw e;
+        }
+        if (!job.done()) {
+          set({ catchUpProgress: job.progress() });
+          setTimeout(slice, 0);
+          return;
+        }
+        commitAdvance(now, now - game.now, job.state, job.report);
+        set({ catchingUp: false, catchUpProgress: 1 });
+        // Time kept moving while we caught up: bring it to the present (a short, live tick).
+        get().tick();
+      };
+      setTimeout(slice, 50);
+    },
+    act(fn) {
+      const { game, world, catchingUp } = get();
+      if (catchingUp) return { ok: false, error: 'Still counting coins.' } as never;
+      if (!game || !world) return { ok: false, error: 'No game loaded.' } as never;
+      // Bring the sim up to date first so actions happen "now".
+      let current: GameState;
+      if (Date.now() > game.now) {
+        const caught = advance(game, world, Date.now(), {
+          offlineCapMultiplier: offlineCapMultiplier(),
+        });
+        announceMoments(caught.state, caught.report);
+        current = caught.state;
+      } else current = cloneState(game);
+      const result = fn(current, world);
+      if (result.ok) {
+        // Trophies earned by the action itself (first restock, first driver, ...).
+        for (const id of checkAchievements(current))
+          announceMoments(current, { ...EMPTY_REPORT, achievements: [id] });
+        set({ game: current, version: get().version + 1 });
+        get().save();
+      }
+      return result;
+    },
+
+    replaceGame(next) {
+      set({ game: next, version: get().version + 1, ticker: [] });
       get().save();
-    }
-    return result;
-  },
+    },
 
-  replaceGame(next) {
-    set({ game: next, version: get().version + 1, ticker: [] });
-    get().save();
-  },
+    save() {
+      const { game, city } = get();
+      if (!game || !city) return;
+      writeJson(saveKey(city), game);
+      set({ lastSavedAt: Date.now() });
+    },
 
-  save() {
-    const { game, city } = get();
-    if (!game || !city) return;
-    writeJson(saveKey(city), game);
-    set({ lastSavedAt: Date.now() });
-  },
+    dismissOfflineReport() {
+      set({ offlineReport: null });
+    },
 
-  dismissOfflineReport() {
-    set({ offlineReport: null });
-  },
-
-  close() {
-    get().save();
-    set({ status: 'idle', game: null, world: null, city: null, ticker: [] });
-  },
-}));
+    close() {
+      get().save();
+      set({ status: 'idle', game: null, world: null, city: null, ticker: [] });
+    },
+  };
+});
 
 const EMPTY_REPORT: AdvanceReport = {
   fromAt: 0,
