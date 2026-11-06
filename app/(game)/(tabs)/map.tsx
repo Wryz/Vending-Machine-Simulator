@@ -228,8 +228,12 @@ export default function MapScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!params.focus) return;
-      onMachinePress(params.focus);
+      const id = params.focus;
+      onMachinePress(id);
       router.setParams({ focus: undefined });
+      // On a cold start the map may still be loading its style: frame again once it's up.
+      // (Not cleared on cleanup: clearing the param re-runs this effect.)
+      setTimeout(() => frameMachine(id, framePadding), 1200);
       // Once per request.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [params.focus]),
