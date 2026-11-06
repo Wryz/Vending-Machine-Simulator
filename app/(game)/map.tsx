@@ -8,6 +8,7 @@ import { CAMERA } from '@/config/map';
 import { CHAPTERS, CHAPTER_GOALS } from '@/config/progression';
 import { useCityClock } from '@/hooks/useCityClock';
 import { CityMap, type CityMapHandle, type MapCameraState } from '@/map/CityMap';
+import { WeatherOverlay } from '@/map/WeatherOverlay';
 import {
   activeMachines,
   baseTraffic,
@@ -240,6 +241,14 @@ export default function MapScreen() {
     );
   };
 
+  // Floating "+$2.00" chips over machines for the latest sales (max 6).
+  const salePops = useMemo(
+    () =>
+      ticker
+        .slice(-6)
+        .map((t) => ({ id: `${t.at}-${t.machineId}`, machineId: t.machineId, cents: t.cents })),
+    [ticker],
+  );
   const ordersReady = game.goals.items.filter(
     (g) => !g.claimed && goalProgress(game, g) >= 1,
   ).length;
@@ -288,6 +297,20 @@ export default function MapScreen() {
           cameraNow.current = c;
           feedSoundscape();
         }}
+        onLifeStats={(st) => {
+          // Street life in view (zoom >= 16) makes the soundscape busier or quieter.
+          const next = st.cars + st.people > 0 ? st.traffic : null;
+          if (next === lifeTraffic.current) return;
+          lifeTraffic.current = next;
+          feedSoundscape();
+        }}
+        salePops={salePops}
+        lifePaused={busy}
+      />
+      <WeatherOverlay
+        condition={weather?.condition}
+        intensity={weather ? Math.max(0.35, weather.precipitation) : 0}
+        night={tod.weights.night > 0.5}
       />
 
       {/* Top: cash, city clock, live receipt ticker. */}

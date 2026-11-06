@@ -11,7 +11,12 @@ import * as THREE from 'three';
 export interface LifeModel {
   group: THREE.Group;
   /** Materials that glow at night (lights, taxi sign), with their night intensity. */
-  lamps: { material: THREE.MeshStandardMaterial; night: number; dayColor: string; nightColor: string }[];
+  lamps: {
+    material: THREE.MeshStandardMaterial;
+    night: number;
+    dayColor: string;
+    nightColor: string;
+  }[];
   /** Camera-facing glow discs shown only in night renders. */
   glows: THREE.Object3D[];
   footprint: { w: number; d: number };
@@ -29,7 +34,12 @@ function mat(color: string, opts: Partial<THREE.MeshStandardMaterialParameters> 
 }
 
 /** Extrude a side profile (z along the car, y up) across the width (x). */
-function profile(points: [number, number][], width: number, material: THREE.Material, bevel = 0.05) {
+function profile(
+  points: [number, number][],
+  width: number,
+  material: THREE.Material,
+  bevel = 0.05,
+) {
   const shape = new THREE.Shape(points.map(([z, y]) => new THREE.Vector2(z, y)));
   const geo = new THREE.ExtrudeGeometry(shape, {
     depth: width - bevel * 2,
@@ -40,7 +50,24 @@ function profile(points: [number, number][], width: number, material: THREE.Mate
     curveSegments: 1,
   });
   // (u, v, w) -> (x = W/2 - bevel - w, y = v, z = u); determinant +1 keeps the winding.
-  const m = new THREE.Matrix4().set(0, 0, -1, width / 2 - bevel, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1);
+  const m = new THREE.Matrix4().set(
+    0,
+    0,
+    -1,
+    width / 2 - bevel,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+  );
   geo.applyMatrix4(m);
   geo.computeVertexNormals();
   return new THREE.Mesh(geo, material);
@@ -251,9 +278,19 @@ export function createCar(bodyId: 'sedan' | 'hatch' | 'van' | 'taxi', paintHex: 
   const tail = mat('#7E2621', { roughness: 0.3, emissive: '#FF3A2A', emissiveIntensity: 0 });
   const lw = 0.36;
   for (const sx of [-1, 1]) {
-    group.add(box(lw, 0.15, 0.08, head, sx * (b.width / 2 - 0.12 - lw / 2), b.lightY, b.length / 2));
     group.add(
-      box(lw * 0.8, 0.14, 0.08, tail, sx * (b.width / 2 - 0.1 - lw * 0.4), b.lightY + 0.08, -b.length / 2),
+      box(lw, 0.15, 0.08, head, sx * (b.width / 2 - 0.12 - lw / 2), b.lightY, b.length / 2),
+    );
+    group.add(
+      box(
+        lw * 0.8,
+        0.14,
+        0.08,
+        tail,
+        sx * (b.width / 2 - 0.1 - lw * 0.4),
+        b.lightY + 0.08,
+        -b.length / 2,
+      ),
     );
   }
   // Night: soft camera-facing glows on the lamps (occluded by the body when
@@ -265,7 +302,7 @@ export function createCar(bodyId: 'sedan' | 'hatch' | 'van' | 'taxi', paintHex: 
     glows.push(glowSprite('#FF4432', 0.5, hx, b.lightY + 0.08, -b.length / 2 - 0.1));
   }
   const spill = new THREE.Mesh(
-    new THREE.PlaneGeometry(b.width * 0.95, 1.5).rotateX(-Math.PI / 2),
+    new THREE.PlaneGeometry(b.width * 0.95, 1.2).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({
       color: '#FFE2B0',
       alphaMap: radialTexture(),
@@ -275,7 +312,7 @@ export function createCar(bodyId: 'sedan' | 'hatch' | 'van' | 'taxi', paintHex: 
       toneMapped: false,
     }),
   );
-  spill.position.set(0, 0.01, b.length / 2 + 0.85);
+  spill.position.set(0, 0.01, b.length / 2 + 0.6);
   glows.push(spill);
   for (const g of glows) {
     g.visible = false;
@@ -327,8 +364,22 @@ interface Outfit {
 }
 
 export const OUTFITS: Record<string, Outfit> = {
-  navy: { top: '#2F3B52', legs: '#3B3E44', skin: '#C9A38A', hair: '#2A2420', shoes: '#1E1E20', coat: true },
-  camel: { top: '#A9845A', legs: '#2E3035', skin: '#E0BEA2', hair: '#5A3E2B', shoes: '#3A2A22', coat: true },
+  navy: {
+    top: '#2F3B52',
+    legs: '#3B3E44',
+    skin: '#C9A38A',
+    hair: '#2A2420',
+    shoes: '#1E1E20',
+    coat: true,
+  },
+  camel: {
+    top: '#A9845A',
+    legs: '#2E3035',
+    skin: '#E0BEA2',
+    hair: '#5A3E2B',
+    shoes: '#3A2A22',
+    coat: true,
+  },
   olive: {
     top: '#5E6648',
     legs: '#4A5A72',
@@ -400,5 +451,11 @@ export function createPerson(outfitId: string, frame: number): LifeModel {
   group.traverse((m) => {
     if (m instanceof THREE.Mesh) m.castShadow = true;
   });
-  return { group, lamps: [], glows: [], footprint: { w: 0.5, d: 0.35 }, triangles: countTris(group) };
+  return {
+    group,
+    lamps: [],
+    glows: [],
+    footprint: { w: 0.5, d: 0.35 },
+    triangles: countTris(group),
+  };
 }

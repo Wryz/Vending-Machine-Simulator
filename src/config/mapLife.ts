@@ -14,12 +14,14 @@ export const MAP_LIFE = {
   roadQueryDebounceMs: 350,
   /** onLifeStats callback rate limit. */
   statsIntervalMs: 500,
+  /** Sale pops (receipt chip + ground ring) show from this zoom. */
+  salePopMinZoom: 14,
 
   caps: { cars: 40, people: 80 },
 
   cars: {
     /** Cars per km of drivable road in view at full density (calm, not gridlock). */
-    perKm: { highway: 22, major: 22, minor: 10, service: 1.5 },
+    perKm: { highway: 36, major: 40, minor: 18, service: 2 },
     /** Cruise speed range by road kind, km/h. */
     speedKmh: {
       highway: [34, 40],
@@ -50,7 +52,7 @@ export const MAP_LIFE = {
 
   people: {
     /** People per km of sidewalk (each side) at full density. */
-    perKm: { major: 26, minor: 20 },
+    perKm: { major: 34, minor: 26 },
     /** Walking-line offset from the road centerline, meters. */
     sidewalkOffsetM: { major: [8, 9.5], minor: [5.2, 6.8] } as Record<
       string,
@@ -90,8 +92,8 @@ export const MAP_LIFE = {
      * 17–18, quiet at 3 am.
      */
     carsByHourWeekday: [
-      0.18, 0.12, 0.08, 0.06, 0.07, 0.15, 0.4, 0.75, 1, 0.85, 0.7, 0.7, 0.75, 0.72, 0.72, 0.8, 0.92,
-      1, 0.95, 0.75, 0.58, 0.46, 0.36, 0.26,
+      0.26, 0.18, 0.11, 0.07, 0.08, 0.15, 0.4, 0.75, 1, 0.85, 0.7, 0.7, 0.75, 0.72, 0.72, 0.8, 0.92,
+      1, 0.95, 0.8, 0.66, 0.56, 0.48, 0.38,
     ],
     carsByHourRestDay: [
       0.26, 0.18, 0.12, 0.08, 0.07, 0.08, 0.14, 0.25, 0.4, 0.55, 0.65, 0.72, 0.75, 0.75, 0.74, 0.72,

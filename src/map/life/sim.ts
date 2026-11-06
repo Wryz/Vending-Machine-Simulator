@@ -561,7 +561,8 @@ export class StreetLife {
       const ry = this.v1.y - this.v2.x * p.offset;
       const lx = this.v1.x - this.v2.y * p.offset;
       const ly = this.v1.y + this.v2.x * p.offset;
-      p.side = (rx - prevX) ** 2 + (ry - prevY) ** 2 <= (lx - prevX) ** 2 + (ly - prevY) ** 2 ? 1 : -1;
+      p.side =
+        (rx - prevX) ** 2 + (ry - prevY) ** 2 <= (lx - prevX) ** 2 + (ly - prevY) ** 2 ? 1 : -1;
       this.personTarget(p, net);
       p.bx = prevX - this.v1.x;
       p.by = prevY - this.v1.y;

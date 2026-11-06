@@ -33,14 +33,20 @@ const ll = (x: number, y: number): [number, number] => [LNG0 + x / KX, LAT0 + y 
  */
 function grid(): RoadInput[] {
   const roads: RoadInput[] = [];
-  const piece = (a: [number, number], b: [number, number], kind: RoadInput['kind'], oneway: -1 | 0 | 1) => {
+  const piece = (
+    a: [number, number],
+    b: [number, number],
+    kind: RoadInput['kind'],
+    oneway: -1 | 0 | 1,
+  ) => {
     // Split at x/y = ±150 m "tile edges" with 6 m of overlap.
     const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
     const cuts = [0, 450 / 1200, 750 / 1200, 1];
     for (let i = 0; i < cuts.length - 1; i++) {
       const t0 = Math.max(0, cuts[i] - 3 / len);
       const t1 = Math.min(1, cuts[i + 1] + 3 / len);
-      const p = (t: number): [number, number] => ll(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t);
+      const p = (t: number): [number, number] =>
+        ll(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t);
       // A slight kink mid-piece exercises vertex smoothing.
       const tm = (t0 + t1) / 2;
       const m = p(tm);
@@ -54,7 +60,12 @@ function grid(): RoadInput[] {
 }
 
 const VIEW: LifeView = {
-  bounds: { west: ll(-300, 0)[0], east: ll(300, 0)[0], south: ll(0, -300)[1], north: ll(0, 300)[1] },
+  bounds: {
+    west: ll(-300, 0)[0],
+    east: ll(300, 0)[0],
+    south: ll(0, -300)[1],
+    north: ll(0, 300)[1],
+  },
   center: [LNG0, LAT0],
   radiusM: 400,
 };
@@ -62,10 +73,10 @@ const VIEW: LifeView = {
 const BUSY: LifeConditions = { hour: 17.5, restDay: false, footTraffic: 320, weather: 'clear' };
 const QUIET: LifeConditions = { hour: 3, restDay: false, footTraffic: 15, weather: 'clear' };
 
-function run(seed: number, seconds: number, cond = BUSY, dt = 1 / 14) {
+function run(seed: number, seconds: number, cond = BUSY, dt = 1 / 14, view = VIEW) {
   const life = new StreetLife(seed);
   life.setConditions(cond);
-  life.setRoads(grid(), VIEW);
+  life.setRoads(grid(), view);
   for (let t = 0; t < seconds; t += dt) life.step(dt);
   return life;
 }
@@ -123,7 +134,9 @@ describe('street life: simulation', () => {
     const b = run(7, 20);
     const c = run(8, 20);
     const snap = (l: StreetLife) =>
-      [...l.cars, ...l.people].map((x) => `${x.id}:${x.lng.toFixed(7)},${x.lat.toFixed(7)}`).join('|');
+      [...l.cars, ...l.people]
+        .map((x) => `${x.id}:${x.lng.toFixed(7)},${x.lat.toFixed(7)}`)
+        .join('|');
     expect(snap(a)).toBe(snap(b));
     expect(snap(a)).not.toBe(snap(c));
     expect(a.cars.length).toBeGreaterThan(5);
@@ -131,8 +144,12 @@ describe('street life: simulation', () => {
   });
 
   it('caps agents and is fuller at rush hour than at 3 am', () => {
-    const busy = run(3, 30);
-    const quiet = run(3, 30, QUIET);
+    const big = run(3, 30);
+    expect(big.cars.length).toBeLessThanOrEqual(MAP_LIFE.caps.cars);
+    expect(big.people.length).toBeLessThanOrEqual(MAP_LIFE.caps.people);
+    const near = { ...VIEW, radiusM: 160 };
+    const busy = run(3, 30, BUSY, 1 / 14, near);
+    const quiet = run(3, 30, QUIET, 1 / 14, near);
     expect(busy.cars.length).toBeLessThanOrEqual(MAP_LIFE.caps.cars);
     expect(busy.people.length).toBeLessThanOrEqual(MAP_LIFE.caps.people);
     expect(busy.cars.length).toBeGreaterThan(quiet.cars.length * 2);
@@ -274,7 +291,9 @@ describe('street life: sprites and output', () => {
     const life = run(4, 5);
     const names = new Set(allLifeSpriteNames(LIFE_WALK_FRAMES));
     for (const light of ['day', 'night'] as const) {
-      const fc = JSON.parse(lifeGeoJSON(life, { bearing: -20, pitch: 55, light })) as GeoJSON.FeatureCollection;
+      const fc = JSON.parse(
+        lifeGeoJSON(life, { bearing: -20, pitch: 55, light }),
+      ) as GeoJSON.FeatureCollection;
       expect(fc.type).toBe('FeatureCollection');
       const sprites = fc.features.filter((f) => f.properties!.k !== 2);
       const beams = fc.features.filter((f) => f.properties!.k === 2);
@@ -300,14 +319,25 @@ describe('street life: sprites and output', () => {
       { type: 'Feature', geometry: line, properties: { class: 'minor' } },
       { type: 'Feature', geometry: line, properties: { class: 'path' } },
       { type: 'Feature', geometry: line, properties: { kind: 'major_road' } },
-      { type: 'Feature', geometry: line, properties: { kind: 'minor_road', kind_detail: 'service' } },
+      {
+        type: 'Feature',
+        geometry: line,
+        properties: { kind: 'minor_road', kind_detail: 'service' },
+      },
       {
         type: 'Feature',
         geometry: { type: 'MultiLineString', coordinates: [line.coordinates, line.coordinates] },
         properties: { class: 'motorway' },
       },
     ]);
-    expect(roads.map((r) => r.kind)).toEqual(['major', 'minor', 'major', 'service', 'highway', 'highway']);
+    expect(roads.map((r) => r.kind)).toEqual([
+      'major',
+      'minor',
+      'major',
+      'service',
+      'highway',
+      'highway',
+    ]);
     expect(roads[0].oneway).toBe(1);
     // Duplicate tile features collapse into one road.
     const net = new RoadNetwork([roads[1], roads[1]], [LNG0, LAT0]);

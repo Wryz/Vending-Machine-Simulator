@@ -8,7 +8,7 @@ import {
   type LayerSpecification,
   type MapRef,
 } from '@maplibre/maplibre-react-native';
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 import { getMachineType } from '@/config/machines';
 import { DISTRICTS } from '@/config/progression';
@@ -27,7 +27,17 @@ import {
   relativeHeadingBucket,
   spriteLightFor,
 } from './machineSprites';
-import { SPRITE_IMAGES, SPRITE_PTS_PER_METER } from './spriteImages';
+import { metersPerPoint } from './cameraMatch';
+import { SalePops, type SalePop } from './life/SalePops';
+import { StreetLifeLayer, type LifeStats, type StreetLifeHandle } from './life/StreetLifeLayer';
+import {
+  SPRITE_ANCHOR_OFFSET_PX,
+  SPRITE_ICON_OFFSET,
+  SPRITE_IMAGES,
+  SPRITE_PIXEL_RATIO,
+  SPRITE_PTS_PER_METER,
+  SPRITE_SIZE,
+} from './spriteImages';
 import { tileSourceFor } from './tiles';
 import { buildBaseLayers, schemaOf, buildMapLight, buildMapStyle } from './style';
 import type { TimeOfDay } from './timeOfDay';
@@ -45,6 +55,8 @@ export interface MapCameraState {
   pitch: number;
   bearing: number;
 }
+
+export type { LifeStats, SalePop };
 
 export interface CityMapHandle {
   flyTo(c: Partial<MapCameraState> & { center: [number, number] }, durationMs: number): void;
@@ -81,6 +93,27 @@ interface Props {
   onMapPress(lat: number, lng: number): void;
   onMachinePress(id: string): void;
   onCameraChanged?(c: MapCameraState): void;
+  /**
+   * Street-life stats (≤ 2×/s): traffic 0..1 for the soundscape, current
+   * zoom, and how many cars / people are on screen (0 below zoom 16).
+   */
+  onLifeStats?: (s: LifeStats) => void;
+  /** Recent sales (already rate-limited): a receipt chip rises over the machine. */
+  salePops?: readonly SalePop[];
+  /** Freeze street life (e.g. during the close-up fly-in). */
+  lifePaused?: boolean;
+}
+
+/** Minimum machine icon-size (readable at mid zoom); true scale above it. */
+const MACHINE_MIN_ICON_SIZE = 0.32;
+
+/** On-screen height of a machine sprite above its base, points. */
+function machineHeightPt(zoom: number, lat: number): number {
+  const size = Math.max(
+    MACHINE_MIN_ICON_SIZE,
+    1 / metersPerPoint(zoom, lat) / SPRITE_PTS_PER_METER,
+  );
+  return (size * (SPRITE_SIZE.height - SPRITE_ANCHOR_OFFSET_PX)) / SPRITE_PIXEL_RATIO;
 }
 
 export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, ref) {
@@ -90,6 +123,21 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
   const camera = useRef<MapCameraState>(initial);
   // Only re-render sprites when the camera crosses a 45° / pitch bucket.
   const [buckets, setBuckets] = useState({ bearing: initial.bearing, pitch: initial.pitch });
+  // Half-zoom steps / 10° pitch steps for sale pops (re-render only on a step change).
+  const [view, setView] = useState({
+    zoom: Math.round(initial.zoom * 2) / 2,
+    pitch: Math.round(initial.pitch / 10) * 10,
+  });
+  const lifeRef = useRef<StreetLifeHandle>(null);
+  const machinePoints = useMemo(
+    () => game.machines.filter((m) => m.status === 'active'),
+    [game.machines],
+  );
+  const trackView = useCallback((zoom: number, pitch: number) => {
+    const z = Math.round(zoom * 2) / 2;
+    const p = Math.round(pitch / 10) * 10;
+    setView((v) => (v.zoom === z && v.pitch === p ? v : { zoom: z, pitch: p }));
+  }, []);
 
   useImperativeHandle(ref, () => ({
     flyTo(c, durationMs) {
@@ -113,7 +161,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [tiles],
   );
-  const baseLayers = buildBaseLayers(tod.palette, schemaOf(tiles));
+  const baseLayers = buildBaseLayers(tod.palette, schemaOf(tiles), world.city.lat);
   const light = buildMapLight(tod.sun, tod.palette);
   const spriteLight = spriteLightFor(tod.dominant);
 
@@ -225,7 +273,11 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
     };
   }, [game.chapter, world.city]);
 
-  const sizeStops = iconSizeStops(world.city.lat, SPRITE_PTS_PER_METER, 0.32).flat();
+  const sizeStops = iconSizeStops(
+    world.city.lat,
+    SPRITE_PTS_PER_METER,
+    MACHINE_MIN_ICON_SIZE,
+  ).flat();
   const iconImage = iconImageExpression(buckets.bearing, buckets.pitch, spriteLight);
 
   return (
@@ -257,6 +309,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           relativeHeadingBucket(0, v.bearing) !== relativeHeadingBucket(0, buckets.bearing);
         const np = pitchBucket(v.pitch) !== pitchBucket(buckets.pitch);
         if (nb || np) setBuckets({ bearing: v.bearing, pitch: v.pitch });
+        trackView(v.zoom, v.pitch);
       }}
       onRegionDidChange={(e) => {
         const v = e.nativeEvent;
@@ -266,6 +319,8 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           pitch: v.pitch,
           bearing: v.bearing,
         };
+        trackView(v.zoom, v.pitch);
+        lifeRef.current?.regionDidChange(v);
         props.onCameraChanged?.(camera.current);
       }}
     >
@@ -403,6 +458,18 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         />
       </GeoJSONSource>
 
+      {/* Cars and pedestrians at close zoom, under the buildings and machines. */}
+      <StreetLifeLayer
+        ref={lifeRef}
+        mapRef={mapRef}
+        cameraRef={camera}
+        world={world}
+        now={game.now}
+        tod={tod}
+        paused={props.lifePaused}
+        onLifeStats={props.onLifeStats}
+      />
+
       <GeoJSONSource
         id="machines"
         data={machines}
@@ -458,6 +525,8 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             'icon-image': iconImage as never,
             'icon-size': ['interpolate', ['exponential', 2], ['zoom'], ...sizeStops] as never,
             'icon-anchor': 'bottom',
+            // The machine's base sits above the image bottom (contact shadow below it).
+            'icon-offset': SPRITE_ICON_OFFSET,
             'icon-allow-overlap': true,
             'icon-ignore-placement': true,
             'icon-pitch-alignment': 'viewport',
@@ -466,6 +535,17 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           }}
         />
       </GeoJSONSource>
+
+      {props.salePops ? (
+        <SalePops
+          pops={props.salePops}
+          machines={machinePoints}
+          zoom={view.zoom}
+          pitch={view.pitch}
+          machineHeightPt={machineHeightPt(view.zoom, world.city.lat)}
+          theme={theme}
+        />
+      ) : null}
     </Map>
   );
 });

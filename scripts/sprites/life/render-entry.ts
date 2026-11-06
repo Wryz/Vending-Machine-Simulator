@@ -34,7 +34,13 @@ const LIGHTS: Record<
   LifeLight,
   { sun: SunState; preset: PresetName; shadow: number; fill: number; key: number }
 > = {
-  day: { sun: { altitudeDeg: 50, bearingDeg: 155, rising: false }, preset: 'day', shadow: 0.5, fill: 1, key: 1 },
+  day: {
+    sun: { altitudeDeg: 50, bearingDeg: 155, rising: false },
+    preset: 'day',
+    shadow: 0.5,
+    fill: 1,
+    key: 1,
+  },
   night: {
     sun: { altitudeDeg: -20, bearingDeg: 0, rising: false },
     preset: 'night',
@@ -60,7 +66,7 @@ export function jobs(): { kind: string; model: string; frame: number }[] {
 function allJobs(): Job[] {
   const out: Job[] = [];
   for (const m of LIFE_CAR_MODELS)
-    out.push({ kind: 'car', model: m, frame: 0, build: () => createCarModel(m), extentM: 7 });
+    out.push({ kind: 'car', model: m, frame: 0, build: () => createCarModel(m), extentM: 7.8 });
   for (const m of LIFE_PEOPLE_MODELS)
     for (let f = 0; f < LIFE_WALK_FRAMES; f++)
       out.push({ kind: 'ped', model: m, frame: f, build: () => createPerson(m, f), extentM: 4 });
@@ -119,7 +125,7 @@ export function renderJob(index: number, cfg: LifeSpriteConfig) {
     scene.add(pivot);
     const rig = addLights(scene, lighting);
     rig.glow.intensity = 0;
-    rig.hemi.intensity *= L.fill * (job.kind === 'ped' && light === 'night' ? 1.2 : 1);
+    rig.hemi.intensity *= L.fill * (job.kind === 'ped' && light === 'night' ? 1.9 : 1);
     rig.sun.intensity *= L.key;
     (shadow.material as THREE.MeshBasicMaterial).opacity = L.shadow;
     for (const l of model.lamps) {

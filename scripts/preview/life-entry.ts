@@ -47,10 +47,18 @@ export async function addLife(
   const light = lifeLightFor(tod.weights);
   const hour =
     Number(
-      new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', hour: '2-digit', hour12: false }).format(date),
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/New_York',
+        hour: '2-digit',
+        hour12: false,
+      }).format(date),
     ) % 24;
   // Midtown: busy by day, a lively-but-thinner late evening.
-  const cond: LifeConditions = { hour, restDay: false, footTraffic: hour >= 22 || hour < 6 ? 110 : 330 };
+  const cond: LifeConditions = {
+    hour,
+    restDay: false,
+    footTraffic: hour >= 22 || hour < 6 ? 110 : 330,
+  };
 
   const features = map.queryRenderedFeatures({ layers: ['roads-minor', 'roads-major'] });
   const roads = roadsFromFeatures(features);

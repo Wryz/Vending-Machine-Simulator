@@ -264,9 +264,11 @@ export function roadsFromFeatures(features: readonly GeoJSON.Feature[]): RoadInp
     const kind = roadKindOf(p);
     if (!kind) continue;
     const oneway = onewayOf(p);
-    if (g.type === 'LineString') out.push({ coords: g.coordinates as [number, number][], kind, oneway });
+    if (g.type === 'LineString')
+      out.push({ coords: g.coordinates as [number, number][], kind, oneway });
     else if (g.type === 'MultiLineString')
-      for (const line of g.coordinates) out.push({ coords: line as [number, number][], kind, oneway });
+      for (const line of g.coordinates)
+        out.push({ coords: line as [number, number][], kind, oneway });
   }
   return out;
 }

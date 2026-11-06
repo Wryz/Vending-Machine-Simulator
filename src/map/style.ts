@@ -1,4 +1,3 @@
-import type { ExpressionSpecification } from '@maplibre/maplibre-gl-style-spec';
 import type {
   LayerSpecification,
   LightSpecification,
@@ -63,6 +62,11 @@ export function buildBasemapSource(tiles: TileSource): VectorSourceSpecification
   };
 }
 
+/** `line-width` value type, taken from the RN layer spec (no direct style-spec dependency). */
+type RoadWidth = NonNullable<
+  NonNullable<Extract<LayerSpecification, { type: 'line' }>['paint']>['line-width']
+>;
+
 /**
  * Road `line-width`: the styled widths at low zoom, then true scale from
  * MAP_STYLE.roads.trueScaleFromZoom so close-up street life fits the asphalt.
@@ -71,7 +75,7 @@ export function roadWidth(
   low: readonly number[],
   widthM: number,
   latitude: number = MAP_STYLE.roads.referenceLatitude,
-): ExpressionSpecification {
+): RoadWidth {
   const zTrue = MAP_STYLE.roads.trueScaleFromZoom;
   const truePts = (z: number) => widthM / metersPerPoint(z, latitude);
   const lastLow = low[low.length - 1];
@@ -79,7 +83,7 @@ export function roadWidth(
   const bridge = Math.sqrt(lastLow * 2 * truePts(zTrue - 1));
   const stops: number[] = [...low, zTrue - 1, Math.max(lastLow, bridge)];
   for (let z = zTrue; z <= 22; z++) stops.push(z, truePts(z));
-  return ['interpolate', ['exponential', 2], ['zoom'], ...stops] as ExpressionSpecification;
+  return ['interpolate', ['exponential', 2], ['zoom'], ...stops] as RoadWidth;
 }
 
 const PARK_KINDS = [
