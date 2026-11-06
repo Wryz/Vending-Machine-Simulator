@@ -64,6 +64,55 @@ export const MACHINE_SPRITE = {
   rivalPad: '#8C8FA8',
 } as const;
 
+/**
+ * Zoomed-out globe (SPEC §3.5 "Views"). MapLibre Native has no globe
+ * projection yet, so pinching out past `handoffZoom` crossfades into a
+ * three.js globe; pinching in (or tapping a pin) flies back to the map.
+ */
+export const GLOBE = {
+  /**
+   * Off until the three.js globe presents on iOS: its GL view renders frames
+   * (three.js reports draw calls) but nothing reaches the screen in the
+   * Simulator, unless another GL scene is mounted. While off, the map itself
+   * zooms out to the world with machines clustered.
+   */
+  enabled: false,
+  /** The map can zoom out this far (world view, machines clustered). */
+  mapMinZoom: 2,
+  /** A pinch that ends below this zoom opens the globe. */
+  handoffZoom: 7.5,
+  /** Map zoom when coming back from the globe to a city. */
+  returnZoom: 13,
+  crossfadeMs: 450,
+  /** Camera distance in globe radii; pinch range. */
+  cameraDistance: 3.1,
+  minDistance: 2.2,
+  maxDistance: 4.2,
+  /** Pinch-in past this scale (relative to the start) returns to the map. */
+  enterScale: 1.35,
+  /** Drag: degrees of spin per point dragged. */
+  degPerPt: 0.35,
+  /** Slow idle spin (degrees per second) after a few seconds untouched. */
+  idleSpinDegPerS: 3,
+  idleAfterMs: 4000,
+  /** Icosphere subdivisions (5 ≈ 20k faces) and land relief in radii. */
+  detail: 5,
+  landHeight: 0.022,
+  colors: {
+    ocean: '#5BB8EE',
+    oceanDeep: '#4AA6E0',
+    land: '#9ED67F',
+    landAlt: '#8CCB6E',
+    snow: '#F4F7FF',
+    /** Above this |latitude| land turns to snow. */
+    snowLatDeg: 62,
+    space: '#1E2250',
+    ambient: '#7F86D9',
+    pin: '#FF6B2C',
+    pinOther: '#FFFFFF',
+  },
+} as const;
+
 export const CAMERA = {
   /** Zoom/pitch the map flies to before crossfading into the close-up. */
   closeupZoom: 20.5,

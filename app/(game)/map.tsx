@@ -6,10 +6,11 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CAMERA } from '@/config/map';
+import { CAMERA, GLOBE } from '@/config/map';
 import { useCityClock } from '@/hooks/useCityClock';
 import { CityMap, type CityMapHandle, type MapCameraState } from '@/map/CityMap';
 import { WeatherOverlay } from '@/map/WeatherOverlay';
+import type { WeatherCondition } from '@/data/types';
 import {
   activeMachines,
   baseTraffic,
@@ -20,19 +21,38 @@ import {
 } from '@/sim';
 import { soundscape } from '@/services/audio';
 import { haptic } from '@/services/haptics';
+import { cityKey, useProfile } from '@/store/profile';
 import { useGame } from '@/store/game';
+import { GlobeScene, type GlobePin } from '@/three/globe/GlobeScene';
 import { transition } from '@/store/transition';
 import { useTheme } from '@/ui/ThemeProvider';
 import { clock, money } from '@/ui/format';
 import { CashPill, InfoPill, RoundButton } from '@/ui/hud';
-import { Mono, T } from '@/ui/kit';
+import { Icon, type IconName } from '@/ui/icons';
+import { Button, Mono, T } from '@/ui/kit';
 import { HOME_SHEET_PEEK, HomeSheet } from '@/ui/sheets/HomeSheet';
 import { SpotSheet, type SpotPoint } from '@/ui/sheets/SpotSheet';
 import { sfx } from '@/ui/sfx';
 import { SPACE } from '@/ui/theme';
 
-/** A sale shows in the status pill for this long, then the clock comes back. */
+/** A sale shows in its own pill under the clock for this long. */
 const SALE_PILL_MS = 6_000;
+
+const WEATHER_ICON: Record<WeatherCondition, IconName> = {
+  clear: 'sun',
+  cloudy: 'cloud',
+  rain: 'rain',
+  snow: 'snow',
+  storm: 'storm',
+  fog: 'fog',
+};
+
+/** °F where people read °F, °C elsewhere. */
+function temperature(tempC: number, countryCode: string): string {
+  return ['US', 'LR', 'MM'].includes(countryCode)
+    ? `${Math.round((tempC * 9) / 5 + 32)}°F`
+    : `${Math.round(tempC)}°C`;
+}
 
 /**
  * A soft register "ding" and a light haptic tick when sales land, rate-limited
@@ -79,6 +99,9 @@ export default function MapScreen() {
   const [spot, setSpot] = useState<SpotPoint | null>(null);
   const [sheetIndex, setSheetIndex] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [globe, setGlobe] = useState(false);
+  const city = useGame((s) => s.city);
+  const visited = useProfile((s) => s.cities);
 
   const initial = useMemo<MapCameraState>(() => {
     const first = activeMachines(game)[0];
@@ -169,6 +192,40 @@ export default function MapScreen() {
     );
   };
 
+  // The globe: every city you play, with this one highlighted.
+  const globePins = useMemo<GlobePin[]>(() => {
+    const here = city ? cityKey(city) : '';
+    return [
+      { id: here || 'current', lat: world.city.lat, lng: world.city.lng, current: true },
+      ...Object.entries(visited)
+        .filter(([key]) => key !== here)
+        .map(([key, c]) => ({ id: key, lat: c.lat, lng: c.lng, current: false })),
+    ];
+  }, [city, visited, world.city]);
+
+  const leaveGlobe = useCallback(() => {
+    setGlobe(false);
+    const first = activeMachines(game)[0];
+    const c = first ?? world.city;
+    mapRef.current?.flyTo(
+      {
+        center: [c.lng, c.lat],
+        zoom: GLOBE.returnZoom,
+        pitch: topDown ? CAMERA.topDownPitch : CAMERA.homePitch,
+        bearing: topDown ? 0 : CAMERA.homeBearing,
+      },
+      CAMERA.flyDurationMs,
+    );
+  }, [game, world.city, topDown]);
+
+  const onGlobePin = useCallback(
+    (id: string) => {
+      if (globePins.find((p) => p.id === id)?.current) leaveGlobe();
+      else router.push('/cities');
+    },
+    [globePins, leaveGlobe],
+  );
+
   const toggleTopDown = () => {
     const cam = mapRef.current?.getCamera() ?? initial;
     const next = !topDown;
@@ -222,6 +279,11 @@ export default function MapScreen() {
   }, [last]);
   const showSale = !!last && last.at > seenSale;
   const weather = world.weatherAt(game.now);
+  // Day / night at a glance, from the city's real sun.
+  const dayIcon: IconName =
+    tod.dominant === 'day' ? 'sun' : tod.dominant === 'night' ? 'moon' : 'twilight';
+  const dayIconColor =
+    tod.dominant === 'day' ? theme.amber : tod.dominant === 'night' ? '#7C82D9' : theme.brand;
 
   const active = activeMachines(game);
   const stored = game.machines.filter((m) => m.status === 'stored');
@@ -251,10 +313,16 @@ export default function MapScreen() {
         events={events}
         selected={spot ? { ...spot, places: selectedPlaces } : null}
         initial={initial}
+        minZoom={GLOBE.mapMinZoom}
         onMapPress={onMapPress}
         onMachinePress={onMachinePress}
-        onCameraChanged={(c) => {
+        onCameraChanged={(c, byUser) => {
           cameraNow.current = c;
+          // Pinched far out: hand off to the globe (only for the player's own gestures).
+          if (GLOBE.enabled && byUser && c.zoom < GLOBE.handoffZoom && !globe) {
+            spotRef.current?.dismiss();
+            setGlobe(true);
+          }
           feedSoundscape();
         }}
         onLifeStats={(st) => {
@@ -279,6 +347,22 @@ export default function MapScreen() {
         style={[styles.topLeft, { top: insets.top + SPACE.s, left: SPACE.l }]}
       >
         <CashPill cents={game.cashCents} onPress={() => router.push('/company')} />
+        <InfoPill>
+          <Icon name={dayIcon} size={18} color={dayIconColor} />
+          <T size={14} weight="bold">
+            {clock(game.now, world.city.timeZone)}
+          </T>
+          {weather ? (
+            <>
+              {weather.condition !== 'clear' ? (
+                <Icon name={WEATHER_ICON[weather.condition]} size={18} color={theme.muted} />
+              ) : null}
+              <T size={14} weight="medium" muted>
+                {temperature(weather.tempC, world.city.countryCode)}
+              </T>
+            </>
+          ) : null}
+        </InfoPill>
         {showSale && last ? (
           <Animated.View
             key={`${last.at}-${last.machineId}`}
@@ -286,7 +370,7 @@ export default function MapScreen() {
             exiting={FadeOut.duration(200)}
           >
             <InfoPill>
-              <Mono size={13} weight="bold" color={theme.signal}>
+              <Mono size={14} weight="bold" color={theme.signal}>
                 {money(last.cents, { sign: true })}
               </Mono>
               <T size={13} muted numberOfLines={1} style={{ maxWidth: 160 }}>
@@ -294,18 +378,7 @@ export default function MapScreen() {
               </T>
             </InfoPill>
           </Animated.View>
-        ) : (
-          <InfoPill>
-            <T size={13} weight="medium">
-              {clock(game.now, world.city.timeZone)}
-            </T>
-            {weather ? (
-              <T size={13} muted>
-                {`${Math.round(weather.tempC)}° ${weather.condition}`}
-              </T>
-            ) : null}
-          </InfoPill>
-        )}
+        ) : null}
       </View>
 
       {/* Top right: settings and map controls. */}
@@ -370,6 +443,31 @@ export default function MapScreen() {
         bottomInset={insets.bottom}
         onDismiss={() => setSpot(null)}
       />
+
+      {globe ? (
+        <Animated.View
+          entering={FadeIn.duration(GLOBE.crossfadeMs)}
+          exiting={FadeOut.duration(GLOBE.crossfadeMs)}
+          style={StyleSheet.absoluteFill}
+        >
+          <GlobeScene pins={globePins} focus={world.city} onPin={onGlobePin} onEnter={leaveGlobe} />
+          <View
+            pointerEvents="box-none"
+            style={[styles.topLeft, { top: insets.top + SPACE.s, left: SPACE.l }]}
+          >
+            <CashPill cents={game.cashCents} />
+            <InfoPill>
+              <Icon name="globe" size={16} />
+              <T size={13} weight="medium">
+                {`${world.city.name} · ${active.length} machine${active.length === 1 ? '' : 's'}`}
+              </T>
+            </InfoPill>
+          </View>
+          <View style={[styles.globeBack, { bottom: insets.bottom + SPACE.xl }]}>
+            <Button label={`Back to ${world.city.name}`} onPress={leaveGlobe} />
+          </View>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -379,4 +477,5 @@ const styles = StyleSheet.create({
   topRight: { position: 'absolute', gap: SPACE.s, alignItems: 'flex-end' },
   hint: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   attribution: { position: 'absolute', left: SPACE.m },
+  globeBack: { position: 'absolute', left: SPACE.xl, right: SPACE.xl },
 });

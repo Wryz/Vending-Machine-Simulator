@@ -99,9 +99,12 @@ interface Props {
     places: { name: string; category: string; lat: number; lng: number }[];
   } | null;
   initial: MapCameraState;
+  /** How far out the player can zoom (default 11: the city only). */
+  minZoom?: number;
   onMapPress(lat: number, lng: number): void;
   onMachinePress(id: string): void;
-  onCameraChanged?(c: MapCameraState): void;
+  /** `byUser` is true when a gesture moved the camera (not a fly-to or the initial load). */
+  onCameraChanged?(c: MapCameraState, byUser: boolean): void;
   /**
    * Street-life stats (≤ 2×/s): traffic 0..1 for the soundscape, current
    * zoom, and how many cars / people are on screen (0 below zoom 16).
@@ -335,7 +338,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         };
         trackView(v.zoom, v.pitch);
         lifeRef.current?.regionDidChange(v);
-        props.onCameraChanged?.(camera.current);
+        props.onCameraChanged?.(camera.current, !!v.userInteraction);
       }}
     >
       <Camera
@@ -346,7 +349,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           pitch: initial.pitch,
           bearing: initial.bearing,
         }}
-        minZoom={11}
+        minZoom={props.minZoom ?? 11}
         maxZoom={21.5}
       />
       <Images images={SPRITE_IMAGES} />
