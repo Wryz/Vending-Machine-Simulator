@@ -17,8 +17,10 @@ import {
 import { useGame } from '@/store/game';
 
 import { meters, moneyShort } from '../format';
-import { Button, Chip, Mono, Row, T } from '../kit';
+import { Button, Chip, Row, T } from '../kit';
 import { Glyph, Sparkline } from '../objects/small';
+import { Icon } from '../icons';
+import { Cabinet, Glass, Led, Marquee, Plate, SKIN } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { RADIUS, SPACE } from '../theme';
 
@@ -42,7 +44,6 @@ export const SpotSheet = forwardRef<
     onDismiss: () => void;
   }
 >(function SpotSheet({ game, world, point, machineId, bottomInset, onDismiss }, ref) {
-  const theme = useTheme();
   const snapPoints = useMemo(() => ['52%', '90%'], []);
   return (
     <BottomSheetModal
@@ -50,8 +51,13 @@ export const SpotSheet = forwardRef<
       snapPoints={snapPoints}
       enableDynamicSizing={false}
       onDismiss={onDismiss}
-      backgroundStyle={{ backgroundColor: theme.bg, borderRadius: RADIUS.l + 4 }}
-      handleIndicatorStyle={{ backgroundColor: theme.line, width: 44, height: 5 }}
+      backgroundComponent={({ style }) => (
+        <Cabinet
+          screws={false}
+          style={[style, { borderTopLeftRadius: RADIUS.l + 4, borderTopRightRadius: RADIUS.l + 4 }]}
+        />
+      )}
+      handleIndicatorStyle={{ backgroundColor: SKIN.chrome, width: 56, height: 6 }}
     >
       {point ? (
         <SpotBody
@@ -117,46 +123,67 @@ function SpotBody({
         gap: SPACE.l,
       }}
     >
-      <View style={{ gap: 2 }}>
-        <T size={22} weight="bold" accessibilityRole="header" numberOfLines={2}>
-          {spot.venue.category === 'street' ? 'Street corner' : spot.venue.name}
-        </T>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <T size={13} muted numberOfLines={1} style={{ flex: 1 }}>
-            {spot.venue.category === 'street'
+      <View style={{ gap: SPACE.s }}>
+        <Marquee
+          title={spot.venue.category === 'street' ? 'Street corner' : spot.venue.name}
+          subtitle={
+            spot.venue.category === 'street'
               ? `District ${spot.district}`
-              : `${CATEGORY_LABEL[spot.venue.category as PlaceCategory]} · ${meters(spot.venue.distanceM)}`}
-          </T>
-          <T size={18} color={theme.amber} accessibilityLabel={`${spot.rating} of 5`}>
-            {'★'.repeat(rating)}
-            <T size={18} color={theme.line}>
-              {'★'.repeat(5 - rating)}
-            </T>
-          </T>
+              : `${CATEGORY_LABEL[spot.venue.category as PlaceCategory]} · ${meters(spot.venue.distanceM)}`
+          }
+        />
+        <Row style={{ justifyContent: 'center' }} gap={4}>
+          {Array.from({ length: 5 }, (_, i) => (
+            <Icon key={i} name="star" size={22} color={i < rating ? SKIN.ledAmber : '#FFC7AA'} />
+          ))}
         </Row>
       </View>
 
       <Row gap={SPACE.s}>
-        <Stat label="customers / h" value={spot.nowCustomers.toFixed(0)} />
-        <Stat label="sales / day" value={moneyShort(spot.dailySalesCents)} color={theme.signal} />
-      </Row>
-
-      <Sparkline values={spot.hourly} highlight={hourNow} />
-
-      <View style={{ gap: 6 }}>
-        {spot.reasons.slice(0, 3).map((r, i) => (
-          <Row key={i} gap={SPACE.s}>
-            <View style={[styles.reason, { backgroundColor: r.good ? theme.signal : theme.alert }]}>
-              <T size={12} weight="bold" color="#FFFFFF">
-                {r.good ? '+' : '−'}
-              </T>
-            </View>
-            <T size={14} style={{ flex: 1 }} numberOfLines={2}>
-              {r.text}
+        <View style={{ flex: 1, gap: 4 }}>
+          <Led size={24} accessibilityLabel={`${spot.nowCustomers.toFixed(0)} customers per hour`}>
+            {spot.nowCustomers.toFixed(0)}
+          </Led>
+          <Row gap={4} style={{ justifyContent: 'center' }}>
+            <Icon name="people" size={16} color="#FFFFFF" />
+            <T size={12} weight="bold" color="#FFFFFF">
+              per hour
             </T>
           </Row>
-        ))}
-      </View>
+        </View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Led size={24} accessibilityLabel={`${moneyShort(spot.dailySalesCents)} sales per day`}>
+            {moneyShort(spot.dailySalesCents)}
+          </Led>
+          <Row gap={4} style={{ justifyContent: 'center' }}>
+            <Icon name="coin" size={16} color="#FFFFFF" />
+            <T size={12} weight="bold" color="#FFFFFF">
+              per day
+            </T>
+          </Row>
+        </View>
+      </Row>
+
+      <Glass padding={SPACE.m}>
+        <Sparkline values={spot.hourly} highlight={hourNow} />
+
+        <View style={{ gap: 6, marginTop: SPACE.m }}>
+          {spot.reasons.slice(0, 3).map((r, i) => (
+            <Row key={i} gap={SPACE.s}>
+              <View
+                style={[styles.reason, { backgroundColor: r.good ? theme.signal : theme.alert }]}
+              >
+                <T size={12} weight="bold" color="#FFFFFF">
+                  {r.good ? '+' : '−'}
+                </T>
+              </View>
+              <T size={14} style={{ flex: 1 }} numberOfLines={2}>
+                {r.text}
+              </T>
+            </Row>
+          ))}
+        </View>
+      </Glass>
 
       {stored || types.length > 1 ? (
         <Row style={{ flexWrap: 'wrap' }}>
@@ -205,12 +232,10 @@ function SpotBody({
       />
 
       <View style={{ gap: SPACE.s }}>
-        <T size={17} weight="bold">
-          Nearby
-        </T>
-        {spot.nearby.length === 0 ? <T muted>No named places within 400 m.</T> : null}
+        <Plate>Nearby</Plate>
+        {spot.nearby.length === 0 ? <T color="#FFFFFF">No named places within 400 m.</T> : null}
         {spot.nearby.map((p) => (
-          <Row key={p.id} style={{ minHeight: 44 }}>
+          <Row key={p.id} style={styles.place}>
             <Glyph category={p.category} size={20} />
             <View style={{ flex: 1 }}>
               <T size={14} numberOfLines={1}>
@@ -230,7 +255,7 @@ function SpotBody({
             <Chip label="Report" onPress={() => report(p.id, p.name)} />
           </Row>
         ))}
-        <T size={11} muted>
+        <T size={11} color="#FFE3D4">
           Places from open map data. No affiliation or endorsement.
         </T>
       </View>
@@ -238,22 +263,15 @@ function SpotBody({
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
-  const theme = useTheme();
-  return (
-    <View style={[styles.stat, { backgroundColor: theme.surface }]}>
-      <Mono size={22} weight="bold" color={color}>
-        {value}
-      </Mono>
-      <T size={12} muted>
-        {label}
-      </T>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  stat: { flex: 1, padding: SPACE.m, borderRadius: RADIUS.m, gap: 2 },
+  place: {
+    minHeight: 48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: RADIUS.s,
+    paddingHorizontal: SPACE.m,
+    borderBottomWidth: 4,
+    borderBottomColor: SKIN.chromeDark,
+  },
   reason: {
     width: 20,
     height: 20,

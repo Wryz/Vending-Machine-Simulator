@@ -1,6 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import {
+  Alert,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -54,11 +62,13 @@ import { MachineScene, type SlotView, type SlotsEvent } from '@/three/MachineSce
 import { useTheme } from '@/ui/ThemeProvider';
 import { money, moneyShort, pct } from '@/ui/format';
 import { RoundButton, StatChip } from '@/ui/hud';
+import { PRODUCT_IMAGES } from '@/ui/productImages';
+import { Cabinet, Glass, Key, Led, Marquee, SKIN } from '@/ui/skin';
 import { Icon, type IconName } from '@/ui/icons';
 import { Button, Chip, Mono, Paper, Row, T, Toast } from '@/ui/kit';
 import { hasTelemetry, machineStatus } from '@/ui/machineStatus';
 import { CoinTray } from '@/ui/objects/CoinTray';
-import { STATUS_LABEL, statusColor } from '@/ui/objects/KeyTag';
+import { STATUS_LABEL } from '@/ui/objects/KeyTag';
 import { SPACE, TOUCH } from '@/ui/theme';
 
 type Plan = Record<number, RestockLine>;
@@ -382,388 +392,430 @@ export default function MachineCloseup() {
         </View>
       </View>
 
-      <ScrollView
-        style={{ flex: 1, backgroundColor: theme.bg }}
-        contentContainerStyle={{
-          padding: SPACE.l,
-          paddingBottom: insets.bottom + SPACE.xxl,
-          gap: SPACE.l,
-        }}
-      >
-        {/* Who and how it's doing: one line of text, the rest as icons. */}
-        <View style={{ gap: SPACE.s }}>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <View style={{ flex: 1 }}>
-              <T size={21} weight="bold" accessibilityRole="header" numberOfLines={1}>
-                {machine.venue.name}
-              </T>
-              <T size={13} muted>
-                {type.name}
-              </T>
-            </View>
-            <View style={[styles.status, { backgroundColor: theme.surface }]}>
-              <View
-                style={[
-                  styles.dot,
-                  { backgroundColor: status === 'ok' ? theme.signal : statusColor(status, theme) },
-                ]}
-              />
-              <T size={13} weight="bold">
-                {STATUS_LABEL[status]}
-              </T>
-            </View>
-          </Row>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: SPACE.s }}
-          >
-            <StatChip
-              icon="coin"
-              label="Cash box"
-              value={`${moneyShort(machine.cashBoxCents)} / ${moneyShort(cashBoxCapacity(game, type))}`}
-              color={
-                machine.cashBoxCents >= cashBoxCapacity(game, type) * 0.95
-                  ? theme.signal
-                  : undefined
-              }
-            />
-            <StatChip
-              icon="percent"
-              label="Venue commission"
-              value={pct(machine.contract.commission)}
-            />
-            <StatChip
-              icon="clock"
-              label="Contract"
-              value={contractLeft > 0 ? shortDuration(contractLeft) : 'renewing'}
-            />
-            <StatChip icon="smile" label={`Venue mood ${Math.round(machine.mood * 100)}%`}>
-              <View style={[styles.mood, { backgroundColor: theme.line }]}>
-                <View
-                  style={{
-                    width: `${Math.round(machine.mood * 100)}%`,
-                    height: '100%',
-                    borderRadius: 4,
-                    backgroundColor:
-                      machine.mood < CONTRACT.terminateBelow + 0.15
-                        ? theme.alert
-                        : machine.mood < 0.55
-                          ? theme.amber
-                          : theme.signal,
-                  }}
-                />
-              </View>
-            </StatChip>
-            {!live ? (
-              <StatChip icon="eyeOff" label="No telemetry: stock shown from your last visit" />
-            ) : null}
-          </ScrollView>
-        </View>
-
-        {machine.broken ? (
-          <Paper style={{ gap: SPACE.s }}>
-            <Row>
-              <Icon name="wrench" size={22} color={theme.alert} />
-              <T weight="bold" color={theme.alert} style={{ flex: 1 }}>
-                {machine.broken.kind === 'fridge' ? 'Fridge broken' : 'Coil jammed'}
-              </T>
-              {machine.broken.techFixAt ? (
-                <StatChip
-                  icon="clock"
-                  label="Technician arrives in"
-                  value={shortDuration(Math.max(0, machine.broken.techFixAt - game.now))}
-                />
-              ) : null}
-            </Row>
-            <Button
-              label={`Fix · ${moneyShort(SERVICE.manualRepairCostCents)}`}
-              icon={<Icon name="wrench" size={20} color={theme.onBrand} />}
-              onPress={() => {
-                const r = useGame.getState().act((d) => repairMachine(d, machine.id));
-                if (!r.ok) show(r.error, 'error');
-                else {
-                  haptic.success();
-                  sound.play('click');
-                  show('Repaired', 'success');
+      <Cabinet style={{ flex: 1 }} screws={false}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            padding: SPACE.l,
+            paddingBottom: insets.bottom + SPACE.xxl,
+            gap: SPACE.l,
+          }}
+        >
+          {/* Who and how it's doing: one line of text, the rest as icons. */}
+          <View style={{ gap: SPACE.s }}>
+            <Marquee title={machine.venue.name} subtitle={type.name} />
+            <Row style={{ justifyContent: 'center' }}>
+              <Led
+                size={14}
+                color={
+                  status === 'ok'
+                    ? SKIN.ledGreen
+                    : status === 'broken'
+                      ? SKIN.ledRed
+                      : SKIN.ledAmber
                 }
-              }}
-            />
-          </Paper>
-        ) : null}
+                accessibilityLabel={`Status: ${STATUS_LABEL[status]}`}
+              >
+                {`● ${STATUS_LABEL[status].toUpperCase()}`}
+              </Led>
+            </Row>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: SPACE.s }}
+            >
+              <StatChip
+                icon="coin"
+                label="Cash box"
+                value={`${moneyShort(machine.cashBoxCents)} / ${moneyShort(cashBoxCapacity(game, type))}`}
+                color={
+                  machine.cashBoxCents >= cashBoxCapacity(game, type) * 0.95
+                    ? theme.signal
+                    : undefined
+                }
+              />
+              <StatChip
+                icon="percent"
+                label="Venue commission"
+                value={pct(machine.contract.commission)}
+              />
+              <StatChip
+                icon="clock"
+                label="Contract"
+                value={contractLeft > 0 ? shortDuration(contractLeft) : 'renewing'}
+              />
+              <StatChip icon="smile" label={`Venue mood ${Math.round(machine.mood * 100)}%`}>
+                <View style={[styles.mood, { backgroundColor: theme.line }]}>
+                  <View
+                    style={{
+                      width: `${Math.round(machine.mood * 100)}%`,
+                      height: '100%',
+                      borderRadius: 4,
+                      backgroundColor:
+                        machine.mood < CONTRACT.terminateBelow + 0.15
+                          ? theme.alert
+                          : machine.mood < 0.55
+                            ? theme.amber
+                            : theme.signal,
+                    }}
+                  />
+                </View>
+              </StatChip>
+              {!live ? (
+                <StatChip icon="eyeOff" label="No telemetry: stock shown from your last visit" />
+              ) : null}
+            </ScrollView>
+          </View>
 
-        {coins ? <CoinTray grossCents={coins.gross} commissionCents={coins.commission} /> : null}
-
-        {/* The two jobs: take the cash, refill the coils. */}
-        <Row gap={SPACE.s}>
-          <Button
-            label={
-              coins ? 'Collected' : collecting ? '…' : `Collect ${moneyShort(machine.cashBoxCents)}`
-            }
-            icon={<Icon name="coin" size={20} color={coins ? theme.ink : theme.onBrand} />}
-            kind={coins ? 'secondary' : 'primary'}
-            disabled={!!coins || collecting}
-            onPress={doCollect}
-            style={{ flex: 1 }}
-          />
-          <Button
-            label="Fill"
-            icon={<Icon name="box" size={20} color={theme.ink} />}
-            kind="secondary"
-            onPress={fillAll}
-            accessibilityHint={`Plan a full restock from the van, up to ${van} items`}
-          />
-          {!removeAds && adsAvailable() ? (
-            <Button
-              label="Instant restock (ad)"
-              hideLabel
-              icon={<Icon name="play" size={20} color={theme.ink} />}
-              kind="secondary"
-              onPress={adRestock}
-              accessibilityHint="Watch an ad for an instant restock"
-            />
+          {machine.broken ? (
+            <Paper style={{ gap: SPACE.s }}>
+              <Row>
+                <Icon name="wrench" size={22} color={theme.alert} />
+                <T weight="bold" color={theme.alert} style={{ flex: 1 }}>
+                  {machine.broken.kind === 'fridge' ? 'Fridge broken' : 'Coil jammed'}
+                </T>
+                {machine.broken.techFixAt ? (
+                  <StatChip
+                    icon="clock"
+                    label="Technician arrives in"
+                    value={shortDuration(Math.max(0, machine.broken.techFixAt - game.now))}
+                  />
+                ) : null}
+              </Row>
+              <Button
+                label={`Fix · ${moneyShort(SERVICE.manualRepairCostCents)}`}
+                icon={<Icon name="wrench" size={20} color={theme.onBrand} />}
+                onPress={() => {
+                  const r = useGame.getState().act((d) => repairMachine(d, machine.id));
+                  if (!r.ok) show(r.error, 'error');
+                  else {
+                    haptic.success();
+                    sound.play('click');
+                    show('Repaired', 'success');
+                  }
+                }}
+              />
+            </Paper>
           ) : null}
-        </Row>
-        {plannedUnits ? (
+
+          {coins ? <CoinTray grossCents={coins.gross} commissionCents={coins.commission} /> : null}
+
+          {/* The two jobs: take the cash, refill the coils. */}
           <Row gap={SPACE.s}>
             <Button
-              label={`Restock ${plannedUnits} · ${moneyShort(plannedCost)}`}
-              icon={<Icon name="box" size={20} color={theme.onBrand} />}
-              onPress={commitRestock}
+              label={
+                coins
+                  ? 'Collected'
+                  : collecting
+                    ? '…'
+                    : `Collect ${moneyShort(machine.cashBoxCents)}`
+              }
+              icon={<Icon name="coin" size={20} color={coins ? theme.ink : theme.onBrand} />}
+              kind={coins ? 'secondary' : 'primary'}
+              disabled={!!coins || collecting}
+              onPress={doCollect}
               style={{ flex: 1 }}
-              accessibilityHint={`Hand restocks sell ${Math.round(SERVICE.freshStockBonus * 100)}% more for a business day`}
             />
             <Button
-              label="Clear"
-              hideLabel
-              icon={<Icon name="close" size={20} color={theme.ink} />}
+              label="Fill"
+              icon={<Icon name="box" size={20} color={theme.ink} />}
               kind="secondary"
-              onPress={() => setPlan({})}
-              accessibilityHint="Clear the restock plan"
+              onPress={fillAll}
+              accessibilityHint={`Plan a full restock from the van, up to ${van} items`}
             />
+            {!removeAds && adsAvailable() ? (
+              <Button
+                label="Instant restock (ad)"
+                hideLabel
+                icon={<Icon name="play" size={20} color={theme.ink} />}
+                kind="secondary"
+                onPress={adRestock}
+                accessibilityHint="Watch an ad for an instant restock"
+              />
+            ) : null}
           </Row>
-        ) : null}
+          {plannedUnits ? (
+            <Row gap={SPACE.s}>
+              <Button
+                label={`Restock ${plannedUnits} · ${moneyShort(plannedCost)}`}
+                icon={<Icon name="box" size={20} color={theme.onBrand} />}
+                onPress={commitRestock}
+                style={{ flex: 1 }}
+                accessibilityHint={`Hand restocks sell ${Math.round(SERVICE.freshStockBonus * 100)}% more for a business day`}
+              />
+              <Button
+                label="Clear"
+                hideLabel
+                icon={<Icon name="close" size={20} color={theme.ink} />}
+                kind="secondary"
+                onPress={() => setPlan({})}
+                accessibilityHint="Clear the restock plan"
+              />
+            </Row>
+          ) : null}
 
-        {/* Coils: product color, fill level, price. */}
-        <View style={styles.grid}>
-          {machine.slots.map((s, i) => {
-            const p = plan[i];
-            const pid = p?.productId ?? s.productId;
-            const qty = p ? (s.productId === p.productId ? s.qty : 0) + p.qty : s.qty;
-            const shownQty = live || p ? qty : (machine.seen.qty[i] ?? s.qty);
-            const color = pid ? getProduct(pid).color : theme.line;
-            return (
-              <Pressable
-                key={i}
-                accessibilityRole="button"
-                accessibilityLabel={`Slot ${i + 1}, ${pid ? getProduct(pid).name : 'empty'}, ${shownQty} of ${cap}`}
-                accessibilityState={{ selected: selected === i }}
-                onPress={() => setSelected(i)}
-                style={[styles.slotCell, { width: `${100 / Math.min(5, type.grid.cols)}%` }]}
-              >
-                <View
-                  style={[
-                    styles.slot,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: selected === i ? theme.brand : 'transparent',
-                    },
-                  ]}
-                >
-                  <View style={[styles.fill, { backgroundColor: theme.line }]}>
+          {/* Coils behind the glass: product color, fill level, price. */}
+          <Glass padding={SPACE.s}>
+            <View style={styles.grid}>
+              {machine.slots.map((s, i) => {
+                const p = plan[i];
+                const pid = p?.productId ?? s.productId;
+                const qty = p ? (s.productId === p.productId ? s.qty : 0) + p.qty : s.qty;
+                const shownQty = live || p ? qty : (machine.seen.qty[i] ?? s.qty);
+                const color = pid ? getProduct(pid).color : theme.line;
+                return (
+                  <Pressable
+                    key={i}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Slot ${i + 1}, ${pid ? getProduct(pid).name : 'empty'}, ${shownQty} of ${cap}`}
+                    accessibilityState={{ selected: selected === i }}
+                    onPress={() => setSelected(i)}
+                    style={[styles.slotCell, { width: `${100 / Math.min(5, type.grid.cols)}%` }]}
+                  >
                     <View
-                      style={{
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: `${Math.round((shownQty / cap) * 100)}%`,
-                        backgroundColor: color,
-                        borderRadius: 6,
-                        opacity: p ? 0.7 : 1,
-                      }}
-                    />
-                  </View>
-                  <Mono size={12} weight="bold" center>
-                    {pid ? moneyShortPrice(s.priceCents || getProduct(pid).suggestedCents) : '—'}
-                  </Mono>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
+                      style={[
+                        styles.slot,
+                        {
+                          backgroundColor: theme.surface,
+                          borderColor: selected === i ? theme.brand : 'transparent',
+                        },
+                      ]}
+                    >
+                      {/* The product itself on its coil, faded when the coil is empty. */}
+                      <View style={styles.coil}>
+                        {pid && PRODUCT_IMAGES[pid] ? (
+                          <Image
+                            source={PRODUCT_IMAGES[pid]}
+                            style={{ width: '100%', height: '100%', opacity: shownQty ? 1 : 0.25 }}
+                            resizeMode="contain"
+                          />
+                        ) : null}
+                      </View>
+                      <View style={[styles.fill, { backgroundColor: theme.line }]}>
+                        <View
+                          style={{
+                            width: `${Math.round((shownQty / cap) * 100)}%`,
+                            height: '100%',
+                            backgroundColor: p ? SKIN.ledAmber : color,
+                            borderRadius: 3,
+                          }}
+                        />
+                      </View>
+                      <Mono size={12} weight="bold" center>
+                        {pid
+                          ? moneyShortPrice(s.priceCents || getProduct(pid).suggestedCents)
+                          : '—'}
+                      </Mono>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Glass>
 
-        {selected !== null && sel ? (
-          <Paper tone="surface" style={{ gap: SPACE.m }}>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <T weight="bold">{selProduct ? selProduct.name : 'Empty coil'}</T>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-                hitSlop={10}
-                onPress={() => setSelected(null)}
-              >
-                <Icon name="close" size={20} color={theme.muted} />
-              </Pressable>
-            </Row>
-            <Row style={{ flexWrap: 'wrap' }}>
-              {allowed.map((pr) => (
-                <Chip
-                  key={pr.id}
-                  label={pr.name}
-                  color={pr.color}
-                  active={(plan[selected]?.productId ?? sel.productId) === pr.id}
-                  onPress={() => loadSlot(selected, pr.id)}
-                />
-              ))}
-            </Row>
-            {selProduct ? (
-              <>
-                <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
-                  <Stepper
-                    icon="minus"
-                    label="Lower price"
-                    disabled={!canPrice}
-                    onPress={() => changePrice(selected, -5)}
-                  />
-                  <Mono size={26} weight="bold" style={{ minWidth: 90, textAlign: 'center' }}>
-                    {money(sel.priceCents)}
-                  </Mono>
-                  <Stepper
-                    icon="plus"
-                    label="Raise price"
-                    disabled={!canPrice}
-                    onPress={() => changePrice(selected, 5)}
-                  />
-                </Row>
-                <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <StatChip
-                    icon="tag"
-                    label="Suggested price"
-                    value={money(selProduct.suggestedCents)}
-                  />
-                  <StatChip
-                    icon="box"
-                    label="Wholesale cost"
-                    value={money(selProduct.wholesaleCents)}
-                  />
-                  <StatChip
-                    icon="people"
-                    label="Demand at this price"
-                    value={pct(priceResponse(sel.priceCents / selProduct.suggestedCents))}
-                  />
-                  {!canPrice ? (
-                    <StatChip icon="lock" label="Prices unlock after chapter 1" value="Ch. 2" />
-                  ) : null}
-                </Row>
-                {hasResearch(game, 'auto-reorder', type.family) ? (
+          {selected !== null && sel ? (
+            <Paper tone="surface" style={{ gap: SPACE.m }}>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <T weight="bold">{selProduct ? selProduct.name : 'Empty coil'}</T>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                  hitSlop={10}
+                  onPress={() => setSelected(null)}
+                >
+                  <Icon name="close" size={20} color={theme.muted} />
+                </Pressable>
+              </Row>
+              <Row style={{ flexWrap: 'wrap' }}>
+                {allowed.map((pr) => {
+                  const on = (plan[selected]?.productId ?? sel.productId) === pr.id;
+                  return (
+                    <Key
+                      key={pr.id}
+                      tone={on ? 'brand' : 'white'}
+                      height={84}
+                      onPress={() => loadSlot(selected, pr.id)}
+                      accessibilityLabel={`Load ${pr.name}`}
+                      faceStyle={{
+                        width: 76,
+                        paddingHorizontal: 4,
+                        flexDirection: 'column',
+                        gap: 0,
+                      }}
+                    >
+                      <Image
+                        source={PRODUCT_IMAGES[pr.id]}
+                        style={{ width: 52, height: 52 }}
+                        resizeMode="contain"
+                      />
+                      <T
+                        size={10}
+                        weight="bold"
+                        numberOfLines={1}
+                        color={on ? '#FFFFFF' : SKIN.keyInk}
+                      >
+                        {pr.name.split(' ')[0]}
+                      </T>
+                    </Key>
+                  );
+                })}
+              </Row>
+              {selProduct ? (
+                <>
                   <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
                     <Stepper
                       icon="minus"
-                      label="Lower driver par level"
-                      onPress={() =>
-                        useGame.getState().act((d) => setPar(d, machine.id, selected, sel.par - 1))
-                      }
+                      label="Lower price"
+                      disabled={!canPrice}
+                      onPress={() => changePrice(selected, -5)}
                     />
-                    <StatChip icon="box" label="Driver refills to" value={String(sel.par)} />
+                    <Mono size={26} weight="bold" style={{ minWidth: 90, textAlign: 'center' }}>
+                      {money(sel.priceCents)}
+                    </Mono>
                     <Stepper
                       icon="plus"
-                      label="Raise driver par level"
-                      onPress={() =>
-                        useGame.getState().act((d) => setPar(d, machine.id, selected, sel.par + 1))
-                      }
+                      label="Raise price"
+                      disabled={!canPrice}
+                      onPress={() => changePrice(selected, 5)}
                     />
                   </Row>
-                ) : null}
-              </>
-            ) : null}
-          </Paper>
-        ) : null}
+                  <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <StatChip
+                      icon="tag"
+                      label="Suggested price"
+                      value={money(selProduct.suggestedCents)}
+                    />
+                    <StatChip
+                      icon="box"
+                      label="Wholesale cost"
+                      value={money(selProduct.wholesaleCents)}
+                    />
+                    <StatChip
+                      icon="people"
+                      label="Demand at this price"
+                      value={pct(priceResponse(sel.priceCents / selProduct.suggestedCents))}
+                    />
+                    {!canPrice ? (
+                      <StatChip icon="lock" label="Prices unlock after chapter 1" value="Ch. 2" />
+                    ) : null}
+                  </Row>
+                  {hasResearch(game, 'auto-reorder', type.family) ? (
+                    <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
+                      <Stepper
+                        icon="minus"
+                        label="Lower driver par level"
+                        onPress={() =>
+                          useGame
+                            .getState()
+                            .act((d) => setPar(d, machine.id, selected, sel.par - 1))
+                        }
+                      />
+                      <StatChip icon="box" label="Driver refills to" value={String(sel.par)} />
+                      <Stepper
+                        icon="plus"
+                        label="Raise driver par level"
+                        onPress={() =>
+                          useGame
+                            .getState()
+                            .act((d) => setPar(d, machine.id, selected, sel.par + 1))
+                        }
+                      />
+                    </Row>
+                  ) : null}
+                </>
+              ) : null}
+            </Paper>
+          ) : null}
 
-        {/* Spec: icons and numbers. */}
-        <Row style={{ flexWrap: 'wrap' }}>
-          <StatChip icon="grid" label="Slots" value={`${type.slots}×${cap}`} />
-          <StatChip
-            icon="bolt"
-            label="Power per day"
-            value={moneyShortPrice(type.powerCentsPerDay)}
-          />
-          <StatChip
-            icon="wrench"
-            label="Breakdowns per day"
-            value={`${(type.breakdownPerDay * 100).toFixed(1)}%`}
-          />
-          <StatChip
-            icon="lock"
-            label="Theft risk"
-            value={type.theftRisk >= 1.4 ? 'High' : type.theftRisk >= 1 ? 'Med' : 'Low'}
-          />
-          <StatChip icon="bag" label="Items sold" value={String(machine.stats.unitsTotal)} />
-          <StatChip
-            icon="coin"
-            label="Revenue"
-            value={moneyShort(machine.stats.revenueTotalCents)}
-          />
-          {ownedResearch.map((r) => (
-            <StatChip key={r} icon="star" label="Upgrade" value={r} color={theme.brand} />
-          ))}
-        </Row>
+          {/* Spec: icons and numbers. */}
+          <Row style={{ flexWrap: 'wrap' }}>
+            <StatChip icon="grid" label="Slots" value={`${type.slots}×${cap}`} />
+            <StatChip
+              icon="bolt"
+              label="Power per day"
+              value={moneyShortPrice(type.powerCentsPerDay)}
+            />
+            <StatChip
+              icon="wrench"
+              label="Breakdowns per day"
+              value={`${(type.breakdownPerDay * 100).toFixed(1)}%`}
+            />
+            <StatChip
+              icon="lock"
+              label="Theft risk"
+              value={type.theftRisk >= 1.4 ? 'High' : type.theftRisk >= 1 ? 'Med' : 'Low'}
+            />
+            <StatChip icon="bag" label="Items sold" value={String(machine.stats.unitsTotal)} />
+            <StatChip
+              icon="coin"
+              label="Revenue"
+              value={moneyShort(machine.stats.revenueTotalCents)}
+            />
+            {ownedResearch.map((r) => (
+              <StatChip key={r} icon="star" label="Upgrade" value={r} color={theme.brand} />
+            ))}
+          </Row>
 
-        <Row style={{ flexWrap: 'wrap' }}>
-          {ownedWraps.map((w) => (
-            <Chip
-              key={w}
-              label={WRAPS[w].name}
-              color={WRAPS[w].color}
-              active={machine.wrap === w}
+          <Row style={{ flexWrap: 'wrap' }}>
+            {ownedWraps.map((w) => (
+              <Chip
+                key={w}
+                label={WRAPS[w].name}
+                color={WRAPS[w].color}
+                active={machine.wrap === w}
+                onPress={() =>
+                  useGame.getState().act((d) => {
+                    const m = d.machines.find((x) => x.id === machine.id);
+                    if (m) m.wrap = m.wrap === w ? null : w;
+                    return { ok: true };
+                  })
+                }
+              />
+            ))}
+            <IconChip
+              icon="rotate"
+              label="Rotate"
               onPress={() =>
-                useGame.getState().act((d) => {
-                  const m = d.machines.find((x) => x.id === machine.id);
-                  if (m) m.wrap = m.wrap === w ? null : w;
-                  return { ok: true };
-                })
+                useGame.getState().act((d) => rotateMachine(d, machine.id, machine.heading + 90))
               }
             />
-          ))}
-          <IconChip
-            icon="rotate"
-            label="Rotate"
-            onPress={() =>
-              useGame.getState().act((d) => rotateMachine(d, machine.id, machine.heading + 90))
-            }
-          />
-          {!machine.contract.renegotiated ? (
+            {!machine.contract.renegotiated ? (
+              <IconChip
+                icon="handshake"
+                label="Renegotiate"
+                onPress={() => {
+                  const r = useGame.getState().act((d) => renegotiate(d, machine.id));
+                  show(
+                    r.ok ? `Commission now ${pct(r.commission, 1)}` : r.error,
+                    r.ok ? 'success' : 'error',
+                  );
+                }}
+              />
+            ) : null}
             <IconChip
-              icon="handshake"
-              label="Renegotiate"
-              onPress={() => {
-                const r = useGame.getState().act((d) => renegotiate(d, machine.id));
-                show(
-                  r.ok ? `Commission now ${pct(r.commission, 1)}` : r.error,
-                  r.ok ? 'success' : 'error',
-                );
-              }}
+              icon="box"
+              label="Pick up"
+              onPress={() =>
+                Alert.alert(
+                  'Pick up this machine?',
+                  'It goes back to storage; the contract ends.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Pick up',
+                      style: 'destructive',
+                      onPress: () => {
+                        useGame.getState().act((d) => pickUpMachine(d, machine.id));
+                        finishLeave();
+                      },
+                    },
+                  ],
+                )
+              }
             />
-          ) : null}
-          <IconChip
-            icon="box"
-            label="Pick up"
-            onPress={() =>
-              Alert.alert('Pick up this machine?', 'It goes back to storage; the contract ends.', [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Pick up',
-                  style: 'destructive',
-                  onPress: () => {
-                    useGame.getState().act((d) => pickUpMachine(d, machine.id));
-                    finishLeave();
-                  },
-                },
-              ])
-            }
-          />
-        </Row>
-      </ScrollView>
+          </Row>
+        </ScrollView>
+      </Cabinet>
       {toast ? (
         <View
           pointerEvents="none"
@@ -890,7 +942,8 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
   slotCell: { padding: 4 },
   slot: { padding: 6, borderRadius: 14, gap: 4, borderWidth: 2 },
-  fill: { height: 34, borderRadius: 6, overflow: 'hidden' },
+  coil: { height: 46, alignItems: 'center', justifyContent: 'center' },
+  fill: { height: 6, borderRadius: 3, overflow: 'hidden' },
   stepper: {
     width: TOUCH + 4,
     height: TOUCH + 4,

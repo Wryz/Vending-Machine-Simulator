@@ -20,7 +20,10 @@ module.exports = {
       },
     ],
   },
-  moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.(png|jpg|webp)$': '<rootDir>/jest-asset-stub.js',
+  },
   collectCoverageFrom: ['src/sim/**/*.ts', '!src/sim/**/*.test.ts', '!src/sim/__fixtures__/**'],
   coverageThreshold: { './src/sim/': { lines: 85, branches: 70, functions: 85 } },
 };
