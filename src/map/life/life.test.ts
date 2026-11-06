@@ -344,3 +344,66 @@ describe('street life: sprites and output', () => {
     expect(net.roads.length).toBe(1);
   });
 });
+
+describe('street life: customers', () => {
+  // A machine on the sidewalk of the avenue at x = 0, facing the street (west).
+  const machine = ll(-9, 20);
+
+  function withCustomer(seed = 5) {
+    const life = run(seed, 1);
+    expect(life.addCustomer('sale-1', machine[0], machine[1], 270)).toBe(true);
+    return life;
+  }
+
+  it('walks up to the machine, buys, then leaves', () => {
+    const life = withCustomer();
+    const c = life.customers[0];
+    const start = Math.hypot(c.x - c.mx, c.y - c.my);
+    expect(start).toBeGreaterThan(5);
+    expect(life.takeArrivals()).toEqual([]);
+
+    let arrivedAt = -1;
+    const dt = 1 / 14;
+    for (let t = 0; t < 30 && arrivedAt < 0; t += dt) {
+      life.step(dt);
+      if (life.takeArrivals().includes('sale-1')) arrivedAt = t;
+    }
+    expect(arrivedAt).toBeGreaterThan(1);
+    expect(arrivedAt).toBeLessThanOrEqual(MAP_LIFE.customers.maxWalkSeconds + 0.2);
+    // At the machine: in front of it, facing it, standing still.
+    expect(Math.hypot(c.x - c.mx, c.y - c.my)).toBeCloseTo(MAP_LIFE.customers.standM, 1);
+    expect(c.hx * (c.mx - c.x) + c.hy * (c.my - c.y)).toBeGreaterThan(0);
+    expect(c.frame).toBe(0);
+
+    // Then they walk off and fade out; each sale is released once.
+    for (let t = 0; t < 30; t += dt) life.step(dt);
+    expect(life.takeArrivals()).toEqual([]);
+    expect(life.customers).toHaveLength(0);
+  });
+
+  it('releases sales still on the way when street life stops', () => {
+    const life = withCustomer();
+    life.step(0.1);
+    expect(life.flushCustomers()).toEqual(['sale-1']);
+    expect(life.customers).toHaveLength(0);
+  });
+
+  it('caps how many walk at once and needs roads', () => {
+    const life = run(9, 1);
+    for (let i = 0; i < MAP_LIFE.customers.max; i++)
+      expect(life.addCustomer(`s${i}`, machine[0], machine[1], 270)).toBe(true);
+    expect(life.addCustomer('one-too-many', machine[0], machine[1], 270)).toBe(false);
+    expect(new StreetLife(1).addCustomer('x', machine[0], machine[1], 0)).toBe(false);
+  });
+
+  it('draws customers with the people', () => {
+    const life = withCustomer();
+    for (let t = 0; t < 1; t += 0.1) life.step(0.1);
+    const fc = JSON.parse(lifeGeoJSON(life, { bearing: 0, pitch: 45, light: 'day' })) as {
+      features: { properties: { k: number } }[];
+    };
+    const people = fc.features.filter((f) => f.properties.k === 1).length;
+    const visible = [...life.people, ...life.customers].filter((p) => p.alpha > 0.01).length;
+    expect(people).toBe(visible);
+  });
+});

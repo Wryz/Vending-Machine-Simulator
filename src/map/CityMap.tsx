@@ -68,7 +68,17 @@ export interface MapCameraState {
 export type { LifeStats, SalePop };
 
 export interface CityMapHandle {
-  flyTo(c: Partial<MapCameraState> & { center: [number, number] }, durationMs: number): void;
+  /**
+   * Fly the camera. `bottomPadding` (points) frames `center` in the part of the
+   * screen above a sheet; it stays until the next fly-to (default 0).
+   */
+  flyTo(
+    c: Partial<MapCameraState> & { center: [number, number] },
+    durationMs: number,
+    bottomPadding?: number,
+  ): void;
+  /** Zoom in (+) or out (−) around the current center. */
+  zoomBy(delta: number, durationMs: number): void;
   getCamera(): MapCameraState;
 }
 
@@ -114,7 +124,12 @@ interface Props {
   salePops?: readonly SalePop[];
   /** Freeze street life (e.g. during the close-up fly-in). */
   lifePaused?: boolean;
+  /** Sales that just landed on screen (their customer reached the machine, or at once when zoomed out). */
+  onSalesShown?: (pops: SalePop[]) => void;
 }
+
+/** Closest the camera gets (street level). */
+const MAX_ZOOM = 21.5;
 
 /** Minimum machine icon-size (readable at mid zoom); true scale above it. */
 const MACHINE_MIN_ICON_SIZE = MACHINE_SPRITE.minIconSize;
@@ -133,6 +148,31 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
   const mapRef = useRef<MapRef>(null);
   const camRef = useRef<CameraRef>(null);
   const camera = useRef<MapCameraState>(initial);
+  /** Bottom padding of the last fly-to (kept for zoom steps). */
+  const padding = useRef(0);
+
+  // Sales reach the screen when their customer gets to the machine (StreetLifeLayer).
+  const [shownSales, setShownSales] = useState<ReadonlySet<string>>(() => new Set());
+  const lifeSales = useMemo(
+    () =>
+      (props.salePops ?? []).flatMap((p) => {
+        const m = game.machines.find((x) => x.id === p.machineId);
+        return m ? [{ id: p.id, lng: m.lng, lat: m.lat, heading: m.heading, units: p.units }] : [];
+      }),
+    // Positions only matter for new sales: follow the pop list, not every tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.salePops],
+  );
+  const onSalesShownRef = useRef(props.onSalesShown);
+  onSalesShownRef.current = props.onSalesShown;
+  const salesShown = useCallback(
+    (ids: string[]) => {
+      setShownSales((prev) => new Set([...prev, ...ids].slice(-60)));
+      const pops = (props.salePops ?? []).filter((p) => ids.includes(p.id));
+      if (pops.length) onSalesShownRef.current?.(pops);
+    },
+    [props.salePops],
+  );
   // Only re-render sprites when the camera crosses a 45° / pitch bucket.
   const [buckets, setBuckets] = useState({ bearing: initial.bearing, pitch: initial.pitch });
   // Half-zoom steps / 10° pitch steps for sale pops (re-render only on a step change).
@@ -154,12 +194,24 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
   }, []);
 
   useImperativeHandle(ref, () => ({
-    flyTo(c, durationMs) {
+    flyTo(c, durationMs, bottomPadding = 0) {
+      padding.current = bottomPadding;
       camRef.current?.flyTo({
         center: c.center,
         zoom: c.zoom ?? camera.current.zoom,
         pitch: c.pitch ?? camera.current.pitch,
         bearing: c.bearing ?? camera.current.bearing,
+        padding: { top: 0, right: 0, bottom: bottomPadding, left: 0 },
+        duration: durationMs,
+      });
+    },
+    zoomBy(delta, durationMs) {
+      const cur = camera.current;
+      const zoom = Math.max(props.minZoom ?? 11, Math.min(MAX_ZOOM, cur.zoom + delta));
+      camRef.current?.easeTo({
+        center: cur.center,
+        zoom,
+        padding: { top: 0, right: 0, bottom: padding.current, left: 0 },
         duration: durationMs,
       });
     },
@@ -350,7 +402,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           bearing: initial.bearing,
         }}
         minZoom={props.minZoom ?? 11}
-        maxZoom={21.5}
+        maxZoom={MAX_ZOOM}
       />
       <Images images={SPRITE_IMAGES} />
       {baseLayers.map((l) => (
@@ -491,6 +543,8 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             tod={tod}
             paused={props.lifePaused}
             onLifeStats={props.onLifeStats}
+            sales={lifeSales}
+            onSalesShown={salesShown}
           />
 
           <GeoJSONSource
@@ -591,6 +645,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
       {props.salePops ? (
         <SalePops
           pops={props.salePops}
+          shown={shownSales}
           machines={machinePoints}
           zoom={view.zoom}
           pitch={view.pitch}

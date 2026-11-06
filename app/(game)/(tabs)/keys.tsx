@@ -37,7 +37,7 @@ export default function Keys() {
 
   if (!game) {
     return (
-      <Screen title="Key ring">
+      <Screen tab title="Key ring">
         <T muted>No business is open.</T>
       </Screen>
     );
@@ -55,7 +55,7 @@ export default function Keys() {
   const accent = (m: Machine) => theme.family[getMachineType(m.typeId).family];
 
   return (
-    <Screen title="Key ring" subtitle={`${active.length} placed · ${stored.length} in storage`}>
+    <Screen tab title="Key ring" subtitle={`${active.length} placed · ${stored.length} in storage`}>
       <Section title="Placed">
         {active.length === 0 ? (
           <Paper tone="surface">
@@ -71,7 +71,7 @@ export default function Keys() {
                 accent={accent(m)}
                 status={status}
                 amount={cashLabel(game, m)}
-                onPress={() => router.push({ pathname: '/machine/[id]', params: { id: m.id } })}
+                onPress={() => router.navigate({ pathname: '/map', params: { focus: m.id } })}
               />
             ))}
           </View>
@@ -83,7 +83,7 @@ export default function Keys() {
           <View style={{ gap: SPACE.s }}>
             {stored.map((m) => {
               const place = () =>
-                router.push({ pathname: '/map', params: { placeMachineId: m.id } });
+                router.navigate({ pathname: '/map', params: { placeMachineId: m.id } });
               return (
                 <Row key={m.id} gap={SPACE.s}>
                   <View style={{ flex: 1 }}>

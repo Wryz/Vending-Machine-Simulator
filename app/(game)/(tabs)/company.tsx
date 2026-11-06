@@ -38,17 +38,7 @@ import { cityInfoFor, hasSave, useGame } from '@/store/game';
 import { cityKey, useProfile } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
 import { money, moneyShort, pct } from '@/ui/format';
-import {
-  Button,
-  Mono,
-  Paper,
-  ProgressBar,
-  Row,
-  Screen,
-  Section,
-  Spacer,
-  T,
-} from '@/ui/kit';
+import { Button, Mono, Paper, ProgressBar, Row, Screen, Section, Spacer, T } from '@/ui/kit';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { Receipt, type ReceiptLine } from '@/ui/objects/Receipt';
 import { LockedCard, StatChip } from '@/ui/hud';
@@ -197,7 +187,7 @@ export default function Company() {
 
   if (!game || !world) {
     return (
-      <Screen title="Company">
+      <Screen tab title="Company">
         <T muted>No business is open.</T>
       </Screen>
     );
@@ -261,7 +251,7 @@ export default function Company() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Screen title="Company" subtitle={`Coinline · ${world.city.name}`}>
+      <Screen tab title="Company" subtitle={`Coinline · ${world.city.name}`}>
         {/* Chapter progress */}
         <Section title={`Chapter ${game.chapter}`}>
           <Paper tone="surface">
@@ -390,7 +380,7 @@ export default function Company() {
             kind="secondary"
             icon={<Icon name="route" size={20} color={theme.ink} />}
             label="Routes"
-            onPress={() => router.push('/routes')}
+            onPress={() => router.navigate('/routes')}
           />
           {game.chapter < 3 ? (
             <LockedCard icon="box" title="Warehouse" chapter={3} />

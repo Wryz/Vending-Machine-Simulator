@@ -1,6 +1,7 @@
 import { LIFE_CAR_MODELS, LIFE_PEOPLE_MODELS, MAP_LIFE } from '@/config/mapLife';
 
 import type { StreetLife } from './sim';
+import type { Person } from './types';
 import {
   carSpriteName,
   lifeHeadingBucket,
@@ -57,11 +58,14 @@ export function lifeGeoJSON(life: StreetLife, o: LifeRenderOptions): string {
       point(c.lng, c.lat, `"k":0,"i":"${name}","r":${rot.toFixed(1)},"o":${c.alpha.toFixed(2)}`),
     );
   }
-  for (const p of life.people) {
-    if (p.alpha <= 0.01) continue;
-    const h = lifeHeadingBucket(p.heading, o.bearing);
-    const name = personSpriteName(LIFE_PEOPLE_MODELS[p.model], p.frame, h, pitch, o.light);
-    parts.push(point(p.lng, p.lat, `"k":1,"i":"${name}","r":0,"o":${p.alpha.toFixed(2)}`));
-  }
+  for (const p of life.people) pushPerson(p, o, pitch);
+  for (const p of life.customers) pushPerson(p, o, pitch);
   return `{"type":"FeatureCollection","features":[${parts.join(',')}]}`;
+}
+
+function pushPerson(p: Person, o: LifeRenderOptions, pitch: ReturnType<typeof lifePitchBucket>) {
+  if (p.alpha <= 0.01) return;
+  const h = lifeHeadingBucket(p.heading, o.bearing);
+  const name = personSpriteName(LIFE_PEOPLE_MODELS[p.model], p.frame, h, pitch, o.light);
+  parts.push(point(p.lng, p.lat, `"k":1,"i":"${name}","r":0,"o":${p.alpha.toFixed(2)}`));
 }

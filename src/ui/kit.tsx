@@ -284,6 +284,7 @@ export function Screen({
   scroll = true,
   onBack,
   back = true,
+  tab = false,
 }: {
   title: string;
   subtitle?: string;
@@ -293,6 +294,8 @@ export function Screen({
   onBack?: () => void;
   /** Show the back key (default true). */
   back?: boolean;
+  /** A tab's root screen: no back key, and the tab bar takes the bottom inset. */
+  tab?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const Body = scroll ? ScrollView : View;
@@ -300,7 +303,7 @@ export function Screen({
     <Cabinet style={{ flex: 1 }} screws={false}>
       {/* Top of the machine: back key and the lit marquee sign. */}
       <View style={[styles.header, { paddingTop: insets.top + SPACE.xs }]}>
-        {back ? (
+        {back && !tab ? (
           <Key
             round
             height={TOUCH - 2}
@@ -328,7 +331,7 @@ export function Screen({
         </Body>
       </Glass>
       {/* Kick plate with the pickup bin. */}
-      <View style={[styles.kick, { paddingBottom: insets.bottom + SPACE.s }]}>
+      <View style={[styles.kick, { paddingBottom: (tab ? 0 : insets.bottom) + SPACE.s }]}>
         <View style={styles.bin} />
       </View>
     </Cabinet>

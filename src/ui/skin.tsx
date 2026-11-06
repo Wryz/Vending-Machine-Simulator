@@ -200,6 +200,7 @@ export function Key({
   accessibilityHint,
   round,
   height = TOUCH + 8,
+  accessibilityState,
 }: {
   onPress: () => void;
   tone?: KeyTone;
@@ -211,6 +212,7 @@ export function Key({
   accessibilityHint?: string;
   round?: boolean;
   height?: number;
+  accessibilityState?: { selected?: boolean };
 }) {
   const c = KEY_COLORS[tone];
   const radius = round ? (height + KEY_DEPTH) / 2 : RADIUS.s + 2;
@@ -219,7 +221,7 @@ export function Key({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: !!disabled }}
+      accessibilityState={{ ...accessibilityState, disabled: !!disabled }}
       disabled={disabled}
       onPress={() => {
         haptic.select();

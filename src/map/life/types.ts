@@ -100,3 +100,19 @@ export interface Person {
   /** Walk-cycle frame 0..LIFE_WALK_FRAMES-1 (0 = standing / passing pose). */
   frame: number;
 }
+
+/** Someone walking up to a machine to buy (one per sale while you watch). */
+export interface Customer extends Person {
+  /** The sale this customer brings (released when they reach the machine). */
+  saleId: string;
+  stage: 'approach' | 'buy' | 'leave';
+  /** Seconds in the current stage. */
+  t: number;
+  /** Machine, standing spot and exit, local meters. */
+  mx: number;
+  my: number;
+  standX: number;
+  standY: number;
+  exitX: number;
+  exitY: number;
+}

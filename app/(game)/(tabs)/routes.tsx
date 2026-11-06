@@ -128,7 +128,7 @@ export default function Routes() {
 
   if (!game) {
     return (
-      <Screen title="Route clipboard">
+      <Screen tab title="Route clipboard">
         <T muted>No business is open.</T>
       </Screen>
     );
@@ -166,6 +166,7 @@ export default function Routes() {
   return (
     <View style={{ flex: 1 }}>
       <Screen
+        tab
         title="Routes"
         subtitle={`${active.length} machines · ${game.drivers.length} drivers`}
       >
@@ -366,7 +367,7 @@ export default function Routes() {
                   kind="secondary"
                   icon={<Icon name="star" size={20} color={theme.ink} />}
                   label={`Research · ${moneyShort(autoReorderInfo?.costCents ?? 0)}`}
-                  onPress={() => router.push('/company')}
+                  onPress={() => router.navigate('/company')}
                 />
               ) : null}
             </Paper>

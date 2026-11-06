@@ -104,7 +104,7 @@ Custom MapLibre style, not a default basemap:
 - **Views:** a tilted 3D view and a straight top-down view (one toggle). Zooming far out hands off to a low-poly globe showing every city and machine (MapLibre Native has no globe projection yet, so the globe is a flat-shaded low-poly sphere drawn with SVG, lit by the real sun, with a pin per city).
 
 ### 3.6 UI: the vending machine skin, map-first
-The map is always the home screen. Controls float over it; details open in bottom sheets (`@gorhom/bottom-sheet`) instead of new pages. Every panel is part of a vending machine, so the game never looks like a generic app (`src/ui/skin.tsx`):
+The map is always the home screen. Controls float over it; details open in bottom sheets (`@gorhom/bottom-sheet`) instead of new pages. A keypad **tab bar** along the bottom switches between the map and the four places you manage from (keys, routes, orders, company). Every panel is part of a vending machine, so the game never looks like a generic app (`src/ui/skin.tsx`):
 - **Cabinet:** glossy tangerine body with a soft vertical gloss, darker sides and screw heads. Backgrounds are never a blank fill.
 - **Marquee:** screen and sheet titles sit on a lit marquee sign with a row of bulbs.
 - **Glass:** content sits behind a glass window in a chrome frame, with a diagonal reflection streak.
@@ -421,9 +421,11 @@ pipeline/                # offline data pipeline (Python/DuckDB), not shipped in
 | Screen | Contents |
 |---|---|
 | Onboarding | Cold open → location explanation → permission → area check → city or picker → first machine tutorial (place, stock, price, first sale) |
-| Map (home) | Full-screen map with time-of-day style; machine sprites with family pads and status rings; event pins; rival machines. Floating: cash pill, one status pill (clock and weather, or the latest sale), round buttons for settings, 3D/top-down, busy streets (heat) and locate. One persistent bottom sheet: chapter goal and actions (keys, routes, orders, company, shop) when collapsed, the fleet when pulled up. Zoom far out to the globe |
+| Tab bar | Keypad keys along the bottom: Map, Keys, Routes, Orders (badge when one is ready), Company. Shop opens from Company |
+| Map (home) | Full-screen map with time-of-day style; machine sprites with family pads and status rings; event pins; rival machines. Floating: cash pill, clock and weather, the chapter goal as a small LED meter, the latest sale; round buttons for settings, 3D/top-down, busy streets (heat) and locate; **+ / − zoom keys**. Zoom far out to the globe. **Sales are seen, not just counted:** zoomed in, a customer walks up to the machine for each sale, and the sale pops when they buy |
+| Machine sheet | Tapping a machine (or its key) opens its sheet at once while the map flies to it, front on, close enough to watch customers: status, cash box, collect, restock, coils and prices, price/par steppers, spec and contract actions. A 3D key opens the close-up |
 | Spot Card | A bottom sheet over the map: place name and rating, customers per hour and sales per day, hourly sparkline, the top reasons, machine choice, Place button; nearby places further down |
-| Machine close-up (3D) | Machine front, slot grid, drag-to-restock from van crate, price tags editable, cash box → coin tray, repair interaction, upgrade spec tag |
+| Machine close-up (3D) | From the machine sheet's 3D key. Machine front, slot grid, drag-to-restock from van crate, price tags editable, cash box → coin tray, repair interaction, upgrade spec tag |
 | Route clipboard | Restock route builder, van capacity, drivers and their routes, auto-reorder rules |
 | Company | Chapter progress, finances (receipt-style P&L), staff, warehouse, permits, research (global upgrades), prestige |
 | Collections binder | Series pages, rarity, completion perks |

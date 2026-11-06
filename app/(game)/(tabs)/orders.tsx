@@ -53,7 +53,7 @@ export default function Orders() {
   const unlocked = ACHIEVEMENTS.filter((a) => a.id in game.achievements).length;
 
   return (
-    <Screen title="Orders">
+    <Screen tab title="Orders">
       <Row style={{ flexWrap: 'wrap' }}>
         <StatChip
           icon="flame"

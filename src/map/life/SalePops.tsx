@@ -24,6 +24,7 @@ export interface SalePop {
   id: string;
   machineId: string;
   cents: number;
+  units: number;
 }
 
 interface Live {
@@ -40,6 +41,8 @@ const W = 120;
 
 interface Props {
   pops: readonly SalePop[];
+  /** Only these pops show (a sale pops when its customer reaches the machine). */
+  shown: ReadonlySet<string>;
   machines: readonly { id: string; lng: number; lat: number }[];
   /** Current zoom / pitch (quantized is fine). */
   zoom: number;
@@ -57,7 +60,7 @@ export const SalePops = memo(function SalePops(props: Props) {
   const live: Live[] = [];
   for (let i = pops.length - 1; i >= 0 && live.length < MAX_VISIBLE; i--) {
     const p = pops[i];
-    if (history.has(p.id)) continue;
+    if (history.has(p.id) || !props.shown.has(p.id)) continue;
     const m = machines.find((x) => x.id === p.machineId);
     if (m) live.push({ id: p.id, lngLat: [m.lng, m.lat], cents: p.cents });
   }

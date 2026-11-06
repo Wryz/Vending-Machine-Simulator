@@ -75,14 +75,32 @@ interface Props {
   /** Draw under this layer (default: under the buildings, so towers occlude traffic). */
   beforeId?: string;
   onLifeStats?: (s: LifeStats) => void;
+  /**
+   * Recent sales. While street life runs, each new one sends a customer to its
+   * machine and is reported to `onSalesShown` when they get there; otherwise
+   * (zoomed out, paused) it is reported at once.
+   */
+  sales?: readonly LifeSale[];
+  onSalesShown?: (ids: string[]) => void;
+}
+
+/** A sale at a machine (position and facing, so the customer knows where to stand). */
+export interface LifeSale {
+  id: string;
+  lng: number;
+  lat: number;
+  heading: number;
+  units: number;
 }
 
 const EMPTY = '{"type":"FeatureCollection","features":[]}';
+/** Marks the extra customers of a multi-item sale (they don't release it). */
+const COMPANION = '#';
 const LIFE_WEATHER: readonly LifeWeather[] = ['clear', 'cloudy', 'rain', 'snow', 'storm', 'fog'];
 
 export const StreetLifeLayer = memo(
   forwardRef<StreetLifeHandle, Props>(function StreetLifeLayer(props, ref) {
-    const { mapRef, cameraRef, world, now, tod, paused, onLifeStats } = props;
+    const { mapRef, cameraRef, world, now, tod, paused, onLifeStats, sales } = props;
     const focused = useIsFocused();
     const { height } = useWindowDimensions();
     const [appActive, setAppActive] = useState(AppState.currentState === 'active');
@@ -99,6 +117,12 @@ export const StreetLifeLayer = memo(
     const lastStats = useRef(0);
     const statsCb = useRef(onLifeStats);
     statsCb.current = onLifeStats;
+    const shownCb = useRef(props.onSalesShown);
+    shownCb.current = props.onSalesShown;
+    // Sales already listed when the map mounts are history: no customers for them.
+    const seenSales = useRef<Set<string> | null>(null);
+    if (!seenSales.current) seenSales.current = new Set((sales ?? []).map((x) => x.id));
+    const runningRef = useRef(false);
 
     // Hour / weather; foot traffic is filled in per view (cells around the camera).
     const lt = useMemo(
@@ -209,6 +233,35 @@ export const StreetLifeLayer = memo(
 
     const light = lifeLightFor(tod.weights);
     const running = focused && appActive && !paused && zoomedIn && hasRoads;
+    runningRef.current = running;
+
+    // New sales: a customer walks up (only the first of a group carries the sale).
+    useEffect(() => {
+      const seen = seenSales.current!;
+      const now: string[] = [];
+      for (const sale of sales ?? []) {
+        if (seen.has(sale.id)) continue;
+        seen.add(sale.id);
+        const sim = simRef.current!;
+        const group = Math.min(MAP_LIFE.customers.perSale, Math.max(1, sale.units));
+        let sent = false;
+        if (runningRef.current) {
+          sent = sim.addCustomer(sale.id, sale.lng, sale.lat, sale.heading);
+          for (let i = 1; sent && i < group; i++)
+            sim.addCustomer(`${sale.id}${COMPANION}${i}`, sale.lng, sale.lat, sale.heading);
+        }
+        if (!sent) now.push(sale.id);
+      }
+      if (seen.size > 200) seenSales.current = new Set([...seen].slice(-100));
+      if (now.length) shownCb.current?.(now);
+    }, [sales]);
+
+    // Street life stopped: every sale still walking lands now.
+    useEffect(() => {
+      if (running) return;
+      const ids = simRef.current!.flushCustomers().filter((id) => !id.includes(COMPANION));
+      if (ids.length) shownCb.current?.(ids);
+    }, [running]);
 
     useEffect(() => {
       if (!running) return;
@@ -218,6 +271,8 @@ export const StreetLifeLayer = memo(
         const t = Date.now();
         sim.step((t - last) / 1000);
         last = t;
+        const arrived = sim.takeArrivals().filter((id) => !id.includes(COMPANION));
+        if (arrived.length) shownCb.current?.(arrived);
         const cam = cameraRef.current;
         setJson(lifeGeoJSON(sim, { bearing: cam?.bearing ?? 0, pitch: cam?.pitch ?? 0, light }));
         emitStats(false);

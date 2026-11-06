@@ -75,7 +75,7 @@ export default function GameLayout() {
   return (
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.bg } }}>
-        <Stack.Screen name="map" options={{ animation: 'fade' }} />
+        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen
           name="machine/[id]"
           // A regular screen with a fade, not a transparent modal: as a transparent modal
@@ -109,9 +109,6 @@ export default function GameLayout() {
             sheetCornerRadius: 16,
           }}
         />
-        <Stack.Screen name="keys" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="routes" options={{ animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="company" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="collections" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="cities" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="shop" options={{ animation: 'slide_from_right' }} />

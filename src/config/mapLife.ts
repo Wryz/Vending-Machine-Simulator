@@ -67,6 +67,29 @@ export const MAP_LIFE = {
     strideM: 0.7,
   },
 
+  /**
+   * Customers: for each sale while you watch (zoom >= minZoom), someone walks
+   * up to the machine, stands at it, and the sale pops when they buy.
+   */
+  customers: {
+    /** Where they come from / go to, meters along the nearest sidewalk. */
+    startM: [8, 12] as const,
+    exitM: [10, 15] as const,
+    /** Look for a sidewalk within this distance of the machine. */
+    sidewalkSearchM: 30,
+    /** Standing spot in front of the machine, meters from its center. */
+    standM: 1.3,
+    speedKmh: 5.6,
+    /** Time at the machine before the sale lands, seconds. */
+    buySeconds: 1.3,
+    /** Give up walking after this long (a sale is never held back for more). */
+    maxWalkSeconds: 9,
+    /** More waiting customers than this: the rest pop straight away. */
+    max: 10,
+    /** Customers per sale at most (a sale of several items brings a small group). */
+    perSale: 2,
+  },
+
   /** Spawned agents fade in/out over this many seconds. */
   fadeSeconds: 0.7,
   /** End-of-road search radius for a connecting road, meters. */

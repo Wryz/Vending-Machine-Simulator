@@ -3,7 +3,7 @@ import { nextRandom, type RngState } from '@/sim/rng';
 
 import { lifeTargets } from './density';
 import { RoadNetwork, type Road, type RoadHit } from './network';
-import type { Car, LifeConditions, LifeView, Person, RoadInput, RoadKind } from './types';
+import type { Car, Customer, LifeConditions, LifeView, Person, RoadInput, RoadKind } from './types';
 
 /**
  * Street-life simulation (pure, deterministic for a seed and a sequence of
@@ -17,6 +17,7 @@ import type { Car, LifeConditions, LifeView, Person, RoadInput, RoadKind } from 
 
 const C = MAP_LIFE.cars;
 const P = MAP_LIFE.people;
+const CU = MAP_LIFE.customers;
 const kmh = (v: number) => v / 3.6;
 const DEG = Math.PI / 180;
 /** Walk cycle over 4 steps: left stride, passing, right stride, passing. */
@@ -46,6 +47,8 @@ const PEOPLE_KINDS: ReadonlySet<RoadKind> = new Set(['major', 'minor']);
 export class StreetLife {
   readonly cars: Car[] = [];
   readonly people: Person[] = [];
+  /** People walking up to a machine to buy (see addCustomer). */
+  readonly customers: Customer[] = [];
   net: RoadNetwork | null = null;
   targets = { cars: 0, people: 0 };
 
@@ -66,6 +69,8 @@ export class StreetLife {
   private readonly hits: RoadHit[] = [];
   private readonly proj: RoadHit = { road: 0, s: 0, d: 0 };
   private readonly cands: Candidate[] = [];
+  /** Sales whose customer reached the machine since the last takeArrivals(). */
+  private arrivals: string[] = [];
 
   constructor(seed = 1) {
     this.rng = { rng: seed | 0 };
@@ -120,6 +125,8 @@ export class StreetLife {
   clear(): void {
     this.cars.length = 0;
     this.people.length = 0;
+    this.customers.length = 0;
+    this.arrivals.length = 0;
     this.net = null;
   }
 
@@ -485,6 +492,190 @@ export class StreetLife {
     this.finishPose(p);
   }
 
+  // ----------------------------------------------------------- customers
+
+  /**
+   * Send a customer to a machine for a sale: they appear on the nearest
+   * sidewalk a few meters away, walk to the front of the machine, buy, and
+   * walk on. Returns false when there's no road data yet or too many are
+   * already on their way (the caller shows that sale at once).
+   */
+  addCustomer(saleId: string, lng: number, lat: number, headingDeg: number): boolean {
+    const net = this.net;
+    if (!net || this.customers.length >= CU.max) return false;
+    const [mx, my] = net.toLocal(lng, lat);
+    const fx = Math.sin(headingDeg * DEG);
+    const fy = Math.cos(headingDeg * DEG);
+    // A couple of people at one machine stand side by side.
+    const queued = this.customers.filter((c) => c.mx === mx && c.my === my).length;
+    const side = queued % 2 === 0 ? 1 : -1;
+    const spread = Math.ceil(queued / 2) * 0.7 * side;
+    const standX = mx + fx * CU.standM + fy * spread;
+    const standY = my + fy * CU.standM - fx * spread;
+
+    // Start and exit on the nearest sidewalk, on the machine's side of the street.
+    let sx: number;
+    let sy: number;
+    let ex: number;
+    let ey: number;
+    const hits = net.near(mx, my, CU.sidewalkSearchM, this.hits);
+    let best: RoadHit | null = null;
+    for (const h of hits) {
+      if (!PEOPLE_KINDS.has(net.roads[h.road].kind)) continue;
+      if (!best || h.d < best.d) best = h;
+    }
+    if (best) {
+      const road = net.roads[best.road];
+      net.pointAt(road, best.s, this.v1);
+      net.tangentAt(road, best.s, PED_SPAN, this.v2);
+      const cross = (mx - this.v1.x) * this.v2.y - (my - this.v1.y) * this.v2.x;
+      const sideSign = cross >= 0 ? 1 : -1;
+      const [lo, hi] = P.sidewalkOffsetM[road.kind];
+      const off = Math.min(best.d, this.uniform(lo, hi));
+      const dir = this.rand() < 0.5 ? 1 : -1;
+      const at = (ds: number, out: Vec) => {
+        const s = Math.min(road.length, Math.max(0, best!.s + ds));
+        net.pointAt(road, s, out);
+        net.tangentAt(road, s, PED_SPAN, this.v2);
+        out.x += this.v2.y * sideSign * off;
+        out.y -= this.v2.x * sideSign * off;
+      };
+      at(dir * this.uniform(CU.startM[0], CU.startM[1]), this.v1);
+      sx = this.v1.x;
+      sy = this.v1.y;
+      at(-dir * this.uniform(CU.exitM[0], CU.exitM[1]), this.v1);
+      ex = this.v1.x;
+      ey = this.v1.y;
+    } else {
+      // No sidewalk nearby: come from somewhere in front of the machine.
+      const a = this.uniform(-1, 1);
+      const r = this.uniform(CU.startM[0], CU.startM[1]);
+      sx = standX + (fx * Math.cos(a) - fy * Math.sin(a)) * r;
+      sy = standY + (fy * Math.cos(a) + fx * Math.sin(a)) * r;
+      ex = standX + (fx * Math.cos(-a) - fy * Math.sin(-a)) * r;
+      ey = standY + (fy * Math.cos(-a) + fx * Math.sin(-a)) * r;
+    }
+    const dx = standX - sx;
+    const dy = standY - sy;
+    const len = Math.hypot(dx, dy) || 1;
+    const c: Customer = {
+      id: this.nextId++,
+      model: Math.floor(this.rand() * LIFE_PEOPLE_MODELS.length),
+      road: -1,
+      s: 0,
+      dir: 1,
+      side: 1,
+      offset: 0,
+      speed: kmh(CU.speedKmh),
+      phase: 0,
+      pause: 0,
+      x: sx,
+      y: sy,
+      hx: dx / len,
+      hy: dy / len,
+      bx: 0,
+      by: 0,
+      alpha: 0,
+      dying: false,
+      lng: 0,
+      lat: 0,
+      heading: 0,
+      frame: 0,
+      saleId,
+      stage: 'approach',
+      t: 0,
+      mx,
+      my,
+      standX,
+      standY,
+      exitX: ex,
+      exitY: ey,
+    };
+    this.finishPose(c);
+    this.customers.push(c);
+    return true;
+  }
+
+  /** Sales whose customer reached the machine since the last call. */
+  takeArrivals(): string[] {
+    const out = this.arrivals;
+    this.arrivals = [];
+    return out;
+  }
+
+  /**
+   * Street life stops (zoomed out, screen left): every sale still walking is
+   * released now, and the customers go.
+   */
+  flushCustomers(): string[] {
+    const out = this.takeArrivals();
+    for (const c of this.customers) if (c.stage === 'approach') out.push(c.saleId);
+    this.customers.length = 0;
+    return out;
+  }
+
+  private stepCustomers(dt: number) {
+    const fade = dt / MAP_LIFE.fadeSeconds;
+    let w = 0;
+    for (let i = 0; i < this.customers.length; i++) {
+      const c = this.customers[i];
+      c.t += dt;
+      if (c.dying) c.alpha = Math.max(0, c.alpha - fade);
+      else c.alpha = Math.min(1, c.alpha + fade);
+      if (c.stage === 'approach') {
+        const arrived = this.walkTo(c, c.standX, c.standY, dt);
+        if (arrived || c.t > CU.maxWalkSeconds) {
+          if (!arrived) {
+            // Took too long (a stall): step to the machine.
+            c.x = c.standX;
+            c.y = c.standY;
+          }
+          c.stage = 'buy';
+          c.t = 0;
+          c.frame = 0;
+          // Face the machine.
+          const dx = c.mx - c.x;
+          const dy = c.my - c.y;
+          const d = Math.hypot(dx, dy) || 1;
+          c.hx = dx / d;
+          c.hy = dy / d;
+          this.arrivals.push(c.saleId);
+        }
+      } else if (c.stage === 'buy') {
+        c.frame = 0;
+        if (c.t >= CU.buySeconds) {
+          c.stage = 'leave';
+          c.t = 0;
+        }
+      } else if (this.walkTo(c, c.exitX, c.exitY, dt) || c.t > CU.maxWalkSeconds) {
+        c.dying = true;
+      }
+      this.finishPose(c);
+      if (c.dying && c.alpha <= 0) continue;
+      this.customers[w++] = c;
+    }
+    this.customers.length = w;
+  }
+
+  /** Walk straight toward (x, y); true once there. */
+  private walkTo(c: Customer, x: number, y: number, dt: number): boolean {
+    const dx = x - c.x;
+    const dy = y - c.y;
+    const d = Math.hypot(dx, dy);
+    const ds = c.speed * dt;
+    if (d <= ds) {
+      c.x = x;
+      c.y = y;
+      return true;
+    }
+    c.x += (dx / d) * ds;
+    c.y += (dy / d) * ds;
+    c.phase += ds;
+    c.frame = WALK_CYCLE[Math.floor(c.phase / P.strideM) % 4];
+    this.turnToward(c, dx, dy, dx / d, dy / d, 500 * dt, dt);
+    return false;
+  }
+
   // ------------------------------------------------------------- shared
 
   /**
@@ -621,6 +812,7 @@ export class StreetLife {
     if (dt <= 0) return;
     this.stepCars(dt);
     this.stepPeople(dt);
+    this.stepCustomers(dt);
     this.cull(this.cars);
     this.cull(this.people);
     this.balance(dt);

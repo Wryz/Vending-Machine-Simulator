@@ -128,6 +128,24 @@ export const CAMERA = {
   topDownPitch: 0,
   /** Duration of the 3D ↔ top-down camera tilt and of the locate fly. */
   tiltMs: 650,
+  /** Tapping a machine: the map flies here (close enough to see customers walk up). */
+  machineZoom: 18.5,
+  machinePitch: 45,
+  machineFlyMs: 700,
+  /** The + / − keys: one zoom step each, eased. */
+  zoomStep: 1,
+  zoomStepMs: 250,
+} as const;
+
+/** The machine sheet over the map. */
+export const MACHINE_SHEET = {
+  /** Detents, as shares of the screen height (the first one opens). */
+  snapPoints: [0.46, 0.9],
+  /**
+   * The map frames the machine as if this share of the screen were covered:
+   * a little less than the sheet, so it sits mid-way between the HUD and the sheet.
+   */
+  framePadding: 0.22,
 } as const;
 
 /**

@@ -48,7 +48,9 @@ export type IconName =
   | 'close'
   | 'back'
   | 'star'
-  | 'grid';
+  | 'grid'
+  | 'map'
+  | 'cube';
 
 export function Icon({
   name,
@@ -366,6 +368,20 @@ export function Icon({
         );
       case 'chevron':
         return <Path d="M9 5l7 7-7 7" {...s} />;
+      case 'map':
+        return (
+          <>
+            <Path d="M3.5 6.5l5.5-2.5 6 2.5 5.5-2.5v13.5l-5.5 2.5-6-2.5-5.5 2.5z" {...s} />
+            <Path d="M9 4v13.5M15 6.5V20" {...s} />
+          </>
+        );
+      case 'cube':
+        return (
+          <>
+            <Path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" {...s} />
+            <Path d="M4 7.5l8 4.5 8-4.5M12 12v9" {...s} />
+          </>
+        );
     }
   })();
   return (

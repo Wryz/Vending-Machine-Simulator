@@ -83,7 +83,7 @@ export default function Place() {
     router.back();
     if (firstMachine)
       setTimeout(
-        () => router.push({ pathname: '/machine/[id]', params: { id: res.machine.id } }),
+        () => router.navigate({ pathname: '/map', params: { focus: res.machine.id } }),
         350,
       );
   };
