@@ -105,6 +105,8 @@ function newReport(from: number): AdvanceReport {
 interface StepCache {
   /** Product fit by cell, then product id (nested maps: no string keys in the hot loop). */
   fit: Map<string, Map<string, number>>;
+  /** Place affinity by cell, then product tag (products share tags). */
+  affinity: Map<string, Map<string, number>>;
 }
 
 function fitFor(
@@ -118,7 +120,9 @@ function fitFor(
   if (!byProduct) cache.fit.set(cellId, (byProduct = new Map()));
   let f = byProduct.get(product.id);
   if (f === undefined) {
-    f = productFit(product, traffic, hour);
+    let aff = cache.affinity.get(cellId);
+    if (!aff) cache.affinity.set(cellId, (aff = new Map()));
+    f = productFit(product, traffic, hour, aff);
     byProduct.set(product.id, f);
   }
   return f;
@@ -542,7 +546,7 @@ export function advance(
     const weather = world.weatherAt(tMid);
     const bh = businessHours(dt);
     const bd = businessDays(dt);
-    const cache: StepCache = { fit: new Map() };
+    const cache: StepCache = { fit: new Map(), affinity: new Map() };
     let costs = 0;
 
     let powerCents = 0;

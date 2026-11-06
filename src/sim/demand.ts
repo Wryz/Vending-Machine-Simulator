@@ -90,23 +90,38 @@ export function productWeatherFactor(product: Product, weather: WeatherHour | nu
  * fit(product.tags, place mix, hour): traffic-weighted affinity of the
  * surrounding place mix for the product's tags, times hour-of-day tag boosts.
  */
-export function productFit(product: Product, traffic: TrafficBreakdown, hour: number): number {
+export function productFit(
+  product: Product,
+  traffic: TrafficBreakdown,
+  hour: number,
+  /** Optional per-step cache of `placeAffinity` by tag for this traffic (same results). */
+  affinity?: Map<string, number>,
+): number {
   let f = 1;
-  // Same iteration order as before, entries built once instead of once per tag.
-  const parts = Object.entries(traffic.parts) as [CurveKey, number][];
+  let parts: [CurveKey, number][] | null = null;
   for (const tag of product.tags) {
-    let aff = 0;
-    let weight = 0;
-    for (const [k, v] of parts) {
-      const a = PLACE_TAG_AFFINITY[k]?.[tag];
-      aff += (a ?? 1) * v;
-      weight += v;
+    let placeAff = affinity?.get(tag);
+    if (placeAff === undefined) {
+      parts ??= Object.entries(traffic.parts) as [CurveKey, number][];
+      placeAff = placeAffinityOf(parts, tag);
+      affinity?.set(tag, placeAff);
     }
-    const placeAff = weight > 0 ? aff / weight : 1;
     const hourBoost = TAG_HOUR_BOOST[tag] ? curveAt(TAG_HOUR_BOOST[tag] as Curve, hour) : 1;
     f *= placeAff * hourBoost;
   }
   return Math.min(FIT.max, Math.max(FIT.min, f));
+}
+
+/** Traffic-weighted affinity of a place mix for one product tag. */
+function placeAffinityOf(parts: [CurveKey, number][], tag: string): number {
+  let aff = 0;
+  let weight = 0;
+  for (const [k, v] of parts) {
+    const a = PLACE_TAG_AFFINITY[k]?.[tag as keyof (typeof PLACE_TAG_AFFINITY)[CurveKey]];
+    aff += (a ?? 1) * v;
+    weight += v;
+  }
+  return weight > 0 ? aff / weight : 1;
 }
 
 export function hasResearch(
