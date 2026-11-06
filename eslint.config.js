@@ -19,13 +19,31 @@ module.exports = defineConfig([
   },
   {
     files: ['*.config.js', 'scripts/**/*.{js,mjs}'],
-    languageOptions: { globals: { __dirname: 'readonly', module: 'writable', require: 'readonly', process: 'readonly', console: 'readonly' } },
+    languageOptions: {
+      globals: {
+        __dirname: 'readonly',
+        module: 'writable',
+        require: 'readonly',
+        process: 'readonly',
+        console: 'readonly',
+      },
+    },
+  },
+  {
+    // Separate npm packages with their own node_modules and tsc. Root lint must
+    // pass on a fresh clone without installing them, so don't resolve their imports.
+    files: ['pipeline/**/*.ts', 'workers/**/*.ts'],
+    rules: { 'import/no-unresolved': 'off' },
   },
   {
     // React Three Fiber JSX uses three.js props (position, args, castShadow...).
     // R3F mutates three.js objects inside useFrame by design.
     files: ['src/three/**/*.tsx'],
-    rules: { 'react/no-unknown-property': 'off', 'react-hooks/immutability': 'off', 'react-hooks/purity': 'off' },
+    rules: {
+      'react/no-unknown-property': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/purity': 'off',
+    },
   },
   {
     files: ['src/sim/**/*.ts'],
