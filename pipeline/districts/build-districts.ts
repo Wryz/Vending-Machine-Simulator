@@ -48,6 +48,8 @@ const NAME_TAGS: Record<string, string[]> = {
 };
 
 interface CityRule {
+  /** Language of the local `name` tag (a translation equal to it isn't stored). */
+  lang: string;
   /** admin_levels to fetch. Where they nest, the finer (higher) level wins in the app. */
   levels: number[];
   /** Half-size of the clip square, km. */
@@ -56,6 +58,8 @@ interface CityRule {
   extra?: { level: number; name: string }[];
   /** Drop these `name`s (a parent that a finer level already covers). */
   exclude?: string[];
+  /** Keep only relations whose `name` matches. */
+  keep?: RegExp;
   /** Name cleanup applied to `name` and every translation. */
   rename?: [RegExp, string][];
 }
@@ -74,13 +78,14 @@ interface CityRule {
  * - Tokyo: 7 = special wards and the Tama cities.
  * - Seoul: 6 = gu, and the Gyeonggi cities.
  * - Singapore: 6 = URA planning areas (5 = regions, 7 = subzones).
- * - Sydney: 6 = LGAs (City of Sydney…); 9 = suburbs.
+ * - Sydney: 6 = LGAs (City of Sydney…); 9 = suburbs. Council suffixes trimmed.
  */
 const RULES: Record<CityId, CityRule> = {
-  'new-york': { levels: [7, 8], radiusKm: 18 },
-  'los-angeles': { levels: [8], radiusKm: 22 },
-  chicago: { levels: [8, 10], radiusKm: 18, exclude: ['Chicago'] },
+  'new-york': { lang: 'en', levels: [7, 8], radiusKm: 18 },
+  'los-angeles': { lang: 'en', levels: [8], radiusKm: 26 },
+  chicago: { lang: 'en', levels: [8, 10], radiusKm: 18, exclude: ['Chicago'] },
   london: {
+    lang: 'en',
     levels: [8],
     radiusKm: 20,
     extra: [{ level: 6, name: 'City of London' }],
@@ -89,11 +94,28 @@ const RULES: Record<CityId, CityRule> = {
       [/^City of Westminster$/, 'Westminster'],
     ],
   },
-  paris: { levels: [8, 9], radiusKm: 12, exclude: ['Paris'], rename: [[/^Paris (?=\d)/, '']] },
-  tokyo: { levels: [7], radiusKm: 20 },
-  seoul: { levels: [6], radiusKm: 20 },
-  singapore: { levels: [6], radiusKm: 20 },
-  sydney: { levels: [6], radiusKm: 20 },
+  paris: {
+    lang: 'fr',
+    levels: [8, 9],
+    radiusKm: 12,
+    exclude: ['Paris'],
+    rename: [[/^Paris (?=\d)/, '']],
+  },
+  tokyo: { lang: 'ja', levels: [7], radiusKm: 20 },
+  seoul: { lang: 'ko', levels: [6], radiusKm: 20 },
+  singapore: { lang: 'en', levels: [6], radiusKm: 20 },
+  sydney: {
+    lang: 'en',
+    levels: [6],
+    radiusKm: 20,
+    // Level 6 also tags odd unincorporated bits (wharves, islands, a museum).
+    keep: /Council|^City of /,
+    rename: [
+      [/^The Council of the (?:Municipality|Shire) of /, ''],
+      [/^Council of the City of /, 'City of '],
+      [/ (?:Municipal |City |Shire )?Council$/, ''],
+    ],
+  },
 };
 
 // ---------------------------------------------------------------- Overpass
@@ -330,6 +352,7 @@ function buildCity(id: CityId, lat: number, lng: number, rels: OsmRelation[]) {
     if (rel.type !== 'relation' || seen.has(rel.id) || !rel.tags?.name) continue;
     seen.add(rel.id);
     if (rule.exclude?.includes(rel.tags.name)) continue;
+    if (rule.keep && !rule.keep.test(rel.tags.name)) continue;
     const outerWays: Pt[][] = [];
     const innerWays: Pt[][] = [];
     for (const m of rel.members) {
@@ -350,9 +373,7 @@ function buildCity(id: CityId, lat: number, lng: number, rels: OsmRelation[]) {
         .map((r) => clipRing(r, box))
         .map((r) => (r.length ? simplifyRing(r, lat, SIMPLIFY_M) : r));
       if (rings[0].length < 4 || ringAreaM2(rings[0], lat) < minArea) continue;
-      const holes = rings
-        .slice(1)
-        .filter((r) => r.length >= 4 && ringAreaM2(r, lat) >= minArea);
+      const holes = rings.slice(1).filter((r) => r.length >= 4 && ringAreaM2(r, lat) >= minArea);
       enc.push([rings[0], ...holes].map(encodeRing));
     }
     if (!enc.length) continue;
@@ -372,12 +393,13 @@ async function main() {
   let total = 0;
   for (const [i, c] of cities.entries()) {
     if (i > 0 && !cached) await sleep(PAUSE_MS);
-    console.log(`${c.id}: querying Overpass…`);
+    console.log(`${c.id}: ${cached ? 'reading cache' : 'querying Overpass'}…`);
     const data = await fetchCity(c.id, c.lat, c.lng, cached);
     const districts = buildCity(c.id, c.lat, c.lng, data.elements);
     const file = {
       v: 1,
       city: c.id,
+      lang: RULES[c.id].lang,
       source: `© OpenStreetMap contributors (ODbL), Overpass ${stamp}`,
       d: districts,
     };

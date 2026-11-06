@@ -67,6 +67,7 @@ import {
   areaProbeLayer,
   type AreaNames,
 } from './areaName';
+import { districtAt } from './districts';
 import { buildBaseLayers, schemaOf, buildMapLight, buildMapStyle } from './style';
 import type { TimeOfDay } from './timeOfDay';
 
@@ -201,9 +202,14 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         // Style not ready: try again on the next camera change.
       }
       const [lng, lat] = camera.current.center;
-      onAreaName(areas.current.nearest(lng, lat, world.city.name));
+      const names = areas.current.nearest(lng, lat, world.city.name);
+      // Borough / ward / municipality from OSM boundaries (districts.ts); the
+      // place-point guess stays where there's no polygon (or it's the city).
+      const district = districtAt(world.city.id, lng, lat, lang, world.city.name);
+      if (district) names.district = district === names.area ? null : district;
+      onAreaName(names);
     }, AREA_NAME.debounceMs);
-  }, [onAreaName, world.city.name, labels]);
+  }, [onAreaName, world.city.name, world.city.id, labels, lang]);
   useEffect(
     () => () => {
       if (areaTimer.current) clearTimeout(areaTimer.current);

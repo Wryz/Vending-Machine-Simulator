@@ -15,5 +15,5 @@
       "@/*": ["../src/*"]
     }
   },
-  "include": ["*.ts", "lib/**/*.ts"]
+  "include": ["*.ts", "lib/**/*.ts", "districts/**/*.ts"]
 }
