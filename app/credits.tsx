@@ -1,5 +1,7 @@
 import { Linking, Pressable, View } from 'react-native';
 
+import { LINKS } from '@/config/links';
+import { useProfile } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
 import { Paper, Screen, Section, T } from '@/ui/kit';
 import { SPACE, TOUCH } from '@/ui/theme';
@@ -119,8 +121,32 @@ function CreditRow({ c }: { c: Credit }) {
 
 /** Credits and licenses (SPEC §6.4, §11). */
 export default function Credits() {
+  const installId = useProfile((s) => s.installId);
   return (
     <Screen title="Credits" subtitle="Coinline · Vending Machine Simulator">
+      <Section title="Privacy and help">
+        <View>
+          <CreditRow
+            c={{
+              name: 'Privacy policy',
+              detail: 'What the game sends and the choices you have.',
+              license: 'Open',
+              url: LINKS.privacy,
+            }}
+          />
+          <CreditRow
+            c={{
+              name: 'Support',
+              detail: 'Questions, problems, restoring purchases.',
+              license: 'Open',
+              url: LINKS.support,
+            }}
+          />
+        </View>
+        <T size={12} muted selectable style={{ marginTop: SPACE.s }}>
+          {`Install ID (for data requests): ${installId}`}
+        </T>
+      </Section>
       <Paper tone="surface">
         <T>Places shown from open map data. No affiliation or endorsement.</T>
         <T size={13} muted style={{ marginTop: SPACE.xs }}>

@@ -1,0 +1,5 @@
+# GitHub Pages: publish only the public site pages (privacy, support).
+exclude:
+  - spikes
+  - hosting.md
+  - app-store
