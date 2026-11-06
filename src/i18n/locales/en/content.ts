@@ -10,7 +10,7 @@ export default {
   chapters: {
     c1: {
       title: 'Side Hustle',
-      goal: 'Earn $1,000 in sales with your used machine',
+      goal: 'Earn {amount} in sales with your used machine',
       unlocks: {
         u0: 'Second machine',
         u1: 'Price setting',
@@ -153,7 +153,7 @@ export default {
       desc: 'Doubles cash box capacity.',
     },
   },
-  // Daily orders. {n} is the target, already formatted (a number or money like "$45").
+  // Daily orders. {n} is the target, already formatted (a number or money like "$45" or "¥7,500").
   goals: {
     sales: 'Take {n} in sales',
     units: 'Sell {n} items',
@@ -179,15 +179,15 @@ export default {
     },
     'sales-1k': {
       title: 'Side hustle',
-      desc: 'Take $1,000 in sales.',
+      desc: 'Take {amount} in sales.',
     },
     'sales-100k': {
       title: 'Real business',
-      desc: 'Take $100,000 in sales.',
+      desc: 'Take {amount} in sales.',
     },
     'sales-1m': {
       title: 'Seven figures',
-      desc: 'Take $1,000,000 in sales.',
+      desc: 'Take {amount} in sales.',
     },
     'machines-5': {
       title: 'A route',
@@ -311,7 +311,7 @@ export default {
   perks: {
     'head-start': {
       name: 'Head start',
-      desc: '+$2,000 starting cash per level.',
+      desc: '+{amount} starting cash per level.',
     },
     'sharp-eye': {
       name: 'Sharp eye',

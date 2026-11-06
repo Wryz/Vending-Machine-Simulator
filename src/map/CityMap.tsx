@@ -32,7 +32,7 @@ import { offsetPoint } from '@/sim/geo';
 import type { CellData } from '@/data/types';
 import { baseTraffic, localTime, type GameState, type LocalEvent, type World } from '@/sim';
 import type { Theme } from '@/ui/theme';
-import { money } from '@/ui/format';
+import { moneyPrice } from '@/ui/format';
 import { machineStatus } from '@/ui/machineStatus';
 
 import {
@@ -286,7 +286,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
   const popPoints = useMemo(() => [...machinePoints, ...rivalPoints], [machinePoints, rivalPoints]);
   const t = useT();
   const rivalLabel = useCallback(
-    (cents: number) => t('rival.sting', { money: money(cents), rival: RIVAL.name }),
+    (cents: number) => t('rival.sting', { money: moneyPrice(cents), rival: RIVAL.name }),
     [t],
   );
   // Sales reach the screen when their customer gets to the machine (StreetLifeLayer).

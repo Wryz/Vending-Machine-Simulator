@@ -11,7 +11,7 @@ export default {
     starterPack: {
       title: 'Pacote Inicial',
       detail:
-        'Melhoria de van, duas máquinas de lanches e $2,000 em dinheiro. Oferecido uma vez após o capítulo 1.',
+        'Melhoria de van, duas máquinas de lanches e {amount} em dinheiro. Oferecido uma vez após o capítulo 1.',
     },
     doubleProfits: {
       title: 'Lucro em dobro',

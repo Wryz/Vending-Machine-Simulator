@@ -5,7 +5,7 @@ export default {
     subtitle: 'Vending Machine Simulator',
     /** Spoken label of the LED clock: "{city}, {time}". */
     clockA11y: '{city}, {time}',
-    tagline: 'One used machine. $250. A whole city.',
+    tagline: 'One used machine. {amount}. A whole city.',
     /** Button: start the game ("insert a coin" into the vending machine). */
     insertCoin: 'Insert coin',
     insertCoinHint: 'Start your vending business',

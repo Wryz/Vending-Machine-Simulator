@@ -6,7 +6,7 @@ export default {
   chapters: {
     c1: {
       title: 'Negocio extra',
-      goal: 'Vende $1,000 con tu máquina usada',
+      goal: 'Vende {amount} con tu máquina usada',
       unlocks: {
         u0: 'Segunda máquina',
         u1: 'Fijar precios',
@@ -171,15 +171,15 @@ export default {
     },
     'sales-1k': {
       title: 'Negocio extra',
-      desc: 'Vende $1,000.',
+      desc: 'Vende {amount}.',
     },
     'sales-100k': {
       title: 'Negocio de verdad',
-      desc: 'Vende $100,000.',
+      desc: 'Vende {amount}.',
     },
     'sales-1m': {
       title: 'Siete cifras',
-      desc: 'Vende $1,000,000.',
+      desc: 'Vende {amount}.',
     },
     'machines-5': {
       title: 'Una ruta',
@@ -299,7 +299,7 @@ export default {
   perks: {
     'head-start': {
       name: 'Ventaja inicial',
-      desc: '+$2,000 de dinero inicial por nivel.',
+      desc: '+{amount} de dinero inicial por nivel.',
     },
     'sharp-eye': {
       name: 'Buen ojo',

@@ -6,7 +6,7 @@ export default {
   chapters: {
     c1: {
       title: 'Petit boulot',
-      goal: 'Fais $1,000 de ventes avec ton distributeur d’occasion',
+      goal: 'Fais {amount} de ventes avec ton distributeur d’occasion',
       unlocks: {
         u0: 'Deuxième distributeur',
         u1: 'Choix des prix',
@@ -171,15 +171,15 @@ export default {
     },
     'sales-1k': {
       title: 'Petit boulot',
-      desc: 'Fais $1,000 de ventes.',
+      desc: 'Fais {amount} de ventes.',
     },
     'sales-100k': {
       title: 'Vraie entreprise',
-      desc: 'Fais $100,000 de ventes.',
+      desc: 'Fais {amount} de ventes.',
     },
     'sales-1m': {
       title: 'Sept chiffres',
-      desc: 'Fais $1,000,000 de ventes.',
+      desc: 'Fais {amount} de ventes.',
     },
     'machines-5': {
       title: 'Une tournée',
@@ -299,7 +299,7 @@ export default {
   perks: {
     'head-start': {
       name: 'Coup de pouce',
-      desc: '+$2,000 de départ par niveau.',
+      desc: '+{amount} de départ par niveau.',
     },
     'sharp-eye': {
       name: 'Œil de lynx',

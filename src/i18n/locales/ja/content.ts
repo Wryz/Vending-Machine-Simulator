@@ -6,7 +6,7 @@ export default {
   chapters: {
     c1: {
       title: '副業',
-      goal: '中古の自販機で売上$1,000を達成',
+      goal: '中古の自販機で売上{amount}を達成',
       unlocks: {
         u0: '2台目の自販機',
         u1: '価格設定',
@@ -171,15 +171,15 @@ export default {
     },
     'sales-1k': {
       title: '副業',
-      desc: '売上$1,000を達成する。',
+      desc: '売上{amount}を達成する。',
     },
     'sales-100k': {
       title: '本格ビジネス',
-      desc: '売上$100,000を達成する。',
+      desc: '売上{amount}を達成する。',
     },
     'sales-1m': {
       title: 'ミリオン達成',
-      desc: '売上$1,000,000を達成する。',
+      desc: '売上{amount}を達成する。',
     },
     'machines-5': {
       title: 'ルート誕生',
@@ -299,7 +299,7 @@ export default {
   perks: {
     'head-start': {
       name: 'スタートダッシュ',
-      desc: 'レベルごとに初期資金 +$2,000。',
+      desc: 'レベルごとに初期資金 +{amount}。',
     },
     'sharp-eye': {
       name: '目利き',

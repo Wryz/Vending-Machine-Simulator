@@ -10,7 +10,9 @@ import type { ProductTag } from './products';
 export interface Chapter {
   n: number;
   title: string;
+  /** `{amount}` is replaced by `amountCents`, shown in the local currency. */
   goal: string;
+  amountCents?: number;
   unlocks: string[];
 }
 
@@ -18,7 +20,8 @@ export const CHAPTERS: readonly Chapter[] = [
   {
     n: 1,
     title: 'Side Hustle',
-    goal: 'Earn $1,000 in sales with your used machine',
+    goal: 'Earn {amount} in sales with your used machine',
+    amountCents: 100_000, // CHAPTER_GOALS[1].salesCents
     unlocks: ['Second machine', 'Price setting', 'Contract renegotiation'],
   },
   {
@@ -413,7 +416,9 @@ export const EVENT_TEMPLATES: readonly EventTemplate[] = [
 export interface PrestigePerk {
   id: string;
   name: string;
+  /** `{amount}` is replaced by `amountCents`, shown in the local currency. */
   description: string;
+  amountCents?: number;
   costRep: number;
   maxLevel: number;
 }
@@ -422,7 +427,8 @@ export const PRESTIGE_PERKS: readonly PrestigePerk[] = [
   {
     id: 'head-start',
     name: 'Head start',
-    description: '+$2,000 starting cash per level.',
+    description: '+{amount} starting cash per level.',
+    amountCents: 200_000, // src/sim/create.ts
     costRep: 2,
     maxLevel: 5,
   },
@@ -552,7 +558,9 @@ export const STREAK_BONUS = {
 export interface Achievement {
   id: string;
   title: string;
+  /** `{amount}` is replaced by `amountCents`, shown in the local currency. */
   description: string;
+  amountCents?: number;
   rewardCents: number;
 }
 
@@ -573,19 +581,22 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   {
     id: 'sales-1k',
     title: 'Side hustle',
-    description: 'Take $1,000 in sales.',
+    description: 'Take {amount} in sales.',
+    amountCents: 100_000, // src/sim/goals.ts
     rewardCents: 10_000,
   },
   {
     id: 'sales-100k',
     title: 'Real business',
-    description: 'Take $100,000 in sales.',
+    description: 'Take {amount} in sales.',
+    amountCents: 10_000_000, // src/sim/goals.ts
     rewardCents: 500_000,
   },
   {
     id: 'sales-1m',
     title: 'Seven figures',
-    description: 'Take $1,000,000 in sales.',
+    description: 'Take {amount} in sales.',
+    amountCents: 100_000_000, // src/sim/goals.ts
     rewardCents: 2_500_000,
   },
   { id: 'machines-5', title: 'A route', description: 'Run 5 machines.', rewardCents: 30_000 },

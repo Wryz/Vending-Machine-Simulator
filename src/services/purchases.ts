@@ -1,9 +1,11 @@
 import { Platform } from 'react-native';
 import Purchases from 'react-native-purchases';
 
+import { PURCHASES } from '@/config/economy';
 import { ENV } from '@/data/env';
 import { t } from '@/i18n';
 import { useProfile } from '@/store/profile';
+import { moneyWhole } from '@/ui/format';
 
 import { track } from './analytics';
 
@@ -30,7 +32,10 @@ export const PRODUCTS = {
     },
     price: '$2.99',
     get detail() {
-      return t('services.products.starterPack.detail');
+      // In-game cash, in the city's currency (the real-money price stays as the store gives it).
+      return t('services.products.starterPack.detail', {
+        amount: moneyWhole(PURCHASES.starterPackCashCents),
+      });
     },
   },
   doubleProfits: {

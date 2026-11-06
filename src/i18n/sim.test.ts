@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { CURRENCIES } from '@/config/currency';
+import { useCurrency } from '@/store/currency';
+
 import { CATALOGS } from './catalogs';
 import { isPlural } from './core';
 import {
@@ -181,7 +184,6 @@ describe('logText', () => {
       ['chapter', 'Chapter 2 complete'],
       ['info', 'Placed Coffee Machine at Central Station'],
       ['info', 'Picked up machine from Central Station'],
-      ['info', 'Order complete: Take 500 in sales'],
       ['info', 'Order complete: Research 1 upgrade'],
       ['info', 'All orders done: day 3 streak'],
       ['info', 'Trophy: Open for business'],
@@ -197,6 +199,21 @@ describe('logText', () => {
     expect(matchSimText('sim.log.', 'Order complete: Take 500 in sales')?.key).toBe(
       'sim.log.orderComplete',
     );
+    // Money from the sim (US cents / dollars) shows in the city's currency.
+    expect(logText('info', 'Order complete: Take 50000 in sales')).toBe(
+      'Order complete: Take $500 in sales',
+    );
+    useCurrency.setState({ currency: CURRENCIES.JPY });
+    try {
+      expect(logText('info', 'Order complete: Take 50000 in sales')).toBe(
+        'Order complete: Take ¥75k in sales',
+      );
+      expect(logText('theft', 'Break-in: lost $12.50 and 3 items')).toBe(
+        'Break-in: lost ¥1,875 and 3 items',
+      );
+    } finally {
+      useCurrency.setState({ currency: CURRENCIES.USD });
+    }
     expect(matchSimText('sim.log.', 'Placed Coffee Machine at Central Station')?.key).toBe(
       'sim.log.placed',
     );

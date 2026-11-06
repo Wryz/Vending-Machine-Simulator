@@ -35,6 +35,14 @@ describe('content catalog covers src/config', () => {
   });
   afterEach(() => spy.mockRestore());
 
+  /** Config text with its `{amount}` filled in (whole US dollars in tests). */
+  function withAmount(en: string, cents: number | undefined): string {
+    expect(en.includes('{amount}')).toBe(cents !== undefined);
+    return cents === undefined
+      ? en
+      : en.replace('{amount}', `$${(cents / 100).toLocaleString('en-US')}`);
+  }
+
   /** Calls a helper, checks the key it used exists and renders to `expected`. */
   function check(call: () => string, expected: string) {
     const out = call();
@@ -48,7 +56,7 @@ describe('content catalog covers src/config', () => {
   it('chapters', () => {
     for (const c of CHAPTERS) {
       check(() => content.chapterTitle(c.n, c.title), c.title);
-      check(() => content.chapterGoal(c.n, c.goal), c.goal);
+      check(() => content.chapterGoal(c.n, c.goal), withAmount(c.goal, c.amountCents));
       c.unlocks.forEach((u, i) => check(() => content.chapterUnlock(c.n, i, u), u));
     }
   });
@@ -72,11 +80,14 @@ describe('content catalog covers src/config', () => {
       check(() => content.goal(g.id, g.title, '$45'), g.title.replace('{n}', '$45'));
     for (const a of ACHIEVEMENTS) {
       check(() => content.achievementTitle(a.id, a.title), a.title);
-      check(() => content.achievementDesc(a.id, a.description), a.description);
+      check(
+        () => content.achievementDesc(a.id, a.description),
+        withAmount(a.description, a.amountCents),
+      );
     }
     for (const p of PRESTIGE_PERKS) {
       check(() => content.perkName(p.id, p.name), p.name);
-      check(() => content.perkDesc(p.id, p.description), p.description);
+      check(() => content.perkDesc(p.id, p.description), withAmount(p.description, p.amountCents));
     }
   });
 

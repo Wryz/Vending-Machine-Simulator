@@ -2,6 +2,7 @@ import { CATEGORY_LABEL } from '@/config/places';
 import { ACHIEVEMENTS, DAILY_GOALS, EVENT_TEMPLATES } from '@/config/progression';
 import type { PlaceCategory } from '@/data/types';
 import type { AlertKind, ProjectedAlert } from '@/sim';
+import { money, moneyShort } from '@/ui/format';
 
 import { CATALOGS, type TKey } from './catalogs';
 import { content } from './content';
@@ -129,8 +130,12 @@ function orderTitle(en: string): string | null {
       if (g.title === en) return content.goal(g.id, g.title, '');
       continue;
     }
-    if (en.startsWith(before) && en.endsWith(after) && en.length > before.length + after.length)
-      return content.goal(g.id, g.title, en.slice(before.length, en.length - after.length));
+    if (en.startsWith(before) && en.endsWith(after) && en.length > before.length + after.length) {
+      const n = en.slice(before.length, en.length - after.length);
+      // Sales targets come from the sim as raw US cents ("Take 50000 in sales").
+      const shown = g.kind === 'sales' && /^\d+$/.test(n) ? moneyShort(Number(n)) : n;
+      return content.goal(g.id, g.title, shown);
+    }
   }
   return null;
 }
@@ -168,6 +173,11 @@ function translateVar(name: string, value: string): string | number | null {
     }
     case 'n':
       return /^-?\d+$/.test(value) ? Number(value) : value;
+    case 'money': {
+      // The sim writes US dollars ("$12.50"); show them in the city's currency.
+      const usd = /^\$(\d+(?:\.\d+)?)$/.exec(value);
+      return usd ? money(Math.round(Number(usd[1]) * 100)) : value;
+    }
     default:
       return value;
   }

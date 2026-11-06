@@ -6,7 +6,7 @@ export default {
   coldOpen: {
     subtitle: '자판기 시뮬레이터',
     clockA11y: '{city}, {time}',
-    tagline: '중고 자판기 한 대. $250. 도시 하나.',
+    tagline: '중고 자판기 한 대. {amount}. 도시 하나.',
     insertCoin: '동전 넣기',
     insertCoinHint: '자판기 사업 시작하기',
   },

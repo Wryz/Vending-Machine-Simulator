@@ -21,7 +21,7 @@ export default {
     },
     goal: {
       title: 'Your first goal',
-      line: 'Earn $1,000 in sales to finish chapter 1. The meter up top tracks it.',
+      line: 'Earn {amount} in sales to finish chapter 1. The meter up top tracks it.',
     },
   },
   ok: 'OK', // small key button, ~4 chars max

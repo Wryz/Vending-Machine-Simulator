@@ -1,37 +1,151 @@
 import { FAHRENHEIT_COUNTRIES } from '@/config/climate';
-import { t } from '@/i18n';
+import type { Currency } from '@/config/currency';
+import { currentLang, t } from '@/i18n';
+import { currentCurrency } from '@/store/currency';
 
-/** Money and number formatting. In-game dollars only (SPEC §6.3). */
-const MINUS = '−';
+import { localPriceMinor, toLocalMinor } from './currency';
 
-export function money(cents: number, opts: { sign?: boolean; compact?: boolean } = {}): string {
-  const neg = cents < 0;
-  const abs = Math.abs(cents) / 100;
-  let s: string;
-  if (opts.compact && abs >= 10_000) {
-    s =
-      abs >= 1_000_000
-        ? `${(abs / 1_000_000).toFixed(abs >= 10_000_000 ? 1 : 2)}M`
-        : `${(abs / 1000).toFixed(abs >= 100_000 ? 0 : 1)}k`;
-  } else {
-    s = abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/**
+ * Money and number formatting. Amounts come in as in-game US cents (the
+ * sim's unit) and show in the open city's currency at fixed game rates
+ * (src/config/currency.ts), formatted for the UI language (SPEC §6.3).
+ */
+const MINUS = '\u2212';
+
+const currencyFormats = new Map<string, Intl.NumberFormat | null>();
+/** Cached Intl currency formatter (narrow symbol where supported); null if Intl can't. */
+function currencyFormat(lang: string, c: Currency, digits: number): Intl.NumberFormat | null {
+  const key = `${lang}|${c.code}|${digits}`;
+  let f = currencyFormats.get(key);
+  if (f !== undefined) return f;
+  f = null;
+  for (const currencyDisplay of ['narrowSymbol', 'symbol'] as const) {
+    try {
+      f = new Intl.NumberFormat(lang, {
+        style: 'currency',
+        currency: c.code,
+        currencyDisplay,
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      });
+      break;
+    } catch {
+      f = null;
+    }
   }
-  const sign = neg ? MINUS : opts.sign ? '+' : '';
-  return `${sign}$${s}`;
+  currencyFormats.set(key, f);
+  return f;
 }
 
-/** Glanceable money for HUDs and goals: "$0", "$45", "$1k", "$12.5k", "$1.2M". */
-export function moneyShort(cents: number): string {
-  const neg = cents < 0;
-  const abs = Math.abs(cents) / 100;
-  const trim = (x: number) => x.toFixed(1).replace(/\.0$/, '');
-  const s =
-    abs >= 1_000_000
-      ? `${trim(abs / 1_000_000)}M`
-      : abs >= 1000
-        ? `${trim(abs / 1000)}k`
-        : `${Math.floor(abs)}`;
-  return `${neg ? MINUS : ''}$${s}`;
+const numberFormats = new Map<string, Intl.NumberFormat>();
+function numberFormat(lang: string, minDigits: number, maxDigits: number): Intl.NumberFormat {
+  const key = `${lang}|${minDigits}|${maxDigits}`;
+  let f = numberFormats.get(key);
+  if (!f) {
+    try {
+      f = new Intl.NumberFormat(lang, {
+        minimumFractionDigits: minDigits,
+        maximumFractionDigits: maxDigits,
+      });
+    } catch {
+      f = new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: minDigits,
+        maximumFractionDigits: maxDigits,
+      });
+    }
+    numberFormats.set(key, f);
+  }
+  return f;
+}
+
+/** A non-negative local major amount ("$1,234.56", "¥150,000", "1 234,56 €"). */
+function formatMajor(major: number, c: Currency, digits: number = c.minorDigits): string {
+  const lang = currentLang();
+  const f = currencyFormat(lang, c, digits);
+  return f ? f.format(major) : `${c.symbol}${numberFormat(lang, digits, digits).format(major)}`;
+}
+
+const affixes = new Map<string, [string, string]>();
+/** Symbol before/after the number in this language ("$" + "", or "" + " €"). */
+function currencyAffix(c: Currency): [string, string] {
+  const lang = currentLang();
+  const key = `${lang}|${c.code}`;
+  let a = affixes.get(key);
+  if (!a) {
+    const one = formatMajor(1, c, 0);
+    const i = one.indexOf(numberFormat(lang, 0, 0).format(1));
+    a = i >= 0 ? [one.slice(0, i), one.slice(i + 1)] : [c.symbol, ''];
+    affixes.set(key, a);
+  }
+  return a;
+}
+
+/** A compact amount: "$1.2k", "¥180k", "₩1.6M", "1,2 k€". */
+function compactMajor(mantissa: number, suffix: string, digits: [number, number], c: Currency) {
+  const [pre, post] = currencyAffix(c);
+  const n = numberFormat(currentLang(), digits[0], digits[1]).format(mantissa);
+  return `${pre}${n}${suffix}${post}`;
+}
+
+/** Full amount in the local currency; `compact` shortens big ones ("$123k"). */
+export function money(
+  cents: number,
+  opts: { sign?: boolean; compact?: boolean; currency?: Currency } = {},
+): string {
+  const c = opts.currency ?? currentCurrency();
+  const minor = Math.round(toLocalMinor(cents, c));
+  const neg = minor < 0;
+  const abs = Math.abs(minor) / 10 ** c.minorDigits;
+  // No-decimal currencies (¥, ₩) have short numbers until much bigger amounts.
+  const compactFrom = c.minorDigits === 0 ? 1_000_000 : 10_000;
+  let s: string;
+  if (opts.compact && abs >= compactFrom) {
+    if (abs >= 1_000_000) {
+      const d = abs >= 10_000_000 ? 1 : 2;
+      s = compactMajor(abs / 1_000_000, 'M', [d, d], c);
+    } else {
+      const d = abs >= 100_000 ? 0 : 1;
+      s = compactMajor(abs / 1000, 'k', [d, d], c);
+    }
+  } else {
+    s = formatMajor(abs, c);
+  }
+  const sign = neg ? MINUS : opts.sign ? '+' : '';
+  return `${sign}${s}`;
+}
+
+/** Glanceable money for HUDs and goals: "$0", "$45", "$1k", "$12.5k", "¥180k", "₩1.6M". */
+export function moneyShort(cents: number, currency: Currency = currentCurrency()): string {
+  const c = currency;
+  const local = toLocalMinor(cents, c) / 10 ** c.minorDigits;
+  const neg = local < 0;
+  const abs = Math.abs(local);
+  let s: string;
+  if (abs >= 1_000_000) s = compactMajor(abs / 1_000_000, 'M', [0, 1], c);
+  else if (abs >= 1000) s = compactMajor(abs / 1000, 'k', [0, 1], c);
+  else s = formatMajor(Math.floor(abs), c, 0);
+  return `${neg ? MINUS : ''}${s}`;
+}
+
+/**
+ * A whole amount without decimals, for goals and flavor text
+ * ("Earn $1,000", "Earn ¥150,000", "Earn £790").
+ */
+export function moneyWhole(cents: number, currency: Currency = currentCurrency()): string {
+  const local = toLocalMinor(cents, currency) / 10 ** currency.minorDigits;
+  const s = formatMajor(Math.abs(Math.round(local)), currency, 0);
+  return local <= -0.5 ? `${MINUS}${s}` : s;
+}
+
+/**
+ * A product price as shown on coils, steppers and sale pops: rounded to the
+ * currency's nice price step ("$1.50", "¥230", "₩2,000", "£1.20").
+ */
+export function moneyPrice(cents: number, opts: { sign?: boolean } = {}): string {
+  const c = currentCurrency();
+  const minor = localPriceMinor(cents, c);
+  const s = formatMajor(Math.abs(minor) / 10 ** c.minorDigits, c);
+  return `${minor < 0 ? MINUS : opts.sign ? '+' : ''}${s}`;
 }
 
 export function pct(x: number, digits = 0): string {

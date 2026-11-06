@@ -6,7 +6,7 @@ export default {
   chapters: {
     c1: {
       title: 'Nebenjob',
-      goal: 'Mach $1,000 Umsatz mit deinem gebrauchten Automaten',
+      goal: 'Mach {amount} Umsatz mit deinem gebrauchten Automaten',
       unlocks: {
         u0: 'Zweiter Automat',
         u1: 'Preise festlegen',
@@ -171,15 +171,15 @@ export default {
     },
     'sales-1k': {
       title: 'Nebenjob',
-      desc: 'Mach $1,000 Umsatz.',
+      desc: 'Mach {amount} Umsatz.',
     },
     'sales-100k': {
       title: 'Echtes Geschäft',
-      desc: 'Mach $100,000 Umsatz.',
+      desc: 'Mach {amount} Umsatz.',
     },
     'sales-1m': {
       title: 'Siebenstellig',
-      desc: 'Mach $1,000,000 Umsatz.',
+      desc: 'Mach {amount} Umsatz.',
     },
     'machines-5': {
       title: 'Eine Route',
@@ -299,7 +299,7 @@ export default {
   perks: {
     'head-start': {
       name: 'Vorsprung',
-      desc: '+$2,000 Startgeld pro Stufe.',
+      desc: '+{amount} Startgeld pro Stufe.',
     },
     'sharp-eye': {
       name: 'Scharfer Blick',

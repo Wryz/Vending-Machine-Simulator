@@ -22,7 +22,7 @@ export default {
     },
     goal: {
       title: 'Sua primeira meta',
-      line: 'Fature $1,000 em vendas para concluir o capítulo 1. O medidor lá em cima acompanha.',
+      line: 'Fature {amount} em vendas para concluir o capítulo 1. O medidor lá em cima acompanha.',
     },
   },
   ok: 'OK',

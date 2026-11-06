@@ -13,7 +13,7 @@ export default {
     starterPack: {
       title: 'Pack inicial',
       detail:
-        'Mejora de camioneta, dos máquinas de snacks y $2,000 en efectivo. Se ofrece una vez tras el capítulo 1.',
+        'Mejora de camioneta, dos máquinas de snacks y {amount} en efectivo. Se ofrece una vez tras el capítulo 1.',
     },
     doubleProfits: {
       title: 'Ganancias dobles',

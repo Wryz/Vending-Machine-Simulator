@@ -22,7 +22,7 @@ export default {
     },
     goal: {
       title: 'Dein erstes Ziel',
-      line: 'Mach $1,000 Umsatz, um Kapitel 1 abzuschließen. Die Anzeige oben zeigt den Stand.',
+      line: 'Mach {amount} Umsatz, um Kapitel 1 abzuschließen. Die Anzeige oben zeigt den Stand.',
     },
   },
   ok: 'OK',

@@ -10,7 +10,7 @@ export default {
     },
     starterPack: {
       title: 'Starter Pack',
-      detail: 'Van upgrade, two snack machines and $2,000 cash. Offered once after chapter 1.',
+      detail: 'Van upgrade, two snack machines and {amount} cash. Offered once after chapter 1.',
     },
     doubleProfits: {
       title: 'Double Profits',

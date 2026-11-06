@@ -1,7 +1,8 @@
 import { FAMILY_LABEL, MACHINE_TYPES, type MachineFamily } from '@/config/machines';
 import { CATEGORY_LABEL } from '@/config/places';
-import { EVENT_TEMPLATES } from '@/config/progression';
+import { ACHIEVEMENTS, CHAPTERS, EVENT_TEMPLATES, PRESTIGE_PERKS } from '@/config/progression';
 import type { PlaceCategory } from '@/data/types';
+import { moneyWhole } from '@/ui/format';
 
 import { t } from './index';
 
@@ -11,10 +12,15 @@ import { t } from './index';
  * fallback when the catalog has no entry yet. Keys live under `content.*`.
  *
  * Plain `t` is fine here: the root navigator re-mounts on a language change.
+ * Config text with `{amount}` gets its `amountCents` in the local currency.
  */
+const amount = (cents: number | undefined) =>
+  cents === undefined ? undefined : { amount: moneyWhole(cents) };
+
 export const content = {
   chapterTitle: (n: number, en: string) => t.or(`content.chapters.c${n}.title`, en),
-  chapterGoal: (n: number, en: string) => t.or(`content.chapters.c${n}.goal`, en),
+  chapterGoal: (n: number, en: string) =>
+    t.or(`content.chapters.c${n}.goal`, en, amount(CHAPTERS.find((c) => c.n === n)?.amountCents)),
   /** i = index in the chapter's `unlocks` list. */
   chapterUnlock: (n: number, i: number, en: string) =>
     t.or(`content.chapters.c${n}.unlocks.u${i}`, en),
@@ -22,10 +28,15 @@ export const content = {
   machineType: (id: string, en: string) => t.or(`content.machines.${id}`, en),
   researchName: (id: string, en: string) => t.or(`content.research.${id}.name`, en),
   researchDesc: (id: string, en: string) => t.or(`content.research.${id}.desc`, en),
-  /** Daily order title; `{n}` is the target (pass it already formatted, e.g. "$45"). */
+  /** Daily order title; `{n}` is the target (pass it already formatted, e.g. moneyShort()). */
   goal: (id: string, en: string, n: string | number) => t.or(`content.goals.${id}`, en, { n }),
   achievementTitle: (id: string, en: string) => t.or(`content.achievements.${id}.title`, en),
-  achievementDesc: (id: string, en: string) => t.or(`content.achievements.${id}.desc`, en),
+  achievementDesc: (id: string, en: string) =>
+    t.or(
+      `content.achievements.${id}.desc`,
+      en,
+      amount(ACHIEVEMENTS.find((a) => a.id === id)?.amountCents),
+    ),
   series: (id: string, en: string) => t.or(`content.series.${id}.name`, en),
   /** Collectible item inside a series (item ids look like "<series>-<k>"). */
   seriesItem: (itemId: string, en: string) => t.or(`content.seriesItems.${itemId}`, en),
@@ -36,7 +47,12 @@ export const content = {
     return tpl ? t.or(`content.events.${tpl.id}`, en) : en;
   },
   perkName: (id: string, en: string) => t.or(`content.perks.${id}.name`, en),
-  perkDesc: (id: string, en: string) => t.or(`content.perks.${id}.desc`, en),
+  perkDesc: (id: string, en: string) =>
+    t.or(
+      `content.perks.${id}.desc`,
+      en,
+      amount(PRESTIGE_PERKS.find((p) => p.id === id)?.amountCents),
+    ),
   city: (id: string, en: string) => t.or(`content.cities.${id}`, en),
   /** A city's one-line description (`City.notes`). */
   cityNotes: (id: string, en: string) => t.or(`content.cityNotes.${id}`, en),

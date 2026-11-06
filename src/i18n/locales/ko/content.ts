@@ -6,7 +6,7 @@ export default {
   chapters: {
     c1: {
       title: '부업',
-      goal: '중고 자판기로 매출 $1,000 달성하기',
+      goal: '중고 자판기로 매출 {amount} 달성하기',
       unlocks: {
         u0: '두 번째 자판기',
         u1: '가격 설정',
@@ -171,15 +171,15 @@ export default {
     },
     'sales-1k': {
       title: '부업',
-      desc: '매출 $1,000 달성.',
+      desc: '매출 {amount} 달성.',
     },
     'sales-100k': {
       title: '진짜 사업',
-      desc: '매출 $100,000 달성.',
+      desc: '매출 {amount} 달성.',
     },
     'sales-1m': {
       title: '백만장자',
-      desc: '매출 $1,000,000 달성.',
+      desc: '매출 {amount} 달성.',
     },
     'machines-5': {
       title: '루트 하나',
@@ -299,7 +299,7 @@ export default {
   perks: {
     'head-start': {
       name: '앞선 출발',
-      desc: '레벨당 시작 자금 +$2,000.',
+      desc: '레벨당 시작 자금 +{amount}.',
     },
     'sharp-eye': {
       name: '예리한 눈',

@@ -12,6 +12,8 @@ import {
   type City,
   type CityId,
 } from '@/config/cities';
+import { START } from '@/config/economy';
+import { getMachineType } from '@/config/machines';
 import { areaCheck } from '@/data/api';
 import { ENV } from '@/data/env';
 import { useT, type TKey } from '@/i18n';
@@ -22,13 +24,17 @@ import { track } from '@/services/analytics';
 import { music, sound } from '@/services/audio';
 import { cityInfoFor, hasSave, useGame } from '@/store/game';
 import { useProfile, type CityInfo } from '@/store/profile';
-import { clock } from '@/ui/format';
+import { currencyForCountry } from '@/ui/currency';
+import { clock, moneyWhole } from '@/ui/format';
 import { StatChip } from '@/ui/hud';
 import { Icon, type IconName } from '@/ui/icons';
 import { Button, Paper, Row, Screen, T } from '@/ui/kit';
 import { PRODUCT_IMAGES } from '@/ui/productImages';
 import { Cabinet, Glass, Led, Marquee, SKIN } from '@/ui/skin';
 import { SPACE } from '@/ui/theme';
+
+/** The used starter machine's price, for the cold open's tagline. */
+const USED_MACHINE_CENTS = getMachineType(START.starterMachineType).purchaseCents;
 
 type Step = 'cold-open' | 'intro' | 'location' | 'checking' | 'picker';
 
@@ -236,7 +242,9 @@ export default function Onboarding() {
             </Led>
           </Row>
           <T size={22} weight="bold" color="#FFFFFF" center accessibilityRole="header">
-            {t('onboarding.coldOpen.tagline')}
+            {t('onboarding.coldOpen.tagline', {
+              amount: moneyWhole(USED_MACHINE_CENTS, currencyForCountry(preview.c.countryCode)),
+            })}
           </T>
           <Button
             label={t('onboarding.coldOpen.insertCoin')}

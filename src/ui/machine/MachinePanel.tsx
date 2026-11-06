@@ -32,10 +32,12 @@ import { adsAvailable, showRewarded } from '@/services/ads';
 import { sound } from '@/services/audio';
 import { haptic } from '@/services/haptics';
 import { track } from '@/services/analytics';
+import { currentCurrency } from '@/store/currency';
 import { useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
 
-import { money, moneyShort, pct } from '../format';
+import { stepPriceCents } from '../currency';
+import { money, moneyPrice, moneyShort, pct } from '../format';
 import { StatChip } from '../hud';
 import { Icon, type IconName } from '../icons';
 import { Button, Mono, Paper, Row, T } from '../kit';
@@ -190,9 +192,11 @@ export function MachinePanel({
     track('restock', { count: res.units });
   };
 
-  const changePrice = (slot: number, delta: number) => {
+  /** One local price step (¥10, ₩100, 5¢...), stored back as the sim's US cents. */
+  const changePrice = (slot: number, dir: 1 | -1) => {
     const s = machine.slots[slot];
-    const res = useGame.getState().act((d) => setPrice(d, machine.id, slot, s.priceCents + delta));
+    const next = stepPriceCents(s.priceCents, dir, currentCurrency());
+    const res = useGame.getState().act((d) => setPrice(d, machine.id, slot, next));
     if (!res.ok) show(simError(res.error), 'error');
     else haptic.tick();
   };
@@ -431,7 +435,7 @@ export function MachinePanel({
                     />
                   </View>
                   <Mono size={12} weight="bold" center>
-                    {pid ? moneyShortPrice(s.priceCents || getProduct(pid).suggestedCents) : '—'}
+                    {pid ? moneyPrice(s.priceCents || getProduct(pid).suggestedCents) : '—'}
                   </Mono>
                 </View>
               </Pressable>
@@ -489,23 +493,23 @@ export function MachinePanel({
                   icon="minus"
                   label={t('machinePanel.a11y.lowerPrice')}
                   disabled={!canPrice}
-                  onPress={() => changePrice(selected, -5)}
+                  onPress={() => changePrice(selected, -1)}
                 />
                 <Mono size={26} weight="bold" style={{ minWidth: 90, textAlign: 'center' }}>
-                  {money(sel.priceCents)}
+                  {moneyPrice(sel.priceCents)}
                 </Mono>
                 <Stepper
                   icon="plus"
                   label={t('machinePanel.a11y.raisePrice')}
                   disabled={!canPrice}
-                  onPress={() => changePrice(selected, 5)}
+                  onPress={() => changePrice(selected, 1)}
                 />
               </Row>
               <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
                 <StatChip
                   icon="tag"
                   label={t('machinePanel.stats.suggested')}
-                  value={money(selProduct.suggestedCents)}
+                  value={moneyPrice(selProduct.suggestedCents)}
                 />
                 <StatChip
                   icon="box"
@@ -576,7 +580,7 @@ export function MachinePanel({
             <StatChip
               icon="bolt"
               label={t('machinePanel.stats.power')}
-              value={moneyShortPrice(type.powerCentsPerDay)}
+              value={money(type.powerCentsPerDay)}
             />
             <StatChip
               icon="wrench"
@@ -725,11 +729,6 @@ function IconChip({
       </T>
     </Pressable>
   );
-}
-
-/** Prices on coils: "$1.50" (cents matter here, unlike the HUD). */
-function moneyShortPrice(cents: number): string {
-  return money(cents);
 }
 
 /** "12 h", "3 d", "45 m". */

@@ -6,7 +6,7 @@ export default {
   coldOpen: {
     subtitle: '自动售货机模拟器',
     clockA11y: '{city}，{time}',
-    tagline: '一台二手售货机。$250。一整座城市。',
+    tagline: '一台二手售货机。{amount}。一整座城市。',
     insertCoin: '投币',
     insertCoinHint: '开始你的售货机生意',
   },

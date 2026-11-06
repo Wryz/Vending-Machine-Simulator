@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { MAP_LIFE } from '@/config/mapLife';
-import { money } from '@/ui/format';
+import { moneyPrice } from '@/ui/format';
 import { Mono } from '@/ui/kit';
 import type { Theme } from '@/ui/theme';
 
@@ -151,7 +151,7 @@ function Pop({
             >
               {pop.tone === 'rival' && rivalLabel
                 ? rivalLabel(pop.cents)
-                : `${pop.tone === 'vip' ? '★ ' : ''}${money(pop.cents, { sign: true })}`}
+                : `${pop.tone === 'vip' ? '★ ' : ''}${moneyPrice(pop.cents, { sign: true })}`}
             </Mono>
           </View>
         </Animated.View>

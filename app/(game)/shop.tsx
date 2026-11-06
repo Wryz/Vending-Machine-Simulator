@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { ADS } from '@/config/economy';
+import { ADS, PURCHASES } from '@/config/economy';
 import { t as gt, useT } from '@/i18n';
 import { simError } from '@/i18n/sim';
 import { adsAvailable, showRewarded } from '@/services/ads';
@@ -11,7 +11,7 @@ import { applyAdReward, applyStarterPack } from '@/sim';
 import { useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
-import { duration } from '@/ui/format';
+import { duration, moneyWhole } from '@/ui/format';
 import { Button, Mono, Paper, Row, Screen, Section, T } from '@/ui/kit';
 import { Led, SKIN } from '@/ui/skin';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
@@ -22,7 +22,9 @@ function productTitle(key: ProductKey): string {
   return gt.or(`shop.products.${key}.title`, PRODUCTS[key].title);
 }
 function productDetail(key: ProductKey): string {
-  return gt.or(`shop.products.${key}.detail`, PRODUCTS[key].detail);
+  return gt.or(`shop.products.${key}.detail`, PRODUCTS[key].detail, {
+    amount: moneyWhole(PURCHASES.starterPackCashCents),
+  });
 }
 
 function Offer({

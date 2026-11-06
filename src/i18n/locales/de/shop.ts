@@ -13,7 +13,7 @@ export default {
     starterPack: {
       title: 'Starterpaket',
       detail:
-        'Van-Upgrade, zwei Snackautomaten und $2,000 Bargeld. Einmalig nach Kapitel 1 angeboten.',
+        'Van-Upgrade, zwei Snackautomaten und {amount} Bargeld. Einmalig nach Kapitel 1 angeboten.',
     },
     doubleProfits: {
       title: 'Doppelter Gewinn',

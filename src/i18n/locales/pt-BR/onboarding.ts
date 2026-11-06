@@ -6,7 +6,7 @@ export default {
   coldOpen: {
     subtitle: 'Simulador de Máquina de Venda',
     clockA11y: '{city}, {time}',
-    tagline: 'Uma máquina usada. $250. Uma cidade inteira.',
+    tagline: 'Uma máquina usada. {amount}. Uma cidade inteira.',
     insertCoin: 'Inserir moeda',
     insertCoinHint: 'Comece seu negócio de máquinas',
   },

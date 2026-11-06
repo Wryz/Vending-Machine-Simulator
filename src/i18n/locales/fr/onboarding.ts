@@ -6,7 +6,7 @@ export default {
   coldOpen: {
     subtitle: 'Vending Machine Simulator',
     clockA11y: '{city}, {time}',
-    tagline: 'Un distributeur d’occasion. $250. Toute une ville.',
+    tagline: 'Un distributeur d’occasion. {amount}. Toute une ville.',
     insertCoin: 'Insérer une pièce',
     insertCoinHint: 'Lance ton business de distributeurs',
   },

@@ -11,6 +11,7 @@ import { readJson, writeJson } from '@/services/storage';
 import { ACHIEVEMENTS, CHAPTERS } from '@/config/progression';
 import { t } from '@/i18n';
 import { content } from '@/i18n/content';
+import { moneyShort } from '@/ui/format';
 import {
   advance,
   beginAdvance,
@@ -29,6 +30,7 @@ import {
 } from '@/sim';
 
 import { useCelebrations } from './celebrations';
+import { setCurrencyForCountry } from './currency';
 import { announceRanking } from './rankMoments';
 import { announceRival, announceSurprises } from './rivalMoments';
 import { cityKey, useProfile, type CityInfo } from './profile';
@@ -214,6 +216,8 @@ export const useGame = create<GameStore>((set, get) => {
           p.cities[cityKey(city)] = city;
           p.lastCityKey = cityKey(city);
         });
+        // Money shows in the city's currency (fixed game rates; the sim keeps US cents).
+        setCurrencyForCountry(city.countryCode);
         set({
           status: 'ready',
           city,
@@ -366,7 +370,7 @@ const readyOrders = new Set<string>();
 function goalLabel(g: { id: string; title: string; kind: string; target: number }): string {
   const n =
     g.kind === 'sales'
-      ? `$${Math.round(g.target / 100).toLocaleString('en-US')}`
+      ? moneyShort(g.target)
       : String(g.target);
   return content.goal(g.id, g.title, n);
 }

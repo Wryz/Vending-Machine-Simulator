@@ -10,7 +10,7 @@ export default {
     },
     starterPack: {
       title: 'スターターパック',
-      detail: 'バンの強化、スナック自販機2台、所持金$2,000。第1章クリア後に1回だけ販売。',
+      detail: 'バンの強化、スナック自販機2台、所持金{amount}。第1章クリア後に1回だけ販売。',
     },
     doubleProfits: {
       title: '利益2倍',

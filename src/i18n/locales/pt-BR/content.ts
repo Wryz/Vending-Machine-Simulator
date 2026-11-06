@@ -6,7 +6,7 @@ export default {
   chapters: {
     c1: {
       title: 'Bico',
-      goal: 'Fature $1,000 em vendas com sua máquina usada',
+      goal: 'Fature {amount} em vendas com sua máquina usada',
       unlocks: {
         u0: 'Segunda máquina',
         u1: 'Definir preços',
@@ -171,15 +171,15 @@ export default {
     },
     'sales-1k': {
       title: 'Bico',
-      desc: 'Fature $1,000 em vendas.',
+      desc: 'Fature {amount} em vendas.',
     },
     'sales-100k': {
       title: 'Negócio de verdade',
-      desc: 'Fature $100,000 em vendas.',
+      desc: 'Fature {amount} em vendas.',
     },
     'sales-1m': {
       title: 'Sete dígitos',
-      desc: 'Fature $1,000,000 em vendas.',
+      desc: 'Fature {amount} em vendas.',
     },
     'machines-5': {
       title: 'Uma rota',
@@ -299,7 +299,7 @@ export default {
   perks: {
     'head-start': {
       name: 'Vantagem inicial',
-      desc: '+$2,000 de dinheiro inicial por nível.',
+      desc: '+{amount} de dinheiro inicial por nível.',
     },
     'sharp-eye': {
       name: 'Olho clínico',

@@ -6,7 +6,7 @@ export default {
   chapters: {
     c1: {
       title: '副业起步',
-      goal: '用你的二手售货机赚到 $1,000 销售额',
+      goal: '用你的二手售货机赚到 {amount} 销售额',
       unlocks: {
         u0: '第二台售货机',
         u1: '自主定价',
@@ -171,15 +171,15 @@ export default {
     },
     'sales-1k': {
       title: '副业起步',
-      desc: '销售额达到 $1,000。',
+      desc: '销售额达到 {amount}。',
     },
     'sales-100k': {
       title: '正经生意',
-      desc: '销售额达到 $100,000。',
+      desc: '销售额达到 {amount}。',
     },
     'sales-1m': {
       title: '百万富翁',
-      desc: '销售额达到 $1,000,000。',
+      desc: '销售额达到 {amount}。',
     },
     'machines-5': {
       title: '一条路线',
@@ -299,7 +299,7 @@ export default {
   perks: {
     'head-start': {
       name: '抢先起步',
-      desc: '每级初始资金 +$2,000。',
+      desc: '每级初始资金 +{amount}。',
     },
     'sharp-eye': {
       name: '慧眼',

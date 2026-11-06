@@ -9,7 +9,7 @@ import { activeMachines, featureUnlocked, rankChange, type GameState } from '@/s
 import { useProfile } from '@/store/profile';
 
 import { chapterProgress } from './chapter';
-import { money, moneyShort } from './format';
+import { money, moneyPrice, moneyShort } from './format';
 import { Icon } from './icons';
 import { Mono, T } from './kit';
 import { RollingMoney } from './RollingMoney';
@@ -105,7 +105,7 @@ export function MoneyPanel({
           style={styles.sale}
         >
           <Mono size={13} weight="bold" color={SKIN.ledGreen} style={LED_GLOW(SKIN.ledGreen)}>
-            {money(s.cents, { sign: true })}
+            {moneyPrice(s.cents, { sign: true })}
           </Mono>
           <T size={12} color="#C9CCE6" numberOfLines={1} style={{ maxWidth: 130 }}>
             {s.source}

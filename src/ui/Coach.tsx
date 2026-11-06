@@ -1,9 +1,11 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
 
+import { CHAPTER_GOALS } from '@/config/progression';
 import { useT } from '@/i18n';
 import type { TutorialStep } from '@/sim';
 
+import { moneyWhole } from './format';
 import { Icon, type IconName } from './icons';
 import { T } from './kit';
 import { Key, SKIN } from './skin';
@@ -64,7 +66,7 @@ export function Coach({
           {t(`coach.steps.${step}.title`)}
         </T>
         <T size={13} color="#5A5F7A">
-          {t(`coach.steps.${step}.line`)}
+          {t(`coach.steps.${step}.line`, { amount: moneyWhole(CHAPTER_GOALS[1].salesCents) })}
         </T>
       </View>
       {last ? (

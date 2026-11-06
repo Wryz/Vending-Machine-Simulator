@@ -12,7 +12,7 @@ export default {
     },
     starterPack: {
       title: '新手礼包',
-      detail: '货车升级、两台零食机和 $2,000 现金。第 1 章后限购一次。',
+      detail: '货车升级、两台零食机和 {amount} 现金。第 1 章后限购一次。',
     },
     doubleProfits: {
       title: '双倍利润',

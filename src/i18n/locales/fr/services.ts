@@ -11,7 +11,7 @@ export default {
     starterPack: {
       title: 'Pack de départ',
       detail:
-        'Camionnette améliorée, deux distributeurs de snacks et $2,000. Proposé une seule fois après le chapitre 1.',
+        'Camionnette améliorée, deux distributeurs de snacks et {amount}. Proposé une seule fois après le chapitre 1.',
     },
     doubleProfits: {
       title: 'Profits doublés',

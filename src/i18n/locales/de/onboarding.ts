@@ -6,7 +6,7 @@ export default {
   coldOpen: {
     subtitle: 'Vending Machine Simulator',
     clockA11y: '{city}, {time}',
-    tagline: 'Ein alter Automat. $250. Eine ganze Stadt.',
+    tagline: 'Ein alter Automat. {amount}. Eine ganze Stadt.',
     insertCoin: 'Münze einwerfen',
     insertCoinHint: 'Starte dein Automatengeschäft',
   },

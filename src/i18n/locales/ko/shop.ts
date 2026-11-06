@@ -12,7 +12,7 @@ export default {
     },
     starterPack: {
       title: '스타터 팩',
-      detail: '밴 업그레이드, 스낵 자판기 2대, 현금 $2,000. 챕터 1 이후 한 번만 제공.',
+      detail: '밴 업그레이드, 스낵 자판기 2대, 현금 {amount}. 챕터 1 이후 한 번만 제공.',
     },
     doubleProfits: {
       title: '수익 2배',

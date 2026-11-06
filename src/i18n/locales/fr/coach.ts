@@ -22,7 +22,7 @@ export default {
     },
     goal: {
       title: 'Ton premier objectif',
-      line: 'Fais $1,000 de ventes pour finir le chapitre 1. La jauge en haut te suit.',
+      line: 'Fais {amount} de ventes pour finir le chapitre 1. La jauge en haut te suit.',
     },
   },
   ok: 'OK',

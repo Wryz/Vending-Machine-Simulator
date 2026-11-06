@@ -6,7 +6,7 @@ export default {
   coldOpen: {
     subtitle: '自販機シミュレーター',
     clockA11y: '{city}、{time}',
-    tagline: '中古の自販機1台。$250。そして街まるごと。',
+    tagline: '中古の自販機1台。{amount}。そして街まるごと。',
     insertCoin: 'コインを入れる',
     insertCoinHint: '自販機ビジネスを始める',
   },
