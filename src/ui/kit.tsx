@@ -283,6 +283,7 @@ export function Screen({
   right,
   scroll = true,
   onBack,
+  back = true,
 }: {
   title: string;
   subtitle?: string;
@@ -290,6 +291,8 @@ export function Screen({
   right?: ReactNode;
   scroll?: boolean;
   onBack?: () => void;
+  /** Show the back key (default true). */
+  back?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const Body = scroll ? ScrollView : View;
@@ -297,15 +300,19 @@ export function Screen({
     <Cabinet style={{ flex: 1 }} screws={false}>
       {/* Top of the machine: back key and the lit marquee sign. */}
       <View style={[styles.header, { paddingTop: insets.top + SPACE.xs }]}>
-        <Key
-          round
-          height={TOUCH - 2}
-          onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/map')))}
-          accessibilityLabel="Back"
-          faceStyle={{ paddingHorizontal: 0, width: TOUCH - 2 }}
-        >
-          <Icon name="back" size={22} color={SKIN.keyInk} />
-        </Key>
+        {back ? (
+          <Key
+            round
+            height={TOUCH - 2}
+            onPress={
+              onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/map')))
+            }
+            accessibilityLabel="Back"
+            faceStyle={{ paddingHorizontal: 0, width: TOUCH - 2 }}
+          >
+            <Icon name="back" size={22} color={SKIN.keyInk} />
+          </Key>
+        ) : null}
         <Marquee title={title} subtitle={subtitle} style={{ flex: 1 }} />
         {right}
       </View>

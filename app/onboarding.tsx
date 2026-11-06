@@ -1,24 +1,24 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { musicMoodFor } from '@/audio/soundscape';
 import { FALLBACK_CITIES, type CityId } from '@/config/cities';
-import { CLOSEUP_CAMERA, FAMILY_ACCENT, SNACK_MACHINE_DIMENSIONS } from '@/config/machines';
 import { areaCheck } from '@/data/api';
 import { ENV } from '@/data/env';
-import { closeupCamera } from '@/map/cameraMatch';
 import { getTimeOfDay } from '@/map/timeOfDay';
 import { track } from '@/services/analytics';
 import { music, sound } from '@/services/audio';
 import { cityInfoFor, hasSave, useGame } from '@/store/game';
 import { useProfile, type CityInfo } from '@/store/profile';
-import { MachineScene } from '@/three/MachineScene';
-import { useTheme } from '@/ui/ThemeProvider';
 import { clock } from '@/ui/format';
-import { Button, Mono, Paper, Spacer, T } from '@/ui/kit';
+import { StatChip } from '@/ui/hud';
+import { Icon } from '@/ui/icons';
+import { Button, Paper, Row, Screen, T } from '@/ui/kit';
+import { PRODUCT_IMAGES } from '@/ui/productImages';
+import { Cabinet, Glass, Led, Marquee, SKIN } from '@/ui/skin';
 import { SPACE } from '@/ui/theme';
 
 type Step = 'cold-open' | 'location' | 'checking' | 'picker';
@@ -41,7 +41,6 @@ function deviceCountry(): string {
  * (once) -> area check -> start there, or pick one of the 9 cities.
  */
 export default function Onboarding() {
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>('cold-open');
   const [note, setNote] = useState<string | null>(null);
@@ -53,17 +52,7 @@ export default function Onboarding() {
   }, []);
   const preview = useMemo(() => {
     const c = FALLBACK_CITIES.find((x) => x.id === guessCity())!;
-    const tod = getTimeOfDay(new Date(), c.lat, c.lng);
-    const to = closeupCamera(200, SNACK_MACHINE_DIMENSIONS.heightM, {
-      ...CLOSEUP_CAMERA,
-      distanceM: 3.4,
-      eyeHeightM: 1.4,
-    });
-    const from = {
-      ...to,
-      position: [to.position[0] * 1.8, 2.6, to.position[2] * 1.8] as [number, number, number],
-    };
-    return { c, tod, from, to };
+    return { c, tod: getTimeOfDay(new Date(), c.lat, c.lng) };
   }, []);
 
   // Audio: the music fades in gently on the cold open; a soft whoosh between steps.
@@ -132,162 +121,168 @@ export default function Onboarding() {
   };
 
   if (step === 'cold-open') {
+    // The front of a Coinline machine: marquee, products behind the glass, LED, coin key.
     return (
-      <View style={{ flex: 1, backgroundColor: '#000' }}>
-        <MachineScene
-          typeId="used-snack"
-          accent={FAMILY_ACCENT.snacks}
-          slots={Array.from({ length: 30 }, (_, i) => ({
-            color: ['#C9473A', '#E0B341', '#3E6FB0', '#4F8A5B', '#D9732B'][i % 5],
-            fill: 0.8,
-          }))}
-          sun={preview.tod.sun}
-          palette={preview.tod.palette}
-          heading={200}
-          from={preview.from}
-          to={preview.to}
-          durationMs={6000}
-        />
+      <Cabinet style={{ flex: 1 }}>
         <View
           style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            padding: SPACE.xl,
-            paddingBottom: insets.bottom + SPACE.xl,
+            flex: 1,
+            paddingTop: insets.top + SPACE.m,
+            paddingBottom: insets.bottom + SPACE.l,
+            paddingHorizontal: SPACE.l,
             gap: SPACE.m,
           }}
         >
-          <Paper>
-            <Mono size={12} muted>
-              {preview.c.name.toUpperCase()} · {clock(now, preview.c.timeZone)}
-            </Mono>
-            <Spacer h={SPACE.s} />
-            <T size={24} weight="bold">
-              One used machine. $250. A whole city.
-            </T>
-            <Spacer h={SPACE.s} />
-            <T muted>Build a vending business on the real map of your city, one spot at a time.</T>
-          </Paper>
-          <Button label="Start" onPress={() => setStep('location')} />
+          <Marquee title="Coinline" subtitle="Vending Machine Simulator" />
+          <Glass style={{ flex: 1 }} padding={SPACE.s} fill>
+            <View style={styles.window}>
+              {SHOWCASE.map((id) => (
+                <View key={id} style={styles.coil}>
+                  <Image source={PRODUCT_IMAGES[id]} style={styles.product} resizeMode="contain" />
+                  <View style={styles.coilLine} />
+                </View>
+              ))}
+            </View>
+          </Glass>
+          <Row style={{ justifyContent: 'center' }}>
+            <Led
+              size={16}
+              accessibilityLabel={`${preview.c.name}, ${clock(now, preview.c.timeZone)}`}
+            >
+              {`${preview.c.name.toUpperCase()}  ${clock(now, preview.c.timeZone)}`}
+            </Led>
+          </Row>
+          <T size={22} weight="bold" color="#FFFFFF" center accessibilityRole="header">
+            One used machine. $250. A whole city.
+          </T>
+          <Button
+            label="Insert coin"
+            icon={<Icon name="coin" size={22} color="#FFFFFF" />}
+            onPress={() => setStep('location')}
+            accessibilityHint="Start your vending business"
+          />
         </View>
-      </View>
+      </Cabinet>
     );
   }
 
   if (step === 'location' || step === 'checking') {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.bg,
-          padding: SPACE.xl,
-          paddingTop: insets.top + SPACE.xxl,
-          justifyContent: 'space-between',
-          paddingBottom: insets.bottom + SPACE.xl,
-        }}
-      >
-        <View style={{ gap: SPACE.m }}>
-          <T size={26} weight="bold" accessibilityRole="header">
-            Your city, to build your business in
-          </T>
-          <T muted>
-            We use your approximate location once, to build your city: real streets, real places and
-            the real time of day. It is rounded to about 1 km and never stored.
-          </T>
+      <Screen title="Your city" back={false} scroll={false}>
+        <View style={{ flex: 1, padding: SPACE.xl, justifyContent: 'space-between' }}>
+          <View style={{ alignItems: 'center', gap: SPACE.l, marginTop: SPACE.xl }}>
+            <View style={styles.bigIcon}>
+              <Icon name="locate" size={56} color={SKIN.brandFace} />
+            </View>
+            <T size={22} weight="bold" center>
+              Build in your own city
+            </T>
+            <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+              <StatChip
+                icon="locate"
+                label="Location is rounded to about 1 kilometre"
+                value="~1 km"
+              />
+              <StatChip icon="lock" label="Your location is never stored" value="Not stored" />
+              <StatChip icon="clock" label="Used once, to build your city" value="Once" />
+            </Row>
+          </View>
+          <View style={{ gap: SPACE.m }}>
+            <Button
+              label="Use my area"
+              icon={<Icon name="locate" size={20} color="#FFFFFF" />}
+              onPress={useMyArea}
+              busy={step === 'checking' || busy}
+              accessibilityHint="Uses your approximate location once. It is rounded to about 1 km and never stored."
+            />
+            <Button
+              label="Pick a city"
+              icon={<Icon name="globe" size={20} color={SKIN.keyInk} />}
+              kind="secondary"
+              onPress={() => setStep('picker')}
+              disabled={step === 'checking'}
+            />
+          </View>
         </View>
-        <View style={{ gap: SPACE.m }}>
-          <Button label="Use my area" onPress={useMyArea} busy={step === 'checking' || busy} />
-          <Button
-            label="Pick a city instead"
-            kind="secondary"
-            onPress={() => setStep('picker')}
-            disabled={step === 'checking'}
-          />
-        </View>
-      </View>
+      </Screen>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <ScrollView
-        contentContainerStyle={{
-          padding: SPACE.l,
-          paddingTop: insets.top + SPACE.xl,
-          paddingBottom: insets.bottom + SPACE.xl,
-          gap: SPACE.m,
-        }}
-      >
-        <T size={24} weight="bold" accessibilityRole="header">
-          Pick a city
-        </T>
-        <T muted>
-          {note ??
-            'Pick a city to start your business. You can switch any time; each city has its own save.'}
-        </T>
-        {FALLBACK_CITIES.map((c) => {
-          const info = cityInfoFor(c.id);
-          const tod = getTimeOfDay(new Date(now), c.lat, c.lng);
-          return (
-            <Pressable
-              key={c.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${c.name}, local time ${clock(now, c.timeZone)}`}
-              disabled={busy}
-              onPress={() => start(info)}
-              style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
-            >
-              <Paper
-                tone="surface"
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: SPACE.m,
-                  padding: SPACE.m,
-                }}
-              >
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 8,
-                    backgroundColor: tod.palette.sky,
-                    borderWidth: 1,
-                    borderColor: theme.line,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 10,
-                      height: 16,
-                      borderRadius: 2,
-                      backgroundColor: tod.weights.night > 0.5 ? '#FFE9C7' : FAMILY_ACCENT.snacks,
-                    }}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <T weight="bold">{c.name}</T>
-                  <T size={13} muted>
-                    {c.notes}
+    <Screen title="Pick a city" subtitle={note ?? 'Each city has its own save'} back={false}>
+      {FALLBACK_CITIES.map((c) => {
+        const info = cityInfoFor(c.id);
+        const tod = getTimeOfDay(new Date(now), c.lat, c.lng);
+        const night = tod.weights.night > 0.5;
+        return (
+          <Pressable
+            key={c.id}
+            accessibilityRole="button"
+            accessibilityLabel={`${c.name}, local time ${clock(now, c.timeZone)}${hasSave(info) ? ', saved' : ''}`}
+            disabled={busy}
+            onPress={() => start(info)}
+            style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.98 : 1 }] })}
+          >
+            <Paper tone="surface" style={styles.city}>
+              <View style={[styles.sky, { backgroundColor: tod.palette.sky }]}>
+                <Icon
+                  name={night ? 'moon' : tod.dominant === 'day' ? 'sun' : 'twilight'}
+                  size={22}
+                  color={night ? '#FFFFFF' : SKIN.ledAmber}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <T weight="bold">{c.name}</T>
+                {hasSave(info) ? (
+                  <T size={12} weight="bold" color={SKIN.brandFace}>
+                    Saved
                   </T>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Mono size={13}>{clock(now, c.timeZone)}</Mono>
-                  {hasSave(info) ? (
-                    <T size={11} muted>
-                      Saved
-                    </T>
-                  ) : null}
-                </View>
-              </Paper>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
+                ) : null}
+              </View>
+              <Led size={14}>{clock(now, c.timeZone)}</Led>
+            </Paper>
+          </Pressable>
+        );
+      })}
+    </Screen>
   );
 }
+
+/** Products shown in the cold open's window (4 × 4). */
+const SHOWCASE = [
+  'northfield-cola', 'kettle-crisp', 'volt-bar', 'clearpeak-water',
+  'lumen-gummies', 'orchard-juice', 'cocoa-drift', 'volt-energy',
+  'ridge-pretzels', 'sparkline-lemon', 'cup-noodles', 'latte',
+  'crunchwell', 'harbor-tea', 'capsule-critters', 'saltline-peanuts',
+]; // prettier-ignore
+
+const styles = StyleSheet.create({
+  window: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignContent: 'space-around' },
+  coil: {
+    width: '25%',
+    height: '25%',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 6,
+  },
+  product: { width: '78%', height: '78%' },
+  coilLine: {
+    width: '86%',
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: SKIN.chromeDark,
+    marginTop: 2,
+  },
+  bigIcon: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 6,
+    borderColor: SKIN.chrome,
+  },
+  city: { flexDirection: 'row', alignItems: 'center', gap: SPACE.m, padding: SPACE.m },
+  sky: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+});
