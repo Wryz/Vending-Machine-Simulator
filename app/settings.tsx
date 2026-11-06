@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { useState } from 'react';
-import { Alert, Pressable, Switch, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { VOLUME_STEPS } from '@/config/audio';
 import { track } from '@/services/analytics';
@@ -18,6 +18,7 @@ import { useProfile, type Settings } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
 import { Button, Divider, Mono, Paper, Row, Screen, Section, T } from '@/ui/kit';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
+import { Led, SKIN } from '@/ui/skin';
 import { SPACE, TOUCH } from '@/ui/theme';
 
 function Toggle({
@@ -123,7 +124,6 @@ function Level({
   onChange: (v: number) => void;
   disabled?: boolean;
 }) {
-  const theme = useTheme();
   // Nearest step, so older or odd saved values still show a selection.
   const index = VOLUME_STEPS.reduce(
     (best, v, i) => (Math.abs(v - value) < Math.abs(VOLUME_STEPS[best] - value) ? i : best),
@@ -149,39 +149,40 @@ function Level({
       }}
       style={{ paddingVertical: SPACE.xs, gap: SPACE.xs, opacity: disabled ? 0.5 : 1 }}
     >
-      <T weight="medium">{label}</T>
-      <Row gap={SPACE.xs}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <T weight="medium">{label}</T>
+        <Led size={13} color={index === 0 ? SKIN.ledRed : SKIN.ledGreen}>
+          {VOLUME_STEPS[index] === 0 ? 'OFF' : pct(VOLUME_STEPS[index])}
+        </Led>
+      </Row>
+      {/* An LED level meter: tap a segment to set the level; the first one is off. */}
+      <View style={styles.meter}>
         {VOLUME_STEPS.map((v, i) => {
-          const selected = i === index;
+          const lit = i > 0 && i <= index;
           return (
             <Pressable
               key={v}
               disabled={disabled}
               importantForAccessibility="no"
               onPress={() => go(i)}
-              style={({ pressed }) => ({
-                flex: 1,
-                minHeight: TOUCH,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor: selected ? theme.ink : theme.line,
-                backgroundColor: selected ? theme.ink : 'transparent',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <T
-                size={13}
-                weight={selected ? 'medium' : 'regular'}
-                color={selected ? theme.bg : theme.muted}
-              >
-                {v === 0 ? 'Off' : String(Math.round(v * 100))}
-              </T>
-            </Pressable>
+              hitSlop={4}
+              style={[
+                styles.segment,
+                i === 0
+                  ? { backgroundColor: index === 0 ? SKIN.ledRed : '#3A2F3A' }
+                  : lit
+                    ? {
+                        backgroundColor: SKIN.ledGreen,
+                        shadowColor: SKIN.ledGreen,
+                        shadowOpacity: 0.9,
+                        shadowRadius: 5,
+                      }
+                    : { backgroundColor: '#2C3050' },
+              ]}
+            />
           );
         })}
-      </Row>
+      </View>
     </View>
   );
 }
@@ -460,3 +461,16 @@ export default function SettingsScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  meter: {
+    flexDirection: 'row',
+    gap: 6,
+    padding: 6,
+    borderRadius: 12,
+    backgroundColor: SKIN.led,
+    borderWidth: 2,
+    borderColor: '#0E1020',
+  },
+  segment: { flex: 1, height: TOUCH - 12, borderRadius: 6, shadowOffset: { width: 0, height: 0 } },
+});
