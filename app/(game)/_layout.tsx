@@ -74,11 +74,9 @@ export default function GameLayout() {
       <Stack.Screen name="map" options={{ animation: 'fade' }} />
       <Stack.Screen
         name="machine/[id]"
-        options={{
-          presentation: 'transparentModal',
-          animation: 'none',
-          contentStyle: { backgroundColor: 'transparent' },
-        }}
+        // A regular screen with a fade, not a transparent modal: as a transparent modal
+        // over the live map, the 3D close-up deadlocked the JS thread in the Simulator.
+        options={{ animation: 'fade' }}
       />
       <Stack.Screen
         name="spot"
