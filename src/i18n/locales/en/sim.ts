@@ -7,6 +7,9 @@
  */
 export default {
   errors: {
+    vanOnItsWay: 'A van is already on its way here.',
+    vansOut: 'All your vans are out.',
+    pickRestock: 'Pick something to restock.',
     pickMachine: 'Pick a machine.',
     pickTerm: 'Pick a contract term.',
     typeLocked: '{type} is locked.',
@@ -117,6 +120,7 @@ export default {
     allOrdersDone: 'All orders done: day {n} streak',
     trophy: 'Trophy: {title}',
     restocked: 'Restocked {n} items',
+    vanOut: 'Van on its way with {n} items',
     instantRestock: 'Instant restock (reward)',
     freePull: 'Free pull from the cash box',
     collected: 'Collected cash',

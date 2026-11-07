@@ -88,6 +88,7 @@ export function newGame(opts: NewGameOptions): GameState {
     },
     surprises: emptySurprises(),
     requests: emptyRequests(),
+    deliveries: [],
     events: [],
     eventDays: [],
     collection: {},

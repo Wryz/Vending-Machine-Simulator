@@ -53,6 +53,8 @@ export type IconName =
   | 'cube'
   | 'pin'
   | 'trend'
+  /** A delivery van (side view). */
+  | 'van'
   /** A pointing finger: "tap here" in the tutorial. */
   | 'tap';
 
@@ -286,6 +288,15 @@ export function Icon({
             <Path d="M3 12s3.3-6 9-6 9 6 9 6-3.3 6-9 6-9-6-9-6z" {...s} />
             <Circle cx={12} cy={12} r={2.6} {...s} />
             <Path d="M4 4l16 16" {...s} />
+          </>
+        );
+      case 'van':
+        return (
+          <>
+            <Rect x={2} y={6.5} width={12} height={9.5} rx={1.6} {...s} />
+            <Path d="M14 9.5h3.6l3.4 3.6V16h-7z" {...s} />
+            <Circle cx={7} cy={17.5} r={1.9} {...s} fill={c} />
+            <Circle cx={17} cy={17.5} r={1.9} {...s} fill={c} />
           </>
         );
       case 'box':

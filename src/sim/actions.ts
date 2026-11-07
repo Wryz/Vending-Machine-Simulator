@@ -33,7 +33,7 @@ import {
   vanCapacity,
   wholesaleCents,
 } from './rules';
-import type { GameState, Machine, World } from './state';
+import type { GameState, Machine, RestockLine, World } from './state';
 import { businessDaysToMs, localTime } from './time';
 
 /**
@@ -197,12 +197,6 @@ export function sellMachine(
 
 // ------------------------------------------------------------------ service
 
-export interface RestockLine {
-  slot: number;
-  productId: string;
-  qty: number;
-}
-
 /** Suggested manual restock: top up current products; fill empty slots with the best default. */
 export function suggestRestock(
   state: GameState,
@@ -258,9 +252,66 @@ export function fuelCents(
   return Math.round((d / 1000) * SERVICE.routeFactor * SERVICE.fuelCentsPerKm);
 }
 
+/** Why these restock lines can't go into this machine, or null when they can. */
+export function checkRestock(
+  state: GameState,
+  m: Machine,
+  lines: readonly RestockLine[],
+  limit: number,
+): string | null {
+  const type = getMachineType(m.typeId);
+  const cap = slotCapacity(state, type);
+  const units = lines.reduce((a, l) => a + l.qty, 0);
+  if (units > limit) return `Your van holds ${limit} items per trip.`;
+  for (const l of lines) {
+    const product = getProduct(l.productId);
+    if (!productAllowed(state, type, product)) return `${product.name} doesn't fit this machine.`;
+    const slot = m.slots[l.slot];
+    if (!slot) return 'Unknown slot.';
+    const existing = slot.productId === l.productId ? slot.qty : 0;
+    if (existing + l.qty > cap) return `Slot ${l.slot + 1} holds ${cap}.`;
+  }
+  return null;
+}
+
 /**
- * Manual restock (the 3D close-up). Van capacity limits items per visit.
- * Gives the +10% "fresh stock" bonus (SPEC §4.2).
+ * Put stock into the coils (a product swap clears the coil first). Never past
+ * a coil's capacity: returns the units that went in.
+ */
+export function fillSlots(state: GameState, m: Machine, lines: readonly RestockLine[]): number {
+  const cap = slotCapacity(state, getMachineType(m.typeId));
+  let units = 0;
+  for (const l of lines) {
+    const slot = m.slots[l.slot];
+    if (!slot) continue;
+    const product = getProduct(l.productId);
+    if (slot.productId !== l.productId) {
+      slot.productId = l.productId;
+      slot.qty = 0;
+      slot.priceCents = product.suggestedCents;
+    }
+    if (slot.priceCents <= 0) slot.priceCents = product.suggestedCents;
+    const add = Math.max(0, Math.min(l.qty, cap - slot.qty));
+    slot.qty += add;
+    units += add;
+    slot.par = Math.max(slot.par, slot.qty);
+    slot.stockedAt = state.now;
+  }
+  return units;
+}
+
+/** A hands-on visit: the +10% "fresh stock" bonus (SPEC §4.2), and the player sees the machine. */
+export function markVisited(state: GameState, m: Machine): void {
+  bump(state, 'restocks');
+  m.freshUntil = state.now + businessDaysToMs(SERVICE.freshStockBusinessDays);
+  m.lastVisitAt = state.now;
+  m.seen = { at: state.now, qty: m.slots.map((s) => s.qty), cashBoxCents: m.cashBoxCents };
+}
+
+/**
+ * Instant restock: drivers, the rewarded-ad restock and test tools. The
+ * player's own restock is a delivery (orderRestock in deliveries.ts).
+ * `manual` gives the fresh-stock bonus and charges fuel from the city center.
  */
 export function restockMachine(
   state: GameState,
@@ -271,45 +322,17 @@ export function restockMachine(
 ): ActionResult<{ units: number; costCents: number }> {
   const m = getMachine(state, machineId);
   if (!m || m.status !== 'active') return fail('Machine not found.');
-  const type = getMachineType(m.typeId);
-  const cap = slotCapacity(state, type);
-  const limit = opts.capacity ?? vanCapacity(state);
+  const problem = checkRestock(state, m, lines, opts.capacity ?? vanCapacity(state));
+  if (problem) return fail(problem);
   const units = lines.reduce((a, l) => a + l.qty, 0);
-  if (units > limit) return fail(`Your van holds ${limit} items per trip.`);
-  for (const l of lines) {
-    const product = getProduct(l.productId);
-    if (!productAllowed(state, type, product))
-      return fail(`${product.name} doesn't fit this machine.`);
-    const slot = m.slots[l.slot];
-    if (!slot) return fail('Unknown slot.');
-    const existing = slot.productId === l.productId ? slot.qty : 0;
-    if (existing + l.qty > cap) return fail(`Slot ${l.slot + 1} holds ${cap}.`);
-  }
   const fuel = opts.manual ? fuelCents(state, world, [m]) : 0;
   const cost = restockCostCents(state, lines) + fuel;
   if (cost > state.cashCents) return fail('Not enough cash for this stock.');
   state.cashCents -= cost;
   addLedger(state, 'Wholesale', -restockCostCents(state, lines));
   if (fuel) addLedger(state, 'Fuel', -fuel);
-  for (const l of lines) {
-    const slot = m.slots[l.slot];
-    const product = getProduct(l.productId);
-    if (slot.productId !== l.productId) {
-      slot.productId = l.productId;
-      slot.qty = 0;
-      slot.priceCents = product.suggestedCents;
-    }
-    if (slot.priceCents <= 0) slot.priceCents = product.suggestedCents;
-    slot.qty += l.qty;
-    slot.par = Math.max(slot.par, slot.qty);
-    slot.stockedAt = state.now;
-  }
-  if (opts.manual) {
-    bump(state, 'restocks');
-    m.freshUntil = state.now + businessDaysToMs(SERVICE.freshStockBusinessDays);
-    m.lastVisitAt = state.now;
-    m.seen = { at: state.now, qty: m.slots.map((s) => s.qty), cashBoxCents: m.cashBoxCents };
-  }
+  fillSlots(state, m, lines);
+  if (opts.manual) markVisited(state, m);
   log(state, 'restock', `Restocked ${units} items`, m.id, -cost);
   return { ok: true, units, costCents: cost };
 }

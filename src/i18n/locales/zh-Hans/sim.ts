@@ -4,6 +4,9 @@ import type en from '../en/sim';
 
 export default {
   errors: {
+    vanOnItsWay: '已经有一辆货车在路上了。',
+    vansOut: '你的货车都出去了。',
+    pickRestock: '选择要补的商品。',
     pickMachine: '请选择一台售货机。',
     pickTerm: '请选择合同期。',
     typeLocked: '{type}尚未解锁。',
@@ -109,6 +112,7 @@ export default {
     allOrdersDone: '订单全部完成：连续 {n} 天',
     trophy: '奖杯：{title}',
     restocked: '补货 {n} 件',
+    vanOut: '货车载着{n}件商品出发',
     instantRestock: '立即补货（奖励）',
     freePull: '钱箱里的免费扭蛋',
     collected: '已收款',

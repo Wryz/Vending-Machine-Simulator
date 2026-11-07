@@ -53,7 +53,8 @@ export default {
     adRestock: '즉시 보충 (광고)',
     adRestockHint: '광고를 보고 즉시 보충',
     restock: '보충 {n} · {cost}',
-    restockHint: '직접 보충하면 영업일 하루 동안 {pct}% 더 팔려요',
+    restockHint:
+      '가장 가까운 가게에서 밴이 가져와요. 채운 자판기는 영업일 하루 동안 {pct}% 더 팔려요',
     clear: '비우기',
     clearHint: '보충 계획 지우기',
     more: '더 보기',
@@ -64,12 +65,29 @@ export default {
     pickUp: '회수',
   },
   emptyCoil: '빈 코일',
+  /** The restock van on its way (an order is delivered from the nearest store). */
+  van: {
+    title: '밴 배송 중',
+    /** {store} = a real supermarket name from map data. */
+    from: '{store}에서',
+    fromDepot: '내 창고에서',
+    eta: '{time} 후 도착',
+    loading: '가게에서 싣는 중',
+    a11y: '{n}개를 실은 밴이 배송 중, {time} 후 도착',
+  },
+  /** Moment when the van arrives. */
+  delivered: {
+    label: '상품 도착',
+    title: { one: '{venue}에 {n}개', other: '{venue}에 {n}개' },
+    subtitle: '새 상품은 오늘 {pct}% 더 잘 팔려요',
+  },
   toast: {
     pull: '돈통에서 무료 수집품 뽑기를 찾았어요.',
     vanFull: '밴은 한 번에 {n}개까지 실을 수 있어요.',
     slotFull: '그 칸은 가득 찼어요.',
     restocked: { one: '{n}개 보충했어요', other: '{n}개 보충했어요' },
     adRestocked: '보충했어요.',
+    ordered: '밴 배송 중 · {time} 후 도착',
     repaired: '수리 완료',
     commission: '이제 수수료 {pct}',
   },

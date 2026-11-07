@@ -151,10 +151,11 @@ Show numbers and icons before text; sentences are for VoiceOver hints. Physical 
 
 ### 4.1 Loop
 1. **Scout:** pan the real map; heat overlay (toggle) shows estimated foot traffic by hex cell; tap a spot to see its *Spot Card*: nearby places (real names), estimated daily customers by hour, best product families, competition, commission ask.
-2. **Place:** choose machine type, sign the location contract (commission %, term), pay purchase and install cost.
+2. **Place:** choose machine type, sign the location contract (commission %, term), pay purchase and install cost. A large **Place machine** key on the map (2026-11-07) finds a busy spot near the view and opens its card; tapping anywhere on the map also works.
 3. **Stock & price:** choose products for slots; set prices (with a suggested price and a demand curve hint).
 4. **Earn:** machines sell continuously in real time via the simulation (§5), including while the app is closed.
-5. **Service:** restock and collect cash. This is done by hand early (3D close-up plus a drive along the real roads, abstracted as a time cost), and by drivers and smart machines later.
+5. **Service:** restock and collect cash. Early on the player plans each restock by hand and orders it; drivers and smart machines take over later.
+   - *Delivery van (2026-11-07, owner's request):* a restock is an order, not instant. It is paid when ordered (stock plus fuel for the round trip). A toy van loads at the nearest real supermarket or cash-and-carry from map data (a depot at the city center when none is listed), drives straight to the machine on the map (about 12–75 s) and fills the coils on arrival, with the fresh-stock bonus. One van per machine; the van level sets how many are on the road at once (`src/config/deliveries.ts`).
 6. **Grow:** buy machines, unlock machine types and districts, hire staff, upgrade, complete contracts and collections, expand to new cities, eventually sell the company (prestige).
 
 ### 4.2 Manual → automated progression (core promise)

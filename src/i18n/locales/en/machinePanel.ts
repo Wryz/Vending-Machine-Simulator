@@ -50,7 +50,8 @@ export default {
     adRestock: 'Instant restock (ad)',
     adRestockHint: 'Watch an ad for an instant restock',
     restock: 'Restock {n} · {cost}', // button; {n} = units
-    restockHint: 'Hand restocks sell {pct}% more for a business day',
+    restockHint:
+      'A van brings it from the nearest store. Restocked machines sell {pct}% more for a business day',
     clear: 'Clear',
     clearHint: 'Clear the restock plan',
     more: 'More', // fold-out toggle
@@ -61,12 +62,29 @@ export default {
     pickUp: 'Pick up', // one-word chip: take the machine back to storage
   },
   emptyCoil: 'Empty coil',
+  /** The restock van on its way (an order is delivered from the nearest store). */
+  van: {
+    title: 'Van on its way',
+    /** {store} = a real supermarket name from map data. */
+    from: 'From {store}',
+    fromDepot: 'From your depot',
+    eta: 'Here in {time}',
+    loading: 'Loading at the store',
+    a11y: 'Van on its way with {n} items, here in {time}',
+  },
+  /** Moment when the van arrives. */
+  delivered: {
+    label: 'Stock delivered',
+    title: { one: '{n} item at {venue}', other: '{n} items at {venue}' },
+    subtitle: 'Fresh stock sells {pct}% more today',
+  },
   toast: {
     pull: 'Free collectible pull found in the cash box.',
     vanFull: 'Your van holds {n} items per trip.',
     slotFull: 'That slot is full.',
     restocked: { one: 'Restocked {n} item', other: 'Restocked {n} items' },
     adRestocked: 'Restocked.',
+    ordered: 'Van on its way · here in {time}',
     repaired: 'Repaired',
     commission: 'Commission now {pct}',
   },

@@ -15,12 +15,12 @@ import {
   collectCash,
   hasResearch,
   pickUpMachine,
+  orderRestock,
   priceResponse,
   productsFor,
   renegotiate,
   repairMachine,
-  restockCostCents,
-  restockMachine,
+  quoteDelivery,
   rotateMachine,
   setPar,
   setPrice,
@@ -45,6 +45,7 @@ import { Button, Mono, Paper, Row, T } from '../kit';
 import { hasTelemetry, machineStatus } from '../machineStatus';
 import { CoinTray } from '../objects/CoinTray';
 import { MachineWindow } from './MachineWindow';
+import { clockDuration, VanCard } from './VanCard';
 import { RequestCard } from './RequestCard';
 import { statusLabel } from '../objects/KeyTag';
 import { PRODUCT_IMAGES } from '../productImages';
@@ -80,7 +81,7 @@ export function MachinePanel({
   onSelect?: (slot: number | null) => void;
   /** The planned restock changed (the close-up previews it on the coils). */
   onPlanChange?: (plan: RestockPlan) => void;
-  /** A restock was committed for these slots (animate; otherwise a success sound plays). */
+  /** A van filled these slots while open (animate them). */
   onRestock?: (slots: number[]) => void;
   /** Cash was taken (animate the door); the coin tray shows after `collectDelayMs`. */
   onCollect?: () => void;
@@ -92,6 +93,7 @@ export function MachinePanel({
   const theme = useTheme();
   const t = useT();
   const game = useGame((s) => s.game)!;
+  const world = useGame((s) => s.world);
   const removeAds = useProfile((s) => s.entitlements.removeAds);
   const machine = game.machines.find((m) => m.id === machineId);
   const [ownSelected, setOwnSelected] = useState<number | null>(null);
@@ -120,6 +122,14 @@ export function MachinePanel({
     const list = timers.current;
     return () => list.forEach(clearTimeout);
   }, []);
+  // The van arrived while this was open: let the close-up animate the coils filling.
+  const enRoute = game.deliveries.find((d) => d.machineId === machineId) ?? null;
+  const lastRoute = useRef(enRoute);
+  useEffect(() => {
+    const before = lastRoute.current;
+    lastRoute.current = enRoute;
+    if (before && !enRoute) onRestock?.(before.lines.map((l) => l.slot).sort((a, b) => a - b));
+  }, [enRoute, onRestock]);
 
   if (!machine) return null;
   const type = getMachineType(machine.typeId);
@@ -132,20 +142,27 @@ export function MachinePanel({
   const status = machineStatus(game, machine);
   const planned = Object.values(plan);
   const plannedUnits = planned.reduce((a, l) => a + l.qty, 0);
-  const plannedCost = planned.length ? restockCostCents(game, planned) : 0;
+  // The van on its way here, and what an order would cost (stock plus fuel).
+  const onTheWay = enRoute;
+  const incoming: RestockPlan = {};
+  for (const l of onTheWay?.lines ?? []) incoming[l.slot] = l;
+  const quote = planned.length && world ? quoteDelivery(game, world, machine, planned) : null;
+  const plannedCost = quote ? quote.wholesaleCents + quote.fuelCents : 0;
   const allowed = productsFor(game, type);
   const canPrice = !!game.chapterDoneAt[1] || game.chapter >= 2;
   // Tutorial: what to press next on this machine (and pulse that key).
   const guide: { text: string; key: 'fill' | 'restock' | 'collect' | null } | null =
-    step === 'stock'
-      ? plannedUnits
-        ? { text: t('coach.guide.restock'), key: 'restock' }
-        : { text: t('coach.guide.fill'), key: 'fill' }
-      : step === 'wait' && machine.slots.some((x) => x.qty > 0)
-        ? { text: t('coach.guide.wait'), key: null }
-        : step === 'collect' && machine.cashBoxCents > 0 && !coins
-          ? { text: t('coach.guide.collect'), key: 'collect' }
-          : null;
+    step === 'delivery' && onTheWay
+      ? { text: t('coach.guide.onTheWay'), key: null }
+      : step === 'stock'
+        ? plannedUnits
+          ? { text: t('coach.guide.restock'), key: 'restock' }
+          : { text: t('coach.guide.fill'), key: 'fill' }
+        : step === 'wait' && machine.slots.some((x) => x.qty > 0)
+          ? { text: t('coach.guide.wait'), key: null }
+          : step === 'collect' && machine.cashBoxCents > 0 && !coins
+            ? { text: t('coach.guide.collect'), key: 'collect' }
+            : null;
 
   // A customer's request at this machine (a bubble on the map).
   const request = game.requests.open.find((r) => r.machineId === machine.id) ?? null;
@@ -209,22 +226,22 @@ export function MachinePanel({
   };
 
   const commitRestock = () => {
-    const res = useGame
-      .getState()
-      .act((d, w) => restockMachine(d, w, machine.id, planned, { manual: true }));
+    const res = useGame.getState().act((d, w) => orderRestock(d, w, machine.id, planned));
     if (!res.ok) {
       haptic.error();
       return show(simError(res.error), 'error');
     }
+    // Paid now; the van fills the coils when it arrives (a moment plays then).
     setPlan({});
-    const slotsIn = planned.map((l) => l.slot).sort((a, b) => a - b);
-    if (onRestock) onRestock(slotsIn);
-    else {
-      haptic.success();
-      sound.play('success');
-    }
-    show(t('machinePanel.toast.restocked', { n: res.units }), 'success');
-    track('restock', { count: res.units });
+    haptic.success();
+    sound.play('thunk');
+    show(
+      t('machinePanel.toast.ordered', {
+        time: clockDuration(res.delivery.arriveAt - res.delivery.orderedAt),
+      }),
+      'success',
+    );
+    track('restock', { count: res.delivery.units });
   };
 
   /** One local price step (¥10, ₩100, 5¢...), stored back as the sim's US cents. */
@@ -380,6 +397,8 @@ export function MachinePanel({
         />
       ) : null}
 
+      {onTheWay ? <VanCard delivery={onTheWay} /> : null}
+
       {/* The two jobs: take the cash, refill the coils. */}
       <Row gap={SPACE.s}>
         <Pulse on={guide?.key === 'collect'} style={{ flex: 1 }}>
@@ -402,6 +421,7 @@ export function MachinePanel({
             label={t('machinePanel.actions.fill')}
             icon={<Icon name="box" size={20} color={theme.ink} />}
             kind="secondary"
+            disabled={!!onTheWay}
             onPress={fillAll}
             accessibilityHint={t('machinePanel.actions.fillHint', { n: van })}
           />
@@ -417,7 +437,7 @@ export function MachinePanel({
           />
         ) : null}
       </Row>
-      {plannedUnits ? (
+      {plannedUnits && !onTheWay ? (
         <Row gap={SPACE.s}>
           <Pulse on={guide?.key === 'restock' || requestLoaded} style={{ flex: 1 }}>
             <Button
@@ -450,7 +470,8 @@ export function MachinePanel({
         selected={selected}
         onSelect={setSelected}
         slots={machine.slots.map((s, i) => {
-          const p = plan[i];
+          // Planned now, or on the van (shown as ghosts until it arrives).
+          const p = plan[i] ?? incoming[i];
           const pid = p?.productId ?? s.productId;
           const known = live || p ? s.qty : (machine.seen.qty[i] ?? s.qty);
           // A plan with another product replaces what is in the coil.

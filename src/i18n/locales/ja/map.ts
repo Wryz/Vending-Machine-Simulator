@@ -5,8 +5,14 @@ import type en from '../en/map';
 export default {
   globePin: { one: '{city} · 自販機{n}台', other: '{city} · 自販機{n}台' },
   placeHint: 'スポットをタップしてこの自販機を設置',
+  /** The big key that starts placing a new machine. */
+  placeKey: '自販機を置く',
+  placeKeyHint: '近くのにぎやかな場所を探してカードを開きます。地図のどこをタップしてもOK。',
+  placeLocked: '第1章を終えると自販機をもっと買えます',
   backTo: '{city}に戻る',
   a11y: {
+    van: '{venue}への配送バン',
+    store: '{store}（バンの積み込み先）',
     settings: '設定',
     view3d: '3D表示',
     topDown: '真上から表示',

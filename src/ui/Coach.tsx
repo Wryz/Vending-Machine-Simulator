@@ -12,12 +12,20 @@ import { T } from './kit';
 import { Key, SKIN } from './skin';
 import { SPACE } from './theme';
 
-export const COACH_STEPS: readonly TutorialStep[] = ['place', 'stock', 'wait', 'collect', 'goal'];
+export const COACH_STEPS: readonly TutorialStep[] = [
+  'place',
+  'stock',
+  'delivery',
+  'wait',
+  'collect',
+  'goal',
+];
 
 /** Copy lives in the `coach.steps.<step>` catalog. */
 const ICON: Record<TutorialStep, IconName> = {
   place: 'pin',
   stock: 'box',
+  delivery: 'van',
   wait: 'people',
   collect: 'coin',
   goal: 'star',
@@ -36,8 +44,11 @@ export function Coach({
   onClose,
   onAction,
   bottom,
+  store,
 }: {
   step: TutorialStep;
+  /** The delivery step: the store the van loads at (none: the depot). */
+  store?: string;
   onClose: () => void;
   /** The step's helper key (the goal step's key is "OK", which closes). */
   onAction?: () => void;
@@ -87,7 +98,11 @@ export function Coach({
             {t(`coach.steps.${step}.title`)}
           </T>
           <T size={TUTORIAL.text.line} color="#4A4F6A">
-            {t(`coach.steps.${step}.line`, { amount: moneyWhole(CHAPTER_GOALS[1].salesCents) })}
+            {step === 'delivery'
+              ? store
+                ? t('coach.steps.delivery.line', { store })
+                : t('coach.steps.delivery.lineDepot')
+              : t(`coach.steps.${step}.line`, { amount: moneyWhole(CHAPTER_GOALS[1].salesCents) })}
           </T>
         </View>
         {!last ? (

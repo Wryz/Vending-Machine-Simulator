@@ -53,7 +53,8 @@ export default {
     adRestock: 'Sofort auffüllen (Werbung)',
     adRestockHint: 'Werbung ansehen und sofort auffüllen',
     restock: 'Auffüllen {n} · {cost}',
-    restockHint: 'Von Hand aufgefüllt verkauft sich einen Geschäftstag lang {pct} % mehr',
+    restockHint:
+      'Ein Lieferwagen bringt es vom nächsten Markt. Aufgefüllte Automaten verkaufen einen Geschäftstag lang {pct} % mehr',
     clear: 'Leeren',
     clearHint: 'Auffüllplan leeren',
     more: 'Mehr',
@@ -64,12 +65,29 @@ export default {
     pickUp: 'Abbauen',
   },
   emptyCoil: 'Leere Spirale',
+  /** The restock van on its way (an order is delivered from the nearest store). */
+  van: {
+    title: 'Lieferwagen unterwegs',
+    /** {store} = a real supermarket name from map data. */
+    from: 'Von {store}',
+    fromDepot: 'Aus deinem Lager',
+    eta: 'Da in {time}',
+    loading: 'Wird im Markt beladen',
+    a11y: 'Lieferwagen mit {n} Artikeln unterwegs, da in {time}',
+  },
+  /** Moment when the van arrives. */
+  delivered: {
+    label: 'Ware geliefert',
+    title: { one: '{n} Artikel bei {venue}', other: '{n} Artikel bei {venue}' },
+    subtitle: 'Frische Ware verkauft sich heute {pct} % besser',
+  },
   toast: {
     pull: 'Gratiskapsel in der Kasse gefunden.',
     vanFull: 'Dein Van fasst {n} Artikel pro Fahrt.',
     slotFull: 'Dieses Fach ist voll.',
     restocked: { one: '{n} Artikel aufgefüllt', other: '{n} Artikel aufgefüllt' },
     adRestocked: 'Aufgefüllt.',
+    ordered: 'Lieferwagen unterwegs · da in {time}',
     repaired: 'Repariert',
     commission: 'Provision jetzt {pct}',
   },

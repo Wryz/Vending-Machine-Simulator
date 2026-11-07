@@ -16,6 +16,14 @@ export default {
       action: '打开我的售货机',
       actionHint: '打开售货机的卡片',
     },
+    delivery: {
+      title: '你的货车在路上了',
+      /** {store} = a real supermarket name from map data. */
+      line: '它正从{store}运来零食。看它开到你的售货机！',
+      lineDepot: '它正从你的仓库运来零食。看它开到你的售货机！',
+      action: '看它到达',
+      actionHint: '把地图放大到你的售货机',
+    },
     wait: {
       title: '等待顾客',
       line: '路过的人会停下来购买。放大地图看看吧！',
@@ -39,7 +47,8 @@ export default {
     spotQuiet: '这里人很少。把它拉下来，换一条更热闹的街道试试。',
     sign: '向下滚动，用手指沿着横线滑动来签名。',
     fill: '点“装满”，从货车里装上零食。',
-    restock: '再点“补货”把它们放进去。',
+    restock: '现在点“补货”。货车会从最近的商店运来。',
+    onTheWay: '货车在路上了。关掉这里，看它开过来。',
     wait: '准备好了！关掉这里，看看顾客走过来。',
     collect: '点“收款”取出你的硬币。',
   },

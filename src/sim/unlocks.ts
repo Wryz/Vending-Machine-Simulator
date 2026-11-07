@@ -26,14 +26,15 @@ export function unlockedFeatures(state: GameState): Feature[] {
  * collect, then the chapter goal. Derived from the game state, so it never
  * gets out of sync; null once the basics are done.
  */
-export type TutorialStep = 'place' | 'stock' | 'wait' | 'collect' | 'goal';
+export type TutorialStep = 'place' | 'stock' | 'delivery' | 'wait' | 'collect' | 'goal';
 
 export function tutorialStep(state: GameState): TutorialStep | null {
   if (state.chapter > 1) return null;
   const active = activeMachines(state);
   if (!active.length) return 'place';
   const stocked = active.some((m) => m.slots.some((s) => s.qty > 0));
-  if (state.ledger.lifetimeUnits === 0) return stocked ? 'wait' : 'stock';
+  if (state.ledger.lifetimeUnits === 0)
+    return stocked ? 'wait' : state.deliveries.length ? 'delivery' : 'stock';
   if (state.ledger.lifetimeNetCents === 0) return 'collect';
   return 'goal';
 }

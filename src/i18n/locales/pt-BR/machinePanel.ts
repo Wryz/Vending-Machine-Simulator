@@ -53,7 +53,8 @@ export default {
     adRestock: 'Reposição já (anúncio)',
     adRestockHint: 'Veja um anúncio para repor na hora',
     restock: 'Repor {n} · {cost}',
-    restockHint: 'Reposições à mão vendem {pct}% a mais por um dia útil',
+    restockHint:
+      'Uma van traz do mercado mais próximo. Máquinas repostas vendem {pct}% a mais por um dia útil',
     clear: 'Limpar',
     clearHint: 'Limpar o plano de reposição',
     more: 'Mais',
@@ -64,12 +65,29 @@ export default {
     pickUp: 'Recolher',
   },
   emptyCoil: 'Espiral vazia',
+  /** The restock van on its way (an order is delivered from the nearest store). */
+  van: {
+    title: 'Van a caminho',
+    /** {store} = a real supermarket name from map data. */
+    from: 'De {store}',
+    fromDepot: 'Do seu depósito',
+    eta: 'Chega em {time}',
+    loading: 'Carregando no mercado',
+    a11y: 'Van a caminho com {n} itens, chega em {time}',
+  },
+  /** Moment when the van arrives. */
+  delivered: {
+    label: 'Estoque entregue',
+    title: { one: '{n} item em {venue}', other: '{n} itens em {venue}' },
+    subtitle: 'Estoque fresco vende {pct}% a mais hoje',
+  },
   toast: {
     pull: 'Giro de colecionável grátis achado no cofre.',
     vanFull: 'Sua van leva {n} itens por viagem.',
     slotFull: 'Essa espiral está cheia.',
     restocked: { one: '{n} item reposto', other: '{n} itens repostos' },
     adRestocked: 'Reposto.',
+    ordered: 'Van a caminho · chega em {time}',
     repaired: 'Consertada',
     commission: 'Comissão agora {pct}',
   },

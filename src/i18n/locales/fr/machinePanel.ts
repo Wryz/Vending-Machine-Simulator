@@ -53,7 +53,8 @@ export default {
     adRestock: 'Réappro instantané (pub)',
     adRestockHint: 'Regarde une pub pour un réappro instantané',
     restock: 'Réappro {n} · {cost}',
-    restockHint: 'Un réappro à la main vend {pct} % de plus pendant un jour ouvré',
+    restockHint:
+      'Une camionnette l’apporte depuis le magasin le plus proche. Un distributeur rempli vend {pct} % de plus pendant un jour ouvré',
     clear: 'Effacer',
     clearHint: 'Effacer le plan de réassort',
     more: 'Plus',
@@ -64,12 +65,29 @@ export default {
     pickUp: 'Retirer',
   },
   emptyCoil: 'Spirale vide',
+  /** The restock van on its way (an order is delivered from the nearest store). */
+  van: {
+    title: 'Camionnette en route',
+    /** {store} = a real supermarket name from map data. */
+    from: 'Depuis {store}',
+    fromDepot: 'Depuis ton dépôt',
+    eta: 'Arrive dans {time}',
+    loading: 'Chargement au magasin',
+    a11y: 'Camionnette en route avec {n} articles, arrive dans {time}',
+  },
+  /** Moment when the van arrives. */
+  delivered: {
+    label: 'Stock livré',
+    title: { one: '{n} article à {venue}', other: '{n} articles à {venue}' },
+    subtitle: 'Le stock frais se vend {pct} % mieux aujourd’hui',
+  },
   toast: {
     pull: 'Tirage de collection gratuit trouvé dans la caisse.',
     vanFull: 'Ta camionnette transporte {n} articles par trajet.',
     slotFull: 'Cette case est pleine.',
     restocked: { one: '{n} article réapprovisionné', other: '{n} articles réapprovisionnés' },
     adRestocked: 'Réapprovisionné.',
+    ordered: 'Camionnette en route · arrive dans {time}',
     repaired: 'Réparé',
     commission: 'Commission : {pct}',
   },

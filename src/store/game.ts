@@ -32,7 +32,12 @@ import {
 import { useCelebrations } from './celebrations';
 import { setCurrencyForCountry } from './currency';
 import { announceRanking } from './rankMoments';
-import { announceRequests, announceRival, announceSurprises } from './rivalMoments';
+import {
+  announceDeliveries,
+  announceRequests,
+  announceRival,
+  announceSurprises,
+} from './rivalMoments';
 import { cityKey, useProfile, type CityInfo } from './profile';
 
 export interface TickerEntry {
@@ -103,6 +108,7 @@ export function buildWorld(city: CityInfo, pack: RegionPack, weather: WeatherBoo
     cells,
     cellOf,
     neighbors,
+    suppliers: pack.suppliers ?? [],
     weatherAt(t) {
       const live = weather.at(t);
       if (live) return live;
@@ -365,6 +371,7 @@ const EMPTY_REPORT: AdvanceReport = {
   stings: [],
   surprises: [],
   requests: [],
+  deliveries: [],
 };
 
 /** A city-load failure (src/data errors are English) in the UI language; unknown text passes through. */
@@ -438,6 +445,7 @@ function announceMoments(state: GameState, report: AdvanceReport): void {
   announceRanking(state, report, useGame.getState().world?.city.name);
   announceSurprises(state, report.surprises);
   announceRequests(state, report.requests);
+  announceDeliveries(state, report.deliveries);
   for (const g of state.goals.items) {
     const key = `${state.goals.dateKey}|${g.id}`;
     if (g.claimed || readyOrders.has(key) || goalProgress(state, g) < 1) continue;

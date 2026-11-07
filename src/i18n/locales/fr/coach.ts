@@ -16,6 +16,15 @@ export default {
       action: 'Ouvrir mon distributeur',
       actionHint: 'Ouvre la fiche de ton distributeur',
     },
+    delivery: {
+      title: 'Ta camionnette arrive',
+      /** {store} = a real supermarket name from map data. */
+      line: 'Elle apporte tes snacks depuis {store}. Regarde-la rouler jusqu’à ton distributeur !',
+      lineDepot:
+        'Elle apporte tes snacks depuis ton dépôt. Regarde-la rouler jusqu’à ton distributeur !',
+      action: 'Voir l’arrivée',
+      actionHint: 'Zoome la carte sur ton distributeur',
+    },
     wait: {
       title: 'Attends les clients',
       line: 'Les passants s’arrêtent pour acheter. Zoome pour les voir !',
@@ -39,7 +48,9 @@ export default {
     spotQuiet: 'Peu de monde passe ici. Baisse ce panneau et essaie une rue plus animée.',
     sign: 'Descends et fais glisser ton doigt sur la ligne pour signer.',
     fill: 'Touche Remplir pour charger des snacks depuis ta camionnette.',
-    restock: 'Touche maintenant Réappro pour les ranger.',
+    restock:
+      'Touche maintenant Remplir. Une camionnette apporte tout depuis le magasin le plus proche.',
+    onTheWay: 'Ta camionnette arrive. Ferme ceci et regarde-la venir.',
     wait: 'C’est prêt ! Ferme ceci et regarde les clients arriver.',
     collect: 'Touche Encaisser pour prendre tes pièces.',
   },

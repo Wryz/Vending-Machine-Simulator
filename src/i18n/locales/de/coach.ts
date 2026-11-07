@@ -16,6 +16,15 @@ export default {
       action: 'Meinen Automaten öffnen',
       actionHint: 'Öffnet die Karte deines Automaten',
     },
+    delivery: {
+      title: 'Dein Lieferwagen ist unterwegs',
+      /** {store} = a real supermarket name from map data. */
+      line: 'Er bringt deine Snacks von {store}. Sieh zu, wie er zu deinem Automaten fährt!',
+      lineDepot:
+        'Er bringt deine Snacks aus deinem Lager. Sieh zu, wie er zu deinem Automaten fährt!',
+      action: 'Ankunft ansehen',
+      actionHint: 'Zoomt die Karte auf deinen Automaten',
+    },
     wait: {
       title: 'Warte auf Kunden',
       line: 'Leute, die vorbeilaufen, bleiben stehen und kaufen. Zoom rein und schau zu!',
@@ -39,7 +48,8 @@ export default {
     spotQuiet: 'Hier laufen wenige Leute. Zieh das nach unten und probier eine belebtere Straße.',
     sign: 'Scroll nach unten und wisch mit dem Finger über die Linie, um zu unterschreiben.',
     fill: 'Tippe auf Voll, um Snacks aus deinem Van zu laden.',
-    restock: 'Jetzt auf Auffüllen tippen, um sie einzuräumen.',
+    restock: 'Jetzt auf Auffüllen tippen. Ein Lieferwagen bringt alles vom nächsten Markt.',
+    onTheWay: 'Dein Lieferwagen ist unterwegs. Schließ das hier und sieh zu, wie er herfährt.',
     wait: 'Fertig! Schließ das und sieh zu, wie Kunden kommen.',
     collect: 'Tippe auf Kassieren, um deine Münzen zu nehmen.',
   },

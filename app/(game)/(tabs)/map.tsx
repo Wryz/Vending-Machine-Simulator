@@ -8,6 +8,7 @@ import { CAMERA, GLOBE, MACHINE_SHEET, MAP_TAP, SHEET_OPEN_SHARE } from '@/confi
 import type { Feature } from '@/config/progression';
 import { useCityClock } from '@/hooks/useCityClock';
 import { useT } from '@/i18n';
+import { venueName } from '@/i18n/sim';
 import { CityMap, type CityMapHandle, type MapCameraState, type SalePop } from '@/map/CityMap';
 import { WeatherOverlay } from '@/map/WeatherOverlay';
 import {
@@ -39,7 +40,9 @@ import { MachineSheet } from '@/ui/sheets/MachineSheet';
 import { RivalSheet } from '@/ui/sheets/RivalSheet';
 import { MoneyPanel, type IncomingSale } from '@/ui/MoneyPanel';
 import { SpotSheet, type SpotPoint } from '@/ui/sheets/SpotSheet';
+import { Icon } from '@/ui/icons';
 import { sfx } from '@/ui/sfx';
+import { Key } from '@/ui/skin';
 import { SPACE } from '@/ui/theme';
 
 /** A sale shows in its own pill under the money panel for this long. */
@@ -407,34 +410,57 @@ export default function MapScreen() {
   const tutorialHidden = useProfile((s) => s.tutorialHidden);
   const coachStep = tutorialHidden ? null : tutorialStep(game);
   // The coach card's helper key: it does the step's looking for the player.
+  /** Show where people walk, then pick a good spot near the view and open its card. */
+  const showGoodSpot = () => {
+    setHeat(true);
+    const cam = mapRef.current?.getCamera() ?? cameraNow.current;
+    const pick = suggestSpot(game, world, { lat: cam.center[1], lng: cam.center[0] }, game.now);
+    if (!pick) return;
+    mapRef.current?.flyTo(
+      {
+        center: [pick.lng, pick.lat],
+        zoom: Math.max(CAMERA.homeZoom + 1, cam.zoom),
+        pitch: topDown ? CAMERA.topDownPitch : CAMERA.homePitch,
+        bearing: topDown ? 0 : CAMERA.homeBearing,
+      },
+      CAMERA.flyDurationMs,
+      height * SHEET_OPEN_SHARE.spot * 0.5,
+    );
+    cancelMapPress();
+    setSpot({ lat: pick.lat, lng: pick.lng });
+    spotRef.current?.open();
+  };
   const coachAction = () => {
     const mine = activeMachines(game)[0];
     if (coachStep === 'place') {
-      // Show where people walk, then pick a good spot near the view and open its card.
-      setHeat(true);
-      const cam = mapRef.current?.getCamera() ?? cameraNow.current;
-      const pick = suggestSpot(game, world, { lat: cam.center[1], lng: cam.center[0] }, game.now);
-      if (!pick) return;
-      mapRef.current?.flyTo(
-        {
-          center: [pick.lng, pick.lat],
-          zoom: Math.max(CAMERA.homeZoom + 1, cam.zoom),
-          pitch: topDown ? CAMERA.topDownPitch : CAMERA.homePitch,
-          bearing: topDown ? 0 : CAMERA.homeBearing,
-        },
-        CAMERA.flyDurationMs,
-        height * SHEET_OPEN_SHARE.spot * 0.5,
-      );
-      cancelMapPress();
-      setSpot({ lat: pick.lat, lng: pick.lng });
-      spotRef.current?.open();
+      showGoodSpot();
     } else if ((coachStep === 'stock' || coachStep === 'collect') && mine) {
       onMachinePress(mine.id);
-    } else if (coachStep === 'wait' && mine) {
+    } else if ((coachStep === 'wait' || coachStep === 'delivery') && mine) {
       // Close enough to see people walk up and buy.
       frameMachine(mine.id, 0);
     }
   };
+  // The Place key: a machine in storage, or room to buy one (chapter 1 allows two).
+  const canPlace =
+    game.machines.some((m) => m.status === 'stored') ||
+    !(game.chapter < 2 && game.machines.length >= 2);
+  const [placeNote, setPlaceNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (!placeNote) return;
+    const timer = setTimeout(() => setPlaceNote(null), 2600);
+    return () => clearTimeout(timer);
+  }, [placeNote]);
+  const onPlaceKey = () => {
+    if (!canPlace) {
+      haptic.error();
+      setPlaceNote(t('map.placeLocked'));
+      return;
+    }
+    haptic.tick();
+    showGoodSpot();
+  };
+  const firstVan = coachStep === 'delivery' ? game.deliveries[0] : undefined;
   const unlocked = (f: Feature) => featureUnlocked(game, f);
   const company = unlocked('company');
   const tabBarHeight = useHud((s) => s.tabBarHeight);
@@ -558,9 +584,43 @@ export default function MapScreen() {
           </InfoPill>
         </Animated.View>
       ) : null}
+      {/* The big Place key, bottom center: always one tap from a new machine. */}
+      {!coachStep && !hint && !machineId && !spot ? (
+        <Animated.View
+          entering={FadeIn.duration(250)}
+          exiting={FadeOut.duration(150)}
+          pointerEvents="box-none"
+          style={[styles.placeKey, { bottom: tabBarHeight + SPACE.m }]}
+        >
+          {placeNote ? (
+            <InfoPill style={{ height: 36, backgroundColor: theme.ink }}>
+              <T size={13} weight="medium" color={theme.bg}>
+                {placeNote}
+              </T>
+            </InfoPill>
+          ) : null}
+          <Key
+            tone={canPlace ? 'brand' : 'white'}
+            onPress={onPlaceKey}
+            accessibilityLabel={t('map.placeKey')}
+            accessibilityHint={canPlace ? t('map.placeKeyHint') : t('map.placeLocked')}
+            faceStyle={styles.placeFace}
+          >
+            <Icon
+              name={canPlace ? 'plus' : 'lock'}
+              size={22}
+              color={canPlace ? '#FFFFFF' : theme.ink}
+            />
+            <T size={17} weight="bold" color={canPlace ? '#FFFFFF' : theme.ink}>
+              {t('map.placeKey')}
+            </T>
+          </Key>
+        </Animated.View>
+      ) : null}
       {coachStep && !hint && !machineId && !spot ? (
         <Coach
           step={coachStep}
+          store={firstVan?.from.name ? venueName(firstVan.from.name) : undefined}
           bottom={tabBarHeight + SPACE.m}
           onAction={coachAction}
           onClose={() =>
@@ -632,6 +692,8 @@ const styles = StyleSheet.create({
   topRight: { position: 'absolute', gap: SPACE.s, alignItems: 'flex-end' },
   hint: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   zoom: { position: 'absolute', gap: SPACE.s },
+  placeKey: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: SPACE.s },
+  placeFace: { flexDirection: 'row', gap: SPACE.s, paddingHorizontal: SPACE.xl },
   attribution: { position: 'absolute', left: SPACE.m },
   globeBack: { position: 'absolute', left: SPACE.xl, right: SPACE.xl },
 });

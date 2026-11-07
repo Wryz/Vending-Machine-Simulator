@@ -5,8 +5,15 @@ import type en from '../en/map';
 export default {
   globePin: { one: '{city} · {n} Automat', other: '{city} · {n} Automaten' },
   placeHint: 'Tippe auf einen Standort, um diesen Automaten aufzustellen',
+  /** The big key that starts placing a new machine. */
+  placeKey: 'Automat aufstellen',
+  placeKeyHint:
+    'Sucht einen belebten Platz in der Nähe und öffnet seine Karte. Du kannst auch irgendwo auf die Karte tippen.',
+  placeLocked: 'Schließe Kapitel 1 ab, um mehr Automaten zu kaufen',
   backTo: 'Zurück nach {city}',
   a11y: {
+    van: 'Lieferwagen zu {venue}',
+    store: '{store}, hier lädt dein Lieferwagen',
     settings: 'Einstellungen',
     view3d: '3D-Ansicht',
     topDown: 'Draufsicht',

@@ -13,6 +13,7 @@ export * from './goals';
 export * from './unlocks';
 export * from './rankings';
 export * from './requests';
+export * from './deliveries';
 export {
   playerShare,
   rivalMatchup,

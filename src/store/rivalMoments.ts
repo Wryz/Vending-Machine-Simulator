@@ -1,9 +1,10 @@
-import { RIVAL } from '@/config/economy';
+import { RIVAL, SERVICE } from '@/config/economy';
 import { getProduct } from '@/config/products';
 import { SURPRISES } from '@/config/surprises';
 import { t, type TKey } from '@/i18n';
 import { venueName } from '@/i18n/sim';
 import {
+  type DeliveryNews,
   acceptDeal,
   playerShare,
   type GameState,
@@ -73,6 +74,26 @@ export function announceRequests(state: GameState, news: readonly RequestNews[])
       }),
       subtitle: t('requests.served.subtitle'),
       amountCents: n.cents + n.tipCents,
+    });
+  }
+}
+
+/** A restock van arrived: "24 items at Hudson Works". */
+export function announceDeliveries(state: GameState, news: readonly DeliveryNews[]): void {
+  const push = useCelebrations.getState().push;
+  for (const n of news) {
+    if (n.kind !== 'arrived' || n.units <= 0) continue;
+    push({
+      kind: 'surprise',
+      icon: 'delivery',
+      label: t('machinePanel.delivered.label'),
+      title: t('machinePanel.delivered.title', {
+        n: n.units,
+        venue: venueOf(state, n.delivery.machineId),
+      }),
+      subtitle: t('machinePanel.delivered.subtitle', {
+        pct: Math.round(SERVICE.freshStockBonus * 100),
+      }),
     });
   }
 }

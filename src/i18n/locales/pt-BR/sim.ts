@@ -4,6 +4,9 @@ import type en from '../en/sim';
 
 export default {
   errors: {
+    vanOnItsWay: 'Já tem uma van a caminho.',
+    vansOut: 'Todas as suas vans estão na rua.',
+    pickRestock: 'Escolha algo para repor.',
     pickMachine: 'Escolha uma máquina.',
     pickTerm: 'Escolha um prazo de contrato.',
     typeLocked: '{type} está bloqueada.',
@@ -111,6 +114,7 @@ export default {
     allOrdersDone: 'Todos os pedidos feitos: sequência de {n} dias',
     trophy: 'Troféu: {title}',
     restocked: '{n} itens repostos',
+    vanOut: 'Van a caminho com {n} itens',
     instantRestock: 'Reposição instantânea (prêmio)',
     freePull: 'Giro grátis do cofre',
     collected: 'Dinheiro coletado',

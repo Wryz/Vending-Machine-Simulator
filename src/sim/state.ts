@@ -2,7 +2,7 @@ import type { MachineFamily, MachineTypeId } from '@/config/machines';
 import type { CurveKey } from '@/config/curves';
 import type { ResearchId } from '@/config/progression';
 import type { RequestReason } from '@/config/requests';
-import type { CellData, PlaceCategory, WeatherHour } from '@/data/types';
+import type { CellData, PlaceCategory, Supplier, WeatherHour } from '@/data/types';
 
 import type { GoalsState } from './goals';
 import type { RankingsState } from './rankings';
@@ -13,7 +13,7 @@ import type { RankingsState } from './rankings';
  * epoch ms (real time).
  */
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export interface Slot {
   productId: string | null;
@@ -129,6 +129,34 @@ export interface CustomerRequest {
   until: number;
 }
 
+/** One coil's share of a restock order. */
+export interface RestockLine {
+  slot: number;
+  productId: string;
+  qty: number;
+}
+
+/**
+ * A restock order on its way (schema v8): a van loads at the nearest
+ * supermarket or wholesaler, drives to the machine and fills it on arrival.
+ * Paid when ordered.
+ */
+export interface Delivery {
+  id: string;
+  machineId: string;
+  lines: RestockLine[];
+  units: number;
+  /** Where the van loads; kind 'depot' (city center) when the pack lists no store. */
+  from: { id: string; name: string; kind: Supplier['kind'] | 'depot'; lat: number; lng: number };
+  orderedAt: number;
+  /** Leaves the store (after loading). */
+  departAt: number;
+  arriveAt: number;
+  /** Wholesale paid for the stock (refunded if the machine is gone on arrival). */
+  wholesaleCents: number;
+  fuelCents: number;
+}
+
 export interface RequestsState {
   /** When the next request may come (0 = not scheduled yet). */
   nextAt: number;
@@ -235,6 +263,8 @@ export interface GameState {
   surprises: SurpriseState;
   /** Customer requests (schema v7). */
   requests: RequestsState;
+  /** Restock vans on the road (schema v8). */
+  deliveries: Delivery[];
   events: LocalEvent[];
   /** Local dates for which events were generated. */
   eventDays: string[];
@@ -272,6 +302,8 @@ export interface World {
   neighbors(cellId: string, k: number): string[];
   /** Hourly weather, or null when unknown (neutral). */
   weatherAt(t: number): WeatherHour | null;
+  /** Stores delivery vans load at (none: vans leave from a depot at the city center). */
+  suppliers?: readonly Supplier[];
 }
 
 export interface SimOptions {

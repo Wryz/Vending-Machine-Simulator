@@ -53,7 +53,8 @@ export default {
     adRestock: 'Reponer al instante (anuncio)',
     adRestockHint: 'Mira un anuncio para reponer al instante',
     restock: 'Reponer {n} · {cost}',
-    restockHint: 'Reponer a mano vende un {pct}% más durante un día hábil',
+    restockHint:
+      'Una furgoneta lo trae de la tienda más cercana. Las máquinas repuestas venden un {pct} % más durante un día laborable',
     clear: 'Borrar',
     clearHint: 'Borrar el plan de reposición',
     more: 'Más',
@@ -64,12 +65,29 @@ export default {
     pickUp: 'Retirar',
   },
   emptyCoil: 'Espiral vacía',
+  /** The restock van on its way (an order is delivered from the nearest store). */
+  van: {
+    title: 'Furgoneta en camino',
+    /** {store} = a real supermarket name from map data. */
+    from: 'Desde {store}',
+    fromDepot: 'Desde tu almacén',
+    eta: 'Llega en {time}',
+    loading: 'Cargando en la tienda',
+    a11y: 'Furgoneta en camino con {n} artículos, llega en {time}',
+  },
+  /** Moment when the van arrives. */
+  delivered: {
+    label: 'Stock entregado',
+    title: { one: '{n} artículo en {venue}', other: '{n} artículos en {venue}' },
+    subtitle: 'El stock fresco vende un {pct} % más hoy',
+  },
   toast: {
     pull: 'Hay una tirada gratis en la caja.',
     vanFull: 'Tu camioneta lleva {n} productos por viaje.',
     slotFull: 'Esa casilla está llena.',
     restocked: { one: '{n} producto repuesto', other: '{n} productos repuestos' },
     adRestocked: 'Repuesta.',
+    ordered: 'Furgoneta en camino · llega en {time}',
     repaired: 'Reparada',
     commission: 'Comisión ahora {pct}',
   },

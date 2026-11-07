@@ -53,7 +53,7 @@ export default {
     adRestock: '即補充（広告）',
     adRestockHint: '広告を見て即補充',
     restock: '補充 {n} · {cost}',
-    restockHint: '手で補充すると1営業日の売上が{pct}%アップ',
+    restockHint: '一番近いお店からバンが運びます。補充した自販機は1営業日の売上が{pct}%アップ',
     clear: 'クリア',
     clearHint: '補充計画をクリア',
     more: '詳細',
@@ -64,12 +64,29 @@ export default {
     pickUp: '撤去',
   },
   emptyCoil: '空のコイル',
+  /** The restock van on its way (an order is delivered from the nearest store). */
+  van: {
+    title: 'バンが配送中',
+    /** {store} = a real supermarket name from map data. */
+    from: '{store}から',
+    fromDepot: '倉庫から',
+    eta: 'あと{time}',
+    loading: 'お店で積み込み中',
+    a11y: '{n}個を載せたバンが配送中、あと{time}',
+  },
+  /** Moment when the van arrives. */
+  delivered: {
+    label: '商品が届きました',
+    title: { one: '{venue}に{n}個', other: '{venue}に{n}個' },
+    subtitle: '新しい商品は今日{pct}%よく売れます',
+  },
   toast: {
     pull: '金庫に無料ガチャが入っていました。',
     vanFull: 'バンは1回に{n}個まで運べます。',
     slotFull: 'そのスロットは満杯です。',
     restocked: { one: '{n}個補充しました', other: '{n}個補充しました' },
     adRestocked: '補充しました。',
+    ordered: 'バンが配送中 · あと{time}',
     repaired: '修理完了',
     commission: '手数料は{pct}になりました',
   },

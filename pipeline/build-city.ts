@@ -36,6 +36,7 @@ import {
   type NamedPlace,
   type PlaceCategory,
   type RegionPack,
+  type Supplier,
 } from '../src/data/types';
 import type { RegionMeta } from '../workers/data-api/src/meta';
 import {
@@ -193,6 +194,16 @@ map('nightlife', [
 map('cafe', ['cafe', 'coffee', 'ice_cream', 'internet_cafe', 'bubble_tea']);
 map('restaurant', ['restaurant', 'food_court', 'bbq']);
 map('fastfood', ['fast_food']);
+/**
+ * POI kinds a delivery van can load at (SPEC §4.1 Service). Plain `wholesale`
+ * is left out: in OSM it is mostly furniture, clothing and other non-food trade.
+ */
+const SUPPLIER_KINDS: Record<string, Supplier['kind']> = {
+  cash_and_carry: 'wholesale',
+  supermarket: 'supermarket',
+};
+const MAX_SUPPLIERS = 400;
+
 const SHOP_KINDS = [
   'supermarket',
   'mall',
@@ -452,6 +463,7 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
   const { pm, close } = await openArchive(file);
   const header = await pm.getHeader();
   const places: Place[] = [];
+  const suppliers: Supplier[] = [];
   const buildings: { lat: number; lng: number; pop: number; officeM2: number; m2: number }[] = [];
   const heights: number[] = [];
 
@@ -473,6 +485,12 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
         // Vending machines are named after their operator/brand in OSM: keep them
         // as (unnamed) competitors so no brand names reach the game (CLAUDE.md).
         const name = kind === 'vending_machine' ? null : nameOf(f.properties);
+        const supplierKind = SUPPLIER_KINDS[kind];
+        if (supplierKind && name) {
+          const [lng, lat] = tilePointToLngLat(Z, tx, ty, f.extent, p);
+          const id = osmIdFromFeatureId(f.id) ?? `osm:z${Z}/${tx}/${ty}/s${suppliers.length}`;
+          suppliers.push({ id, name, kind: supplierKind, lat: r5(lat), lng: r5(lng) });
+        }
         const category = categorize(kind, name);
         if (!category) continue;
         const [lng, lat] = tilePointToLngLat(Z, tx, ty, f.extent, p);
@@ -644,6 +662,15 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
 
   let cap = MAX_NAMED_PER_CATEGORY;
   let cells = buildCells(cap);
+  // Delivery vans load at the nearest wholesaler or supermarket (wholesalers first).
+  const packSuppliers = suppliers
+    .sort(
+      (a, b) =>
+        (a.kind === b.kind ? 0 : a.kind === 'wholesale' ? -1 : 1) ||
+        distM(city.lat, city.lng, a.lat, a.lng) - distM(city.lat, city.lng, b.lat, b.lng) ||
+        a.id.localeCompare(b.id),
+    )
+    .slice(0, MAX_SUPPLIERS);
   const pack = (): RegionPack => ({
     schemaVersion: 1,
     cityId: city.id,
@@ -655,6 +682,7 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
       'Population: estimated from OpenStreetMap building footprints and heights (Coinline pipeline v1)',
     ],
     cells,
+    suppliers: packSuppliers,
   });
   let gz = gzipSync(JSON.stringify(pack()), { level: 9 });
   while (gz.byteLength > MAX_PACK_BYTES && cap > 1) {

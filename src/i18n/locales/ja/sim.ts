@@ -4,6 +4,9 @@ import type en from '../en/sim';
 
 export default {
   errors: {
+    vanOnItsWay: 'すでにバンが向かっています。',
+    vansOut: 'バンはすべて出払っています。',
+    pickRestock: '補充するものを選んでください。',
     pickMachine: '自販機を選んでください。',
     pickTerm: '契約期間を選んでください。',
     typeLocked: '{type}はまだロック中です。',
@@ -110,6 +113,7 @@ export default {
     allOrdersDone: '全注文達成：{n}日連続',
     trophy: 'トロフィー：{title}',
     restocked: '{n}個補充',
+    vanOut: '{n}個を載せたバンが出発',
     instantRestock: '即補充（報酬）',
     freePull: '金庫から無料ガチャ',
     collected: '売上を回収',

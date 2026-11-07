@@ -6,7 +6,7 @@ import type { CityId } from '@/config/cities';
 import { CONTRACT, RIVAL } from '@/config/economy';
 import { SURPRISES } from '@/config/surprises';
 import { REQUESTS } from '@/config/requests';
-import { placeMachine, restockMachine, rollRequest, suggestRestock } from '@/sim';
+import { orderRestock, placeMachine, restockMachine, rollRequest, suggestRestock } from '@/sim';
 import { offsetPoint } from '@/sim/geo';
 import { cityInfoFor, useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
@@ -36,6 +36,7 @@ export default function Qa() {
     stings,
     rivalCard,
     requests,
+    van,
   } = useLocalSearchParams<{
     city?: string;
     to?: string;
@@ -63,6 +64,8 @@ export default function Qa() {
     rivalCard?: string;
     /** Customer requests to start right away (one per machine, up to the open cap). */
     requests?: string;
+    /** Order the first machine's restock as a van delivery instead of filling it at once. */
+    van?: string;
   }>();
   const [note, setNote] = useState('Seeding…');
 
@@ -97,7 +100,9 @@ export default function Qa() {
             exclusive: false,
           } as Parameters<typeof placeMachine>[2]);
           if (r.ok) {
-            if (!stockOnly || Number(stockOnly) === placed + 1)
+            if (van && placed === 0)
+              orderRestock(d, world, r.machine.id, suggestRestock(d, r.machine.id));
+            else if (!stockOnly || Number(stockOnly) === placed + 1)
               restockMachine(d, world, r.machine.id, suggestRestock(d, r.machine.id, 10_000), {
                 manual: true,
                 capacity: 10_000,
@@ -159,8 +164,14 @@ export default function Qa() {
           },
           7000 + i * 4000,
         );
-      if (focusAt)
-        setTimeout(() => router.setParams({ focus: focusAt }), Number(focusAfter) || 3000);
+      if (focusAt) {
+        // 'first' = the first placed machine.
+        const id =
+          focusAt === 'first'
+            ? useGame.getState().game?.machines.find((m) => m.status === 'active')?.id
+            : focusAt;
+        setTimeout(() => router.setParams({ focus: id }), Number(focusAfter) || 3000);
+      }
       const n = Math.max(0, Math.min(10, Number(sales) || 0));
       for (let i = 0; i < n; i++)
         setTimeout(
@@ -190,6 +201,7 @@ export default function Qa() {
     stings,
     rivalCard,
     requests,
+    van,
   ]);
 
   if (!__DEV__) return <Redirect href="/" />;

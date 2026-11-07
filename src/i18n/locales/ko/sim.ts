@@ -4,6 +4,9 @@ import type en from '../en/sim';
 
 export default {
   errors: {
+    vanOnItsWay: '이미 밴이 가고 있어요.',
+    vansOut: '모든 밴이 나가 있어요.',
+    pickRestock: '채울 상품을 고르세요.',
     pickMachine: '자판기를 고르세요.',
     pickTerm: '계약 기간을 고르세요.',
     typeLocked: '{type}은(는) 잠겨 있어요.',
@@ -111,6 +114,7 @@ export default {
     allOrdersDone: '모든 주문 완료: {n}일 연속',
     trophy: '트로피: {title}',
     restocked: '상품 {n}개 보충',
+    vanOut: '{n}개를 실은 밴 출발',
     instantRestock: '즉시 보충 (보상)',
     freePull: '돈통에서 무료 뽑기',
     collected: '현금 수금',

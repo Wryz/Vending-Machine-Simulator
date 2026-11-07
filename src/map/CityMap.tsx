@@ -53,6 +53,7 @@ import {
 } from './machinePins';
 import { PIN_ICON_OFFSET, PIN_IMAGES, PIN_SIZE } from './pinImages';
 import { SalePops, type SalePop } from './life/SalePops';
+import { DeliveryVans } from './DeliveryVans';
 import { RequestBubbles } from './RequestBubbles';
 import { SurpriseMarkers } from './SurpriseMarkers';
 import { StreetLifeLayer, type LifeStats, type StreetLifeHandle } from './life/StreetLifeLayer';
@@ -853,6 +854,8 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         machineHeightPt={machineHeightPt(view.zoom, world.city.lat)}
         onDealPress={props.onDealPress}
       />
+      {/* Restock vans driving from the store to the machine. */}
+      <DeliveryVans game={game} zoom={view.zoom} />
       {/* Customer requests: what someone nearby wants from this machine. */}
       <RequestBubbles
         game={game}

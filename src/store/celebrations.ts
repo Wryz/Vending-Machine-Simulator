@@ -27,7 +27,7 @@ export interface Moment {
   /** Small heading over the title (defaults to the kind's label). */
   label?: string;
   /** Icon in the disc (surprises); rival cards show the owner's portrait. */
-  icon?: 'vip' | 'jackpot' | 'deal' | 'request';
+  icon?: 'vip' | 'jackpot' | 'deal' | 'request' | 'delivery';
   /** One key on the card (e.g. accept a venue deal); pressing it also dismisses. */
   action?: { label: string; run: () => void };
   /** How long it stays up (ms), when not the kind's default. */

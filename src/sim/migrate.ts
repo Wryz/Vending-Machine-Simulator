@@ -46,6 +46,8 @@ const MIGRATIONS: Record<number, Migration> = {
   },
   // v7: customer requests (SPEC §4.6).
   6: (s) => ({ ...s, requests: emptyRequests(), schemaVersion: 7 }),
+  // v8: restock deliveries (vans on the road).
+  7: (s) => ({ ...s, deliveries: [], schemaVersion: 8 }),
 };
 
 export class SaveError extends Error {}

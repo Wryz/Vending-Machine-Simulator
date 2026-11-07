@@ -66,6 +66,15 @@ export interface CellData {
   isolation: number;
 }
 
+/** A store a delivery van loads at: a wholesaler or a supermarket (real name, no logo). */
+export interface Supplier {
+  id: string;
+  name: string;
+  kind: 'wholesale' | 'supermarket';
+  lat: number;
+  lng: number;
+}
+
 export interface RegionPack {
   schemaVersion: 1;
   /** Fallback city id, or undefined for a "your area" region. */
@@ -78,6 +87,8 @@ export interface RegionPack {
   /** Human-readable data sources for the credits screen. */
   sources: string[];
   cells: CellData[];
+  /** Wholesalers and supermarkets that delivery vans load at (packs from 2026-11-07 on). */
+  suppliers?: Supplier[];
 }
 
 export interface AreaCheckResponse {

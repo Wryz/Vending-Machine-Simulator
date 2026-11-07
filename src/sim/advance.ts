@@ -29,6 +29,7 @@ import { bump, checkAchievements, rollGoalsDay } from './goals';
 import { orderStops } from './geo';
 import { addLedger, log, rollLedgerDay } from './ledger';
 import { rankingsStep, type RankBoard } from './rankings';
+import { arriveDeliveries, type DeliveryNews } from './deliveries';
 import { rollRequest, serveRequests, type RequestNews } from './requests';
 import { happens, nextRandom, poisson } from './rng';
 import {
@@ -94,6 +95,8 @@ export interface AdvanceReport {
   surprises: SurpriseNews[];
   /** Customer requests: new ones (live play only), served and given up. */
   requests: RequestNews[];
+  /** Restock vans that arrived (or brought the stock back). */
+  deliveries: DeliveryNews[];
   /** The latest nightly ranking board taken during this advance (one per advance). */
   rankUpdate?: RankBoard;
 }
@@ -134,6 +137,7 @@ function newReport(from: number): AdvanceReport {
     stings: [],
     surprises: [],
     requests: [],
+    deliveries: [],
   };
 }
 
@@ -687,6 +691,8 @@ export function beginAdvance(
     rollGoalsDay(s, local.dateKey);
     const evBefore = s.events.length;
     maintainEvents(s, world, tMid);
+    // Vans that arrive in this step's first half stock up before it sells.
+    for (const news of arriveDeliveries(s, tMid)) report.deliveries.push(news);
     for (let i = evBefore; i < s.events.length; i++) report.events.push(s.events[i].name);
     const weather = world.weatherAt(tMid);
     const bh = businessHours(dt);
