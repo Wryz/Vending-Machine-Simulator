@@ -43,9 +43,11 @@ import { Icon, type IconName } from '../icons';
 import { Button, Mono, Paper, Row, T } from '../kit';
 import { hasTelemetry, machineStatus } from '../machineStatus';
 import { CoinTray } from '../objects/CoinTray';
+import { MachineWindow } from './MachineWindow';
 import { statusLabel } from '../objects/KeyTag';
 import { PRODUCT_IMAGES } from '../productImages';
-import { Glass, Key, Led, Marquee, SKIN } from '../skin';
+import { GuideLine, Pulse, useTutorialStep } from '../guide';
+import { Key, Led, Marquee, SKIN } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { SPACE, TOUCH } from '../theme';
 
@@ -107,6 +109,7 @@ export function MachinePanel({
   const adBusy = useRef(false);
   /** Specs and the less common actions stay folded away until asked for. */
   const [more, setMore] = useState(false);
+  const step = useTutorialStep();
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = (ms: number, fn: () => void) => {
     timers.current.push(setTimeout(fn, ms));
@@ -130,6 +133,17 @@ export function MachinePanel({
   const plannedCost = planned.length ? restockCostCents(game, planned) : 0;
   const allowed = productsFor(game, type);
   const canPrice = !!game.chapterDoneAt[1] || game.chapter >= 2;
+  // Tutorial: what to press next on this machine (and pulse that key).
+  const guide: { text: string; key: 'fill' | 'restock' | 'collect' | null } | null =
+    step === 'stock'
+      ? plannedUnits
+        ? { text: t('coach.guide.restock'), key: 'restock' }
+        : { text: t('coach.guide.fill'), key: 'fill' }
+      : step === 'wait' && machine.slots.some((x) => x.qty > 0)
+        ? { text: t('coach.guide.wait'), key: null }
+        : step === 'collect' && machine.cashBoxCents > 0 && !coins
+          ? { text: t('coach.guide.collect'), key: 'collect' }
+          : null;
 
   const doCollect = () => {
     if (collecting) return;
@@ -331,29 +345,34 @@ export function MachinePanel({
 
       {coins ? <CoinTray grossCents={coins.gross} commissionCents={coins.commission} /> : null}
 
+      {guide ? <GuideLine text={guide.text} /> : null}
+
       {/* The two jobs: take the cash, refill the coils. */}
       <Row gap={SPACE.s}>
-        <Button
-          label={
-            coins
-              ? t('machinePanel.actions.collected')
-              : collecting
-                ? '…'
-                : t('machinePanel.actions.collect', { amount: moneyShort(machine.cashBoxCents) })
-          }
-          icon={<Icon name="coin" size={20} color={coins ? theme.ink : theme.onBrand} />}
-          kind={coins ? 'secondary' : 'primary'}
-          disabled={!!coins || collecting}
-          onPress={doCollect}
-          style={{ flex: 1 }}
-        />
-        <Button
-          label={t('machinePanel.actions.fill')}
-          icon={<Icon name="box" size={20} color={theme.ink} />}
-          kind="secondary"
-          onPress={fillAll}
-          accessibilityHint={t('machinePanel.actions.fillHint', { n: van })}
-        />
+        <Pulse on={guide?.key === 'collect'} style={{ flex: 1 }}>
+          <Button
+            label={
+              coins
+                ? t('machinePanel.actions.collected')
+                : collecting
+                  ? '…'
+                  : t('machinePanel.actions.collect', { amount: moneyShort(machine.cashBoxCents) })
+            }
+            icon={<Icon name="coin" size={20} color={coins ? theme.ink : theme.onBrand} />}
+            kind={coins ? 'secondary' : 'primary'}
+            disabled={!!coins || collecting}
+            onPress={doCollect}
+          />
+        </Pulse>
+        <Pulse on={guide?.key === 'fill'}>
+          <Button
+            label={t('machinePanel.actions.fill')}
+            icon={<Icon name="box" size={20} color={theme.ink} />}
+            kind="secondary"
+            onPress={fillAll}
+            accessibilityHint={t('machinePanel.actions.fillHint', { n: van })}
+          />
+        </Pulse>
         {!removeAds && adsAvailable() ? (
           <Button
             label={t('machinePanel.actions.adRestock')}
@@ -367,18 +386,19 @@ export function MachinePanel({
       </Row>
       {plannedUnits ? (
         <Row gap={SPACE.s}>
-          <Button
-            label={t('machinePanel.actions.restock', {
-              n: plannedUnits,
-              cost: moneyShort(plannedCost),
-            })}
-            icon={<Icon name="box" size={20} color={theme.onBrand} />}
-            onPress={commitRestock}
-            style={{ flex: 1 }}
-            accessibilityHint={t('machinePanel.actions.restockHint', {
-              pct: Math.round(SERVICE.freshStockBonus * 100),
-            })}
-          />
+          <Pulse on={guide?.key === 'restock'} style={{ flex: 1 }}>
+            <Button
+              label={t('machinePanel.actions.restock', {
+                n: plannedUnits,
+                cost: moneyShort(plannedCost),
+              })}
+              icon={<Icon name="box" size={20} color={theme.onBrand} />}
+              onPress={commitRestock}
+              accessibilityHint={t('machinePanel.actions.restockHint', {
+                pct: Math.round(SERVICE.freshStockBonus * 100),
+              })}
+            />
+          </Pulse>
           <Button
             label={t('machinePanel.actions.clear')}
             hideLabel
@@ -390,67 +410,33 @@ export function MachinePanel({
         </Row>
       ) : null}
 
-      {/* Coils behind the glass: product color, fill level, price. */}
-      <Glass padding={SPACE.s}>
-        <View style={styles.grid}>
-          {machine.slots.map((s, i) => {
-            const p = plan[i];
-            const pid = p?.productId ?? s.productId;
-            const qty = p ? (s.productId === p.productId ? s.qty : 0) + p.qty : s.qty;
-            const shownQty = live || p ? qty : (machine.seen.qty[i] ?? s.qty);
-            const color = pid ? getProduct(pid).color : theme.line;
-            return (
-              <Pressable
-                key={i}
-                accessibilityRole="button"
-                accessibilityLabel={t('machinePanel.a11y.slot', {
-                  slot: i + 1,
-                  product: pid ? getProduct(pid).name : t('machinePanel.a11y.slotEmpty'),
-                  qty: shownQty,
-                  cap,
-                })}
-                accessibilityState={{ selected: selected === i }}
-                onPress={() => setSelected(i)}
-                style={[styles.slotCell, { width: `${100 / Math.min(5, type.grid.cols)}%` }]}
-              >
-                <View
-                  style={[
-                    styles.slot,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: selected === i ? theme.brand : 'transparent',
-                    },
-                  ]}
-                >
-                  {/* The product itself on its coil, faded when the coil is empty. */}
-                  <View style={styles.coil}>
-                    {pid && PRODUCT_IMAGES[pid] ? (
-                      <Image
-                        source={PRODUCT_IMAGES[pid]}
-                        style={{ width: '100%', height: '100%', opacity: shownQty ? 1 : 0.25 }}
-                        resizeMode="contain"
-                      />
-                    ) : null}
-                  </View>
-                  <View style={[styles.fill, { backgroundColor: theme.line }]}>
-                    <View
-                      style={{
-                        width: `${Math.round((shownQty / cap) * 100)}%`,
-                        height: '100%',
-                        backgroundColor: p ? SKIN.ledAmber : color,
-                        borderRadius: 3,
-                      }}
-                    />
-                  </View>
-                  <Mono size={12} weight="bold" center>
-                    {pid ? moneyPrice(s.priceCents || getProduct(pid).suggestedCents) : '—'}
-                  </Mono>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      </Glass>
+      {/* The machine with its door open: products in their coils, front to back. */}
+      <MachineWindow
+        cols={type.grid.cols}
+        cap={cap}
+        selected={selected}
+        onSelect={setSelected}
+        slots={machine.slots.map((s, i) => {
+          const p = plan[i];
+          const pid = p?.productId ?? s.productId;
+          const known = live || p ? s.qty : (machine.seen.qty[i] ?? s.qty);
+          // A plan with another product replaces what is in the coil.
+          const qty = p && s.productId !== p.productId ? 0 : known;
+          const planned = p?.qty ?? 0;
+          return {
+            productId: pid,
+            qty,
+            planned,
+            price: pid ? moneyPrice(s.priceCents || getProduct(pid).suggestedCents) : '',
+            accessibilityLabel: t('machinePanel.a11y.slot', {
+              slot: i + 1,
+              product: pid ? getProduct(pid).name : t('machinePanel.a11y.slotEmpty'),
+              qty: qty + planned,
+              cap,
+            }),
+          };
+        })}
+      />
 
       {selected !== null && sel ? (
         <Paper tone="surface" style={{ gap: SPACE.m }}>
@@ -754,11 +740,6 @@ export { shortDuration };
 
 const styles = StyleSheet.create({
   mood: { width: 44, height: 8, borderRadius: 4, overflow: 'hidden' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
-  slotCell: { padding: 4 },
-  slot: { padding: 6, borderRadius: 14, gap: 4, borderWidth: 2 },
-  coil: { height: 46, alignItems: 'center', justifyContent: 'center' },
-  fill: { height: 6, borderRadius: 3, overflow: 'hidden' },
   stepper: {
     width: TOUCH + 4,
     height: TOUCH + 4,

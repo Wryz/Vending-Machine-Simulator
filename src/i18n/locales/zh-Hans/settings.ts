@@ -40,6 +40,9 @@ export default {
   feel: {
     haptics: '触感反馈',
     hapticsDetail: '硬币滴答声和商品落下的咚声',
+    tutorial: '再看一次教程',
+    tutorialDetail: '重新打开分步帮助和提示',
+    tutorialDone: '教程提示已重新打开',
   },
   notifications: {
     label: '通知',

@@ -50,6 +50,7 @@ import { LockedCard, StatChip } from '@/ui/hud';
 import { Icon } from '@/ui/icons';
 import { PermitCard } from '@/ui/objects/small';
 import { SPACE, TOUCH } from '@/ui/theme';
+import { FirstTip } from '@/ui/guide';
 
 const FAMILIES = Object.keys(FAMILY_LABEL) as MachineFamily[];
 
@@ -281,6 +282,7 @@ export default function Company() {
         title={t('company.title')}
         subtitle={t('company.subtitle', { city: world.city.name })}
       >
+        <FirstTip id="company" />
         {/* Chapter progress */}
         <Section title={t('company.chapter.section', { n: game.chapter })}>
           <Paper tone="surface">

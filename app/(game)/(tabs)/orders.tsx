@@ -14,6 +14,7 @@ import { StatChip } from '@/ui/hud';
 import { Icon } from '@/ui/icons';
 import { Button, Mono, Paper, ProgressBar, Row, Screen, Section, T } from '@/ui/kit';
 import { SPACE } from '@/ui/theme';
+import { FirstTip } from '@/ui/guide';
 
 function label(g: DailyGoal): string {
   const n = g.kind === 'sales' ? moneyShort(g.target) : g.target.toLocaleString(t.lang);
@@ -63,6 +64,7 @@ export default function Orders() {
 
   return (
     <Screen tab title={t('orders.title')}>
+      <FirstTip id="orders" />
       <Row style={{ flexWrap: 'wrap' }}>
         <StatChip
           icon="flame"

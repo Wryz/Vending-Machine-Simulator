@@ -8,6 +8,7 @@ import { money, moneyShort } from '@/ui/format';
 import { Mono, Paper, Row, Screen, T } from '@/ui/kit';
 import { Led, SKIN } from '@/ui/skin';
 import { RADIUS, SPACE } from '@/ui/theme';
+import { FirstTip } from '@/ui/guide';
 
 /** One operator on the board: place in a small LED, name, this week's sales. */
 function BoardRow({ entry, place }: { entry: RankEntry; place: number }) {
@@ -105,6 +106,7 @@ export default function Rankings() {
       title={t('rankings.title')}
       subtitle={t('rankings.subtitle', { city: world.city.name })}
     >
+      <FirstTip id="rankings" />
       {/* The big LED: your place, how it moved overnight, your sales this week. */}
       <View
         style={{

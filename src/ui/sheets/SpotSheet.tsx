@@ -5,6 +5,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 import { getMachineType, type MachineTypeId } from '@/config/machines';
 import { SHEET_OPEN_SHARE } from '@/config/map';
 import { CATEGORY_LABEL } from '@/config/places';
+import { TUTORIAL } from '@/config/tutorial';
 import type { PlaceCategory } from '@/data/types';
 import { useT } from '@/i18n';
 import { content } from '@/i18n/content';
@@ -26,6 +27,7 @@ import { Icon } from '../icons';
 import { Glass, Led, Marquee, Plate, SKIN } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { RADIUS, SPACE } from '../theme';
+import { GuideLine, Pulse, useTutorialStep } from '../guide';
 import { GameSheet, SheetScroll, type GameSheetHandle } from './GameSheet';
 
 export interface SpotPoint {
@@ -99,6 +101,20 @@ function SpotBody({
   const rating = Math.round(spot.rating);
   const canPlace = !spot.districtLocked && !spot.blocked;
   const placingOwned = !!stored && stored.typeId === typeId;
+  const place = () =>
+    router.push({
+      pathname: '/place',
+      params: {
+        lat: String(point.lat),
+        lng: String(point.lng),
+        typeId,
+        machineId: placingOwned ? stored.id : '',
+        placeId: spot.venue.placeId,
+      },
+    });
+  // Tutorial: say whether this is a good first spot, with a Place key up top.
+  const guiding = useTutorialStep() === 'place';
+  const quiet = spot.rating < TUTORIAL.quietBelowStars;
 
   const report = (id: string, name: string) =>
     Alert.alert(t('spotSheet.reportAlert.title'), t('spotSheet.reportAlert.body', { name }), [
@@ -136,6 +152,17 @@ function SpotBody({
           ))}
         </Row>
       </View>
+
+      {guiding && canPlace ? (
+        quiet ? (
+          <GuideLine text={t('coach.guide.spotQuiet')} />
+        ) : (
+          <GuideLine
+            text={t('coach.guide.spotGood')}
+            action={{ label: t('coach.guide.placeKey'), onPress: place }}
+          />
+        )
+      ) : null}
 
       <Row gap={SPACE.s}>
         <View style={{ flex: 1, gap: 4 }}>
@@ -218,26 +245,17 @@ function SpotBody({
 
       {spot.districtLocked ? <T color={theme.alert}>{t('spotSheet.districtLocked')}</T> : null}
       {spot.blocked ? <T color={theme.alert}>{simError(spot.blocked)}</T> : null}
-      <Button
-        label={
-          placingOwned
-            ? t('spotSheet.placeMine')
-            : t('spotSheet.placeType', { type: typeName(typeId) })
-        }
-        disabled={!canPlace}
-        onPress={() =>
-          router.push({
-            pathname: '/place',
-            params: {
-              lat: String(point.lat),
-              lng: String(point.lng),
-              typeId,
-              machineId: placingOwned ? stored.id : '',
-              placeId: spot.venue.placeId,
-            },
-          })
-        }
-      />
+      <Pulse on={guiding && canPlace && !quiet}>
+        <Button
+          label={
+            placingOwned
+              ? t('spotSheet.placeMine')
+              : t('spotSheet.placeType', { type: typeName(typeId) })
+          }
+          disabled={!canPlace}
+          onPress={place}
+        />
+      </Pulse>
 
       <View style={{ gap: SPACE.s }}>
         <Plate>{t('spotSheet.nearby')}</Plate>

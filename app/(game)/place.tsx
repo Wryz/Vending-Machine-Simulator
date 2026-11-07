@@ -16,6 +16,7 @@ import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
 import { money, pct } from '@/ui/format';
 import { Chip, Mono, Row, Section, T, Toast } from '@/ui/kit';
+import { GuideLine, useTutorialStep } from '@/ui/guide';
 import { ContractSheet } from '@/ui/objects/ContractSheet';
 import { SPACE } from '@/ui/theme';
 
@@ -43,6 +44,7 @@ export default function Place() {
   const [termDays, setTermDays] = useState<number>(30);
   const [exclusive, setExclusive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const guiding = useTutorialStep() === 'place';
   const lat = Number(p.lat);
   const lng = Number(p.lng);
 
@@ -102,6 +104,7 @@ export default function Place() {
         gap: SPACE.l,
       }}
     >
+      {guiding && afford ? <GuideLine text={t('coach.guide.sign')} /> : null}
       <Section title={t('place.section.term')}>
         <Row>
           {CONTRACT.termsDays.map((d) => (
@@ -159,6 +162,7 @@ export default function Place() {
         ]}
         disclaimer={t('place.disclaimer')}
         disabled={!afford}
+        showHow={guiding}
         onSign={sign}
       />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

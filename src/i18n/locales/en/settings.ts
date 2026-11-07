@@ -42,6 +42,10 @@ export default {
   feel: {
     haptics: 'Haptics',
     hapticsDetail: 'Coin ticks and product thunks',
+    /** Button: turn the guided tutorial and the one-time screen tips back on. */
+    tutorial: 'Show the tutorial again',
+    tutorialDetail: 'Turns the step-by-step help and screen tips back on',
+    tutorialDone: 'Tutorial tips are back on',
   },
   notifications: {
     label: 'Notifications',

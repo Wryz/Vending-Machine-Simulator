@@ -1,0 +1,310 @@
+import { useEffect, useState } from 'react';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { Keyframe } from 'react-native-reanimated';
+import Svg, { Ellipse, Path } from 'react-native-svg';
+
+import { MACHINE_WINDOW as W } from '@/config/machines';
+
+import { Mono } from '../kit';
+import { PRODUCT_IMAGES } from '../productImages';
+import { SKIN } from '../skin';
+import { SPACE } from '../theme';
+
+export interface WindowSlot {
+  productId: string | null;
+  /** Units in the coil (as far as the player knows). */
+  qty: number;
+  /** Units planned to go in (shown see-through at the back until loaded). */
+  planned: number;
+  /** Price label under the coil. */
+  price: string;
+  accessibilityLabel: string;
+}
+
+/** Coils drawn for this many units of a coil's capacity (at least one when not empty). */
+function shown(units: number, cap: number): number {
+  if (units <= 0) return 0;
+  return Math.min(W.depth, Math.max(1, Math.round((units / Math.max(1, cap)) * W.depth)));
+}
+
+/**
+ * The machine with its door open (SPEC §3.6): a shelf per row, a spiral coil
+ * per slot, and the products in each coil one behind another, smaller and
+ * dimmer towards the back. A fuller coil shows more products. Planned
+ * restocks wait see-through at the back; once loaded they slide in from the
+ * back. Tap a coil to pick it (product and price).
+ */
+export function MachineWindow({
+  slots,
+  cols,
+  cap,
+  selected,
+  onSelect,
+}: {
+  slots: WindowSlot[];
+  cols: number;
+  cap: number;
+  selected: number | null;
+  onSelect: (slot: number) => void;
+}) {
+  const [width, setWidth] = useState(0);
+  // Products already in the coils when the window opens don't animate in.
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setLive(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const inner = Math.max(0, width - SPACE.s * 2);
+  const cellW = inner / Math.max(1, cols);
+  const size = Math.min(W.productMaxPt, cellW * W.productShare);
+  const rise = size * W.risePerStep;
+  const cellH = Math.round(size + rise * (W.depth - 1) + size * 0.32);
+  const rows: WindowSlot[][] = [];
+  for (let i = 0; i < slots.length; i += cols) rows.push(slots.slice(i, i + cols));
+
+  return (
+    <View style={styles.frame} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      <View style={styles.interior}>
+        {/* The light strip along the top of the cabinet. */}
+        <View style={styles.light} />
+        {width > 0
+          ? rows.map((row, r) => (
+              <View key={r}>
+                <View style={{ flexDirection: 'row', height: cellH }}>
+                  {row.map((slot, c) => {
+                    const i = r * cols + c;
+                    return (
+                      <Coil
+                        key={i}
+                        slot={slot}
+                        cap={cap}
+                        width={cellW}
+                        height={cellH}
+                        size={size}
+                        rise={rise}
+                        selected={selected === i}
+                        animate={live}
+                        onPress={() => onSelect(i)}
+                      />
+                    );
+                  })}
+                </View>
+                {/* Shelf edge: slot code and price under each coil. */}
+                <View style={styles.shelf}>
+                  {row.map((slot, c) => {
+                    const i = r * cols + c;
+                    const on = selected === i;
+                    return (
+                      <View key={i} style={{ width: cellW, alignItems: 'center' }}>
+                        <View style={[styles.tag, on ? styles.tagOn : null]}>
+                          <Mono size={9} weight="bold" color={on ? '#FFFFFF' : '#8A8FA8'}>
+                            {String.fromCharCode(65 + r)}
+                            {c + 1}
+                          </Mono>
+                          <Mono size={12} weight="bold" color={on ? '#FFFFFF' : SKIN.ledGreen}>
+                            {slot.productId ? slot.price : '—'}
+                          </Mono>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ))
+          : null}
+      </View>
+    </View>
+  );
+}
+
+function Coil({
+  slot,
+  cap,
+  width,
+  height,
+  size,
+  rise,
+  selected,
+  animate,
+  onPress,
+}: {
+  slot: WindowSlot;
+  cap: number;
+  width: number;
+  height: number;
+  size: number;
+  rise: number;
+  selected: boolean;
+  animate: boolean;
+  onPress: () => void;
+}) {
+  const real = shown(slot.qty, cap);
+  const total = Math.max(real, shown(slot.qty + slot.planned, cap));
+  const image = slot.productId ? PRODUCT_IMAGES[slot.productId] : undefined;
+  const base = height - size * 0.14;
+  // Depth step k: 0 = front. Scale, bottom edge and dimming for each.
+  const at = (k: number) => {
+    const s = 1 - k * W.shrinkPerStep;
+    return { s, bottom: base - k * rise, dim: 1 - k * W.dimPerStep };
+  };
+  const loop = (k: number) => {
+    const { s, bottom } = at(k);
+    return {
+      cx: width / 2,
+      cy: bottom - size * s * 0.06,
+      rx: size * s * 0.52,
+      ry: size * s * 0.13,
+    };
+  };
+  const front = loop(0);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={slot.accessibilityLabel}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={{ width, height }}
+    >
+      {selected ? <View pointerEvents="none" style={styles.selected} /> : null}
+      {/* The spiral, back loops first. */}
+      <Svg pointerEvents="none" style={StyleSheet.absoluteFill}>
+        {Array.from({ length: W.depth }, (_, j) => W.depth - 1 - j).map((k) => {
+          const l = loop(k);
+          return (
+            <Ellipse
+              key={k}
+              cx={l.cx}
+              cy={l.cy}
+              rx={l.rx}
+              ry={l.ry}
+              stroke="#C9CEDD"
+              strokeOpacity={0.85 - k * 0.1}
+              strokeWidth={1.6}
+              fill="none"
+            />
+          );
+        })}
+      </Svg>
+      {/* Products, back to front, each in its loop. */}
+      {image
+        ? Array.from({ length: total }, (_, j) => total - 1 - j).map((k) => {
+            const { s, bottom, dim } = at(k);
+            const ghost = k >= real;
+            const px = size * s;
+            return (
+              <View
+                key={`${k}-${ghost ? 'g' : 'r'}`}
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: (width - px) / 2,
+                  top: bottom - px,
+                  width: px,
+                  height: px,
+                }}
+              >
+                <Animated.View
+                  entering={animate && !ghost ? loadIn(k, rise) : undefined}
+                  style={{ flex: 1, opacity: ghost ? W.plannedOpacity * dim : 1 }}
+                >
+                  <Image source={image} style={styles.product} resizeMode="contain" />
+                  {/* Further back is in shadow: a solid shade, not see-through. */}
+                  {k > 0 && !ghost ? (
+                    <Image
+                      source={image}
+                      style={[styles.product, styles.shade, { opacity: 1 - dim }]}
+                      resizeMode="contain"
+                      tintColor={INTERIOR}
+                    />
+                  ) : null}
+                </Animated.View>
+              </View>
+            );
+          })
+        : null}
+      {/* The front of the first loop passes in front of the front product. */}
+      <Svg pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Path
+          d={`M ${front.cx - front.rx} ${front.cy} A ${front.rx} ${front.ry} 0 0 0 ${front.cx + front.rx} ${front.cy}`}
+          stroke="#E4E7F0"
+          strokeWidth={2}
+          fill="none"
+        />
+      </Svg>
+    </Pressable>
+  );
+}
+
+/** A loaded product slides in from the back of the coil. */
+function loadIn(k: number, rise: number) {
+  return new Keyframe({
+    0: { opacity: 0, transform: [{ translateY: -rise * 2.5 }, { scale: 0.8 }] },
+    100: { opacity: 1, transform: [{ translateY: 0 }, { scale: 1 }] },
+  })
+    .duration(W.loadInMs)
+    .delay(k * W.loadStaggerMs);
+}
+
+/** The cabinet's inside (also the shade on products further back). */
+const INTERIOR = '#363B58';
+
+const styles = StyleSheet.create({
+  frame: {
+    borderRadius: 14,
+    padding: 6,
+    backgroundColor: SKIN.chrome,
+    borderBottomWidth: 4,
+    borderBottomColor: SKIN.chromeDark,
+  },
+  interior: {
+    borderRadius: 9,
+    paddingHorizontal: SPACE.s,
+    paddingBottom: SPACE.s,
+    paddingTop: SPACE.s + 6,
+    backgroundColor: INTERIOR,
+    overflow: 'hidden',
+  },
+  light: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 6,
+    backgroundColor: '#FFF3D6',
+    opacity: 0.9,
+  },
+  shelf: {
+    flexDirection: 'row',
+    height: 24,
+    alignItems: 'center',
+    backgroundColor: '#D7DBE6',
+    borderRadius: 3,
+    borderBottomWidth: 3,
+    borderBottomColor: '#9EA4B8',
+    marginBottom: 4,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
+    paddingHorizontal: 5,
+    borderRadius: 4,
+    backgroundColor: '#1E2133',
+  },
+  tagOn: { backgroundColor: SKIN.brandFace },
+  selected: {
+    position: 'absolute',
+    left: 2,
+    right: 2,
+    top: 2,
+    bottom: 2,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: SKIN.brandFace,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  product: { width: '100%', height: '100%' },
+  shade: { position: 'absolute', left: 0, top: 0 },
+});

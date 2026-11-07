@@ -52,7 +52,9 @@ export type IconName =
   | 'map'
   | 'cube'
   | 'pin'
-  | 'trend';
+  | 'trend'
+  /** A pointing finger: "tap here" in the tutorial. */
+  | 'tap';
 
 export function Icon({
   name,
@@ -109,6 +111,16 @@ export function Icon({
         );
       case 'trend':
         return <Path d="M3.5 17l6-6 4 4 7-7.5M15 7.5h5.5V13" {...s} />;
+      case 'tap':
+        return (
+          <>
+            <Path
+              d="M9.5 13.5V5a1.75 1.75 0 0 1 3.5 0v6l4.6.9a2.2 2.2 0 0 1 1.7 2.6l-1 4.8a2.6 2.6 0 0 1-2.5 2.2H11a2.6 2.6 0 0 1-2-1l-3.3-4.3a1.6 1.6 0 0 1 2.4-2.1z"
+              {...s}
+            />
+            <Path d="M5.5 6.5a5.5 5.5 0 0 1 11.5-.5" {...s} />
+          </>
+        );
       case 'flame':
         return (
           <Path

@@ -33,6 +33,7 @@ import { Clipboard } from '@/ui/objects/Clipboard';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { STATUS_LABEL, statusColor } from '@/ui/objects/KeyTag';
 import { SPACE, TOUCH } from '@/ui/theme';
+import { FirstTip } from '@/ui/guide';
 
 const VAN_NAMES: readonly TKey[] = [
   'routes.vans.v0',
@@ -184,6 +185,7 @@ export default function Routes() {
         title={t('routes.title')}
         subtitle={t('routes.subtitle', { machines: active.length, drivers: game.drivers.length })}
       >
+        <FirstTip id="routes" />
         <Section title={t('routes.van.section')}>
           <Paper tone="surface" style={{ gap: SPACE.m }}>
             <Row style={{ justifyContent: 'space-between' }}>

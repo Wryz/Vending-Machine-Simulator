@@ -4,7 +4,7 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CAMERA, GLOBE, MACHINE_SHEET, MAP_TAP } from '@/config/map';
+import { CAMERA, GLOBE, MACHINE_SHEET, MAP_TAP, SHEET_OPEN_SHARE } from '@/config/map';
 import type { Feature } from '@/config/progression';
 import { useCityClock } from '@/hooks/useCityClock';
 import { useT } from '@/i18n';
@@ -16,6 +16,7 @@ import {
   featureUnlocked,
   localTime,
   nearbyPlaces,
+  suggestSpot,
   tutorialStep,
   visibleEvents,
 } from '@/sim';
@@ -32,6 +33,7 @@ import { useTheme } from '@/ui/ThemeProvider';
 import { CashPill, InfoPill, RoundButton } from '@/ui/hud';
 import { Button, T } from '@/ui/kit';
 import { Coach } from '@/ui/Coach';
+import { Pulse } from '@/ui/guide';
 import type { GameSheetHandle } from '@/ui/sheets/GameSheet';
 import { MachineSheet } from '@/ui/sheets/MachineSheet';
 import { RivalSheet } from '@/ui/sheets/RivalSheet';
@@ -404,6 +406,35 @@ export default function MapScreen() {
   const hint = params.placeMachineId ? t('map.placeHint') : null;
   const tutorialHidden = useProfile((s) => s.tutorialHidden);
   const coachStep = tutorialHidden ? null : tutorialStep(game);
+  // The coach card's helper key: it does the step's looking for the player.
+  const coachAction = () => {
+    const mine = activeMachines(game)[0];
+    if (coachStep === 'place') {
+      // Show where people walk, then pick a good spot near the view and open its card.
+      setHeat(true);
+      const cam = mapRef.current?.getCamera() ?? cameraNow.current;
+      const pick = suggestSpot(game, world, { lat: cam.center[1], lng: cam.center[0] }, game.now);
+      if (!pick) return;
+      mapRef.current?.flyTo(
+        {
+          center: [pick.lng, pick.lat],
+          zoom: Math.max(CAMERA.homeZoom + 1, cam.zoom),
+          pitch: topDown ? CAMERA.topDownPitch : CAMERA.homePitch,
+          bearing: topDown ? 0 : CAMERA.homeBearing,
+        },
+        CAMERA.flyDurationMs,
+        height * SHEET_OPEN_SHARE.spot * 0.5,
+      );
+      cancelMapPress();
+      setSpot({ lat: pick.lat, lng: pick.lng });
+      spotRef.current?.open();
+    } else if ((coachStep === 'stock' || coachStep === 'collect') && mine) {
+      onMachinePress(mine.id);
+    } else if (coachStep === 'wait' && mine) {
+      // Close enough to see people walk up and buy.
+      frameMachine(mine.id, 0);
+    }
+  };
   const unlocked = (f: Feature) => featureUnlocked(game, f);
   const company = unlocked('company');
   const tabBarHeight = useHud((s) => s.tabBarHeight);
@@ -491,12 +522,14 @@ export default function MapScreen() {
             onPress={toggleTopDown}
           />
         ) : null}
-        <RoundButton
-          icon="flame"
-          label={t('map.a11y.busyStreets')}
-          active={heat}
-          onPress={() => setHeat((h) => !h)}
-        />
+        <Pulse on={coachStep === 'place' && !heat && !spot} radius={24}>
+          <RoundButton
+            icon="flame"
+            label={t('map.a11y.busyStreets')}
+            active={heat}
+            onPress={() => setHeat((h) => !h)}
+          />
+        </Pulse>
       </View>
 
       {/* "My machines" key, bottom right above the tab bar (pinch to zoom). */}
@@ -528,6 +561,7 @@ export default function MapScreen() {
         <Coach
           step={coachStep}
           bottom={tabBarHeight + SPACE.m}
+          onAction={coachAction}
           onClose={() =>
             useProfile.getState().update((p) => {
               p.tutorialHidden = true;

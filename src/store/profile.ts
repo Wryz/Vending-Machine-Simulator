@@ -50,6 +50,8 @@ export interface Profile {
   seenFeatures?: string[];
   /** The player closed the first-machine tutorial. */
   tutorialHidden?: boolean;
+  /** One-time screen tips the player has dismissed (src/config/tutorial.ts FIRST_TIPS). */
+  tipsSeen?: string[];
   /** UI language (BCP 47), or null to follow the phone. */
   language?: string | null;
 }

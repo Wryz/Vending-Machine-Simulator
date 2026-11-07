@@ -1,4 +1,4 @@
-import { CATEGORY_LABEL } from '@/config/places';
+import { CATEGORY_LABEL, VENUE_CATEGORIES } from '@/config/places';
 import {
   getMachineType,
   MACHINE_TYPES,
@@ -6,6 +6,7 @@ import {
   type MachineTypeId,
 } from '@/config/machines';
 import { FIT, RISK } from '@/config/economy';
+import { TUTORIAL } from '@/config/tutorial';
 import { getProduct, PRODUCTS } from '@/config/products';
 import type { CellData, PlaceCategory } from '@/data/types';
 
@@ -242,4 +243,53 @@ export function availableMachineTypes(state: GameState, world: World) {
 
 export function productName(id: string | null): string {
   return id ? getProduct(id).name : 'Empty';
+}
+
+/**
+ * "Show me a good spot" for the tutorial: the spot near `near` (the map's
+ * center) expected to sell the most per day, in an open district and clear of
+ * every machine. It stands on a real venue when the cell has one (a hosted
+ * machine is easier to see). Null when nothing nearby is open.
+ */
+export function suggestSpot(
+  state: GameState,
+  world: World,
+  near: { lat: number; lng: number },
+  t: number,
+): { lat: number; lng: number; dailySalesCents: number } | null {
+  // Outside the open districts (e.g. panned far away): search from the center.
+  const from = districtUnlocked(state, districtOf(world, near)) ? near : world.city;
+  const typeId =
+    state.machines.find((m) => m.status === 'stored')?.typeId ?? state.machines[0]?.typeId;
+  if (!typeId) return null;
+  const local = localTime(t, world.city.timeZone, world.city.countryCode);
+  const taken = [...activeMachines(state), ...state.rival.machines];
+
+  const cells: { cell: CellData; point: { lat: number; lng: number }; traffic: number }[] = [];
+  for (const id of world.neighbors(world.cellOf(from.lat, from.lng), TUTORIAL.spotSearchRings)) {
+    const cell = world.cells.get(id);
+    if (!cell) continue;
+    const venue = cell.places
+      .filter(
+        (x) =>
+          (VENUE_CATEGORIES as readonly string[]).includes(x.category) &&
+          !state.hiddenPlaces.includes(x.id),
+      )
+      .sort((a, b) => distanceM(a, cell) - distanceM(b, cell))[0];
+    const point = venue ? { lat: venue.lat, lng: venue.lng } : { lat: cell.lat, lng: cell.lng };
+    if (!districtUnlocked(state, districtOf(world, point))) continue;
+    if (taken.some((m) => distanceM(m, point) < TUTORIAL.spotClearanceM)) continue;
+    let traffic = 0;
+    for (let h = 0; h < 24; h++) traffic += baseTraffic(cell, h + 0.5, local.restDay).total;
+    cells.push({ cell, point, traffic });
+  }
+
+  let best: { lat: number; lng: number; dailySalesCents: number } | null = null;
+  for (const c of cells.sort((a, b) => b.traffic - a.traffic).slice(0, TUTORIAL.spotCandidates)) {
+    const report = evaluateSpot(state, world, c.point, typeId, t);
+    if (report.blocked || report.districtLocked) continue;
+    if (!best || report.dailySalesCents > best.dailySalesCents)
+      best = { ...c.point, dailySalesCents: report.dailySalesCents };
+  }
+  return best;
 }

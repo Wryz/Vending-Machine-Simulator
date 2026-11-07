@@ -40,6 +40,9 @@ export default {
   feel: {
     haptics: 'Vibração',
     hapticsDetail: 'Tique das moedas e baque dos produtos',
+    tutorial: 'Ver o tutorial de novo',
+    tutorialDetail: 'Liga de novo a ajuda passo a passo e as dicas',
+    tutorialDone: 'As dicas do tutorial voltaram',
   },
   notifications: {
     label: 'Notificações',

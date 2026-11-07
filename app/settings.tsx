@@ -479,6 +479,19 @@ export default function SettingsScreen() {
               onChange={(v) => setSettings({ haptics: v })}
             />
           </Paper>
+          {/* The guided tutorial and the one-time screen tips, from the start. */}
+          <Button
+            kind="secondary"
+            label={t('settings.feel.tutorial')}
+            accessibilityHint={t('settings.feel.tutorialDetail')}
+            onPress={() => {
+              useProfile.getState().update((p) => {
+                p.tutorialHidden = false;
+                p.tipsSeen = [];
+              });
+              show(t('settings.feel.tutorialDone'), 'success');
+            }}
+          />
         </Section>
 
         <Section title={t('settings.sections.notifications')}>

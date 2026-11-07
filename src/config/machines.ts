@@ -458,3 +458,26 @@ export function getMachineType(id: MachineTypeId): MachineType {
 /** Alcohol rules per country (SPEC §14 Q4: follow local rules). */
 export const ALCOHOL_ALLOWED_COUNTRIES: readonly string[] = ['JP', 'KR', 'US', 'GB', 'FR', 'AU'];
 /** Singapore: strict limits — no alcohol vending in v1. */
+
+/**
+ * The open machine in the machine sheet: each coil shows its products one
+ * behind another, smaller and dimmer towards the back (UI only).
+ */
+export const MACHINE_WINDOW = {
+  /** Most products drawn in one coil; a fuller coil shows more of them. */
+  depth: 6,
+  /** Each product further back is this much smaller (share of the front one). */
+  shrinkPerStep: 0.075,
+  /** ...sits this much higher (share of the product size)... */
+  risePerStep: 0.14,
+  /** ...and this much dimmer. */
+  dimPerStep: 0.11,
+  /** Product size as a share of the coil's width (and at most this many pt). */
+  productShare: 0.64,
+  productMaxPt: 70,
+  /** Planned (not yet loaded) products show see-through at the back. */
+  plannedOpacity: 0.4,
+  /** Loaded products slide in from the back, one after another, ms. */
+  loadInMs: 260,
+  loadStaggerMs: 45,
+} as const;

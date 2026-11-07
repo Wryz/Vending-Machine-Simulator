@@ -40,6 +40,9 @@ export default {
   feel: {
     haptics: 'Haptik',
     hapticsDetail: 'Münzklicks und Produktplumpser',
+    tutorial: 'Tutorial erneut zeigen',
+    tutorialDetail: 'Schaltet die Schritt-für-Schritt-Hilfe und Tipps wieder ein',
+    tutorialDone: 'Tutorial-Tipps sind wieder an',
   },
   notifications: {
     label: 'Mitteilungen',

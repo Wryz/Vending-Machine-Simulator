@@ -12,6 +12,7 @@ import { Button, Paper, Row, Screen, Section, T } from '@/ui/kit';
 import { hasTelemetry, machineLabel, machineStatus } from '@/ui/machineStatus';
 import { KeyTag, type MachineStatus } from '@/ui/objects/KeyTag';
 import { SPACE } from '@/ui/theme';
+import { FirstTip } from '@/ui/guide';
 
 /** Problems first, so the key you need is on top. */
 const STATUS_ORDER: Record<MachineStatus, number> = {
@@ -63,6 +64,7 @@ export default function Keys() {
       title={t('keys.title')}
       subtitle={t('keys.subtitle', { placed: active.length, stored: stored.length })}
     >
+      <FirstTip id="keys" />
       <Section title={t('keys.placed')}>
         {active.length === 0 ? (
           <Paper tone="surface">

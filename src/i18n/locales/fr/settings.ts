@@ -40,6 +40,9 @@ export default {
   feel: {
     haptics: 'Vibrations',
     hapticsDetail: 'Tintement des pièces et chute des produits',
+    tutorial: 'Revoir le tutoriel',
+    tutorialDetail: 'Réactive l’aide pas à pas et les astuces',
+    tutorialDone: 'Les astuces du tutoriel sont de retour',
   },
   notifications: {
     label: 'Notifications',

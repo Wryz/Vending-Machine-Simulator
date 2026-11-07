@@ -40,6 +40,9 @@ export default {
   feel: {
     haptics: '햅틱',
     hapticsDetail: '동전 딸깍, 상품 쿵',
+    tutorial: '튜토리얼 다시 보기',
+    tutorialDetail: '단계별 도움말과 팁을 다시 켜요',
+    tutorialDone: '튜토리얼 팁이 다시 켜졌어요',
   },
   notifications: {
     label: '알림',

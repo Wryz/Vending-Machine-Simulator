@@ -40,6 +40,9 @@ export default {
   feel: {
     haptics: '触覚フィードバック',
     hapticsDetail: 'コインのカチッ、商品のゴトン',
+    tutorial: 'チュートリアルをもう一度',
+    tutorialDetail: 'ステップごとのヘルプとヒントをもう一度表示します',
+    tutorialDone: 'チュートリアルのヒントを再表示します',
   },
   notifications: {
     label: '通知',
