@@ -354,6 +354,7 @@ export default {
     nightlife: '夜生活',
     cafe: '咖啡馆',
     restaurant: '餐厅',
+    fastfood: '快餐',
     shopping: '购物',
     hotel: '酒店',
     airport: '机场',

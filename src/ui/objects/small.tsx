@@ -243,6 +243,14 @@ export function Glyph({
             <Path d="M16 11h2a2 2 0 0 1 0 4h-2" {...s} />
           </>
         );
+      case 'fastfood':
+        // A burger.
+        return (
+          <>
+            <Path d="M4 11a8 6 0 0 1 16 0z" {...s} />
+            <Path d="M4 14h16M5 17h14a1 1 0 0 1-1 2H6a1 1 0 0 1-1-2z" {...s} />
+          </>
+        );
       case 'restaurant':
         return (
           <>

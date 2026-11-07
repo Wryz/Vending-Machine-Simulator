@@ -1,6 +1,7 @@
 import { emptyGoals } from './goals';
 import { emptySurprises } from './events';
 import { emptyRankings } from './rankings';
+import { emptyRequests } from './requests';
 import { SCHEMA_VERSION, type GameState } from './state';
 
 /**
@@ -43,6 +44,8 @@ const MIGRATIONS: Record<number, Migration> = {
       schemaVersion: 6,
     };
   },
+  // v7: customer requests (SPEC §4.6).
+  6: (s) => ({ ...s, requests: emptyRequests(), schemaVersion: 7 }),
 };
 
 export class SaveError extends Error {}

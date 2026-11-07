@@ -30,6 +30,7 @@ import orders from './orders';
 import place from './place';
 import rankings from './rankings';
 import report from './report';
+import requests from './requests';
 import rival from './rival';
 import routes from './routes';
 import services from './services';
@@ -69,6 +70,7 @@ const en = {
   place,
   rankings,
   report,
+  requests,
   rival,
   routes,
   services,

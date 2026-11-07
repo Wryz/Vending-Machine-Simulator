@@ -265,6 +265,28 @@ export const HOURLY_CURVES: Record<CurveKey, DayCurves> = {
       [19, 0.2],
     ]),
   },
+  // Fast food: lunch rush, dinner and a late-night tail.
+  fastfood: {
+    weekday: curve([
+      [0, 0.25],
+      [3, 0.05],
+      [10, 0.2],
+      [12, 1],
+      [14, 0.5],
+      [17, 0.6],
+      [19, 0.9],
+      [22, 0.5],
+    ]),
+    weekend: curve([
+      [0, 0.4],
+      [4, 0.05],
+      [11, 0.5],
+      [13, 1],
+      [16, 0.6],
+      [19, 0.9],
+      [23, 0.6],
+    ]),
+  },
   restaurant: {
     weekday: curve([
       [0, 0.05],

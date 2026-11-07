@@ -1,4 +1,5 @@
 import { RIVAL } from '@/config/economy';
+import { getProduct } from '@/config/products';
 import { SURPRISES } from '@/config/surprises';
 import { t, type TKey } from '@/i18n';
 import { venueName } from '@/i18n/sim';
@@ -8,6 +9,7 @@ import {
   type GameState,
   type RivalNews,
   type RivalNewsKind,
+  type RequestNews,
   type SurpriseNews,
 } from '@/sim';
 
@@ -54,6 +56,25 @@ export function tauntFor(kind: RivalNewsKind, seed = Math.random()): string {
   if (n > 1 && i === lastLine[kind]) i = (i % n) + 1;
   lastLine[kind] = i;
   return t(`rival.taunt.${kind}${i}` as TKey);
+}
+
+/** A served customer request: "Water at Hudson Works", sold plus a tip. */
+export function announceRequests(state: GameState, news: readonly RequestNews[]): void {
+  const push = useCelebrations.getState().push;
+  for (const n of news) {
+    if (n.kind !== 'served') continue;
+    push({
+      kind: 'surprise',
+      icon: 'request',
+      label: t('requests.served.label'),
+      title: t('requests.served.title', {
+        product: getProduct(n.request.productId).name,
+        venue: venueOf(state, n.machineId),
+      }),
+      subtitle: t('requests.served.subtitle'),
+      amountCents: n.cents + n.tipCents,
+    });
+  }
 }
 
 function venueOf(state: GameState, machineId?: string): string {

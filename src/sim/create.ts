@@ -4,6 +4,7 @@ import { getMachineType, type MachineTypeId } from '@/config/machines';
 import { emptySurprises } from './events';
 import { emptyGoals } from './goals';
 import { emptyRankings } from './rankings';
+import { emptyRequests } from './requests';
 import { perkLevel } from './rules';
 import { SCHEMA_VERSION, type GameState, type Machine } from './state';
 
@@ -86,6 +87,7 @@ export function newGame(opts: NewGameOptions): GameState {
       lead: null,
     },
     surprises: emptySurprises(),
+    requests: emptyRequests(),
     events: [],
     eventDays: [],
     collection: {},

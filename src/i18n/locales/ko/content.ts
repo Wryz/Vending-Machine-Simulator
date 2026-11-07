@@ -354,6 +354,7 @@ export default {
     nightlife: '유흥가',
     cafe: '카페',
     restaurant: '식당',
+    fastfood: '패스트푸드',
     shopping: '쇼핑',
     hotel: '호텔',
     airport: '공항',

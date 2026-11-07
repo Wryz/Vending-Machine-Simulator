@@ -459,6 +459,7 @@ export default function MapScreen() {
         onMachinePress={onMachinePress}
         onRivalPress={onRivalPress}
         onDealPress={(id) => takeDeal(id)}
+        onRequestPress={onMachinePress}
         onAreaName={setArea}
         onCameraChanged={(c, byUser) => {
           cameraNow.current = c;

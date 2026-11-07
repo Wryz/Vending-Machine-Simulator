@@ -354,6 +354,7 @@ export default {
     nightlife: 'Vida nocturna',
     cafe: 'Café',
     restaurant: 'Restaurante',
+    fastfood: 'Comida rápida',
     shopping: 'Tiendas',
     hotel: 'Hotel',
     airport: 'Aeropuerto',

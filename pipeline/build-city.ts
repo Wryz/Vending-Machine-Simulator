@@ -107,7 +107,8 @@ const RESIDENTS_PER_PLACE = 200;
 // | nightlife   | bar, pub, nightclub, biergarten, karaoke, karaoke_box, music_venue,     |
 // |             | lounge, hookah_lounge, casino, stripclub, theatre, cinema               |
 // | cafe        | cafe, coffee, ice_cream, internet_cafe, bubble_tea                      |
-// | restaurant  | restaurant, fast_food, food_court, bbq                                  |
+// | restaurant  | restaurant, food_court, bbq                                             |
+// | fastfood    | fast_food                                                               |
 // | shopping    | supermarket, mall, department_store, marketplace and retail shop kinds  |
 // |             | (clothes, shoes, books, electronics, pharmacy, bakery, …: SHOP_KINDS)   |
 // |             | plus bank and post_office (walk-in foot traffic)                        |
@@ -190,7 +191,8 @@ map('nightlife', [
   'cinema',
 ]);
 map('cafe', ['cafe', 'coffee', 'ice_cream', 'internet_cafe', 'bubble_tea']);
-map('restaurant', ['restaurant', 'fast_food', 'food_court', 'bbq']);
+map('restaurant', ['restaurant', 'food_court', 'bbq']);
+map('fastfood', ['fast_food']);
 const SHOP_KINDS = [
   'supermarket',
   'mall',

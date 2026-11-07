@@ -12,6 +12,7 @@ export * from './calibrate';
 export * from './goals';
 export * from './unlocks';
 export * from './rankings';
+export * from './requests';
 export {
   playerShare,
   rivalMatchup,

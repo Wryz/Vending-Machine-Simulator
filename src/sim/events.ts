@@ -160,16 +160,19 @@ function sellable(m: Machine): boolean {
   return m.status === 'active' && !m.broken && !isEmpty(m);
 }
 
-/** A VIP buys a whole row: the fullest slot, up to `vip.maxUnits`, room in the cash box allowing. */
-function vipSale(state: GameState, m: Machine, salesBonus: number, t: number): SurpriseNews | null {
-  const slot = m.slots.reduce<(typeof m.slots)[number] | null>(
-    (a, s) => (s.productId && s.qty > (a?.qty ?? 0) ? s : a),
-    null,
-  );
-  if (!slot || slot.qty < SURPRISES.vip.minUnits || slot.priceCents <= 0) return null;
-  const room = Math.max(0, cashBoxCapacity(state, getMachineType(m.typeId)) - m.cashBoxCents);
-  const units = Math.min(slot.qty, SURPRISES.vip.maxUnits, Math.floor(room / slot.priceCents));
-  if (units < SURPRISES.vip.minUnits) return null;
+/**
+ * Book `units` sold from one slot outside the hourly demand model (VIP
+ * customers, served requests): stock, cash box, ledger, stats and goals.
+ * Returns the revenue.
+ */
+export function sellUnits(
+  state: GameState,
+  m: Machine,
+  slot: Machine['slots'][number],
+  units: number,
+  t: number,
+  salesBonus: number,
+): number {
   const revenue = units * slot.priceCents;
   slot.qty -= units;
   m.cashBoxCents += revenue;
@@ -189,6 +192,20 @@ function vipSale(state: GameState, m: Machine, salesBonus: number, t: number): S
   state.ledger.recentPlayerCents += revenue;
   bump(state, 'sales', revenue);
   bump(state, 'units', units);
+  return revenue;
+}
+
+/** A VIP buys a whole row: the fullest slot, up to `vip.maxUnits`, room in the cash box allowing. */
+function vipSale(state: GameState, m: Machine, salesBonus: number, t: number): SurpriseNews | null {
+  const slot = m.slots.reduce<(typeof m.slots)[number] | null>(
+    (a, s) => (s.productId && s.qty > (a?.qty ?? 0) ? s : a),
+    null,
+  );
+  if (!slot || slot.qty < SURPRISES.vip.minUnits || slot.priceCents <= 0) return null;
+  const room = Math.max(0, cashBoxCapacity(state, getMachineType(m.typeId)) - m.cashBoxCents);
+  const units = Math.min(slot.qty, SURPRISES.vip.maxUnits, Math.floor(room / slot.priceCents));
+  if (units < SURPRISES.vip.minUnits) return null;
+  const revenue = sellUnits(state, m, slot, units, t, salesBonus);
   return { kind: 'vip', machineId: m.id, units, cents: revenue };
 }
 

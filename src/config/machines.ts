@@ -475,6 +475,16 @@ export const MACHINE_WINDOW = {
   /** Product size as a share of the coil's width (and at most this many pt). */
   productShare: 0.64,
   productMaxPt: 70,
+  /** The spiral's turn around each product: height up its body, half-width and depth (shares of its size). */
+  ringHeight: 0.24,
+  ringWidth: 0.52,
+  ringDepth: 0.16,
+  /** Products don't sit perfectly in line: lean (degrees), sideways shift and size (shares). */
+  leanDeg: 5,
+  shiftJitter: 0.05,
+  sizeJitter: 0.035,
+  /** A sale with the door open: the front product drops out of the coil, ms. */
+  dropMs: 650,
   /** Planned (not yet loaded) products show see-through at the back. */
   plannedOpacity: 0.4,
   /** Loaded products slide in from the back, one after another, ms. */

@@ -5,7 +5,8 @@ import { LogBox, View } from 'react-native';
 import type { CityId } from '@/config/cities';
 import { CONTRACT, RIVAL } from '@/config/economy';
 import { SURPRISES } from '@/config/surprises';
-import { placeMachine, restockMachine, suggestRestock } from '@/sim';
+import { REQUESTS } from '@/config/requests';
+import { placeMachine, restockMachine, rollRequest, suggestRestock } from '@/sim';
 import { offsetPoint } from '@/sim/geo';
 import { cityInfoFor, useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
@@ -34,6 +35,7 @@ export default function Qa() {
     surprise,
     stings,
     rivalCard,
+    requests,
   } = useLocalSearchParams<{
     city?: string;
     to?: string;
@@ -59,6 +61,8 @@ export default function Qa() {
     stings?: string;
     /** Open the first rival machine's card this many ms after landing. */
     rivalCard?: string;
+    /** Customer requests to start right away (one per machine, up to the open cap). */
+    requests?: string;
   }>();
   const [note, setNote] = useState('Seeding…');
 
@@ -102,7 +106,7 @@ export default function Qa() {
           }
         }
         if (cash) d.cashCents = Math.round(Number(cash) * 100);
-        if (rival || surprise) {
+        if (rival || surprise || requests) {
           // The tutorial is through (first sale and collect): rival and surprises may come.
           d.ledger.lifetimeUnits = Math.max(d.ledger.lifetimeUnits, 50);
           d.ledger.lifetimeSalesCents = Math.max(
@@ -110,6 +114,12 @@ export default function Qa() {
             RIVAL.early.afterSalesCents,
           );
           d.ledger.lifetimeNetCents = Math.max(d.ledger.lifetimeNetCents, 1_000);
+        }
+        // Customer requests now, instead of after the first few minutes.
+        for (let k = 0; k < Math.min(REQUESTS.maxOpen, Number(requests) || 0); k++) {
+          // A distinct roll for each (requests are keyed by their time).
+          d.requests.nextAt = d.now + k * 7_919;
+          rollRequest(d, world, d.requests.nextAt);
         }
         if (chapter) {
           d.chapter = Number(chapter);
@@ -179,6 +189,7 @@ export default function Qa() {
     surprise,
     stings,
     rivalCard,
+    requests,
   ]);
 
   if (!__DEV__) return <Redirect href="/" />;

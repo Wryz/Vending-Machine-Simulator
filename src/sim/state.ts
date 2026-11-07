@@ -1,5 +1,7 @@
 import type { MachineFamily, MachineTypeId } from '@/config/machines';
+import type { CurveKey } from '@/config/curves';
 import type { ResearchId } from '@/config/progression';
+import type { RequestReason } from '@/config/requests';
 import type { CellData, PlaceCategory, WeatherHour } from '@/data/types';
 
 import type { GoalsState } from './goals';
@@ -11,7 +13,7 @@ import type { RankingsState } from './rankings';
  * epoch ms (real time).
  */
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export interface Slot {
   productId: string | null;
@@ -113,6 +115,28 @@ export interface RivalState {
 }
 
 /** Surprise moments (SPEC §4.6, schema v6): see src/sim/events.ts. */
+/** A passer-by asking one of your machines for something (SPEC §4.6, schema v7). */
+export interface CustomerRequest {
+  id: string;
+  /** The machine they asked at. */
+  machineId: string;
+  /** Where they came from: a real named place nearby, or the homes around (no name). */
+  from: { placeId?: string; name: string; category: CurveKey };
+  reason: RequestReason;
+  productId: string;
+  at: number;
+  /** They give up at this time. */
+  until: number;
+}
+
+export interface RequestsState {
+  /** When the next request may come (0 = not scheduled yet). */
+  nextAt: number;
+  open: CustomerRequest[];
+  /** Requests served so far. */
+  served: number;
+}
+
 export interface SurpriseState {
   /** When the next surprise may happen (0 = not scheduled yet). */
   nextAt: number;
@@ -209,6 +233,8 @@ export interface GameState {
   rival: RivalState;
   /** Surprise moments (schema v6). */
   surprises: SurpriseState;
+  /** Customer requests (schema v7). */
+  requests: RequestsState;
   events: LocalEvent[];
   /** Local dates for which events were generated. */
   eventDays: string[];

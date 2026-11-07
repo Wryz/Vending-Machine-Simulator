@@ -203,6 +203,7 @@ export const PLACE_TAG_AFFINITY: Partial<Record<CurveKey, Partial<Record<Product
   nightlife: { salty: 1.5, hydration: 1.4, adult: 1.8, meal: 1.4, caffeine: 0.6 },
   cafe: { sweet: 1.2, caffeine: 0.8 },
   restaurant: { sweet: 1.2 },
+  fastfood: { cold: 1.4, hydration: 1.3, sweet: 1.2, caffeine: 1.1 },
   shopping: { collectible: 1.6, gift: 1.4, tech: 1.3, cold: 1.1 },
   hotel: { health: 1.4, tech: 1.5, adult: 1.3, hydration: 1.2 },
   airport: { tech: 2, health: 1.5, caffeine: 1.4, gift: 1.3 },

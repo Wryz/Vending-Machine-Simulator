@@ -43,6 +43,7 @@ const SURPRISE_ICON: Record<NonNullable<Moment['icon']>, IconName> = {
   vip: 'star',
   jackpot: 'flame',
   deal: 'handshake',
+  request: 'people',
 };
 const VIP_GOLD = '#F5B700';
 

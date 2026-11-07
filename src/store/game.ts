@@ -32,7 +32,7 @@ import {
 import { useCelebrations } from './celebrations';
 import { setCurrencyForCountry } from './currency';
 import { announceRanking } from './rankMoments';
-import { announceRival, announceSurprises } from './rivalMoments';
+import { announceRequests, announceRival, announceSurprises } from './rivalMoments';
 import { cityKey, useProfile, type CityInfo } from './profile';
 
 export interface TickerEntry {
@@ -364,6 +364,7 @@ const EMPTY_REPORT: AdvanceReport = {
   rival: [],
   stings: [],
   surprises: [],
+  requests: [],
 };
 
 /** A city-load failure (src/data errors are English) in the UI language; unknown text passes through. */
@@ -436,6 +437,7 @@ function announceMoments(state: GameState, report: AdvanceReport): void {
   announceRival(state, report.rival);
   announceRanking(state, report, useGame.getState().world?.city.name);
   announceSurprises(state, report.surprises);
+  announceRequests(state, report.requests);
   for (const g of state.goals.items) {
     const key = `${state.goals.dateKey}|${g.id}`;
     if (g.claimed || readyOrders.has(key) || goalProgress(state, g) < 1) continue;

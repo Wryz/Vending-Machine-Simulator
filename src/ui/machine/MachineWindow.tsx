@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Keyframe } from 'react-native-reanimated';
-import Svg, { Ellipse, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { MACHINE_WINDOW as W } from '@/config/machines';
 
@@ -77,6 +77,7 @@ export function MachineWindow({
                     return (
                       <Coil
                         key={i}
+                        index={i}
                         slot={slot}
                         cap={cap}
                         width={cellW}
@@ -118,7 +119,14 @@ export function MachineWindow({
   );
 }
 
+/** A small stable number in -1..1 for a slot and depth (products don't sit perfectly in line). */
+function wobble(slot: number, k: number, salt: number): number {
+  const x = Math.sin(slot * 127.1 + k * 311.7 + salt * 74.7) * 43758.5453;
+  return (x - Math.floor(x)) * 2 - 1;
+}
+
 function Coil({
+  index,
   slot,
   cap,
   width,
@@ -129,6 +137,7 @@ function Coil({
   animate,
   onPress,
 }: {
+  index: number;
   slot: WindowSlot;
   cap: number;
   width: number;
@@ -148,17 +157,106 @@ function Coil({
     const s = 1 - k * W.shrinkPerStep;
     return { s, bottom: base - k * rise, dim: 1 - k * W.dimPerStep };
   };
-  const loop = (k: number) => {
+  // The spiral's turn around product k: a ring around its lower body.
+  const ring = (k: number) => {
     const { s, bottom } = at(k);
+    const px = size * s;
     return {
       cx: width / 2,
-      cy: bottom - size * s * 0.06,
-      rx: size * s * 0.52,
-      ry: size * s * 0.13,
+      cy: bottom - px * W.ringHeight,
+      rx: px * W.ringWidth,
+      ry: px * W.ringDepth,
     };
   };
-  const front = loop(0);
+  /** The front half of turn k (passes in front of product k), left to right. */
+  const frontArc = (k: number) => {
+    const a = ring(k);
+    const b = ring(k + 0.5);
+    return `M ${a.cx - a.rx} ${a.cy} A ${a.rx} ${a.ry} 0 0 0 ${b.cx + b.rx} ${b.cy}`;
+  };
+  /** The back half of turn k (behind product k), right to left, up to the next turn. */
+  const backArc = (k: number) => {
+    const a = ring(k + 0.5);
+    const b = ring(k + 1);
+    return `M ${a.cx + a.rx} ${a.cy} A ${a.rx} ${a.ry} 0 0 0 ${b.cx - b.rx} ${b.cy}`;
+  };
+  const wire = (k: number, back = false) => ({
+    // The back half of a turn is in the cabinet's shadow.
+    stroke: back ? '#8E94AE' : k === 0 ? '#F2F4F9' : '#CBD0DF',
+    strokeOpacity: Math.max(0.3, 1 - k * 0.12),
+    strokeWidth: Math.max(1.2, 2.3 - k * 0.18),
+    fill: 'none',
+    strokeLinecap: 'round' as const,
+  });
 
+  // A sale while the door is open: the front product drops out of the coil
+  // with its price. (Adjusting state on a prop change, React's documented pattern.)
+  const [prevQty, setPrevQty] = useState(slot.qty);
+  const [prevProduct, setPrevProduct] = useState(slot.productId);
+  const [drops, setDrops] = useState<number[]>([]);
+  if (slot.qty !== prevQty || slot.productId !== prevProduct) {
+    if (animate && slot.qty < prevQty && slot.productId === prevProduct && !slot.planned)
+      setDrops((d) => [...d, (d[d.length - 1] ?? 0) + 1].slice(-3));
+    setPrevQty(slot.qty);
+    setPrevProduct(slot.productId);
+  }
+  useEffect(() => {
+    if (!drops.length) return;
+    const timer = setTimeout(() => setDrops([]), W.dropMs + 300);
+    return () => clearTimeout(timer);
+  }, [drops]);
+
+  // Back to front: the back half of a turn, its product, then the front half.
+  const layers: ReactNode[] = [];
+  for (let k = W.depth - 1; k >= 0; k--) {
+    layers.push(
+      <Svg key={`b${k}`} pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Path d={backArc(k)} {...wire(k + 0.5, true)} />
+      </Svg>,
+    );
+    if (image && k < total) {
+      const { s, bottom, dim } = at(k);
+      const ghost = k >= real;
+      const px = size * s * (1 + W.sizeJitter * wobble(index, k, 3));
+      layers.push(
+        <View
+          key={`${k}-${ghost ? 'g' : 'r'}`}
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: (width - px) / 2 + px * W.shiftJitter * wobble(index, k, 1),
+            top: bottom - px,
+            width: px,
+            height: px,
+            transform: [{ rotate: `${W.leanDeg * wobble(index, k, 2)}deg` }],
+          }}
+        >
+          <Animated.View
+            entering={animate && !ghost ? loadIn(k, rise) : undefined}
+            style={{ flex: 1, opacity: ghost ? W.plannedOpacity * dim : 1 }}
+          >
+            <Image source={image} style={styles.product} resizeMode="contain" />
+            {/* Further back is in shadow: a solid shade, not see-through. */}
+            {k > 0 && !ghost ? (
+              <Image
+                source={image}
+                style={[styles.product, styles.shade, { opacity: 1 - dim }]}
+                resizeMode="contain"
+                tintColor={INTERIOR}
+              />
+            ) : null}
+          </Animated.View>
+        </View>,
+      );
+    }
+    layers.push(
+      <Svg key={`f${k}`} pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Path d={frontArc(k)} {...wire(k)} />
+      </Svg>,
+    );
+  }
+
+  const front = at(0);
   return (
     <Pressable
       accessibilityRole="button"
@@ -168,73 +266,64 @@ function Coil({
       style={{ width, height }}
     >
       {selected ? <View pointerEvents="none" style={styles.selected} /> : null}
-      {/* The spiral, back loops first. */}
-      <Svg pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {Array.from({ length: W.depth }, (_, j) => W.depth - 1 - j).map((k) => {
-          const l = loop(k);
-          return (
-            <Ellipse
-              key={k}
-              cx={l.cx}
-              cy={l.cy}
-              rx={l.rx}
-              ry={l.ry}
-              stroke="#C9CEDD"
-              strokeOpacity={0.85 - k * 0.1}
-              strokeWidth={1.6}
-              fill="none"
-            />
-          );
-        })}
-      </Svg>
-      {/* Products, back to front, each in its loop. */}
+      {layers}
       {image
-        ? Array.from({ length: total }, (_, j) => total - 1 - j).map((k) => {
-            const { s, bottom, dim } = at(k);
-            const ghost = k >= real;
-            const px = size * s;
-            return (
-              <View
-                key={`${k}-${ghost ? 'g' : 'r'}`}
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  left: (width - px) / 2,
-                  top: bottom - px,
-                  width: px,
-                  height: px,
-                }}
-              >
-                <Animated.View
-                  entering={animate && !ghost ? loadIn(k, rise) : undefined}
-                  style={{ flex: 1, opacity: ghost ? W.plannedOpacity * dim : 1 }}
-                >
-                  <Image source={image} style={styles.product} resizeMode="contain" />
-                  {/* Further back is in shadow: a solid shade, not see-through. */}
-                  {k > 0 && !ghost ? (
-                    <Image
-                      source={image}
-                      style={[styles.product, styles.shade, { opacity: 1 - dim }]}
-                      resizeMode="contain"
-                      tintColor={INTERIOR}
-                    />
-                  ) : null}
-                </Animated.View>
-              </View>
-            );
-          })
+        ? drops.map((id) => (
+            <Animated.View
+              key={`drop${id}`}
+              pointerEvents="none"
+              entering={dropOut(height)}
+              style={{
+                position: 'absolute',
+                left: (width - size) / 2,
+                top: front.bottom - size,
+                width: size,
+                height: size,
+                opacity: 0,
+              }}
+            >
+              <Image source={image} style={styles.product} resizeMode="contain" />
+            </Animated.View>
+          ))
         : null}
-      {/* The front of the first loop passes in front of the front product. */}
-      <Svg pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <Path
-          d={`M ${front.cx - front.rx} ${front.cy} A ${front.rx} ${front.ry} 0 0 0 ${front.cx + front.rx} ${front.cy}`}
-          stroke="#E4E7F0"
-          strokeWidth={2}
-          fill="none"
-        />
-      </Svg>
+      {drops.map((id) => (
+        <Animated.View
+          key={`pop${id}`}
+          pointerEvents="none"
+          entering={pricePop(size)}
+          style={[styles.pop, { top: front.bottom - size * 1.1, opacity: 0 }]}
+        >
+          <Mono size={13} weight="bold" color={SKIN.ledGreen}>
+            +{slot.price}
+          </Mono>
+        </Animated.View>
+      ))}
     </Pressable>
   );
+}
+
+/** A sold product tips forward off the coil and drops into the bin. */
+function dropOut(height: number) {
+  return new Keyframe({
+    0: { opacity: 1, transform: [{ translateY: 0 }, { rotate: '0deg' }, { scale: 1 }] },
+    35: {
+      opacity: 1,
+      transform: [{ translateY: height * 0.12 }, { rotate: '-14deg' }, { scale: 1.06 }],
+    },
+    100: {
+      opacity: 0,
+      transform: [{ translateY: height * 0.95 }, { rotate: '-32deg' }, { scale: 1.1 }],
+    },
+  }).duration(W.dropMs);
+}
+
+/** "+€1.85" floats up from the coil. */
+function pricePop(size: number) {
+  return new Keyframe({
+    0: { opacity: 0, transform: [{ translateY: 0 }, { scale: 0.7 }] },
+    20: { opacity: 1, transform: [{ translateY: -size * 0.15 }, { scale: 1.1 }] },
+    100: { opacity: 0, transform: [{ translateY: -size * 0.7 }, { scale: 1 }] },
+  }).duration(W.dropMs + 300);
 }
 
 /** A loaded product slides in from the back of the coil. */
@@ -307,4 +396,10 @@ const styles = StyleSheet.create({
   },
   product: { width: '100%', height: '100%' },
   shade: { position: 'absolute', left: 0, top: 0 },
+  pop: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
 });

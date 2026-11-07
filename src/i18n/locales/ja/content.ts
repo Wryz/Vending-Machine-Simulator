@@ -354,6 +354,7 @@ export default {
     nightlife: 'ナイトスポット',
     cafe: 'カフェ',
     restaurant: 'レストラン',
+    fastfood: 'ファストフード',
     shopping: 'ショッピング',
     hotel: 'ホテル',
     airport: '空港',

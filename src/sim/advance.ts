@@ -29,6 +29,7 @@ import { bump, checkAchievements, rollGoalsDay } from './goals';
 import { orderStops } from './geo';
 import { addLedger, log, rollLedgerDay } from './ledger';
 import { rankingsStep, type RankBoard } from './rankings';
+import { rollRequest, serveRequests, type RequestNews } from './requests';
 import { happens, nextRandom, poisson } from './rng';
 import {
   playerShare,
@@ -91,6 +92,8 @@ export interface AdvanceReport {
   stings: RivalSting[];
   /** Surprise moments: VIP customer, jackpot hour, venue deal (live play only). */
   surprises: SurpriseNews[];
+  /** Customer requests: new ones (live play only), served and given up. */
+  requests: RequestNews[];
   /** The latest nightly ranking board taken during this advance (one per advance). */
   rankUpdate?: RankBoard;
 }
@@ -130,6 +133,7 @@ function newReport(from: number): AdvanceReport {
     rival: [],
     stings: [],
     surprises: [],
+    requests: [],
   };
 }
 
@@ -784,8 +788,17 @@ export function beginAdvance(
         report.salesCents += surprise.cents ?? 0;
         report.units += surprise.units ?? 0;
       }
+      const request = rollRequest(s, world, tMid);
+      if (request) report.requests.push(request);
     }
     expireSurprises(s, tEnd);
+    for (const news of serveRequests(s, tEnd, { salesBonus })) {
+      report.requests.push(news);
+      if (news.kind === 'served') {
+        report.salesCents += news.cents;
+        report.units += 1;
+      }
+    }
 
     report.costsCents += costs;
     s.now = tEnd;

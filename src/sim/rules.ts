@@ -1,4 +1,13 @@
-import { CASH, COMPETITION, CONTRACT, OVERHEAD, RIVAL, SERVICE, STAFF, TIME } from '@/config/economy';
+import {
+  CASH,
+  COMPETITION,
+  CONTRACT,
+  OVERHEAD,
+  RIVAL,
+  SERVICE,
+  STAFF,
+  TIME,
+} from '@/config/economy';
 import { getMachineType, type MachineType, ALCOHOL_ALLOWED_COUNTRIES } from '@/config/machines';
 import {
   ALCOHOL_MIN_DISTANCE_M,

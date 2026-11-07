@@ -25,6 +25,8 @@ export const PLACE_CATEGORIES = [
   'convention',
   'religious',
   'competitor',
+  /** Fast food (split from restaurant 2026-11; appended so category bitmasks keep their bits). */
+  'fastfood',
 ] as const;
 
 export type PlaceCategory = (typeof PLACE_CATEGORIES)[number];

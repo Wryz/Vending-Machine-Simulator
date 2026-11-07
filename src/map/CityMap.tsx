@@ -53,6 +53,7 @@ import {
 } from './machinePins';
 import { PIN_ICON_OFFSET, PIN_IMAGES, PIN_SIZE } from './pinImages';
 import { SalePops, type SalePop } from './life/SalePops';
+import { RequestBubbles } from './RequestBubbles';
 import { SurpriseMarkers } from './SurpriseMarkers';
 import { StreetLifeLayer, type LifeStats, type StreetLifeHandle } from './life/StreetLifeLayer';
 import {
@@ -154,6 +155,8 @@ interface Props {
   onRivalPress?(id: string): void;
   /** A venue-deal badge was tapped (accept the offer). */
   onDealPress?(dealId: string): void;
+  /** A customer request bubble was tapped (open that machine). */
+  onRequestPress?(machineId: string): void;
   /** `byUser` is true when a gesture moved the camera (not a fly-to or the initial load). */
   onCameraChanged?(c: MapCameraState, byUser: boolean): void;
   /** Neighbourhood and district nearest the center (null = none known). */
@@ -849,6 +852,13 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
         zoom={view.zoom}
         machineHeightPt={machineHeightPt(view.zoom, world.city.lat)}
         onDealPress={props.onDealPress}
+      />
+      {/* Customer requests: what someone nearby wants from this machine. */}
+      <RequestBubbles
+        game={game}
+        zoom={view.zoom}
+        machineHeightPt={machineHeightPt(view.zoom, world.city.lat)}
+        onPress={props.onRequestPress}
       />
     </Map>
   );

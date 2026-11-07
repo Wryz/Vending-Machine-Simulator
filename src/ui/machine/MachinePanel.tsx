@@ -10,6 +10,7 @@ import { content } from '@/i18n/content';
 import { simError, venueName } from '@/i18n/sim';
 import {
   applyAdReward,
+  canCarry,
   cashBoxCapacity,
   collectCash,
   hasResearch,
@@ -44,6 +45,7 @@ import { Button, Mono, Paper, Row, T } from '../kit';
 import { hasTelemetry, machineStatus } from '../machineStatus';
 import { CoinTray } from '../objects/CoinTray';
 import { MachineWindow } from './MachineWindow';
+import { RequestCard } from './RequestCard';
 import { statusLabel } from '../objects/KeyTag';
 import { PRODUCT_IMAGES } from '../productImages';
 import { GuideLine, Pulse, useTutorialStep } from '../guide';
@@ -144,6 +146,23 @@ export function MachinePanel({
         : step === 'collect' && machine.cashBoxCents > 0 && !coins
           ? { text: t('coach.guide.collect'), key: 'collect' }
           : null;
+
+  // A customer's request at this machine (a bubble on the map).
+  const request = game.requests.open.find((r) => r.machineId === machine.id) ?? null;
+  const requestFits = !!request && canCarry(game, machine, request.productId);
+  const requestLoaded =
+    !!request && Object.values(plan).some((l) => l.productId === request.productId);
+  /** Put the requested product in a coil: one that has it, else an empty one, else the emptiest. */
+  const loadRequest = () => {
+    if (!request) return;
+    const pid = request.productId;
+    const slots = machine.slots.map((s, i) => ({ s, i })).filter(({ i }) => !plan[i]);
+    const pickSlot =
+      slots.find(({ s }) => s.productId === pid) ??
+      slots.find(({ s }) => !s.productId || s.qty === 0) ??
+      slots.sort((a, b) => a.s.qty - b.s.qty)[0];
+    if (pickSlot) loadSlot(pickSlot.i, pid);
+  };
 
   const doCollect = () => {
     if (collecting) return;
@@ -346,6 +365,20 @@ export function MachinePanel({
       {coins ? <CoinTray grossCents={coins.gross} commissionCents={coins.commission} /> : null}
 
       {guide ? <GuideLine text={guide.text} /> : null}
+      {request && !guide ? (
+        <RequestCard
+          request={request}
+          waitLabel={shortDuration(Math.max(0, request.until - game.now))}
+          chapter={game.chapter}
+          fits={requestFits}
+          loaded={requestLoaded}
+          priceCents={
+            machine.slots.find((s) => s.productId === request.productId)?.priceCents ||
+            getProduct(request.productId).suggestedCents
+          }
+          onLoad={loadRequest}
+        />
+      ) : null}
 
       {/* The two jobs: take the cash, refill the coils. */}
       <Row gap={SPACE.s}>
@@ -386,7 +419,7 @@ export function MachinePanel({
       </Row>
       {plannedUnits ? (
         <Row gap={SPACE.s}>
-          <Pulse on={guide?.key === 'restock'} style={{ flex: 1 }}>
+          <Pulse on={guide?.key === 'restock' || requestLoaded} style={{ flex: 1 }}>
             <Button
               label={t('machinePanel.actions.restock', {
                 n: plannedUnits,
