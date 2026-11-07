@@ -16,6 +16,7 @@ import { ENV } from '@/data/env';
 import { useLang } from '@/i18n';
 import { bindLanguageToProfile } from '@/i18n/init';
 import { initAds } from '@/services/ads';
+import { initCrashReports, withCrashReports } from '@/services/crashes';
 import { initGameCenter } from '@/services/gameCenter';
 import { sound } from '@/services/audio';
 import { initPurchases } from '@/services/purchases';
@@ -26,6 +27,7 @@ import { CelebrationHost } from '@/ui/CelebrationHost';
 import { ThemeProvider, useTheme } from '@/ui/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
+initCrashReports();
 
 function Navigator() {
   const theme = useTheme();
@@ -50,7 +52,7 @@ function Navigator() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Nunito_600SemiBold,
     Nunito_700Bold,
@@ -114,3 +116,5 @@ function App({ lang }: { lang: string }) {
     </GestureHandlerRootView>
   );
 }
+
+export default withCrashReports(RootLayout);

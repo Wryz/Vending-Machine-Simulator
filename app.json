@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "app.coinline.vending",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Coinline uses your approximate location once, to start your business in the closest city. It is never stored.",
@@ -104,7 +104,8 @@
           "androidAppId": "ca-app-pub-3940256099942544~3347511713",
           "userTrackingUsageDescription": "Only if you turn on personalized ads in Settings: lets ad partners show ads that fit you. Coinline works the same either way."
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,

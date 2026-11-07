@@ -383,6 +383,7 @@ An area is playable if, within 2 km of the start point:
 - **Game Center (iOS):** local Expo module `modules/game-center` (Swift, GameKit; no third-party package): silent sign-in, weekly city + all-time leaderboards, trophies as achievements. Service `src/services/gameCenter.ts`, ids in `src/config/gameCenter.ts`, ASC setup in `docs/app-store/game-center.md`. Android: no-op.
 - **Haptics and audio:** `expo-haptics`, `expo-audio` (or `expo-av`).
 - **Analytics:** privacy-light, event counts only (e.g., PostHog or Firebase Analytics); no precise location.
+- **Crash reports:** Sentry (`@sentry/react-native`, owner-approved 2026-11-07). Off unless `EXPO_PUBLIC_SENTRY_DSN` is set; no user, IP or screenshots; URL query strings stripped; follows the analytics switch in Settings (`src/services/crashes.ts`).
 
 ### 7.2 Project structure
 ```
