@@ -87,6 +87,12 @@ function compactMajor(mantissa: number, suffix: string, digits: [number, number]
   return `${pre}${n}${suffix}${post}`;
 }
 
+/** `n` as it reads after rounding to `digits` decimals. */
+function roundsTo(n: number, digits: number): number {
+  const f = 10 ** digits;
+  return Math.round(n * f) / f;
+}
+
 /** Full amount in the local currency; `compact` shortens big ones ("$123k"). */
 export function money(
   cents: number,
@@ -100,12 +106,13 @@ export function money(
   const compactFrom = c.minorDigits === 0 ? 1_000_000 : 10_000;
   let s: string;
   if (opts.compact && abs >= compactFrom) {
-    if (abs >= 1_000_000) {
+    const dk = abs >= 100_000 ? 0 : 1;
+    // Decide on the rounded value: 999,950 is "$1.00M", not "$1,000k".
+    if (roundsTo(abs / 1000, dk) >= 1000) {
       const d = abs >= 10_000_000 ? 1 : 2;
       s = compactMajor(abs / 1_000_000, 'M', [d, d], c);
     } else {
-      const d = abs >= 100_000 ? 0 : 1;
-      s = compactMajor(abs / 1000, 'k', [d, d], c);
+      s = compactMajor(abs / 1000, 'k', [dk, dk], c);
     }
   } else {
     s = formatMajor(abs, c);
@@ -118,10 +125,12 @@ export function money(
 export function moneyShort(cents: number, currency: Currency = currentCurrency()): string {
   const c = currency;
   const local = toLocalMinor(cents, c) / 10 ** c.minorDigits;
-  const neg = local < 0;
   const abs = Math.abs(local);
+  // Nothing to show as negative once it reads 0 ("$0", not "−$0").
+  const neg = local < 0 && abs >= 1;
   let s: string;
-  if (abs >= 1_000_000) s = compactMajor(abs / 1_000_000, 'M', [0, 1], c);
+  // Decide on the rounded value: 999,950 is "$1M", not "$1,000k".
+  if (roundsTo(abs / 1000, 1) >= 1000) s = compactMajor(abs / 1_000_000, 'M', [0, 1], c);
   else if (abs >= 1000) s = compactMajor(abs / 1000, 'k', [0, 1], c);
   else s = formatMajor(Math.floor(abs), c, 0);
   return `${neg ? MINUS : ''}${s}`;

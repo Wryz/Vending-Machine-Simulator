@@ -1,16 +1,14 @@
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { MACHINE_SHEET } from '@/config/map';
 import { useT } from '@/i18n';
 
-import { Icon } from '../icons';
 import { Toast } from '../kit';
 import { MachinePanel, type ToastTone } from '../machine/MachinePanel';
 import { sfx } from '../sfx';
-import { Cabinet, Key, SKIN } from '../skin';
-import { RADIUS, SPACE, TOUCH } from '../theme';
+import { SPACE } from '../theme';
+import { GameSheet, SheetScroll, type GameSheetHandle } from './GameSheet';
 
 /**
  * A machine's controls as a sheet over the map (SPEC §8): tapping a machine
@@ -18,7 +16,7 @@ import { RADIUS, SPACE, TOUCH } from '../theme';
  * buying) stay in view above. The 3D close-up is one tap away.
  */
 export const MachineSheet = forwardRef<
-  BottomSheetModal,
+  GameSheetHandle,
   {
     machineId: string | null;
     bottomInset: number;
@@ -28,8 +26,10 @@ export const MachineSheet = forwardRef<
   }
 >(function MachineSheet({ machineId, bottomInset, onDismiss, onSnap }, ref) {
   const t = useT();
-  const snapPoints = useMemo(
-    () => MACHINE_SHEET.snapPoints.map((p) => `${Math.round(p * 100)}%`),
+  const sheet = useRef<GameSheetHandle>(null);
+  useImperativeHandle(
+    ref,
+    () => ({ open: () => sheet.current?.open(), close: () => sheet.current?.close() }),
     [],
   );
   const [toast, setToast] = useState<{ text: string; tone: ToastTone } | null>(null);
@@ -47,45 +47,23 @@ export const MachineSheet = forwardRef<
   };
   const close = () => {
     sfx('pop');
-    (ref as React.RefObject<BottomSheetModal | null>).current?.dismiss();
+    sheet.current?.close();
   };
 
   return (
-    <BottomSheetModal
-      ref={ref}
-      snapPoints={snapPoints}
-      enableDynamicSizing={false}
+    <GameSheet
+      ref={sheet}
+      openShare={MACHINE_SHEET.snapPoints[0]}
+      closeLabel={t('machineSheet.a11y.close')}
       onDismiss={() => {
         setToast(null);
         onDismiss();
       }}
-      onChange={(i) => onSnap?.(i)}
-      backgroundComponent={({ style }) => (
-        <Cabinet
-          screws={false}
-          style={[style, { borderTopLeftRadius: RADIUS.l + 4, borderTopRightRadius: RADIUS.l + 4 }]}
-        />
-      )}
-      // The grabber row: the grabber in the middle, the close key on the right.
-      handleComponent={() => (
-        <View style={styles.handle}>
-          <View style={{ width: TOUCH - 6 }} />
-          <View style={styles.grabber} />
-          <Key
-            round
-            height={TOUCH - 6}
-            accessibilityLabel={t('machineSheet.a11y.close')}
-            onPress={close}
-            faceStyle={{ paddingHorizontal: 0, width: TOUCH - 6 }}
-          >
-            <Icon name="close" size={20} color={SKIN.keyInk} />
-          </Key>
-        </View>
-      )}
+      onSnap={onSnap}
     >
       {machineId ? (
         <>
-          <BottomSheetScrollView
+          <SheetScroll
             contentContainerStyle={{
               paddingHorizontal: SPACE.l,
               paddingTop: SPACE.xs,
@@ -99,7 +77,7 @@ export const MachineSheet = forwardRef<
               onToast={show}
               onGone={close}
             />
-          </BottomSheetScrollView>
+          </SheetScroll>
           {toast ? (
             <View pointerEvents="none" style={styles.toast}>
               <Toast text={toast.text} tone={toast.tone} />
@@ -107,19 +85,10 @@ export const MachineSheet = forwardRef<
           ) : null}
         </>
       ) : null}
-    </BottomSheetModal>
+    </GameSheet>
   );
 });
 
 const styles = StyleSheet.create({
-  handle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACE.l,
-    paddingTop: SPACE.s,
-    paddingBottom: SPACE.xs,
-  },
-  grabber: { width: 56, height: 6, borderRadius: 3, backgroundColor: SKIN.chrome },
   toast: { position: 'absolute', top: SPACE.s, left: SPACE.l, right: SPACE.l, zIndex: 3 },
 });

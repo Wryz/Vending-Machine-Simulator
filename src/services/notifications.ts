@@ -27,10 +27,19 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return res.granted;
 }
 
-export async function rescheduleNotifications(
+/** Reschedules run one after another (cancel-all then schedule must not interleave). */
+let queue: Promise<unknown> = Promise.resolve();
+
+export function rescheduleNotifications(
   game: GameState | null,
   world: World | null,
 ): Promise<number> {
+  const run = queue.then(() => reschedule(game, world));
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+async function reschedule(game: GameState | null, world: World | null): Promise<number> {
   await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
   const { notifications } = useProfile.getState().settings;
   if (!notifications.enabled || !game || !world) return 0;

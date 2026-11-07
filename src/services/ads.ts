@@ -65,6 +65,8 @@ export function showRewarded(placement: string): Promise<boolean> {
     };
     const unsubs = [
       ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
+        // Loaded in time: the ad now runs until the player closes it.
+        clearTimeout(loadTimer);
         ad.show().catch(() => done(false));
       }),
       ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
@@ -73,7 +75,8 @@ export function showRewarded(placement: string): Promise<boolean> {
       ad.addAdEventListener(AdEventType.CLOSED, () => done(earned)),
       ad.addAdEventListener(AdEventType.ERROR, () => done(false)),
     ];
-    setTimeout(() => done(earned), 45_000);
+    // Only the load can time out; a long ad that is playing must still pay out.
+    const loadTimer = setTimeout(() => done(false), 45_000);
     ad.load();
   });
 }

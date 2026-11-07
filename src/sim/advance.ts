@@ -695,6 +695,9 @@ export function beginAdvance(
     let costs = 0;
 
     let powerCents = 0;
+    // Rival machines before this step: contract steals (in the machine loop) and the
+    // rival's own moves below both change them, and the competition index needs both.
+    const rivalsBefore = s.rival.machines.slice();
     // One context per step (only `competitors` changes per machine): no allocation per machine.
     const sellCtx = { local, weather, competitors: 0, t: tMid, bh, cache, salesBonus };
     for (const m of s.machines) {
@@ -749,20 +752,18 @@ export function beginAdvance(
     costs += fixed;
 
     // Rival + market share window (half-life: one business day).
-    const rivalsBefore = s.rival.machines.slice();
     const rivalWasActive = s.rival.active;
-    if (rivalDecide(s, world, tMid, report.rival)) {
-      if (!rivalWasActive) {
-        compIdx = competition(s, world);
-        comp = compIdx.values;
-      } else {
-        const before = new Set(rivalsBefore);
-        const after = new Set(s.rival.machines);
-        compIdx.updateRivals(
-          rivalsBefore.filter((r) => !after.has(r)),
-          s.rival.machines.filter((r) => !before.has(r)),
-        );
-      }
+    const rivalMoved = rivalDecide(s, world, tMid, report.rival);
+    if (rivalMoved && !rivalWasActive) {
+      compIdx = competition(s, world);
+      comp = compIdx.values;
+    } else if (rivalMoved || s.rival.machines.length !== rivalsBefore.length) {
+      const before = new Set(rivalsBefore);
+      const after = new Set(s.rival.machines);
+      compIdx.updateRivals(
+        rivalsBefore.filter((r) => !after.has(r)),
+        s.rival.machines.filter((r) => !before.has(r)),
+      );
     }
     const rivalCents = rivalRevenue(s, world, local, bh, comp);
     s.ledger.recentRivalCents += rivalCents;

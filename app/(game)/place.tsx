@@ -72,13 +72,13 @@ export default function Place() {
   if (!quote.ok) return <Toast text={simError(quote.error)} tone="error" />;
   const afford = game.cashCents >= quote.totalCents;
 
-  const sign = () => {
+  const sign = (): boolean => {
     const res = useGame.getState().act((d, w) => placeMachine(d, w, params));
     if (!res.ok) {
       setError(simError(res.error));
       haptic.error();
       sound.play('error');
-      return;
+      return false;
     }
     sound.play('thunk');
     track('machine_placed', { type: quote.type.id, chapter: game.chapter });
@@ -90,6 +90,7 @@ export default function Place() {
         () => router.navigate({ pathname: '/map', params: { focus: res.machine.id } }),
         350,
       );
+    return true;
   };
 
   return (

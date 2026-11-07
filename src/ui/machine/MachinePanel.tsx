@@ -103,6 +103,8 @@ export function MachinePanel({
   };
   const [coins, setCoins] = useState<{ gross: number; commission: number } | null>(null);
   const [collecting, setCollecting] = useState(false);
+  // One ad at a time (a double tap must not open two).
+  const adBusy = useRef(false);
   /** Specs and the less common actions stay folded away until asked for. */
   const [more, setMore] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -202,12 +204,18 @@ export function MachinePanel({
   };
 
   const adRestock = async () => {
-    const ok = await showRewarded('instant-restock');
-    if (ok) {
-      useGame
+    if (adBusy.current) return;
+    adBusy.current = true;
+    try {
+      const ok = await showRewarded('instant-restock');
+      if (!ok) return;
+      const r = useGame
         .getState()
         .act((d, w) => applyAdReward(d, w, 'instant-restock', { machineId: machine.id }));
-      show(t('machinePanel.toast.adRestocked'), 'success');
+      if (r.ok) show(t('machinePanel.toast.adRestocked'), 'success');
+      else show(simError(r.error), 'error');
+    } finally {
+      adBusy.current = false;
     }
   };
 
@@ -652,8 +660,9 @@ export function MachinePanel({
                     text: t('machinePanel.pickUp.confirm'),
                     style: 'destructive',
                     onPress: () => {
-                      useGame.getState().act((d) => pickUpMachine(d, machine.id));
-                      finishLeave();
+                      const r = useGame.getState().act((d) => pickUpMachine(d, machine.id));
+                      if (r.ok) finishLeave();
+                      else show(simError(r.error), 'error');
                     },
                   },
                 ])

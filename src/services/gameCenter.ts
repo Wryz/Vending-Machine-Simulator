@@ -59,6 +59,7 @@ let submitting = false;
 const reported = new Set<string>();
 let achievementsBusy = false;
 let achievementsFailedAt = 0;
+let submitFailedAt = 0;
 function signedIn(): boolean {
   return !!native && useGameCenter.getState().authenticated;
 }
@@ -99,7 +100,8 @@ function sync(force: boolean): void {
   flushAchievements(game);
   const next = scoresFor(game);
   const now = Date.now();
-  if (submitting || !shouldSubmit(lastSubmit, next, now, force)) return;
+  if (submitting || now - submitFailedAt < RETRY_MS) return;
+  if (!shouldSubmit(lastSubmit, next, now, force)) return;
   submitting = true;
   const sends: Promise<void>[] = [submitAllTime(next.allTimeCents)];
   if (next.weeklyId) sends.push(submitWeeklyScore(game.cityId, next.weeklyCents));
@@ -113,8 +115,8 @@ function sync(force: boolean): void {
       };
     })
     .catch(() => {
-      // Keep the old mark; try again after the interval.
-      lastSubmit = lastSubmit ? { ...lastSubmit, at: now } : null;
+      // Keep the old mark; try again after the interval (also when nothing was sent yet).
+      submitFailedAt = now;
     })
     .finally(() => {
       submitting = false;

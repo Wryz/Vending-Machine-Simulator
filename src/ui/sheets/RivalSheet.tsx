@@ -1,8 +1,8 @@
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { COMPETITION, RIVAL } from '@/config/economy';
+import { SHEET_OPEN_SHARE } from '@/config/map';
 import { useT } from '@/i18n';
 import { simError, venueName } from '@/i18n/sim';
 import { rivalMatchup, undercutRival, type RivalNewsKind } from '@/sim';
@@ -14,8 +14,9 @@ import { Icon } from '../icons';
 import { T, Toast } from '../kit';
 import { BRIGHTVEND, RivalPortrait } from '../RivalPortrait';
 import { sfx } from '../sfx';
-import { Cabinet, Glass, Key, keyInk, Led, Marquee, SKIN } from '../skin';
-import { RADIUS, SPACE, TOUCH } from '../theme';
+import { Glass, Key, keyInk, Led, Marquee, SKIN } from '../skin';
+import { RADIUS, SPACE } from '../theme';
+import { GameSheet, SheetScroll, type GameSheetHandle } from './GameSheet';
 
 /**
  * A rival machine, tapped on the map (SPEC §4.6): Rex Brightley's portrait
@@ -24,7 +25,7 @@ import { RADIUS, SPACE, TOUCH } from '../theme';
  * A violet Brightvend cabinet, so it never reads as one of yours.
  */
 export const RivalSheet = forwardRef<
-  BottomSheetModal,
+  GameSheetHandle,
   {
     rivalId: string | null;
     bottomInset: number;
@@ -35,7 +36,16 @@ export const RivalSheet = forwardRef<
 >(function RivalSheet({ rivalId, bottomInset, onDismiss, onBetterSpot }, ref) {
   const t = useT();
   const game = useGame((s) => s.game);
-  const snapPoints = useMemo(() => ['56%'], []);
+  const sheet = useRef<GameSheetHandle>(null);
+  useImperativeHandle(
+    ref,
+    () => ({ open: () => sheet.current?.open(), close: () => sheet.current?.close() }),
+    [],
+  );
+  const close = () => {
+    sfx('pop');
+    sheet.current?.close();
+  };
   const match = useMemo(
     () => (game && rivalId ? rivalMatchup(game, rivalId) : null),
     [game, rivalId],
@@ -63,11 +73,6 @@ export const RivalSheet = forwardRef<
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setToast(null), 2600);
   };
-  const close = () => {
-    sfx('pop');
-    (ref as React.RefObject<BottomSheetModal | null>).current?.dismiss();
-  };
-
   const priceLocked = !!game && game.chapter < 2 && !game.chapterDoneAt[1];
   const canUndercut = !!match && match.nearbyIds.length > 0 && !priceLocked;
   const undercut = () => {
@@ -81,42 +86,19 @@ export const RivalSheet = forwardRef<
   };
 
   return (
-    <BottomSheetModal
-      ref={ref}
-      snapPoints={snapPoints}
-      enableDynamicSizing={false}
+    <GameSheet
+      ref={sheet}
+      openShare={SHEET_OPEN_SHARE.rival}
+      closeLabel={t('rival.sheet.a11y.close')}
+      cabinet={{ color: BRIGHTVEND.violet, light: '#9A86FF', dark: BRIGHTVEND.violetDark }}
       onDismiss={() => {
         setToast(null);
         onDismiss();
       }}
-      backgroundComponent={({ style }) => (
-        <Cabinet
-          screws={false}
-          color={BRIGHTVEND.violet}
-          light="#9A86FF"
-          dark={BRIGHTVEND.violetDark}
-          style={[style, { borderTopLeftRadius: RADIUS.l + 4, borderTopRightRadius: RADIUS.l + 4 }]}
-        />
-      )}
-      handleComponent={() => (
-        <View style={styles.handle}>
-          <View style={{ width: TOUCH - 6 }} />
-          <View style={styles.grabber} />
-          <Key
-            round
-            height={TOUCH - 6}
-            accessibilityLabel={t('rival.sheet.a11y.close')}
-            onPress={close}
-            faceStyle={{ paddingHorizontal: 0, width: TOUCH - 6 }}
-          >
-            <Icon name="close" size={20} color={SKIN.keyInk} />
-          </Key>
-        </View>
-      )}
     >
       {match ? (
         <>
-          <BottomSheetScrollView
+          <SheetScroll
             contentContainerStyle={{
               paddingHorizontal: SPACE.l,
               paddingTop: SPACE.xs,
@@ -216,7 +198,7 @@ export const RivalSheet = forwardRef<
                     pct: Math.round(RIVAL.counterPriceRatio * 100),
                   })}
             </T>
-          </BottomSheetScrollView>
+          </SheetScroll>
           {toast ? (
             <View pointerEvents="none" style={styles.toast}>
               <Toast text={toast} />
@@ -224,20 +206,11 @@ export const RivalSheet = forwardRef<
           ) : null}
         </>
       ) : null}
-    </BottomSheetModal>
+    </GameSheet>
   );
 });
 
 const styles = StyleSheet.create({
-  handle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACE.l,
-    paddingTop: SPACE.s,
-    paddingBottom: SPACE.xs,
-  },
-  grabber: { width: 56, height: 6, borderRadius: 3, backgroundColor: SKIN.chrome },
   faceRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.m },
   portrait: {
     width: 84,

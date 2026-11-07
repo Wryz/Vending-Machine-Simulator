@@ -112,7 +112,8 @@ export function buildWorld(city: CityInfo, pack: RegionPack, weather: WeatherBoo
   };
 }
 
-const weatherBook = new WeatherBook();
+/** Live weather for the open city (a new book per city, so one city's hours never leak into another). */
+let weatherBook = new WeatherBook();
 let loadToken = 0;
 let lastWeatherFetch = 0;
 const WEATHER_REFRESH_MS = 30 * 60_000;
@@ -183,10 +184,13 @@ export const useGame = create<GameStore>((set, get) => {
             : await loadRegionPack(city.res5 ?? '');
         // A newer openCity() started while we were loading: let it win.
         if (token !== loadToken) return;
-        const world = buildWorld(city, pack, weatherBook);
+        // A late answer for an earlier city lands in that city's (discarded) book.
+        const book = new WeatherBook();
+        weatherBook = book;
+        const world = buildWorld(city, pack, book);
         lastWeatherFetch = Date.now();
         fetchWeather(city)
-          .then((w) => weatherBook.load(w.hours))
+          .then((w) => book.load(w.hours))
           .catch(() => undefined);
         const now = Date.now();
         let game: GameState | null = null;
@@ -196,6 +200,9 @@ export const useGame = create<GameStore>((set, get) => {
             try {
               game = migrateSave(raw);
             } catch {
+              // Unreadable here (e.g. written by a newer build): keep a copy before
+              // the fresh game below takes this save slot, so progress isn't lost.
+              writeJson(`${saveKey(city)}-unreadable-${now}`, raw);
               game = null;
             }
           }
@@ -240,8 +247,9 @@ export const useGame = create<GameStore>((set, get) => {
       // Keep live weather fresh (cached; MET's Expires is respected in fetchWeather).
       if (city && now - lastWeatherFetch > WEATHER_REFRESH_MS) {
         lastWeatherFetch = now;
+        const book = weatherBook;
         fetchWeather(city)
-          .then((w) => weatherBook.load(w.hours))
+          .then((w) => book.load(w.hours))
           .catch(() => undefined);
       }
       const { state, report } = advance(game, world, now, simOptions());
@@ -290,13 +298,16 @@ export const useGame = create<GameStore>((set, get) => {
       if (!game || !world) return { ok: false, error: t('store.noGame') } as never;
       // Bring the sim up to date first so actions happen "now".
       let current: GameState;
+      let caught: { state: GameState; report: AdvanceReport } | null = null;
       if (Date.now() > game.now) {
-        const caught = advance(game, world, Date.now(), simOptions());
-        announceMoments(caught.state, caught.report);
+        caught = advance(game, world, Date.now(), simOptions());
         current = caught.state;
       } else current = cloneState(game);
       const result = fn(current, world);
       if (result.ok) {
+        // Only now: a failed action drops the catch-up, and the next tick
+        // re-simulates (and announces) the same moments.
+        if (caught) announceMoments(caught.state, caught.report);
         // Trophies earned by the action itself (first restock, first driver, ...).
         for (const id of checkAchievements(current))
           announceMoments(current, { ...EMPTY_REPORT, achievements: [id] });
@@ -323,6 +334,8 @@ export const useGame = create<GameStore>((set, get) => {
     },
 
     close() {
+      // An openCity() still loading must not land after this.
+      loadToken++;
       get().save();
       set({ status: 'idle', game: null, world: null, city: null, ticker: [] });
     },
@@ -368,10 +381,7 @@ const seenEvents = new Set<string>();
 const readyOrders = new Set<string>();
 
 function goalLabel(g: { id: string; title: string; kind: string; target: number }): string {
-  const n =
-    g.kind === 'sales'
-      ? moneyShort(g.target)
-      : String(g.target);
+  const n = g.kind === 'sales' ? moneyShort(g.target) : String(g.target);
   return content.goal(g.id, g.title, n);
 }
 

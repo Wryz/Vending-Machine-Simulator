@@ -25,7 +25,8 @@ export function ContractSheet({
   venue: string;
   terms: { label: string; value: string }[];
   disclaimer?: string;
-  onSign: () => void;
+  /** Returns false when signing failed (the line clears so the player can sign again). */
+  onSign: () => boolean | void;
   disabled?: boolean;
 }) {
   const theme = useTheme();
@@ -40,7 +41,10 @@ export function ContractSheet({
     if (span > width * 0.6 && !disabled) {
       setSigned(true);
       haptic.success();
-      onSign();
+      if (onSign() === false) {
+        setSigned(false);
+        setPath('');
+      }
     } else {
       setPath('');
     }
@@ -89,7 +93,7 @@ export function ContractSheet({
           onAccessibilityAction={() => {
             if (!signed && !disabled) {
               setSigned(true);
-              onSign();
+              if (onSign() === false) setSigned(false);
             }
           }}
           onLayout={(e) => setWidth(e.nativeEvent.layout.width)}

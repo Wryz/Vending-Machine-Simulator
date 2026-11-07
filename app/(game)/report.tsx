@@ -61,8 +61,11 @@ export default function Report() {
   const t = useT();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  // Keep our own copy so the receipt stays put while the sheet closes.
-  const [report] = useState(() => useGame.getState().offlineReport);
+  // Keep our own copy so the receipt stays put while the sheet closes, but follow
+  // a newer report that lands while it is open (the shell never stacks a second sheet).
+  const live = useGame((s) => s.offlineReport);
+  const [report, setReport] = useState(live);
+  if (live && live !== report) setReport(live);
   const game = useGame((s) => s.game);
   const world = useGame((s) => s.world);
   const removeAds = useProfile((s) => s.entitlements.removeAds);

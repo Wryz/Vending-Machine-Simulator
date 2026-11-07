@@ -130,13 +130,15 @@ export function placeMachine(
     );
     if (sameVenue && p.exclusive) return fail('You already hold an exclusive contract here.');
   }
+  // Check the machine before taking any cash.
+  const existing = p.machineId ? getMachine(state, p.machineId) : undefined;
+  if (p.machineId && (!existing || existing.status !== 'stored'))
+    return fail('That machine is not in storage.');
   if (!spend(state, q.totalCents, p.machineId ? 'Install' : 'Machines'))
     return fail('Not enough cash.');
 
   let machine: Machine;
-  if (p.machineId) {
-    const existing = getMachine(state, p.machineId);
-    if (!existing || existing.status !== 'stored') return fail('That machine is not in storage.');
+  if (existing) {
     machine = existing;
   } else {
     machine = storedMachine(nextId(state, 'm'), type.id, state.now);

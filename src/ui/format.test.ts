@@ -34,6 +34,9 @@ describe('format', () => {
     expect(money(500, { sign: true })).toBe('+$5.00');
     expect(money(12_345_600, { compact: true })).toBe('$123k');
     expect(money(250_000_000, { compact: true })).toBe('$2.50M');
+    // Just under a million rounds up into M, never "$1,000k".
+    expect(money(99_995_000, { compact: true })).toBe('$1.00M');
+    expect(money(99_949_900, { compact: true })).toBe('$999k');
   });
   it('formats other units', () => {
     expect(pct(0.155, 1)).toBe('15.5%');
@@ -52,6 +55,8 @@ describe('moneyShort', () => {
     expect(moneyShort(1_250_000)).toBe('$12.5k');
     expect(moneyShort(120_000_000)).toBe('$1.2M');
     expect(moneyShort(-50_000)).toBe('−$500');
+    expect(moneyShort(99_995_000)).toBe('$1M');
+    expect(moneyShort(-30)).toBe('$0');
   });
 });
 

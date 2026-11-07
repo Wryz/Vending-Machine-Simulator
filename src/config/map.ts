@@ -169,10 +169,30 @@ export const CAMERA = {
   zoomStepMs: 250,
 } as const;
 
+/**
+ * Map taps. A tap on a machine also reaches the map underneath, in either
+ * order, as two separate events.
+ */
+export const MAP_TAP = {
+  /** A map press this soon after a machine press is the same tap (ignored), ms. */
+  machineGuardMs: 450,
+  /** A map press waits this long for a machine press from the same tap, ms. */
+  settleMs: 90,
+} as const;
+
+/**
+ * The map sheets open at this share of the screen and pull up to full screen
+ * (their content only scrolls at full screen).
+ */
+export const SHEET_OPEN_SHARE = {
+  spot: 0.52,
+  rival: 0.56,
+} as const;
+
 /** The machine sheet over the map. */
 export const MACHINE_SHEET = {
-  /** Detents, as shares of the screen height (the first one opens). */
-  snapPoints: [0.46, 0.9],
+  /** Detents, as shares of the screen height: opening share, then full screen. */
+  snapPoints: [0.46, 1],
   /**
    * The map frames the machine as if this share of the screen were covered:
    * a little less than the sheet, so it sits mid-way between the HUD and the sheet.

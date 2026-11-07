@@ -1,9 +1,9 @@
-import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import { forwardRef, useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { getMachineType, type MachineTypeId } from '@/config/machines';
+import { SHEET_OPEN_SHARE } from '@/config/map';
 import { CATEGORY_LABEL } from '@/config/places';
 import type { PlaceCategory } from '@/data/types';
 import { useT } from '@/i18n';
@@ -23,9 +23,10 @@ import { meters, moneyShort } from '../format';
 import { Button, Chip, Row, T } from '../kit';
 import { Glyph, Sparkline } from '../objects/small';
 import { Icon } from '../icons';
-import { Cabinet, Glass, Led, Marquee, Plate, SKIN } from '../skin';
+import { Glass, Led, Marquee, Plate, SKIN } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { RADIUS, SPACE } from '../theme';
+import { GameSheet, SheetScroll, type GameSheetHandle } from './GameSheet';
 
 export interface SpotPoint {
   lat: number;
@@ -37,7 +38,7 @@ export interface SpotPoint {
  * Headline numbers and the top reasons first; details further down.
  */
 export const SpotSheet = forwardRef<
-  BottomSheetModal,
+  GameSheetHandle,
   {
     game: GameState;
     world: World;
@@ -47,21 +48,8 @@ export const SpotSheet = forwardRef<
     onDismiss: () => void;
   }
 >(function SpotSheet({ game, world, point, machineId, bottomInset, onDismiss }, ref) {
-  const snapPoints = useMemo(() => ['52%', '90%'], []);
   return (
-    <BottomSheetModal
-      ref={ref}
-      snapPoints={snapPoints}
-      enableDynamicSizing={false}
-      onDismiss={onDismiss}
-      backgroundComponent={({ style }) => (
-        <Cabinet
-          screws={false}
-          style={[style, { borderTopLeftRadius: RADIUS.l + 4, borderTopRightRadius: RADIUS.l + 4 }]}
-        />
-      )}
-      handleIndicatorStyle={{ backgroundColor: SKIN.chrome, width: 56, height: 6 }}
-    >
+    <GameSheet ref={ref} openShare={SHEET_OPEN_SHARE.spot} onDismiss={onDismiss}>
       {point ? (
         <SpotBody
           // A new tap is a new spot: remount so picks from the last spot don't carry over.
@@ -73,7 +61,7 @@ export const SpotSheet = forwardRef<
           bottomInset={bottomInset}
         />
       ) : null}
-    </BottomSheetModal>
+    </GameSheet>
   );
 });
 
@@ -123,7 +111,7 @@ function SpotBody({
     ]);
 
   return (
-    <BottomSheetScrollView
+    <SheetScroll
       contentContainerStyle={{
         paddingHorizontal: SPACE.l,
         paddingBottom: bottomInset + SPACE.xl,
@@ -282,7 +270,7 @@ function SpotBody({
           {t('spotSheet.attribution')}
         </T>
       </View>
-    </BottomSheetScrollView>
+    </SheetScroll>
   );
 }
 

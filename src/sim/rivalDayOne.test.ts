@@ -244,3 +244,52 @@ describe('counter-move: undercut', () => {
     expect(again.ok && again.slots).toBe(0);
   });
 });
+
+describe('contract steals', () => {
+  const world = testWorld();
+
+  it('count the stolen spot as a competitor from the same catch-up on', () => {
+    // A ramped rival, and a contract ending on an unhappy venue: the rival bids.
+    let base: GameState | null = null;
+    for (let seed = 1; seed < 40 && !base; seed++) {
+      let s = pastTutorial(placed(world, seed));
+      s.chapter = 3;
+      s.cashCents = 1_000_000;
+      // A neighbour that keeps its contract: the stolen spot competes with it.
+      const near = offsetPoint(decentSpot(), 90, 40);
+      s = withClone(s, (d) => {
+        const r = placeMachine(d, world, {
+          typeId: 'snack',
+          lat: near.lat,
+          lng: near.lng,
+          heading: 0,
+          termDays: 30,
+          exclusive: false,
+        });
+        if (r.ok)
+          restockMachine(d, world, r.machine.id, suggestRestock(d, r.machine.id, 10_000), {
+            manual: true,
+            capacity: 10_000,
+          });
+        return r;
+      }).state;
+      expect(s.machines.filter((m) => m.status === 'active')).toHaveLength(2);
+      const ramped = advance(s, world, s.now + MIN).state;
+      const m = ramped.machines[0];
+      m.mood = RIVAL.stealMoodBelow / 2;
+      m.contract.endsAt = ramped.now + MIN / 2;
+      const one = advance(ramped, world, ramped.now + MIN);
+      if (one.report.rival.some((n) => n.kind === 'steal')) base = ramped;
+    }
+    expect(base).not.toBeNull();
+    const s = base!;
+    // One catch-up across the steal must match one that restarts right after it
+    // (a fresh start rebuilds the competition index from scratch). Gaps up to
+    // 15 minutes run in 1-minute steps, so both take exactly the same steps.
+    const to = s.now + 15 * MIN;
+    const whole = advance(s, world, to).state;
+    const split = advance(advance(s, world, s.now + MIN).state, world, to).state;
+    expect(whole.ledger.recentRivalCents).toBe(split.ledger.recentRivalCents);
+    expect(whole.cashCents).toBe(split.cashCents);
+  });
+});

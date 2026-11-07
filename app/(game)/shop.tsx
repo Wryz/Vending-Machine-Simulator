@@ -156,6 +156,10 @@ export default function Shop() {
         });
         show(t('shop.starterAdded'), 'success');
       } else {
+        // Paid but not applied (e.g. during a catch-up): owed, delivered by the game shell.
+        useProfile.getState().update((p) => {
+          p.entitlements.starterPackOwed = true;
+        });
         show(t('shop.starterPending'), 'info');
       }
       return;

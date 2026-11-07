@@ -105,6 +105,39 @@ describe('placement', () => {
       expect(q.commission).toBeLessThanOrEqual(0.35);
     }
   });
+  it('charges nothing when the machine to place is not in storage', () => {
+    // A bought type: unlike the used starter, it costs something to install.
+    expect(getMachineType('snack').installCents).toBeGreaterThan(0);
+    const start = startWithPlacedMachine(world);
+    start.chapter = 2;
+    start.cashCents = 10_000_00;
+    const at = offsetPoint(decentSpot(), 270, 40);
+    const bought = withClone(start, (d) =>
+      placeMachine(d, world, {
+        typeId: 'snack',
+        lat: at.lat,
+        lng: at.lng,
+        heading: 0,
+        termDays: 30,
+        exclusive: false,
+      }),
+    );
+    expect(bought.result.ok).toBe(true);
+    const s = bought.state;
+    const active = s.machines.find((m) => m.typeId === 'snack')!;
+    const p = offsetPoint(decentSpot(), 90, 60);
+    const draft = structuredClone(s);
+    const r = placeMachine(draft, world, {
+      machineId: active.id,
+      lat: p.lat,
+      lng: p.lng,
+      heading: 0,
+      termDays: 30,
+      exclusive: false,
+    });
+    expect(r.ok).toBe(false);
+    expect(draft.cashCents).toBe(s.cashCents);
+  });
   it('rejects locked districts, duplicate spots and bad terms', () => {
     const s = startWithPlacedMachine(world);
     const spot = decentSpot();

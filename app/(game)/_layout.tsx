@@ -1,5 +1,5 @@
 import { Redirect, Stack, router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
 import { musicMoodFor } from '@/audio/soundscape';
@@ -7,7 +7,9 @@ import { getTimeOfDay } from '@/map/timeOfDay';
 import { flush, track } from '@/services/analytics';
 import { music, sound } from '@/services/audio';
 import { rescheduleNotifications } from '@/services/notifications';
+import { applyStarterPack } from '@/sim';
 import { useGame } from '@/store/game';
+import { useProfile } from '@/store/profile';
 import { CatchUpOverlay } from '@/ui/CatchUpOverlay';
 import { useTheme } from '@/ui/ThemeProvider';
 
@@ -27,6 +29,8 @@ export default function GameLayout() {
   const offlineReport = useGame((s) => s.offlineReport);
   const chapter = useGame((s) => s.game?.chapter ?? 1);
   const city = useGame((s) => s.city);
+  const catchingUp = useGame((s) => s.catchingUp);
+  const starterOwed = useProfile((s) => !!s.entitlements.starterPackOwed);
 
   useEffect(() => {
     if (status !== 'ready') return;
@@ -40,7 +44,8 @@ export default function GameLayout() {
         sound.resume();
       } else if (next === 'background' || next === 'inactive') {
         save();
-        rescheduleNotifications(game, world).catch(() => undefined);
+        // iOS sends both on every backgrounding: schedule once.
+        if (next === 'background') rescheduleNotifications(game, world).catch(() => undefined);
         flush();
         sound.suspend();
       }
@@ -61,9 +66,29 @@ export default function GameLayout() {
     return () => clearInterval(id);
   }, [status, city]);
 
+  // One receipt at a time: a newer report while it is open updates it in place.
+  const reportOpen = useRef(false);
   useEffect(() => {
-    if (offlineReport) router.push('/report');
+    if (!offlineReport) {
+      reportOpen.current = false;
+      return;
+    }
+    if (reportOpen.current) return;
+    reportOpen.current = true;
+    router.push('/report');
   }, [offlineReport]);
+
+  // A paid Starter Pack that could not be applied yet (bought during a
+  // catch-up, or restored on another install) arrives once the game is free.
+  useEffect(() => {
+    if (status !== 'ready' || catchingUp || !starterOwed) return;
+    const r = useGame.getState().act((d) => applyStarterPack(d));
+    if (r.ok)
+      useProfile.getState().update((p) => {
+        p.entitlements.starterPackClaimed = true;
+        p.entitlements.starterPackOwed = false;
+      });
+  }, [status, catchingUp, starterOwed]);
 
   // Chapter sound + haptics are played by CelebrationHost; only track here.
   useEffect(() => {

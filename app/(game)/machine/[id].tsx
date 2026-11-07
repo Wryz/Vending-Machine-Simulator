@@ -64,6 +64,13 @@ export default function MachineCloseup() {
     const list = timers.current;
     return () => list.forEach(clearTimeout);
   }, []);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
 
   const type = machine ? getMachineType(machine.typeId) : null;
 
@@ -198,7 +205,9 @@ export default function MachineCloseup() {
 
   const show = (text: string, tone: ToastTone = 'info') => {
     setToast({ text, tone });
-    setTimeout(() => setToast(null), 2600);
+    // A newer toast gets its full time (the last one's timer must not clear it).
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
   };
 
   // 3D for the panel's actions: the cash door and coin glints, restock blocks sliding in.

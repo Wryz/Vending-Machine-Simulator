@@ -30,7 +30,14 @@ export async function loadCityPack(cityId: string): Promise<RegionPack> {
 /** Download a "your area" region pack once and cache it on device. */
 export async function loadRegionPack(res5: string): Promise<RegionPack> {
   const cached = new File(Paths.document, `region-${res5}.json.gz`);
-  if (cached.exists) return decodePack(await cached.bytes());
+  if (cached.exists) {
+    try {
+      return decodePack(await cached.bytes());
+    } catch {
+      // Truncated or from an old schema: drop it and download it again.
+      cached.delete();
+    }
+  }
   const bytes = await fetchRegionPack(res5);
   const pack = decodePack(bytes);
   cached.writeSync(bytes);

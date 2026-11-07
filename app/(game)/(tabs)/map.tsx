@@ -1,11 +1,10 @@
-import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { router, useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CAMERA, GLOBE, MACHINE_SHEET } from '@/config/map';
+import { CAMERA, GLOBE, MACHINE_SHEET, MAP_TAP } from '@/config/map';
 import type { Feature } from '@/config/progression';
 import { useCityClock } from '@/hooks/useCityClock';
 import { useT } from '@/i18n';
@@ -33,15 +32,13 @@ import { useTheme } from '@/ui/ThemeProvider';
 import { CashPill, InfoPill, RoundButton } from '@/ui/hud';
 import { Button, T } from '@/ui/kit';
 import { Coach } from '@/ui/Coach';
+import type { GameSheetHandle } from '@/ui/sheets/GameSheet';
 import { MachineSheet } from '@/ui/sheets/MachineSheet';
 import { RivalSheet } from '@/ui/sheets/RivalSheet';
 import { MoneyPanel, type IncomingSale } from '@/ui/MoneyPanel';
 import { SpotSheet, type SpotPoint } from '@/ui/sheets/SpotSheet';
 import { sfx } from '@/ui/sfx';
 import { SPACE } from '@/ui/theme';
-
-/** A map press this soon after a machine press belongs to the same tap. */
-const MACHINE_TAP_GUARD_MS = 450;
 
 /** A sale shows in its own pill under the money panel for this long. */
 const SALE_PILL_MS = 6_000;
@@ -86,9 +83,9 @@ export default function MapScreen() {
   const ticker = useGame((s) => s.ticker);
   const { tod } = useCityClock(world.city.lat, world.city.lng);
   const mapRef = useRef<CityMapHandle>(null);
-  const spotRef = useRef<BottomSheetModal>(null);
-  const machineSheetRef = useRef<BottomSheetModal>(null);
-  const rivalSheetRef = useRef<BottomSheetModal>(null);
+  const spotRef = useRef<GameSheetHandle>(null);
+  const machineSheetRef = useRef<GameSheetHandle>(null);
+  const rivalSheetRef = useRef<GameSheetHandle>(null);
   /** The rival machine whose card is open. */
   const [rivalId, setRivalId] = useState<string | null>(null);
   /** The machine whose sheet is open. */
@@ -156,6 +153,8 @@ export default function MapScreen() {
   // the close-up is in front, and bring the machine's sheet back on return.
   const reopenSheet = useRef<string | null>(null);
   const openMachine = useRef<string | null>(null);
+  /** A map press waiting to see if a machine press from the same tap follows. */
+  const pendingMapPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     openMachine.current = machineId;
   }, [machineId]);
@@ -167,13 +166,15 @@ export default function MapScreen() {
         const id = reopenSheet.current;
         reopenSheet.current = null;
         setMachineId(id);
-        machineSheetRef.current?.present();
+        machineSheetRef.current?.open();
       }
       return () => {
+        if (pendingMapPressRef.current) clearTimeout(pendingMapPressRef.current);
+        pendingMapPressRef.current = null;
         if (openMachine.current) reopenSheet.current = openMachine.current;
-        machineSheetRef.current?.dismiss();
-        rivalSheetRef.current?.dismiss();
-        spotRef.current?.dismiss();
+        machineSheetRef.current?.close();
+        rivalSheetRef.current?.close();
+        spotRef.current?.close();
       };
     }, []),
   );
@@ -184,19 +185,34 @@ export default function MapScreen() {
     [spot, world, game],
   );
 
+  // One tap can reach both a machine (source press) and the map underneath, in
+  // either order. A map press right after a machine press is that same tap:
+  // ignore it. A map press first waits a moment for a machine press to follow
+  // (which cancels it), or it would close the sheet the machine press opens.
   const lastMachinePress = useRef(0);
+  const cancelMapPress = () => {
+    if (pendingMapPressRef.current) clearTimeout(pendingMapPressRef.current);
+    pendingMapPressRef.current = null;
+  };
+  useEffect(
+    () => () => {
+      if (pendingMapPressRef.current) clearTimeout(pendingMapPressRef.current);
+    },
+    [],
+  );
   const onMapPress = (lat: number, lng: number) => {
-    // One tap can reach both a machine (source press) and the map underneath, in
-    // either order. A map press right after a machine press is that same tap:
-    // ignore it, or the spot sheet would replace the machine's sheet.
-    if (Date.now() - lastMachinePress.current < MACHINE_TAP_GUARD_MS) return;
-    if (machineId) {
-      // A tap on the map closes the machine's sheet first.
-      machineSheetRef.current?.dismiss();
-      return;
-    }
-    setSpot({ lat, lng });
-    spotRef.current?.present();
+    if (Date.now() - lastMachinePress.current < MAP_TAP.machineGuardMs) return;
+    cancelMapPress();
+    pendingMapPressRef.current = setTimeout(() => {
+      pendingMapPressRef.current = null;
+      if (openMachine.current) {
+        // A tap on the map closes the machine's sheet first.
+        machineSheetRef.current?.close();
+        return;
+      }
+      setSpot({ lat, lng });
+      spotRef.current?.open();
+    }, MAP_TAP.settleMs);
   };
 
   /** Frame a machine above its sheet, front on, close enough to see customers. */
@@ -226,20 +242,27 @@ export default function MapScreen() {
   const onMachinePress = (id: string) => {
     if (!game.machines.some((x) => x.id === id)) return;
     lastMachinePress.current = Date.now();
-    spotRef.current?.dismiss();
+    cancelMapPress();
+    // An explicit pick (a tap, the key ring, a new placement) wins over the
+    // sheet that was open when the map was left.
+    reopenSheet.current = null;
+    spotRef.current?.close();
+    rivalSheetRef.current?.close();
     setSpot(null);
     setMachineId(id);
-    machineSheetRef.current?.present();
+    machineSheetRef.current?.open();
     frameMachine(id, framePadding);
   };
 
   // A rival machine: Rex's card (prices, a taunt, the counter-moves).
   const onRivalPress = (id: string) => {
     lastMachinePress.current = Date.now();
-    spotRef.current?.dismiss();
-    machineSheetRef.current?.dismiss();
+    cancelMapPress();
+    reopenSheet.current = null;
+    spotRef.current?.close();
+    machineSheetRef.current?.close();
     setRivalId(id);
-    rivalSheetRef.current?.present();
+    rivalSheetRef.current?.open();
   };
 
   // Dev QA: open a rival machine's card (then forget the request).
@@ -249,7 +272,7 @@ export default function MapScreen() {
       onRivalPress(params.rival);
       router.setParams({ rival: undefined });
       // Once per request.
-       
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [params.rival]),
   );
 
@@ -410,7 +433,7 @@ export default function MapScreen() {
           cameraNow.current = c;
           // Pinched far out: hand off to the globe (only for the player's own gestures).
           if (GLOBE.enabled && byUser && c.zoom < GLOBE.handoffZoom && !globe) {
-            spotRef.current?.dismiss();
+            spotRef.current?.close();
             setGlobe(true);
           }
           feedSoundscape();

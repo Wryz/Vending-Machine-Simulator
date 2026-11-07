@@ -36,9 +36,15 @@ export async function fetchWeather(city: {
   id: string;
   lat: number;
   lng: number;
+  /** "Your area" cities: the res-5 region cell (the Worker only knows fallback city ids). */
+  res5?: string;
 }): Promise<WeatherResponse> {
   if (ENV.dataApiUrl)
-    return getJson<WeatherResponse>(`/weather?city=${encodeURIComponent(city.id)}`);
+    return getJson<WeatherResponse>(
+      city.res5
+        ? `/weather?cell=${encodeURIComponent(city.res5)}`
+        : `/weather?city=${encodeURIComponent(city.id)}`,
+    );
   const key = `weather-${city.id.replace(/[^a-z0-9-]/gi, '_')}`;
   const cached = readJson<{ expires: number; response: WeatherResponse }>(key);
   if (cached && cached.expires > Date.now()) return cached.response;
@@ -69,9 +75,16 @@ export async function fetchWeather(city: {
   }
 }
 
-export async function fetchRegionPack(res5: string): Promise<Uint8Array> {
+export async function fetchRegionPack(res5: string, timeoutMs = 30_000): Promise<Uint8Array> {
   if (!ENV.dataApiUrl) throw new Error('Data API is not configured.');
-  const res = await fetch(`${ENV.dataApiUrl}/cells/${res5}.bin`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return new Uint8Array(await res.arrayBuffer());
+  // A stalled download must fail (and show retry), not leave the city loading forever.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${ENV.dataApiUrl}/cells/${res5}.bin`, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return new Uint8Array(await res.arrayBuffer());
+  } finally {
+    clearTimeout(timer);
+  }
 }
