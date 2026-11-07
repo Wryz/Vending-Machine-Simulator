@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "app.coinline.vending",
-      "buildNumber": "7",
+      "buildNumber": "8",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Coinline uses your approximate location once, to start your business in the closest city. It is never stored.",
@@ -64,7 +64,7 @@
         {
           "backgroundColor": "#FF6B2C",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 170
+          "imageWidth": 360
         }
       ],
       "@maplibre/maplibre-react-native",

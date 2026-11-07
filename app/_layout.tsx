@@ -7,7 +7,8 @@ import { useFonts } from 'expo-font';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -18,7 +19,9 @@ import { initAds } from '@/services/ads';
 import { initGameCenter } from '@/services/gameCenter';
 import { sound } from '@/services/audio';
 import { initPurchases } from '@/services/purchases';
+import { SPLASH } from '@/config/splash';
 import { useProfile } from '@/store/profile';
+import { BrandSplash } from '@/ui/BrandSplash';
 import { CelebrationHost } from '@/ui/CelebrationHost';
 import { ThemeProvider, useTheme } from '@/ui/ThemeProvider';
 
@@ -71,11 +74,15 @@ export default function RootLayout() {
     if (!useProfile.getState().entitlements.removeAds) initAds();
   }, [loaded]);
 
-  useEffect(() => {
-    if ((fontsLoaded || fontError) && loaded) SplashScreen.hideAsync().catch(() => undefined);
-  }, [fontsLoaded, fontError, loaded]);
+  // The native splash still hands off to the animated BrandSplash (same art),
+  // which stays up until the app is ready, then fades into it.
+  const [splashDone, setSplashDone] = useState(false);
+  const hideNative = useCallback(() => {
+    SplashScreen.hideAsync().catch(() => undefined);
+  }, []);
+  const finishSplash = useCallback(() => setSplashDone(true), []);
 
-  const ready = (fontsLoaded || fontError) && loaded;
+  const ready = Boolean((fontsLoaded || fontError) && loaded);
   useEffect(() => {
     // Unattended QA (dev builds only): jump to a route once the app can navigate.
     if (!ready || !ENV.qaRoute) return;
@@ -83,8 +90,15 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, [ready]);
 
-  if (!ready) return null;
+  return (
+    <View style={{ flex: 1, backgroundColor: SPLASH.background }}>
+      {ready ? <App lang={lang} /> : null}
+      {splashDone ? null : <BrandSplash ready={ready} onShown={hideNative} onDone={finishSplash} />}
+    </View>
+  );
+}
 
+function App({ lang }: { lang: string }) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
