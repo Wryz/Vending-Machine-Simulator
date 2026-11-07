@@ -29,14 +29,8 @@ export const SOUNDSCAPE = {
    * be to be heard. Full at or inside `fullM`, silent from `zeroM`.
    */
   proximity: {
-    water: { fullM: 40, zeroM: 450 },
     park: { fullM: 20, zeroM: 260 },
   },
-  /**
-   * Waves near water: level far out and at street level (× proximity). Kept
-   * well under the other layers (see layerTrim.waves): a quiet swell, never a wash.
-   */
-  waves: { far: 0.3, near: 1, rainSuppress: 0.4 },
   /**
    * Birds and crickets away from any green (street trees, balconies), relative
    * to right by a park. Used once the map has probed its surroundings.
@@ -48,7 +42,7 @@ export const SOUNDSCAPE = {
    */
   probe: { rangeM: 500, debounceMs: 450 },
   /** Close-up scales the street layers down (the machine is the focus). */
-  closeup: { crowd: 0.55, birds: 0.7, crickets: 0.8, waves: 0.7, spice: 0.5, footsteps: 2 },
+  closeup: { crowd: 0.55, birds: 0.7, crickets: 0.8, spice: 0.5, footsteps: 2 },
   /** How much rain (0..1) suppresses birds and the crowd. */
   rainSuppress: { birds: 0.75, crowd: 0.35 },
   rainByCondition: { clear: 0, cloudy: 0, fog: 0, rain: 0.7, storm: 1, snow: 0 },
@@ -73,8 +67,6 @@ export const AUDIO_MIX = {
   musicTrim: 1,
   /** Player volume per ambience layer at mix 1.0 and ambienceVolume 1. */
   layerTrim: {
-    /** Waves sit ~7 dB under the other beds at full mix (≈ -40 LUFS in game). */
-    waves: 0.13,
     crowd: 0.28,
     birds: 0.3,
     crickets: 0.22,

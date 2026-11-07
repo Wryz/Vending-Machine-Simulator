@@ -6,19 +6,17 @@ import { SOUNDSCAPE } from '@/config/audio';
  * Positional and calm: there is no constant city bed, so far out it is near
  * silent under the music. Each source is heard by how close the camera is
  * (zoom, 14.5 → 17.5 is "street level") and how near the place that makes it
- * is to the view center (`env`, probed from the map): soft rhythmic waves by
- * water, birds by parks at dawn and day, crickets in green spots on warm
+ * is to the view center (`env`, probed from the map): birds by parks at dawn and day, crickets in green spots on warm
  * nights, the crowd and footsteps where the streets are busy. Rain and wind
  * follow the weather. The machine close-up adds the compressor hum and keeps
  * the street present but lower. Menus are silent (music only).
  */
 
-export type LayerName = 'waves' | 'crowd' | 'birds' | 'crickets' | 'rain' | 'wind' | 'hum';
+export type LayerName = 'crowd' | 'birds' | 'crickets' | 'rain' | 'wind' | 'hum';
 
 export type SpiceName = 'birdChirp' | 'birdChirp2' | 'footsteps';
 
 export const LAYER_NAMES: readonly LayerName[] = [
-  'waves',
   'crowd',
   'birds',
   'crickets',
@@ -51,7 +49,7 @@ export interface SoundscapeInput {
    * What is around the view center (src/map/envProbe.ts): distance in meters
    * to the nearest water and green (0 = on it; null = none within range).
    * Omitted until the map has probed: then birds and crickets fall back to
-   * time of day alone and there are no waves.
+   * time of day alone.
    */
   env?: SoundscapeEnv;
 }
@@ -119,7 +117,6 @@ export function musicMoodFor(tod: TodWeights): 'day' | 'night' {
 
 function zeroLayers(): Record<LayerName, number> {
   return {
-    waves: 0,
     crowd: 0,
     birds: 0,
     crickets: 0,
@@ -156,14 +153,9 @@ export function soundscapeMix(input: SoundscapeInput): SoundscapeMix {
   const activity = tod.day + 0.75 * tod.dusk + 0.45 * tod.dawn + 0.12 * tod.night;
 
   const env = input.env;
-  const water = proximity(env?.waterDistM, S.proximity.water);
   /** Near green: 1 by a park, `awayFromGreen` elsewhere; 1 until the map has probed. */
   const green = (away: number) =>
     env ? away + (1 - away) * proximity(env.parkDistM, S.proximity.park) : 1;
-
-  // Soft swells by the water: faint far out, a little more at street level.
-  layers.waves =
-    water * (S.waves.far + (S.waves.near - S.waves.far) * near) * (1 - S.waves.rainSuppress * rain);
 
   layers.crowd =
     near ** 1.3 * (0.15 + 0.85 * busy) * activity ** 1.2 * (1 - S.rainSuppress.crowd * rain);
@@ -199,7 +191,6 @@ export function soundscapeMix(input: SoundscapeInput): SoundscapeMix {
     layers.crowd *= S.closeup.crowd;
     layers.birds *= S.closeup.birds;
     layers.crickets *= S.closeup.crickets;
-    layers.waves *= S.closeup.waves;
     layers.hum = 1;
   }
 

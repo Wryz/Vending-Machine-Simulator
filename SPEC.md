@@ -130,7 +130,7 @@ Show numbers and icons before text; sentences are for VoiceOver hints. Physical 
 - Touch targets are at least 44 pt. Use Dynamic Type where possible.
 - Haptics: light tick per coin, medium thunk when a product slots in, success notification on milestones.
 - Sound: toy-like and characterful, never stock app blips: a wooden-block tock for taps, an old LED keypad beep, coins rolling down a chute and wobbling flat, a can thunking into the tray, the vending coil turning, a tiny register bell, a thermal receipt printer, a springy cash-box latch, kalimba / music-box / tongue-drum phrases for good news; compressor hum near machines. All procedural (`scripts/audio/`), leveled by loudness: taps quietest, rewards a little louder. No loud jingles.
-- Ambience is positional, never a constant bed: each source follows zoom and its distance from the view center to the places that make it (probed from the map on camera idle): quiet rhythmic waves only near water, birds by parks by day, crickets in green on warm nights, crowd and steps where streets are busy, rain and wind with the weather. Far out it is near silent under the music.
+- Ambience is positional, never a constant bed: each source follows zoom and its distance from the view center to the places that make it (probed from the map on camera idle), with no water or ocean sound (owner decision 2026-11-06): birds by parks by day, crickets in green on warm nights, crowd and steps where streets are busy, rain and wind with the weather. Far out it is near silent under the music.
 
 ### 3.7 Typography & color tokens (proposal)
 - **Type** (Google Fonts, OFL licensed; bundle the fonts):

@@ -172,34 +172,8 @@ describe('positional ambience', () => {
     expect(proximity(Number.NaN, r)).toBe(0);
   });
 
-  it('waves only near water, louder the closer the view center is', () => {
-    expect(at(17, null).layers.waves).toBe(0);
-    expect(at(17, 2000).layers.waves).toBe(0);
-    expect(soundscapeMix(base({ zoom: 17 })).layers.waves).toBe(0);
-    let prev = 0;
-    for (const d of [440, 350, 250, 150, 60, 0]) {
-      const w = at(17, d).layers.waves;
-      expect(w).toBeGreaterThanOrEqual(prev);
-      prev = w;
-    }
-    expect(prev).toBeGreaterThan(0.5);
-  });
-
-  it('waves are faint far out and grow toward street level', () => {
-    const far = at(12, 0).layers.waves;
-    const street = at(18, 0).layers.waves;
-    expect(far).toBeGreaterThan(0);
-    expect(far).toBeLessThan(0.4);
-    expect(street).toBeGreaterThan(far * 2);
-  });
-
-  it('waves always stay far below the other beds once trimmed', () => {
-    // At full mix, waves play several dB under any other layer at full mix.
-    const { layerTrim } = AUDIO_MIX;
-    for (const k of LAYER_NAMES) {
-      if (k === 'waves') continue;
-      expect(layerTrim.waves).toBeLessThan(layerTrim[k] * 0.6);
-    }
+  it('has no wave or ocean layer, even right by the water', () => {
+    expect(Object.keys(at(18, 0).layers)).not.toContain('waves');
   });
 
   it('birds by parks, fewer on plain streets; crickets in green at night', () => {

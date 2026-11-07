@@ -62,7 +62,6 @@ export type SfxName = keyof typeof SFX_SOURCES;
 export type SoundName = SfxName;
 
 const LAYER_SOURCES: Record<LayerName, number> = {
-  waves: require('../../assets/audio/amb-waves.m4a'),
   crowd: require('../../assets/audio/amb-crowd.m4a'),
   birds: require('../../assets/audio/amb-birds.m4a'),
   crickets: require('../../assets/audio/amb-crickets.m4a'),
