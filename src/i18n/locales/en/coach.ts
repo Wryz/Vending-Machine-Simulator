@@ -21,9 +21,9 @@ export default {
     },
     delivery: {
       title: 'Your van is on its way',
-      /** {store} = a real supermarket name from map data. */
+      /** {store} = a warehouse or wholesaler name from map data. */
       line: 'It’s bringing your snacks from {store}. Watch it drive to your machine!',
-      lineDepot: 'It’s bringing your snacks from your depot. Watch it drive to your machine!',
+      lineDepot: 'It’s bringing your snacks from the warehouse. Watch it drive to your machine!',
       action: 'Watch it arrive',
       actionHint: 'Zooms the map in on your machine',
     },
@@ -52,7 +52,7 @@ export default {
     spotQuiet: 'Few people walk here. Pull this down and try a busier street.',
     sign: 'Scroll down and swipe your finger along the line to sign.',
     fill: 'Tap Fill to load snacks from your van.',
-    restock: 'Now tap Restock. A van brings them from the nearest store.',
+    restock: 'Now tap Restock. A van brings them from the nearest warehouse.',
     onTheWay: 'Your van is on its way. Close this and watch it drive here.',
     wait: 'All set! Close this and watch customers walk up.',
     collect: 'Tap Collect to take your coins.',

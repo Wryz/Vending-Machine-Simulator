@@ -54,7 +54,7 @@ export default {
     adRestockHint: 'Veja um anúncio para repor na hora',
     restock: 'Repor {n} · {cost}',
     restockHint:
-      'Uma van traz do mercado mais próximo. Máquinas repostas vendem {pct}% a mais por um dia útil',
+      'Uma van traz do armazém mais próximo. Máquinas repostas vendem {pct}% a mais por um dia útil',
     clear: 'Limpar',
     clearHint: 'Limpar o plano de reposição',
     more: 'Mais',
@@ -68,11 +68,11 @@ export default {
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Van a caminho',
-    /** {store} = a real supermarket name from map data. */
+    /** {store} = a warehouse or wholesaler name from map data. */
     from: 'De {store}',
-    fromDepot: 'Do seu depósito',
+    fromDepot: 'Do armazém',
     eta: 'Chega em {time}',
-    loading: 'Carregando no mercado',
+    loading: 'Carregando no armazém',
     a11y: 'Van a caminho com {n} itens, chega em {time}',
   },
   /** Moment when the van arrives. */

@@ -53,7 +53,7 @@ export default {
     adRestock: '即補充（広告）',
     adRestockHint: '広告を見て即補充',
     restock: '補充 {n} · {cost}',
-    restockHint: '一番近いお店からバンが運びます。補充した自販機は1営業日の売上が{pct}%アップ',
+    restockHint: '一番近い倉庫からバンが運びます。補充した自販機は1営業日の売上が{pct}%アップ',
     clear: 'クリア',
     clearHint: '補充計画をクリア',
     more: '詳細',
@@ -67,11 +67,11 @@ export default {
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'バンが配送中',
-    /** {store} = a real supermarket name from map data. */
+    /** {store} = a warehouse or wholesaler name from map data. */
     from: '{store}から',
     fromDepot: '倉庫から',
     eta: 'あと{time}',
-    loading: 'お店で積み込み中',
+    loading: '倉庫で積み込み中',
     a11y: '{n}個を載せたバンが配送中、あと{time}',
   },
   /** Moment when the van arrives. */

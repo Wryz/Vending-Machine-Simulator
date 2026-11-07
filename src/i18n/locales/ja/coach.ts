@@ -18,7 +18,7 @@ export default {
     },
     delivery: {
       title: 'バンが向かっています',
-      /** {store} = a real supermarket name from map data. */
+      /** {store} = a warehouse or wholesaler name from map data. */
       line: '{store}からお菓子を運んでいます。自販機まで走るのを見てみよう！',
       lineDepot: '倉庫からお菓子を運んでいます。自販機まで走るのを見てみよう！',
       action: '到着を見る',
@@ -47,7 +47,7 @@ export default {
     spotQuiet: 'ここは人通りが少ないです。これを下げて、もっとにぎやかな道を選びましょう。',
     sign: '下にスクロールして、線に沿って指をすべらせてサインします。',
     fill: '「満タン」をタップしてバンから商品を積みます。',
-    restock: '次に「補充」をタップ。一番近いお店からバンが運びます。',
+    restock: '次に「補充」をタップ。一番近い倉庫からバンが運びます。',
     onTheWay: 'バンが向かっています。閉じて、走ってくるのを見よう。',
     wait: '準備OK！閉じて、お客さんが来るのを見てみよう。',
     collect: '「回収」をタップしてコインを取り出します。',

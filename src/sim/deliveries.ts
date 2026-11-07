@@ -1,4 +1,4 @@
-import { DELIVERY } from '@/config/deliveries';
+import { DELIVERY, ROADS } from '@/config/deliveries';
 import { SERVICE } from '@/config/economy';
 
 import {
@@ -25,7 +25,7 @@ export type DeliveryNews =
   /** The machine was picked up or sold on the way: the stock goes back, refunded. */
   | { kind: 'returned'; delivery: Delivery };
 
-/** Where a van for this spot loads: the nearest store, else a depot at the city center. */
+/** Where a van for this spot loads: the nearest warehouse, else a depot at the city center. */
 export function nearestSupplier(world: World, at: { lat: number; lng: number }): Delivery['from'] {
   let best: Delivery['from'] | null = null;
   let bestD = Infinity;
@@ -53,16 +53,66 @@ export function deliveryFor(state: GameState, machineId: string): Delivery | nul
   return state.deliveries.find((d) => d.machineId === machineId) ?? null;
 }
 
-/** Road meters (straight line × routeFactor) and drive time between two points. */
-export function driveFor(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): { roadM: number; driveMs: number } {
-  const roadM = distanceM(a, b) * SERVICE.routeFactor;
-  const driveMs = Math.round(
+/** Drive time for a road distance (clamped so trips stay fun to watch). */
+export function driveMsFor(roadM: number): number {
+  return Math.round(
     Math.min(DELIVERY.maxDriveMs, Math.max(DELIVERY.minDriveMs, (roadM / 1000) * DELIVERY.msPerKm)),
   );
-  return { roadM, driveMs };
+}
+
+/**
+ * The van's way from the warehouse to the machine: along the streets when the
+ * city has road data, else a straight line (road length ≈ straight × routeFactor).
+ */
+export function routeFor(
+  world: World,
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+): { path: [number, number][]; roadM: number } {
+  const r = world.route?.(from, to);
+  if (r && r.path.length >= 2) return { path: thin(r.path), roadM: r.lengthM };
+  return {
+    path: [
+      [from.lng, from.lat],
+      [to.lng, to.lat],
+    ],
+    roadM: distanceM(from, to) * SERVICE.routeFactor,
+  };
+}
+
+function thin(path: [number, number][]): [number, number][] {
+  const r5 = (v: number) => Math.round(v * 1e5) / 1e5;
+  const max = ROADS.maxPathPoints;
+  const step = Math.ceil(path.length / max);
+  const out = path.filter((_, i) => i % step === 0 || i === path.length - 1);
+  return out.map(([x, y]) => [r5(x), r5(y)]);
+}
+
+/**
+ * The warehouse nearest by road and the van's way from it: the few closest in
+ * a straight line are routed, and the shortest drive wins (a warehouse across
+ * the river is not "near").
+ */
+export function supplierRoute(
+  world: World,
+  to: { lat: number; lng: number },
+): { from: Delivery['from']; path: [number, number][]; roadM: number } {
+  const all = world.suppliers ?? [];
+  if (!all.length || !world.route) {
+    const from = nearestSupplier(world, to);
+    return { from, ...routeFor(world, from, to) };
+  }
+  const near = all
+    .map((s) => ({ s, d: distanceM(to, s) }))
+    .sort((a, b) => a.d - b.d || a.s.id.localeCompare(b.s.id))
+    .slice(0, DELIVERY.routeCandidates);
+  let best: { from: Delivery['from']; path: [number, number][]; roadM: number } | null = null;
+  for (const { s } of near) {
+    const from: Delivery['from'] = { id: s.id, name: s.name, kind: s.kind, lat: s.lat, lng: s.lng };
+    const r = routeFor(world, from, to);
+    if (!best || r.roadM < best.roadM) best = { from, ...r };
+  }
+  return best!;
 }
 
 /** What an order would cost and how long it takes, before ordering. */
@@ -71,16 +121,22 @@ export function quoteDelivery(
   world: World,
   m: Machine,
   lines: readonly RestockLine[],
-): { from: Delivery['from']; wholesaleCents: number; fuelCents: number; etaMs: number } {
-  const from = nearestSupplier(world, m);
-  const { roadM, driveMs } = driveFor(from, m);
+): {
+  from: Delivery['from'];
+  path: [number, number][];
+  wholesaleCents: number;
+  fuelCents: number;
+  etaMs: number;
+} {
+  const { from, path, roadM } = supplierRoute(world, m);
   // There and back.
   const fuelCents = Math.round(((2 * roadM) / 1000) * SERVICE.fuelCentsPerKm);
   return {
     from,
+    path,
     wholesaleCents: restockCostCents(state, lines),
     fuelCents,
-    etaMs: DELIVERY.loadMs + driveMs,
+    etaMs: DELIVERY.loadMs + driveMsFor(roadM),
   };
 }
 
@@ -113,6 +169,7 @@ export function orderRestock(
     lines: lines.map((l) => ({ ...l })),
     units,
     from: q.from,
+    path: q.path,
     orderedAt: state.now,
     departAt,
     arriveAt: state.now + q.etaMs,

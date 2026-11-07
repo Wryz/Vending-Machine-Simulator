@@ -51,7 +51,7 @@ export default {
     adRestockHint: 'Watch an ad for an instant restock',
     restock: 'Restock {n} · {cost}', // button; {n} = units
     restockHint:
-      'A van brings it from the nearest store. Restocked machines sell {pct}% more for a business day',
+      'A van brings it from the nearest warehouse. Restocked machines sell {pct}% more for a business day',
     clear: 'Clear',
     clearHint: 'Clear the restock plan',
     more: 'More', // fold-out toggle
@@ -65,11 +65,11 @@ export default {
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Van on its way',
-    /** {store} = a real supermarket name from map data. */
+    /** {store} = a warehouse or wholesaler name from map data. */
     from: 'From {store}',
-    fromDepot: 'From your depot',
+    fromDepot: 'From the warehouse',
     eta: 'Here in {time}',
-    loading: 'Loading at the store',
+    loading: 'Loading at the warehouse',
     a11y: 'Van on its way with {n} items, here in {time}',
   },
   /** Moment when the van arrives. */

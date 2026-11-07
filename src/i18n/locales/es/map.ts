@@ -10,6 +10,9 @@ export default {
   placeKeyHint:
     'Busca un sitio concurrido cerca y abre su ficha. También puedes tocar cualquier punto del mapa.',
   placeLocked: 'Termina el capítulo 1 para comprar más máquinas',
+  /** Pin label where a delivery van loads (no name in the map data). */
+  warehouse: 'Almacén',
+  wholesale: 'Mayorista',
   backTo: 'Volver a {city}',
   a11y: {
     van: 'Furgoneta de reparto hacia {venue}',

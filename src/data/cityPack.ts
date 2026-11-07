@@ -2,10 +2,10 @@ import { Asset } from 'expo-asset';
 import { File, Paths } from 'expo-file-system';
 import { gunzipSync, strFromU8 } from 'fflate';
 
-import { CITY_PACKS } from '@assets/cities';
+import { CITY_PACKS, CITY_ROADS } from '@assets/cities';
 
 import { fetchRegionPack } from './api';
-import type { RegionPack } from './types';
+import type { RegionPack, RoadNet } from './types';
 
 /** Parse a gzip'd RegionPack. Pure (used by tests too). */
 export function decodePack(bytes: Uint8Array): RegionPack {
@@ -42,4 +42,25 @@ export async function loadRegionPack(res5: string): Promise<RegionPack> {
   const pack = decodePack(bytes);
   cached.writeSync(bytes);
   return pack;
+}
+
+/** Parse a gzip'd RoadNet. Pure (used by tests too). */
+export function decodeRoads(bytes: Uint8Array): RoadNet {
+  const net = JSON.parse(strFromU8(gunzipSync(bytes))) as RoadNet;
+  if (net.schemaVersion !== 1 || !Array.isArray(net.lines))
+    throw new Error('Unsupported road file.');
+  return net;
+}
+
+/** A bundled city's streets for the delivery vans, or null (no file, or unreadable). */
+export async function loadCityRoads(cityId: string): Promise<RoadNet | null> {
+  const mod = CITY_ROADS[cityId];
+  if (mod === undefined) return null;
+  try {
+    const asset = Asset.fromModule(mod);
+    await asset.downloadAsync();
+    return decodeRoads(await new File(asset.localUri ?? asset.uri).bytes());
+  } catch {
+    return null;
+  }
 }

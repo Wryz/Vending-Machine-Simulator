@@ -10,6 +10,9 @@ export default {
   placeKeyHint:
     'Encontra um ponto movimentado por perto e abre o cartão. Você também pode tocar em qualquer lugar do mapa.',
   placeLocked: 'Termine o capítulo 1 para comprar mais máquinas',
+  /** Pin label where a delivery van loads (no name in the map data). */
+  warehouse: 'Armazém',
+  wholesale: 'Atacadista',
   backTo: 'Voltar para {city}',
   a11y: {
     van: 'Van de entrega para {venue}',

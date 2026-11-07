@@ -54,7 +54,7 @@ export default {
     adRestockHint: 'Werbung ansehen und sofort auffüllen',
     restock: 'Auffüllen {n} · {cost}',
     restockHint:
-      'Ein Lieferwagen bringt es vom nächsten Markt. Aufgefüllte Automaten verkaufen einen Geschäftstag lang {pct} % mehr',
+      'Ein Lieferwagen bringt es aus dem nächsten Lager. Aufgefüllte Automaten verkaufen einen Geschäftstag lang {pct} % mehr',
     clear: 'Leeren',
     clearHint: 'Auffüllplan leeren',
     more: 'Mehr',
@@ -68,11 +68,11 @@ export default {
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Lieferwagen unterwegs',
-    /** {store} = a real supermarket name from map data. */
+    /** {store} = a warehouse or wholesaler name from map data. */
     from: 'Von {store}',
-    fromDepot: 'Aus deinem Lager',
+    fromDepot: 'Aus dem Lager',
     eta: 'Da in {time}',
-    loading: 'Wird im Markt beladen',
+    loading: 'Wird im Lager beladen',
     a11y: 'Lieferwagen mit {n} Artikeln unterwegs, da in {time}',
   },
   /** Moment when the van arrives. */

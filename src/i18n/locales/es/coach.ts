@@ -18,9 +18,9 @@ export default {
     },
     delivery: {
       title: 'Tu furgoneta va en camino',
-      /** {store} = a real supermarket name from map data. */
+      /** {store} = a warehouse or wholesaler name from map data. */
       line: 'Trae tus snacks desde {store}. ¡Mira cómo llega a tu máquina!',
-      lineDepot: 'Trae tus snacks desde tu almacén. ¡Mira cómo llega a tu máquina!',
+      lineDepot: 'Trae tus snacks desde el almacén. ¡Mira cómo llega a tu máquina!',
       action: 'Ver la llegada',
       actionHint: 'Acerca el mapa a tu máquina',
     },
@@ -47,7 +47,7 @@ export default {
     spotQuiet: 'Por aquí pasa poca gente. Baja esto y prueba una calle más concurrida.',
     sign: 'Baja y desliza el dedo por la línea para firmar.',
     fill: 'Toca Llenar para cargar snacks de tu furgoneta.',
-    restock: 'Ahora toca Reponer. Una furgoneta lo trae de la tienda más cercana.',
+    restock: 'Ahora toca Reponer. Una furgoneta lo trae del almacén más cercano.',
     onTheWay: 'Tu furgoneta va en camino. Cierra esto y mira cómo llega.',
     wait: '¡Listo! Cierra esto y mira cómo llegan los clientes.',
     collect: 'Toca Recoger para sacar tus monedas.',

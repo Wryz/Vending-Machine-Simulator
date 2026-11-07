@@ -8,6 +8,9 @@ export default {
   placeKeyHint:
     'Finds a busy spot nearby and opens its card. You can also tap anywhere on the map.',
   placeLocked: 'Finish chapter 1 to buy more machines',
+  /** Pin label where a delivery van loads (no name in the map data). */
+  warehouse: 'Warehouse',
+  wholesale: 'Wholesaler',
   backTo: 'Back to {city}',
   a11y: {
     van: 'Delivery van to {venue}',

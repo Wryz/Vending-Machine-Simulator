@@ -18,10 +18,10 @@ export default {
     },
     delivery: {
       title: 'Ta camionnette arrive',
-      /** {store} = a real supermarket name from map data. */
+      /** {store} = a warehouse or wholesaler name from map data. */
       line: 'Elle apporte tes snacks depuis {store}. Regarde-la rouler jusqu’à ton distributeur !',
       lineDepot:
-        'Elle apporte tes snacks depuis ton dépôt. Regarde-la rouler jusqu’à ton distributeur !',
+        'Elle apporte tes snacks depuis l’entrepôt. Regarde-la rouler jusqu’à ton distributeur !',
       action: 'Voir l’arrivée',
       actionHint: 'Zoome la carte sur ton distributeur',
     },
@@ -49,7 +49,7 @@ export default {
     sign: 'Descends et fais glisser ton doigt sur la ligne pour signer.',
     fill: 'Touche Remplir pour charger des snacks depuis ta camionnette.',
     restock:
-      'Touche maintenant Remplir. Une camionnette apporte tout depuis le magasin le plus proche.',
+      'Touche maintenant Remplir. Une camionnette apporte tout depuis l’entrepôt le plus proche.',
     onTheWay: 'Ta camionnette arrive. Ferme ceci et regarde-la venir.',
     wait: 'C’est prêt ! Ferme ceci et regarde les clients arriver.',
     collect: 'Touche Encaisser pour prendre tes pièces.',

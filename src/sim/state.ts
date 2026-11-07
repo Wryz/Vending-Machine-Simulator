@@ -146,10 +146,12 @@ export interface Delivery {
   machineId: string;
   lines: RestockLine[];
   units: number;
-  /** Where the van loads; kind 'depot' (city center) when the pack lists no store. */
+  /** Where the van loads; kind 'depot' (city center) when the pack lists no warehouse. */
   from: { id: string; name: string; kind: Supplier['kind'] | 'depot'; lat: number; lng: number };
+  /** The street route as [lng, lat] (straight line when the city has no road data; old saves: none). */
+  path?: [number, number][];
   orderedAt: number;
-  /** Leaves the store (after loading). */
+  /** Leaves the warehouse (after loading). */
   departAt: number;
   arriveAt: number;
   /** Wholesale paid for the stock (refunded if the machine is gone on arrival). */
@@ -302,8 +304,13 @@ export interface World {
   neighbors(cellId: string, k: number): string[];
   /** Hourly weather, or null when unknown (neutral). */
   weatherAt(t: number): WeatherHour | null;
-  /** Stores delivery vans load at (none: vans leave from a depot at the city center). */
+  /** Warehouses delivery vans load at (none: vans leave from a depot at the city center). */
   suppliers?: readonly Supplier[];
+  /** The fastest street route between two points (injected; absent = straight line). */
+  route?(
+    a: { lat: number; lng: number },
+    b: { lat: number; lng: number },
+  ): { path: [number, number][]; lengthM: number } | null;
 }
 
 export interface SimOptions {

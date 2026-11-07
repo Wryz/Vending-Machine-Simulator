@@ -18,17 +18,17 @@ import {
 } from './index';
 import { decentSpot, NOON_NY, testWorld } from './__fixtures__/world';
 
-/** A store about 1 km north of the decent spot, and one far away. */
+/** A warehouse about 1 km north of the decent spot, and one far away. */
 function worldWithStores(): World {
   const at = decentSpot();
   return {
     ...testWorld(),
     suppliers: [
-      { id: 'osm:n1', name: 'Far Mart', kind: 'supermarket', lat: at.lat + 0.05, lng: at.lng },
+      { id: 'osm:n1', name: 'Far Yard', kind: 'warehouse', lat: at.lat + 0.05, lng: at.lng },
       {
         id: 'osm:n2',
-        name: 'Corner Grocer',
-        kind: 'supermarket',
+        name: 'Pier Warehouse',
+        kind: 'warehouse',
         lat: at.lat + 0.009,
         lng: at.lng,
       },
@@ -49,9 +49,9 @@ function placed(world: World): GameState {
 }
 
 describe('restock deliveries', () => {
-  it('load at the nearest store, or a depot at the city center', () => {
+  it('load at the nearest warehouse, or a depot at the city center', () => {
     const w = worldWithStores();
-    expect(nearestSupplier(w, decentSpot())).toMatchObject({ name: 'Corner Grocer' });
+    expect(nearestSupplier(w, decentSpot())).toMatchObject({ name: 'Pier Warehouse' });
     expect(nearestSupplier(testWorld(), decentSpot())).toMatchObject({ kind: 'depot', name: '' });
   });
 
@@ -66,7 +66,7 @@ describe('restock deliveries', () => {
     const d = r.delivery;
     expect(cash - s.cashCents).toBe(d.wholesaleCents + d.fuelCents);
     expect(d.fuelCents).toBeGreaterThan(0);
-    expect(d.from.name).toBe('Corner Grocer');
+    expect(d.from.name).toBe('Pier Warehouse');
     expect(d.departAt - d.orderedAt).toBe(DELIVERY.loadMs);
     expect(d.arriveAt - d.departAt).toBeGreaterThanOrEqual(DELIVERY.minDriveMs);
     expect(d.arriveAt - d.departAt).toBeLessThanOrEqual(DELIVERY.maxDriveMs);

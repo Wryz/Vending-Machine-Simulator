@@ -13,23 +13,22 @@ import Animated, {
 
 import { useT } from '@/i18n';
 import { venueName } from '@/i18n/sim';
-import { deliveryProgress, type Delivery, type GameState } from '@/sim';
+import { deliveryProgress, pointAlong, type Delivery, type GameState } from '@/sim';
 import { Icon } from '@/ui/icons';
 import { T } from '@/ui/kit';
 import { SKIN } from '@/ui/skin';
 
 /**
  * Restock vans on the map (SPEC §4.1 Service): each order's van loads at a
- * real store (a small shop pin), then drives straight to the machine along a
- * dotted trail. Positions are interpolated on the device clock so the van
- * moves smoothly between sim ticks. Hidden when zoomed far out.
+ * warehouse (a crate pin), then drives the street route (drawn by CityMap as a
+ * dashed line) to the machine. Positions are interpolated on the device clock
+ * so the van moves smoothly between sim ticks. Hidden when zoomed far out.
  */
 
 const MIN_ZOOM = 12;
 /** Store names show from this zoom. */
 const LABEL_ZOOM = 15;
 const FRAME_MS = 100;
-const TRAIL_DOTS = 7;
 
 interface Props {
   game: GameState;
@@ -69,51 +68,44 @@ function Trip({
 }) {
   const t = useT();
   const from = delivery.from;
-  const k = deliveryProgress(delivery, now);
-  const at = (f: number): [number, number] => [
-    from.lng + (to.lng - from.lng) * f,
-    from.lat + (to.lat - from.lat) * f,
+  const path = delivery.path ?? [
+    [from.lng, from.lat],
+    [to.lng, to.lat],
   ];
-  const facingRight = to.lng >= from.lng;
-  const store = from.name ? venueName(from.name) : '';
-  // The road still ahead, as dots between the van and the machine.
-  const dots = Array.from(
-    { length: TRAIL_DOTS },
-    (_, i) => k + ((1 - k) * (i + 1)) / (TRAIL_DOTS + 1),
-  );
+  const { at, east } = pointAlong(path, deliveryProgress(delivery, now));
+  const label = from.name
+    ? venueName(from.name)
+    : from.kind === 'wholesale'
+      ? t('map.wholesale')
+      : t('map.warehouse');
   return (
     <>
-      {dots.map((f, i) => (
-        <Marker key={`${delivery.id}-dot-${i}`} id={`${delivery.id}-dot-${i}`} lngLat={at(f)}>
-          <View pointerEvents="none" style={styles.dot} />
-        </Marker>
-      ))}
       <Marker id={`${delivery.id}-store`} lngLat={[from.lng, from.lat]} anchor="bottom">
         <View
           pointerEvents="none"
           style={styles.storeWrap}
           accessible
-          accessibilityLabel={store ? t('map.a11y.store', { store }) : undefined}
+          accessibilityLabel={t('map.a11y.store', { store: label })}
         >
-          {store && zoom >= LABEL_ZOOM ? (
+          {zoom >= LABEL_ZOOM ? (
             <View style={styles.storeLabel}>
               <T size={11} weight="bold" color={SKIN.keyInk} numberOfLines={1}>
-                {store}
+                {label}
               </T>
             </View>
           ) : null}
           <View style={styles.storePin}>
-            <Icon name="shop" size={14} color="#FFFFFF" />
+            <Icon name="box" size={14} color="#FFFFFF" />
           </View>
         </View>
       </Marker>
-      <Marker id={`${delivery.id}-van`} lngLat={at(k)} anchor="bottom">
+      <Marker id={`${delivery.id}-van`} lngLat={at} anchor="bottom">
         <View
           pointerEvents="none"
           accessible
           accessibilityLabel={t('map.a11y.van', { venue: venueName(to.venue.name) })}
         >
-          <ToyVan facingRight={facingRight} driving={k > 0 && k < 1} />
+          <ToyVan facingRight={east} driving={now > delivery.departAt && now < delivery.arriveAt} />
         </View>
       </Marker>
     </>
@@ -158,15 +150,6 @@ function ToyVan({ facingRight, driving }: { facingRight: boolean; driving: boole
 }
 
 const styles = StyleSheet.create({
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: SKIN.cabinet,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-    opacity: 0.85,
-  },
   storeWrap: { alignItems: 'center' },
   storeLabel: {
     maxWidth: 140,

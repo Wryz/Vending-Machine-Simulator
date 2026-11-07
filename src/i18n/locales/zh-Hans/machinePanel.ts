@@ -53,7 +53,7 @@ export default {
     adRestock: '立即补货（广告）',
     adRestockHint: '看广告立即补货',
     restock: '补货 {n} · {cost}',
-    restockHint: '货车从最近的商店运来。补过货的售货机在一个营业日内多卖{pct}%',
+    restockHint: '货车从最近的仓库运来。补过货的售货机在一个营业日内多卖{pct}%',
     clear: '清除',
     clearHint: '清除补货计划',
     more: '更多',
@@ -67,11 +67,11 @@ export default {
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: '货车配送中',
-    /** {store} = a real supermarket name from map data. */
+    /** {store} = a warehouse or wholesaler name from map data. */
     from: '来自{store}',
-    fromDepot: '来自你的仓库',
+    fromDepot: '来自仓库',
     eta: '{time}后到达',
-    loading: '正在商店装货',
+    loading: '正在仓库装货',
     a11y: '货车载着{n}件商品配送中，{time}后到达',
   },
   /** Moment when the van arrives. */

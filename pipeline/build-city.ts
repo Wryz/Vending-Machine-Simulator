@@ -39,6 +39,7 @@ import {
   type Supplier,
 } from '../src/data/types';
 import type { RegionMeta } from '../workers/data-api/src/meta';
+import { RoadCollector } from './lib/roads';
 import {
   areaAndCentroid,
   clipRing,
@@ -195,14 +196,16 @@ map('cafe', ['cafe', 'coffee', 'ice_cream', 'internet_cafe', 'bubble_tea']);
 map('restaurant', ['restaurant', 'food_court', 'bbq']);
 map('fastfood', ['fast_food']);
 /**
- * POI kinds a delivery van can load at (SPEC §4.1 Service). Plain `wholesale`
- * is left out: in OSM it is mostly furniture, clothing and other non-food trade.
+ * Where delivery vans load (SPEC §4.1 Service): warehouses in industrial areas
+ * (landuse=industrial, at least WAREHOUSE_MIN_M2) and cash-and-carry
+ * wholesalers. Shops (supermarkets) and plain `wholesale` POIs (mostly
+ * furniture and clothing trade in OSM) are left out.
  */
 const SUPPLIER_KINDS: Record<string, Supplier['kind']> = {
   cash_and_carry: 'wholesale',
-  supermarket: 'supermarket',
 };
-const MAX_SUPPLIERS = 400;
+const WAREHOUSE_MIN_M2 = 10_000;
+const MAX_SUPPLIERS = 200;
 
 const SHOP_KINDS = [
   'supermarket',
@@ -464,6 +467,9 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
   const header = await pm.getHeader();
   const places: Place[] = [];
   const suppliers: Supplier[] = [];
+  /** Industrial areas by feature id: area (m²) and area-weighted centroid. */
+  const industrial = new Map<string, { m2: number; lat: number; lng: number; name: string }>();
+  const roads = new RoadCollector();
   const buildings: { lat: number; lng: number; pop: number; officeM2: number; m2: number }[] = [];
   const heights: number[] = [];
 
@@ -506,11 +512,32 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
       }[] = [];
       for (const f of features(tile, 'landuse')) {
         if (f.type !== 3) continue;
+        if (f.properties.kind === 'industrial') {
+          // Clipped to the tile so each part counts once; parts of one area share its id.
+          const parts = (f.loadGeometry() as Pt[][])
+            .map((r) => clipRing(r, f.extent))
+            .filter((r) => r.length >= 3);
+          const { area, cx, cy } = areaAndCentroid(parts);
+          if (area > 0) {
+            const m2 = area * metresPerUnit(Z, ty, f.extent) ** 2;
+            const [lng, lat] = tilePointToLngLat(Z, tx, ty, f.extent, { x: cx, y: cy });
+            const id = osmIdFromFeatureId(f.id) ?? `ind:${tx}/${ty}/${industrial.size}`;
+            const acc = industrial.get(id) ?? { m2: 0, lat: 0, lng: 0, name: '' };
+            acc.lat = (acc.lat * acc.m2 + lat * m2) / (acc.m2 + m2);
+            acc.lng = (acc.lng * acc.m2 + lng * m2) / (acc.m2 + m2);
+            acc.m2 += m2;
+            acc.name ||= nameOf(f.properties) ?? '';
+            industrial.set(id, acc);
+          }
+        }
         const cls = LANDUSE_CLASS[String(f.properties.kind ?? '')];
         if (!cls) continue;
         const rings = f.loadGeometry() as Pt[][];
         landuse.push({ cls, rings, bbox: ringsBBox(rings) });
       }
+
+      // --- Drivable roads for the delivery vans.
+      for (const f of features(tile, 'roads')) roads.add(f, tx, ty);
 
       // --- Buildings: clip to the tile so parts are counted exactly once.
       const mpu = metresPerUnit(Z, ty, tile.layers.buildings?.extent ?? 4096);
@@ -662,14 +689,14 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
 
   let cap = MAX_NAMED_PER_CATEGORY;
   let cells = buildCells(cap);
-  // Delivery vans load at the nearest wholesaler or supermarket (wholesalers first).
+  // Delivery vans load at warehouses (big industrial areas) and cash-and-carry wholesalers.
+  for (const [id, a] of industrial) {
+    if (a.m2 < WAREHOUSE_MIN_M2) continue;
+    suppliers.push({ id, name: a.name, kind: 'warehouse', lat: r5(a.lat), lng: r5(a.lng) });
+  }
+  const sizeOf = (s: Supplier) => (s.kind === 'warehouse' ? (industrial.get(s.id)?.m2 ?? 0) : 1e9);
   const packSuppliers = suppliers
-    .sort(
-      (a, b) =>
-        (a.kind === b.kind ? 0 : a.kind === 'wholesale' ? -1 : 1) ||
-        distM(city.lat, city.lng, a.lat, a.lng) - distM(city.lat, city.lng, b.lat, b.lng) ||
-        a.id.localeCompare(b.id),
-    )
+    .sort((a, b) => sizeOf(b) - sizeOf(a) || a.id.localeCompare(b.id))
     .slice(0, MAX_SUPPLIERS);
   const pack = (): RegionPack => ({
     schemaVersion: 1,
@@ -691,6 +718,12 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
     gz = gzipSync(JSON.stringify(pack()), { level: 9 });
   }
   writeFileSync(join(ASSETS, `${city.id}.json.gz`), gz);
+  const roadNet = roads.build();
+  const roadsGz = gzipSync(JSON.stringify(roadNet), { level: 9 });
+  writeFileSync(join(ASSETS, `${city.id}-roads.json.gz`), roadsGz);
+  console.log(
+    `${city.id}: ${packSuppliers.length} suppliers, ${roadNet.lines.length} road segments, roads ${Math.round(roadsGz.byteLength / 1024)} KB`,
+  );
 
   // --- Meta for the data API (§6.2 thresholds without downloading the pack).
   const inCells = new Set(cells.map((c) => c.id));

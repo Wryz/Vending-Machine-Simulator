@@ -16,3 +16,16 @@ export const CITY_PACKS: Record<string, number> = {
   singapore: require('./singapore.json.gz'),
   sydney: require('./sydney.json.gz'),
 };
+
+/** Drivable streets per city (RoadNet, gzip JSON) for the delivery vans. */
+export const CITY_ROADS: Record<string, number> = {
+  'new-york': require('./new-york-roads.json.gz'),
+  'los-angeles': require('./los-angeles-roads.json.gz'),
+  chicago: require('./chicago-roads.json.gz'),
+  london: require('./london-roads.json.gz'),
+  paris: require('./paris-roads.json.gz'),
+  tokyo: require('./tokyo-roads.json.gz'),
+  seoul: require('./seoul-roads.json.gz'),
+  singapore: require('./singapore-roads.json.gz'),
+  sydney: require('./sydney-roads.json.gz'),
+};

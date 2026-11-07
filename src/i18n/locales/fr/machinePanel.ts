@@ -54,7 +54,7 @@ export default {
     adRestockHint: 'Regarde une pub pour un réappro instantané',
     restock: 'Réappro {n} · {cost}',
     restockHint:
-      'Une camionnette l’apporte depuis le magasin le plus proche. Un distributeur rempli vend {pct} % de plus pendant un jour ouvré',
+      'Une camionnette l’apporte depuis l’entrepôt le plus proche. Un distributeur rempli vend {pct} % de plus pendant un jour ouvré',
     clear: 'Effacer',
     clearHint: 'Effacer le plan de réassort',
     more: 'Plus',
@@ -68,11 +68,11 @@ export default {
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Camionnette en route',
-    /** {store} = a real supermarket name from map data. */
+    /** {store} = a warehouse or wholesaler name from map data. */
     from: 'Depuis {store}',
-    fromDepot: 'Depuis ton dépôt',
+    fromDepot: 'Depuis l’entrepôt',
     eta: 'Arrive dans {time}',
-    loading: 'Chargement au magasin',
+    loading: 'Chargement à l’entrepôt',
     a11y: 'Camionnette en route avec {n} articles, arrive dans {time}',
   },
   /** Moment when the van arrives. */

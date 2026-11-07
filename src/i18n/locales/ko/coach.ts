@@ -18,7 +18,7 @@ export default {
     },
     delivery: {
       title: '밴이 가고 있어요',
-      /** {store} = a real supermarket name from map data. */
+      /** {store} = a warehouse or wholesaler name from map data. */
       line: '{store}에서 간식을 싣고 와요. 자판기까지 달려가는 걸 지켜보세요!',
       lineDepot: '창고에서 간식을 싣고 와요. 자판기까지 달려가는 걸 지켜보세요!',
       action: '도착 보기',
@@ -47,7 +47,7 @@ export default {
     spotQuiet: '여기는 사람이 적어요. 이걸 내리고 더 붐비는 거리를 찾아보세요.',
     sign: '아래로 스크롤해서 선을 따라 손가락을 밀어 서명하세요.',
     fill: '채우기를 탭해서 밴에서 간식을 실으세요.',
-    restock: '이제 채우기를 누르세요. 가장 가까운 가게에서 밴이 가져와요.',
+    restock: '이제 채우기를 누르세요. 가장 가까운 창고에서 밴이 가져와요.',
     onTheWay: '밴이 가고 있어요. 이 창을 닫고 오는 걸 지켜보세요.',
     wait: '준비 끝! 닫고 손님이 오는 걸 지켜보세요.',
     collect: '수금을 탭해서 동전을 꺼내세요.',

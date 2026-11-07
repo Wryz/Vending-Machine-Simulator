@@ -9,6 +9,9 @@ export default {
   placeKey: '자판기 놓기',
   placeKeyHint: '근처의 붐비는 곳을 찾아 카드를 열어요. 지도 아무 곳이나 눌러도 돼요.',
   placeLocked: '1장을 마치면 자판기를 더 살 수 있어요',
+  /** Pin label where a delivery van loads (no name in the map data). */
+  warehouse: '창고',
+  wholesale: '도매상',
   backTo: '{city}(으)로 돌아가기',
   a11y: {
     van: '{venue}(으)로 가는 배송 밴',

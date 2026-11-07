@@ -9,6 +9,9 @@ export default {
   placeKey: '自販機を置く',
   placeKeyHint: '近くのにぎやかな場所を探してカードを開きます。地図のどこをタップしてもOK。',
   placeLocked: '第1章を終えると自販機をもっと買えます',
+  /** Pin label where a delivery van loads (no name in the map data). */
+  warehouse: '倉庫',
+  wholesale: '卸売店',
   backTo: '{city}に戻る',
   a11y: {
     van: '{venue}への配送バン',

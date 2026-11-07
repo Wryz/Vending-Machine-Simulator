@@ -66,13 +66,33 @@ export interface CellData {
   isolation: number;
 }
 
-/** A store a delivery van loads at: a wholesaler or a supermarket (real name, no logo). */
+/**
+ * Where a delivery van loads: a warehouse (a big industrial area, often
+ * unnamed: name '') or a cash-and-carry wholesaler (real name, no logo).
+ */
 export interface Supplier {
   id: string;
   name: string;
-  kind: 'wholesale' | 'supermarket';
+  kind: 'warehouse' | 'wholesale';
   lat: number;
   lng: number;
+}
+
+/**
+ * Drivable streets for delivery vans (`assets/cities/{id}-roads.json.gz`).
+ * Points are integers on a global grid of 2^z × res cells per axis (web
+ * mercator, ~2 m), relative to (ox, oy). Each line is flat
+ * [x0, y0, dx1, dy1, ...]; lines meet only at shared end points.
+ */
+export interface RoadNet {
+  schemaVersion: 1;
+  z: number;
+  res: number;
+  ox: number;
+  oy: number;
+  lines: number[][];
+  /** Per line: 0 highway, 1 major road, 2 minor street. */
+  cls: number[];
 }
 
 export interface RegionPack {
@@ -87,7 +107,7 @@ export interface RegionPack {
   /** Human-readable data sources for the credits screen. */
   sources: string[];
   cells: CellData[];
-  /** Wholesalers and supermarkets that delivery vans load at (packs from 2026-11-07 on). */
+  /** Warehouses and wholesalers that delivery vans load at (packs from 2026-11-07 on). */
   suppliers?: Supplier[];
 }
 

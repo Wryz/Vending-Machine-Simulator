@@ -2,11 +2,11 @@ import { create } from 'zustand';
 
 import { getCity, type CityId } from '@/config/cities';
 import { PURCHASES, SAVE, TIME } from '@/config/economy';
-import { loadCityPack, loadRegionPack } from '@/data/cityPack';
+import { loadCityPack, loadCityRoads, loadRegionPack } from '@/data/cityPack';
 import { cellOf, neighbors } from '@/data/h3';
 import { fetchWeather } from '@/data/api';
 import { syntheticWeather, WeatherBook } from '@/data/weather';
-import type { RegionPack } from '@/data/types';
+import type { RegionPack, RoadNet } from '@/data/types';
 import { readJson, writeJson } from '@/services/storage';
 import { ACHIEVEMENTS, CHAPTERS } from '@/config/progression';
 import { t } from '@/i18n';
@@ -23,7 +23,11 @@ import {
   localTime,
   migrateSave,
   newGame,
+  buildRoadGraph,
+  routeOnRoads,
   type AdvanceReport,
+  type RoadGraph,
+  type RoadRoute,
   type GameState,
   type SimOptions,
   type World,
@@ -93,7 +97,15 @@ export function cityInfoFor(id: CityId): CityInfo {
 }
 
 /** Build the sim World for a city pack (also used by Diagnostics for a throwaway bench world). */
-export function buildWorld(city: CityInfo, pack: RegionPack, weather: WeatherBook): World {
+export function buildWorld(
+  city: CityInfo,
+  pack: RegionPack,
+  weather: WeatherBook,
+  roads: RoadNet | null = null,
+): World {
+  // The street graph is built on the first van route, not while the city opens.
+  let graph: RoadGraph | null = null;
+  const routeCache = new Map<string, RoadRoute | null>();
   const calibrated = calibrateCells(pack.cells, city);
   const cells = new Map(calibrated.cells.map((c) => [c.id, c]));
   return {
@@ -109,6 +121,18 @@ export function buildWorld(city: CityInfo, pack: RegionPack, weather: WeatherBoo
     cellOf,
     neighbors,
     suppliers: pack.suppliers ?? [],
+    route: roads
+      ? (a, b) => {
+          // Quotes ask for the same routes on every render: keep the recent ones.
+          const key = `${a.lat},${a.lng}|${b.lat},${b.lng}`;
+          const hit = routeCache.get(key);
+          if (hit !== undefined) return hit;
+          const r = routeOnRoads((graph ??= buildRoadGraph(roads)), a, b);
+          if (routeCache.size >= 64) routeCache.delete(routeCache.keys().next().value!);
+          routeCache.set(key, r);
+          return r;
+        }
+      : undefined,
     weatherAt(t) {
       const live = weather.at(t);
       if (live) return live;
@@ -184,16 +208,16 @@ export const useGame = create<GameStore>((set, get) => {
       const token = ++loadToken;
       set({ status: 'loading', error: null });
       try {
-        const pack =
-          city.kind === 'fallback'
-            ? await loadCityPack(city.id)
-            : await loadRegionPack(city.res5 ?? '');
+        const [pack, roads] = await Promise.all([
+          city.kind === 'fallback' ? loadCityPack(city.id) : loadRegionPack(city.res5 ?? ''),
+          city.kind === 'fallback' ? loadCityRoads(city.id) : Promise.resolve(null),
+        ]);
         // A newer openCity() started while we were loading: let it win.
         if (token !== loadToken) return;
         // A late answer for an earlier city lands in that city's (discarded) book.
         const book = new WeatherBook();
         weatherBook = book;
-        const world = buildWorld(city, pack, book);
+        const world = buildWorld(city, pack, book, roads);
         lastWeatherFetch = Date.now();
         fetchWeather(city)
           .then((w) => book.load(w.hours))

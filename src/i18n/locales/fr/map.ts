@@ -10,6 +10,9 @@ export default {
   placeKeyHint:
     'Trouve un endroit animé tout près et ouvre sa fiche. Tu peux aussi toucher n’importe où sur la carte.',
   placeLocked: 'Termine le chapitre 1 pour acheter plus de distributeurs',
+  /** Pin label where a delivery van loads (no name in the map data). */
+  warehouse: 'Entrepôt',
+  wholesale: 'Grossiste',
   backTo: 'Retour à {city}',
   a11y: {
     van: 'Camionnette de livraison vers {venue}',

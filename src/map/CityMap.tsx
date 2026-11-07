@@ -33,6 +33,7 @@ import type { CellData } from '@/data/types';
 import { baseTraffic, localTime, type GameState, type LocalEvent, type World } from '@/sim';
 import type { Theme } from '@/ui/theme';
 import { moneyPrice } from '@/ui/format';
+import { SKIN } from '@/ui/skin';
 import { machineStatus } from '@/ui/machineStatus';
 
 import {
@@ -472,6 +473,28 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
   }, [selected]);
 
   // Outline of the furthest unlocked district (SPEC §2.1: unlock districts, then cities).
+  // One line per van on the road (static: the van marker moves along it).
+  const routeKey = game.deliveries.map((d) => d.id).join(',');
+  const vanRoutes = useMemo(() => {
+    if (!game.deliveries.length) return null;
+    return {
+      type: 'FeatureCollection' as const,
+      features: game.deliveries.map((d) => {
+        const m = game.machines.find((x) => x.id === d.machineId);
+        const path = d.path ?? [
+          [d.from.lng, d.from.lat],
+          [m?.lng ?? d.from.lng, m?.lat ?? d.from.lat],
+        ];
+        return {
+          type: 'Feature' as const,
+          properties: {},
+          geometry: { type: 'LineString' as const, coordinates: path },
+        };
+      }),
+    };
+    // Rebuilt only when a van leaves or arrives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeKey]);
   const district = useMemo(() => {
     const unlocked = DISTRICTS.filter((d) => d.unlockChapter <= game.chapter);
     const d = unlocked[unlocked.length - 1];
@@ -579,6 +602,28 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
                   'line-width': 1.5,
                   'line-dasharray': [2, 3],
                   'line-opacity': 0.6,
+                }}
+              />
+            </GeoJSONSource>
+          ) : null}
+
+          {/* Restock vans' street routes, warehouse to machine (the van drives along it). */}
+          {vanRoutes ? (
+            <GeoJSONSource id="van-routes" data={vanRoutes}>
+              <Layer
+                id="van-routes-casing"
+                type="line"
+                layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                paint={{ 'line-color': '#FFFFFF', 'line-width': 6, 'line-opacity': 0.85 }}
+              />
+              <Layer
+                id="van-routes-line"
+                type="line"
+                layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                paint={{
+                  'line-color': SKIN.cabinet,
+                  'line-width': 3.5,
+                  'line-dasharray': [1.5, 1.2],
                 }}
               />
             </GeoJSONSource>

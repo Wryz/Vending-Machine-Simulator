@@ -54,7 +54,7 @@ export default {
     adRestockHint: '광고를 보고 즉시 보충',
     restock: '보충 {n} · {cost}',
     restockHint:
-      '가장 가까운 가게에서 밴이 가져와요. 채운 자판기는 영업일 하루 동안 {pct}% 더 팔려요',
+      '가장 가까운 창고에서 밴이 가져와요. 채운 자판기는 영업일 하루 동안 {pct}% 더 팔려요',
     clear: '비우기',
     clearHint: '보충 계획 지우기',
     more: '더 보기',
@@ -68,11 +68,11 @@ export default {
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: '밴 배송 중',
-    /** {store} = a real supermarket name from map data. */
+    /** {store} = a warehouse or wholesaler name from map data. */
     from: '{store}에서',
-    fromDepot: '내 창고에서',
+    fromDepot: '창고에서',
     eta: '{time} 후 도착',
-    loading: '가게에서 싣는 중',
+    loading: '창고에서 싣는 중',
     a11y: '{n}개를 실은 밴이 배송 중, {time} 후 도착',
   },
   /** Moment when the van arrives. */

@@ -10,6 +10,9 @@ export default {
   placeKeyHint:
     'Sucht einen belebten Platz in der Nähe und öffnet seine Karte. Du kannst auch irgendwo auf die Karte tippen.',
   placeLocked: 'Schließe Kapitel 1 ab, um mehr Automaten zu kaufen',
+  /** Pin label where a delivery van loads (no name in the map data). */
+  warehouse: 'Lager',
+  wholesale: 'Großhändler',
   backTo: 'Zurück nach {city}',
   a11y: {
     van: 'Lieferwagen zu {venue}',

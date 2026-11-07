@@ -54,7 +54,7 @@ export default {
     adRestockHint: 'Mira un anuncio para reponer al instante',
     restock: 'Reponer {n} · {cost}',
     restockHint:
-      'Una furgoneta lo trae de la tienda más cercana. Las máquinas repuestas venden un {pct} % más durante un día laborable',
+      'Una furgoneta lo trae del almacén más cercano. Las máquinas repuestas venden un {pct} % más durante un día laborable',
     clear: 'Borrar',
     clearHint: 'Borrar el plan de reposición',
     more: 'Más',
@@ -68,11 +68,11 @@ export default {
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Furgoneta en camino',
-    /** {store} = a real supermarket name from map data. */
+    /** {store} = a warehouse or wholesaler name from map data. */
     from: 'Desde {store}',
-    fromDepot: 'Desde tu almacén',
+    fromDepot: 'Desde el almacén',
     eta: 'Llega en {time}',
-    loading: 'Cargando en la tienda',
+    loading: 'Cargando en el almacén',
     a11y: 'Furgoneta en camino con {n} artículos, llega en {time}',
   },
   /** Moment when the van arrives. */
