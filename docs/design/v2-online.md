@@ -47,6 +47,8 @@ Time is cut into **settlement periods** of one business hour (5 real minutes at 
 | Place a machine | Provisional offline. On settlement, first claim (server time) wins a spot within the spacing rule; a losing machine returns to storage and its install cost is refunded. |
 | Exclusive venue contract | Needs a connection (the button says so offline). |
 | Prices, restocks, routes | Never contested; replayed as logged. |
+| Buying with cash earned offline | Kept. Offline spending is capped at the cash the phone predicted. If settlement says the player earned less than predicted (competitors took customers), the purchase stands and the shortfall becomes a small **debt** repaid from the next sales ("Settled: $40 short, taken from the next sales"). Nothing the player bought disappears. |
+| Real-money purchases | Unaffected: the App Store only works online, so they are never provisional. |
 | Branches (expansion ladder) | Unchanged; the company and ladder are per player. |
 
 ## 7. Cheating and fairness
