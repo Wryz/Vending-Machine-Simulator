@@ -89,6 +89,13 @@ export function CityPicker({
   const list = useRef<FlatList<PickerCity>>(null);
   // Diving in: the real map of the selected city's area replaces the globe.
   const [zoomed, setZoomed] = useState(false);
+  // Each time the city map closes, the globe's GL view is rebuilt (see PickerGlobe `epoch`).
+  const [globeEpoch, setGlobeEpoch] = useState(0);
+  const wasZoomed = useRef(false);
+  useEffect(() => {
+    if (wasZoomed.current && !zoomed) setGlobeEpoch((e) => e + 1);
+    wasZoomed.current = zoomed;
+  }, [zoomed]);
   // A spot you tapped inside the city's area to start from (and the region it's in).
   const [spot, setSpot] = useState<{ lat: number; lng: number; region: PickerCity } | null>(null);
   const [outside, setOutside] = useState(false);
@@ -239,6 +246,7 @@ export function CityPicker({
           cy={globeCy}
           dots={dots}
           flyTo={fly}
+          epoch={globeEpoch}
           onCenter={onCenter}
           onDot={(id) => {
             const c = cards.find((x) => x.r === id);

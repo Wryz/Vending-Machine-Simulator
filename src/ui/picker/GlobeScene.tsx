@@ -34,6 +34,19 @@ function rgb(hex: string): [number, number, number] {
 // The texture outlives one Canvas: reopening the picker re-uploads it without reloading the file.
 let earth: THREE.Texture | null = null;
 let earthLoading = false;
+/**
+ * A 1×1 ocean-colored stand-in until the image is in. The sampler must never
+ * be empty: an empty texture upload stops expo-gl drawing the scene at all.
+ */
+let placeholder: THREE.DataTexture | null = null;
+function oceanPixel(): THREE.DataTexture {
+  if (!placeholder) {
+    const [r, g, b] = rgb(GLOBE.colors.ocean).map((v) => Math.round(v * 255));
+    placeholder = new THREE.DataTexture(new Uint8Array([r, g, b, 255]), 1, 1);
+    placeholder.needsUpdate = true;
+  }
+  return placeholder;
+}
 const earthWaiters = new Set<(t: THREE.Texture) => void>();
 /**
  * The Earth image, loaded once. We resolve the bundled file to a `file:` URL
@@ -198,7 +211,7 @@ function Globe({
       vertexShader: globeVert,
       fragmentShader: globeFrag,
       uniforms: {
-        uMap: { value: earth },
+        uMap: { value: earth ?? oceanPixel() },
         uReady: { value: earth ? 1 : 0 },
         uOcean: { value: new THREE.Vector3(...rgb(GLOBE.colors.ocean)) },
         uLight: { value: new THREE.Vector3(...lightDir(G.lightUpDeg, G.lightLeftDeg)) },

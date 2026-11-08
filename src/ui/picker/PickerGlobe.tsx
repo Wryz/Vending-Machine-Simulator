@@ -53,6 +53,7 @@ export function PickerGlobe({
   onCenter,
   onDot,
   onZoom,
+  epoch = 0,
 }: {
   width: number;
   height: number;
@@ -65,6 +66,12 @@ export function PickerGlobe({
   onDot: (id: string) => void;
   /** The zoom after a gesture ends (the world view drops back to the map when pinched in). */
   onZoom?: (zoom: number) => void;
+  /**
+   * Bump to rebuild the GL view. Once a native map has covered it, the GL view
+   * stops presenting new frames (the globe froze on its last frame and fly-tos
+   * never showed), so the picker bumps this when its map closes.
+   */
+  epoch?: number;
 }) {
   const t = useT();
   const [initial] = useState<PickerView>(() => ({
@@ -270,7 +277,13 @@ export function PickerGlobe({
     <GestureDetector gesture={gesture}>
       <View style={[StyleSheet.absoluteFill, styles.sky]} collapsable={false}>
         <View style={styles.gl} pointerEvents="none">
-          <GlobeScene liveRef={view} layoutRef={layout} dots={dots} bridgeRef={invalidate} />
+          <GlobeScene
+            key={epoch}
+            liveRef={view}
+            layoutRef={layout}
+            dots={dots}
+            bridgeRef={invalidate}
+          />
         </View>
         <GlobeLabels
           items={labels}
