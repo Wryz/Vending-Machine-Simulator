@@ -10,7 +10,6 @@ export default {
       unlocks: {
         u0: 'Zweiter Automat',
         u1: 'Preise festlegen',
-        u2: 'Verträge nachverhandeln',
       },
     },
     c2: {

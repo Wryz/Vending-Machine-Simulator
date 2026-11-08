@@ -1,5 +1,7 @@
 # App Store listing (ready to paste)
 
+> **Update (2026-11-08, Build 21):** promotional text, description, review notes, screenshots and preview refreshed for the final 1.0 build.
+>
 > **Status (2026-11-06):** entered in App Store Connect (app 6831590229): everything below, plus the review contact and notes. Left for the account holder: accept the updated Paid Apps agreement (Business), publish App Privacy (an attestation), and add in-app purchase review screenshots from a build with the store live. AdMob payments are set to the United States; identity verification comes later, at the earnings threshold. The public site is Cloudflare Pages (`coinline.pages.dev`, from `docs/site`, deployed with `npm run site:deploy`); `app-ads.txt` is at its root for AdMob.
 
 Everything App Store Connect asks for, with Apple's limits checked. Prepared on 2026-11-06.
@@ -20,44 +22,47 @@ Everything App Store Connect asks for, with Apple's limits checked. Prepared on 
 | Marketing URL | https://coinline.pages.dev/ | Optional |
 | Copyright | `2026 <your legal name or company>` | |
 | Price | Free | |
-| Availability | All countries, or start with the US, UK, Canada, Australia | Playable cities worldwide (over 1,300 cities and districts from open map data, growing), so every storefront has local cities |
+| Availability | All countries | Playable cities worldwide (nearly 2,000 cities and districts from open map data), so every storefront has local cities |
 
 ## Promotional text (170 max, editable without review)
 
 ```
-Your city, real sales. Place vending machines on a real map, watch customers walk up to buy, and grow one used machine into a citywide empire.
+Pick any city on Earth, place vending machines on its real streets, watch customers walk up to buy, and grow one used machine into a global empire.
 ```
-(142)
+(147)
 
 ## Description (4,000 max)
 
 ```
-Start with one used vending machine and grow it into a citywide empire, on a real map of your own city.
+Start with one used vending machine and grow it into a global empire, on real maps of real cities.
 
-Every spot sells like the real world: how many people live and walk by, what's around it (offices, schools, gyms, stations, parks), the real local time and the real weather. A cold drink by a station sells out in a heatwave. A coffee machine outside an office crowds at 8 am and goes quiet on Sunday.
+Every spot sells like the real world: how many people live and walk by, what's around it (offices, schools, gyms, stations, parks), the city's real local time and real weather. A cold drink by a station sells out in a heatwave. A coffee machine outside an office crowds at 8 am and goes quiet on Sunday.
+
+START ANYWHERE
+• Spin the globe and pick from nearly 2,000 cities and districts, or start where you are
+• Your city is built from open map data: real streets, parks, buildings and places
 
 FIND THE SPOT
-• Tap anywhere on your city to see who passes by, when, and why it's a good spot (or not)
-• Sign a deal with the venue, pick your machine, and set it facing the street
+• Tap any place to see who passes by, when, and what it would take a day
+• Sign a deal with the venue and pick from six kinds of machines: snacks, drinks and coffee, capsule toys, tech, hot food, and beer and wine where it's allowed
 
-STOCK WHAT SELLS
-• Snacks, cold drinks, coffee, hot food, capsule toys and more, all invented brands
-• Set your prices, fill the coils, and watch customers walk up to buy
-• Collect the coins before the cash box fills
+WATCH THEM BUY
+• Customers walk up, look, think it over, crouch to grab their pick and walk off
+• Set your prices, fill the coils, and collect the coins before the cash box fills
 
 RESTOCK BY VAN
-• Order stock and a delivery van loads at a real warehouse nearby
-• Watch it drive the actual streets of your city to your machine
-• One tap sends a van around every machine that's running low
+• Order stock and a van loads at a real warehouse nearby
+• Watch it drive your city's actual streets to your machine
+• Hire drivers who run your routes for you
 
-GROW THE BUSINESS
-• Five chapters, from side hustle to empire
-• Hire drivers whose vans run your routes for you, rent a warehouse and buy smart machines with telemetry
-• Research upgrades, complete collections, outplay a rival operator
+GROW, DISTRICT BY DISTRICT
+• Eight chapters, from Side Hustle to Global
+• Unlock real neighbourhoods one at a time, then open branches in other cities, other countries, other continents
+• Research upgrades in your lab, finish collections, earn trophies and outplay a rival operator
 
 A LIVING CITY
-• A bright, low-poly city that follows your real day and night, with real weather
-• People out on the streets, busy at rush hour and quiet at night
+• Bright, low-poly cities that follow their real day and night, with real weather
+• Streets busy at rush hour and quiet at night
 • Zoom out to the globe to see every city you run
 
 PLAY YOUR WAY
@@ -147,8 +152,8 @@ Coinline is a single-player vending business game on a real map. No account or l
 
 - On first launch the player can "Use my location" (approximate location, asked once, rounded to about 1 km on the device, never stored on a server) to start near them, or spin the globe and pick any city in the list. Denying location simply starts the globe on the phone's time zone.
 - Ads are optional rewarded ads only (for example, "x2 earnings"). They are requested as non-personalized. The App Tracking Transparency prompt appears only if the player turns on "Personalized ads" in Settings.
-- In-app purchases are in Company tab › Shop, with a Restore purchases button. Double Profits (one-time) doubles in-game income from sales.
-- The Starter Pack appears after chapter 1 (about an hour and a half of play, mostly idle: place the first machine, stock it, collect $1,000 in sales). To see it sooner, restock whenever it runs low; a full machine sells out in about 40 minutes.
+- In-app purchases are in Company tab › More › Shop, with a Restore purchases button. Double Profits (one-time) doubles in-game income from sales.
+- The Starter Pack appears in the Shop after chapter 1 (place the first machine, keep it stocked and collect $1,000 in sales; mostly idle play). Remove Ads and Double Profits are available from the start.
 - Map data © OpenStreetMap contributors (ODbL), credited in Settings › Credits and licenses.
 ```
 

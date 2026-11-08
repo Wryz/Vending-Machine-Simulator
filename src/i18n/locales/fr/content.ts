@@ -10,7 +10,6 @@ export default {
       unlocks: {
         u0: 'Deuxième distributeur',
         u1: 'Choix des prix',
-        u2: 'Renégociation des contrats',
       },
     },
     c2: {

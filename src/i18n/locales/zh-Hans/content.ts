@@ -10,7 +10,6 @@ export default {
       unlocks: {
         u0: '第二台售货机',
         u1: '自主定价',
-        u2: '重谈合同',
       },
     },
     c2: {

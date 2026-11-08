@@ -22,7 +22,7 @@ export const CHAPTERS: readonly Chapter[] = [
     title: 'Side Hustle',
     goal: 'Earn {amount} in sales with your used machine',
     amountCents: 100_000, // CHAPTER_GOALS[1].salesCents
-    unlocks: ['Second machine', 'Price setting', 'Contract renegotiation'],
+    unlocks: ['Second machine', 'Price setting'],
   },
   {
     n: 2,

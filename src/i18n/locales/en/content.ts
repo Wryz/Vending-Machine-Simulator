@@ -14,7 +14,6 @@ export default {
       unlocks: {
         u0: 'Second machine',
         u1: 'Price setting',
-        u2: 'Contract renegotiation',
       },
     },
     c2: {
