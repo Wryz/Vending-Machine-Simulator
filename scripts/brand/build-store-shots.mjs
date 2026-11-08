@@ -25,12 +25,14 @@ const SHADOW = '#B8410F';
 
 /** Order on the store page, and the headline for each. */
 export const SHOTS = [
-  ['6.9in-01-sheet-2.jpg', 'Watch customers\nwalk up and buy'],
-  ['6.9in-02-vans-street.jpg', 'Vans drive the\nreal streets'],
-  ['6.9in-03-restock-low.jpg', 'Restock your whole\nroute in one tap'],
-  ['6.9in-04-driver-van.jpg', 'Hire drivers to\nrun your routes'],
-  ['6.9in-03-company-1.jpg', 'Grow a side hustle\ninto a tycoon'],
-  ['6.9in-04-orders-1.jpg', 'Hit daily orders,\nearn trophies'],
+  ['6.9in-01-customers.jpg', 'Watch customers\nwalk up and buy'],
+  ['6.9in-02-globe.jpg', 'Start in any city\non Earth'],
+  ['6.9in-03-spot.jpg', 'Find the busiest\nspot in town'],
+  ['6.9in-04-chooser.jpg', 'Pick the right\nmachine'],
+  ['6.9in-05-machine.jpg', 'Stock what sells,\nset your prices'],
+  ['6.9in-06-vans.jpg', 'Vans drive the\nreal streets'],
+  ['6.9in-07-company.jpg', 'From side hustle\nto global empire'],
+  ['6.9in-08-research.jpg', 'Research upgrades\nin your lab'],
 ];
 
 const W = 1320;
