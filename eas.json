@@ -20,6 +20,7 @@
         "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_soQXbsMvyokfLZLPgVSDHIaqDAY",
         "EXPO_PUBLIC_ADMOB_REWARDED_IOS": "ca-app-pub-3538177621347149/1102505627",
         "EXPO_PUBLIC_ADMOB_REWARDED_ANDROID": "ca-app-pub-3538177621347149/8465225980",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_peL4mrpmrNxBzZ7qNJHLJzHEadBFNim9wYPE3AdxAojh",
         "EXPO_PUBLIC_DATA_API_URL": "https://coinline-data-api.myphungquoc.workers.dev"
       }
     },
@@ -29,6 +30,7 @@
         "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_soQXbsMvyokfLZLPgVSDHIaqDAY",
         "EXPO_PUBLIC_ADMOB_REWARDED_IOS": "ca-app-pub-3538177621347149/1102505627",
         "EXPO_PUBLIC_ADMOB_REWARDED_ANDROID": "ca-app-pub-3538177621347149/8465225980",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_peL4mrpmrNxBzZ7qNJHLJzHEadBFNim9wYPE3AdxAojh",
         "EXPO_PUBLIC_DATA_API_URL": "https://coinline-data-api.myphungquoc.workers.dev"
       }
     }

@@ -37,11 +37,14 @@ export default function GameLayout() {
     const id = setInterval(() => {
       if (!useGame.getState().catchingUp) useGame.getState().tick();
     }, TICK_MS);
+    track('session_start');
     const sub = AppState.addEventListener('change', (next) => {
       const { game, world, resume, save } = useGame.getState();
       if (next === 'active') {
         resume();
         sound.resume();
+        // Daily players and retention (no properties beyond the install id).
+        track('session_start');
       } else if (next === 'background' || next === 'inactive') {
         save();
         // iOS sends both on every backgrounding: schedule once.
