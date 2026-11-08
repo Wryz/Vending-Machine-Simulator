@@ -55,7 +55,7 @@ export default {
     alcoholCity: '이 도시에서는 주류 자판기가 금지돼요.',
     needsPermit: '주류 허가증이 필요해요.',
     tooCloseToSchool: '{venue}와(과) 너무 가까워요 ({m} m). 학교에서 300 m 떨어져야 해요.',
-    sellLocked: '회사를 매각하려면 챕터 5를 마치세요.',
+    sellLocked: '회사를 매각하려면 챕터 7을 마치세요.',
     noSuchOrder: '오늘 그런 주문은 없어요.',
     alreadyClaimed: '이미 받았어요.',
     notFinished: '아직 끝나지 않았어요.',

@@ -55,7 +55,7 @@ export default {
     alcoholCity: 'この都市では酒類の自販機販売は禁止です。',
     needsPermit: '酒類販売許可が必要です。',
     tooCloseToSchool: '{venue}に近すぎます（{m}m）。学校から300m離してください。',
-    sellLocked: '会社を売却するには第5章をクリアしてください。',
+    sellLocked: '会社を売却するには第7章をクリアしてください。',
     noSuchOrder: '今日はその注文はありません。',
     alreadyClaimed: '受取済みです。',
     notFinished: 'まだ達成していません。',

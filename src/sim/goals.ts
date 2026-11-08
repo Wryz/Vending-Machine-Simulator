@@ -92,10 +92,14 @@ export function pickGoals(state: GameState, dateKey: string): DailyGoal[] {
   }));
 }
 
-/** Roll to a new local day: fresh counters and orders; a missed day breaks the streak. */
+/**
+ * Roll to a new local day: fresh counters and orders; a missed day breaks the streak.
+ * Only forward: the orders are the company's, and branches in other time zones can
+ * be a day behind (YYYY-MM-DD keys compare as text).
+ */
 export function rollGoalsDay(state: GameState, dateKey: string): void {
   const g = state.goals;
-  if (g.dateKey === dateKey) return;
+  if (g.dateKey && dateKey <= g.dateKey) return;
   if (g.streakDateKey && g.streakDateKey !== addDays(dateKey, -1) && g.streakDateKey !== dateKey)
     g.streak = 0;
   g.dateKey = dateKey;

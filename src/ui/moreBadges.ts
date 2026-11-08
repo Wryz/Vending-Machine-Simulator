@@ -49,7 +49,8 @@ export function moreBadges(game: GameState, seen: SeenMore | undefined): MoreBad
       : board.prevRank !== null && board.prevRank !== board.rank;
   const newTrophies = Math.max(0, trophiesUnlocked(game) - (s.trophies ?? 0));
   return {
-    research: Math.max(researchStartable(game), researchDone),
+    // New things to start since you last looked (or research that finished).
+    research: Math.max(researchStartable(game) - (s.startable ?? 0), researchDone, 0),
     rankings: rankMoved ? 1 : 0,
     prestige: canSellCompany(game) && !s.prestige ? 1 : 0,
     trophies: Math.max(game.unclaimed.length, newTrophies),

@@ -269,7 +269,7 @@ export default function MachineCloseup() {
             setSelected(i);
             haptic.select();
           }}
-          onFps={setFps}
+          onFps={__DEV__ ? setFps : undefined}
         />
         <View style={[styles.topRow, { top: insets.top + SPACE.xs }]}>
           <RoundButton icon="back" label={tr('machineScreen.backToMap')} onPress={leave} />

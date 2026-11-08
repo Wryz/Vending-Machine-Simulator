@@ -98,6 +98,20 @@ describe('daily orders', () => {
     rollGoalsDay(s, '2026-06-13');
     expect(s.goals.streak).toBe(0);
   });
+
+  it('never rolls back a day (a branch in an earlier time zone)', () => {
+    const s = newGame({ cityId: 'new-york', now: NOON_NY, seed: 1 });
+    rollGoalsDay(s, '2026-06-11');
+    s.goals.day.units = 7;
+    s.goals.streak = 3;
+    s.goals.streakDateKey = '2026-06-11';
+    const items = s.goals.items.map((g) => g.id);
+    rollGoalsDay(s, '2026-06-10'); // Tokyo → New York: still yesterday there
+    expect(s.goals.dateKey).toBe('2026-06-11');
+    expect(s.goals.day.units).toBe(7);
+    expect(s.goals.streak).toBe(3);
+    expect(s.goals.items.map((g) => g.id)).toEqual(items);
+  });
 });
 
 describe('trophies', () => {

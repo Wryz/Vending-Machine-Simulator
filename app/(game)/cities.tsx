@@ -202,6 +202,10 @@ export default function Cities() {
               });
             }
             removeKey('company');
+            // A new run: the More-key badges count from zero again.
+            useProfile.getState().update((p) => {
+              delete p.seenMore;
+            });
             writeJson(`save-${cityKey(target)}`, res.state);
             await useGame.getState().openCity(target);
             // The sold business is gone; its slot is freed unless we restarted in the same city.

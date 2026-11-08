@@ -28,6 +28,16 @@ describe('Company → More badges', () => {
     expect(moreBadges(g, { research: 1 }).research).toBe(0);
   });
 
+  it('clears the startable count once the Research screen has been seen', () => {
+    const g = game();
+    g.cashCents = 100_000_000;
+    g.chapter = 5;
+    const n = researchStartable(g);
+    expect(n).toBeGreaterThan(0);
+    expect(moreBadges(g, {}).research).toBe(n);
+    expect(moreBadges(g, { startable: n }).research).toBe(0);
+  });
+
   it('counts unclaimed or newly unlocked trophies', () => {
     const g = game();
     expect(moreBadges(g, {}).trophies).toBe(0);

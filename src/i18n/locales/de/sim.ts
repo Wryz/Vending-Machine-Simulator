@@ -55,7 +55,7 @@ export default {
     alcoholCity: 'Alkoholautomaten sind in dieser Stadt nicht erlaubt.',
     needsPermit: 'Erfordert eine Alkohollizenz.',
     tooCloseToSchool: 'Zu nah an {venue} ({m} m). Halte 300 m Abstand zu Schulen.',
-    sellLocked: 'Schließ Kapitel 5 ab, bevor du die Firma verkaufst.',
+    sellLocked: 'Schließ Kapitel 7 ab, bevor du die Firma verkaufst.',
     noSuchOrder: 'Diesen Auftrag gibt es heute nicht.',
     alreadyClaimed: 'Schon abgeholt.',
     notFinished: 'Noch nicht erledigt.',

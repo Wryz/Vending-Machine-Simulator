@@ -16,6 +16,9 @@ import { Button, Row, T } from './kit';
 import { Glass, Marquee, useSkin } from './skin';
 import { SPACE } from './theme';
 
+/** A stable empty list for the selector (a fresh [] each call would re-render forever). */
+const NONE: readonly never[] = [];
+
 const ICON: Partial<Record<Moment['kind'], IconName>> = {
   chapter: 'company',
   trophy: 'star',
@@ -32,7 +35,7 @@ export function MomentsModal() {
   const skin = useSkin();
   const list = useCelebrations((s) => s.modal);
   const clear = useCelebrations((s) => s.clearModal);
-  const unclaimed = useGame((s) => s.game?.unclaimed ?? []);
+  const unclaimed = useGame((s) => s.game?.unclaimed ?? NONE);
   const ready = useGame((s) => s.status === 'ready' && !s.catchingUp);
   const total = unclaimed.reduce((a, r) => a + r.cents, 0);
   // A chime when something new joins the modal.

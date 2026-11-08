@@ -58,7 +58,7 @@ export default {
     alcoholCity: 'Alcohol vending is not allowed in this city.',
     needsPermit: 'Requires a liquor permit.',
     tooCloseToSchool: 'Too close to {venue} ({m} m). Keep 300 m from schools.',
-    sellLocked: 'Finish chapter 5 before selling the company.',
+    sellLocked: 'Finish chapter 7 before selling the company.',
     noSuchOrder: 'No such order today.',
     alreadyClaimed: 'Already claimed.',
     notFinished: 'Not finished yet.',

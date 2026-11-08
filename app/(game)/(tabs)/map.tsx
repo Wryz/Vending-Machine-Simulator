@@ -351,7 +351,11 @@ export default function MapScreen() {
   const onGlobePin = useCallback(
     (id: string) => {
       if (globePins.find((p) => p.id === id)?.current) leaveGlobe();
-      else router.push('/cities');
+      else {
+        // Close the globe first: left mounted under the picker's map, its GL view froze.
+        setGlobe(false);
+        router.push('/cities');
+      }
     },
     [globePins, leaveGlobe],
   );

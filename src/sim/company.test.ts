@@ -37,6 +37,18 @@ describe('one company, many cities', () => {
     expect(company.research.telemetry).toEqual(['*']);
   });
 
+  it('keeps the branch value for fields an older company file lacks', () => {
+    const hanoi = newGame({ cityId: 'area-hanoi', now: NOON_NY, seed: 1 });
+    const old = companyOf(hanoi) as Record<string, unknown>;
+    delete old.lab;
+    delete old.unclaimed;
+    const austin = newGame({ cityId: 'area-austin', now: NOON_NY, seed: 2 });
+    const mark = { cashCents: austin.cashCents, salesCents: 0, netCents: 0, units: 0 };
+    const { state } = joinCompany(austin, old as never, mark);
+    expect(state.unclaimed).toEqual(austin.unclaimed);
+    expect(state.lab).toEqual(austin.lab);
+  });
+
   it('opens the world one step at a time: state, country, region, continent, world', () => {
     const austin = { cc: 'US', state: 'US-TX' };
     const dallas = { cc: 'US', state: 'US-TX' };

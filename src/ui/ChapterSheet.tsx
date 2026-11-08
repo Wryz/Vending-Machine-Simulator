@@ -44,13 +44,15 @@ export function ChapterSheet({
       <Pressable
         style={styles.backdrop}
         onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel={t('companyHub.chapterSheet.close')}
+        // Not one big button for VoiceOver: the card inside must stay readable (it has its own Close key).
+        accessible={false}
+        importantForAccessibility="no"
       >
         {chapter ? (
           <Pressable
             style={[styles.card, { backgroundColor: skin.cabinet }]}
             onPress={() => undefined}
+            accessible={false}
             accessibilityViewIsModal
           >
             <Marquee

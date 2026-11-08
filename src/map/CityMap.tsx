@@ -661,12 +661,15 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             <GeoJSONSource id="van-routes" data={vanRoutes}>
               <Layer
                 id="van-routes-casing"
+                // Under the machines and their visitors even when it mounts after them.
+                beforeId="machine-pads"
                 type="line"
                 layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                 paint={{ 'line-color': '#FFFFFF', 'line-width': 6, 'line-opacity': 0.85 }}
               />
               <Layer
                 id="van-routes-line"
+                beforeId="machine-pads"
                 type="line"
                 layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                 paint={{
@@ -776,6 +779,8 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             <GeoJSONSource id="selected" data={selectedData}>
               <Layer
                 id="selected-spot"
+                // Under the machines and their visitors even when it mounts after them.
+                beforeId="machine-pads"
                 type="circle"
                 filter={['==', ['get', 'kind'], 'spot']}
                 paint={{
@@ -788,6 +793,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
               />
               <Layer
                 id="selected-places"
+                beforeId="machine-pads"
                 type="circle"
                 filter={['==', ['get', 'kind'], 'place']}
                 paint={{
@@ -799,6 +805,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
               />
               <Layer
                 id="selected-place-labels"
+                beforeId="machine-pads"
                 type="symbol"
                 filter={['==', ['get', 'kind'], 'place']}
                 layout={{

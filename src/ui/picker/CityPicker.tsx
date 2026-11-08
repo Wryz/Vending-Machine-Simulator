@@ -93,8 +93,12 @@ export function CityPicker({
   const [globeEpoch, setGlobeEpoch] = useState(0);
   const wasZoomed = useRef(false);
   useEffect(() => {
-    if (wasZoomed.current && !zoomed) setGlobeEpoch((e) => e + 1);
+    const closing = wasZoomed.current && !zoomed;
     wasZoomed.current = zoomed;
+    if (!closing) return;
+    // After the map's fade-out (FadeOut 250 ms), so the new GL view isn't created under it.
+    const id = setTimeout(() => setGlobeEpoch((e) => e + 1), 300);
+    return () => clearTimeout(id);
   }, [zoomed]);
   // A spot you tapped inside the city's area to start from (and the region it's in).
   const [spot, setSpot] = useState<{ lat: number; lng: number; region: PickerCity } | null>(null);

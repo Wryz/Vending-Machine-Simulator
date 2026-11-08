@@ -343,7 +343,7 @@ export const StreetLifeLayer = memo(
         <GeoJSONSource
           id="life"
           data={running ? json : EMPTY}
-          maxzoom={20}
+          maxzoom={18}
           buffer={16}
           tolerance={0}
         >

@@ -55,7 +55,7 @@ export default {
     alcoholCity: '本市不允许售卖酒类。',
     needsPermit: '需要酒类许可证。',
     tooCloseToSchool: '离 {venue} 太近（{m} 米）。需距学校 300 米以上。',
-    sellLocked: '完成第 5 章后才能出售公司。',
+    sellLocked: '完成第 7 章后才能出售公司。',
     noSuchOrder: '今天没有这个订单。',
     alreadyClaimed: '已经领取过了。',
     notFinished: '尚未完成。',

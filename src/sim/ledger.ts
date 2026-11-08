@@ -12,7 +12,8 @@ export function addLedger(state: GameState, line: string, cents: number): void {
 
 /** Roll the P&L day when the city's local date changes. */
 export function rollLedgerDay(state: GameState, dateKey: string): void {
-  if (state.ledger.day.dateKey === dateKey) return;
+  // Only forward (the ledger is the company's; a branch in another time zone can be a day behind).
+  if (state.ledger.day.dateKey && dateKey <= state.ledger.day.dateKey) return;
   if (state.ledger.day.dateKey) state.ledger.yesterday = state.ledger.day;
   state.ledger.day = { dateKey, lines: {} };
 }

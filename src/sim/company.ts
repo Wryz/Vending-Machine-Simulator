@@ -88,7 +88,9 @@ export function joinCompany(
   const delta = branchDelta(branch, mark);
   const state: GameState = { ...branch };
   const out = state as unknown as Record<string, unknown>;
-  for (const k of COMPANY_FIELDS) out[k] = structuredClone(company[k]);
+  // A company file from an older build can lack newer fields (lab, unclaimed,
+  // footprint…): keep the branch's migrated value for those.
+  for (const k of COMPANY_FIELDS) if (company[k] !== undefined) out[k] = structuredClone(company[k]);
   addToCompany(state, delta);
   return { state, delta };
 }

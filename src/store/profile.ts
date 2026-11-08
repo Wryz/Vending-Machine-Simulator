@@ -44,6 +44,8 @@ export interface SeenMore {
   trophies?: number;
   /** Finished research (family slots) when the Research screen was last opened. */
   research?: number;
+  /** Research you could start when the Research screen was last opened. */
+  startable?: number;
   /** City ranking place last seen, per city id. */
   rank?: Record<string, number>;
   /** The Prestige screen was opened while selling was available. */

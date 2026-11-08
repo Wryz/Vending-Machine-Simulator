@@ -55,7 +55,7 @@ export default {
     alcoholCity: 'A venda automática de álcool não é permitida nesta cidade.',
     needsPermit: 'Exige uma licença de bebidas.',
     tooCloseToSchool: 'Muito perto de {venue} ({m} m). Fique a 300 m de escolas.',
-    sellLocked: 'Conclua o capítulo 5 antes de vender a empresa.',
+    sellLocked: 'Conclua o capítulo 7 antes de vender a empresa.',
     noSuchOrder: 'Esse pedido não existe hoje.',
     alreadyClaimed: 'Já resgatado.',
     notFinished: 'Ainda não concluído.',

@@ -55,7 +55,7 @@ export default {
     alcoholCity: 'La vente d’alcool en distributeur est interdite dans cette ville.',
     needsPermit: 'Nécessite une licence alcool.',
     tooCloseToSchool: 'Trop près de {venue} ({m} m). Reste à 300 m des écoles.',
-    sellLocked: 'Termine le chapitre 5 avant de vendre l’entreprise.',
+    sellLocked: 'Termine le chapitre 7 avant de vendre l’entreprise.',
     noSuchOrder: 'Cette commande n’existe pas aujourd’hui.',
     alreadyClaimed: 'Déjà récupérée.',
     notFinished: 'Pas encore terminée.',

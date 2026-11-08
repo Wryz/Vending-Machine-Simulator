@@ -652,7 +652,9 @@ export function applyAdReward(
     }
     case 'free-pull': {
       const dateKey = localTime(state.now, world.city.timeZone, world.city.countryCode).dateKey;
-      if (state.freePulls.dateKey !== dateKey) state.freePulls = { dateKey, count: 0 };
+      // A new day only going forward (another branch's time zone can be a day behind).
+      if (!state.freePulls.dateKey || dateKey > state.freePulls.dateKey)
+        state.freePulls = { dateKey, count: 0 };
       if (state.freePulls.count >= ADS.freeCapsulePullsPerDay)
         return fail('Come back tomorrow for more free pulls.');
       const item = rollCollectible(state, arg?.seriesId ?? COLLECTIONS[0].id);

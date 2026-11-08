@@ -35,7 +35,15 @@ export function MoreKey({
         faceStyle={{ flexDirection: 'column', gap: 4, paddingHorizontal: 4 }}
       >
         <Icon name={icon} size={24} color={keyInk('white', skin)} />
-        <T size={12} weight="bold" color={keyInk('white', skin)} numberOfLines={1} center>
+        <T
+          size={12}
+          weight="bold"
+          color={keyInk('white', skin)}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          center
+        >
           {label}
         </T>
       </Key>

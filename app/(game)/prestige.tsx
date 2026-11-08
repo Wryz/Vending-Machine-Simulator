@@ -102,7 +102,7 @@ export default function PrestigeScreen() {
               />
             </>
           ) : (
-            <LockedCard icon="handshake" title={t('company.prestige.sell')} chapter={5} />
+            <LockedCard icon="handshake" title={t('company.prestige.sell')} chapter={8} />
           )}
         </Paper>
         {PRESTIGE_PERKS.map((p) => {

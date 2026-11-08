@@ -175,6 +175,8 @@ export function buildWorld(
 let weatherBook = new WeatherBook();
 /** A branch catch-up is running (one at a time). */
 let syncing = false;
+/** Bumped by close() (switching city, selling): a branch sync still running drops its work. */
+let syncGen = 0;
 let loadToken = 0;
 let lastWeatherFetch = 0;
 const WEATHER_REFRESH_MS = 30 * 60_000;
@@ -427,12 +429,16 @@ export const useGame = create<GameStore>((set, get) => {
     },
 
     async syncBranches(force = false) {
-      const { game, city } = get();
-      if (!game || !city || !branchesUnlocked(game.chapter) || syncing) return;
+      const { game, city, catchingUp } = get();
+      if (!game || !city || !branchesUnlocked(game.chapter) || syncing || catchingUp) return;
       const company = readCompany();
       if (!company) return;
       if (!force && Date.now() - company.syncedAt < BRANCHES.syncEveryMinutes * 60_000) return;
       syncing = true;
+      const gen = syncGen;
+      // The city was closed (switched or sold) while we waited: write nothing. Branch marks
+      // stay where they were, so their earnings are counted on the next sync, once.
+      const stale = () => gen !== syncGen;
       try {
         const here = cityKey(city);
         const cities = useProfile.getState().cities;
@@ -448,6 +454,7 @@ export const useGame = create<GameStore>((set, get) => {
               info.kind === 'fallback' ? loadCityRoads(info.id) : loadRegionRoads(info.res5 ?? ''),
               info.kind === 'fallback' ? Promise.resolve(null) : loadRegionHoods(info.res5 ?? ''),
             ]);
+            if (stale()) return;
             const w = buildWorld(info, pack, new WeatherBook(), roads, hoods);
             let st = migrateSave(raw);
             const now = trustedNow();
@@ -464,7 +471,9 @@ export const useGame = create<GameStore>((set, get) => {
           }
           // Let a frame through between branches.
           await new Promise((r) => setTimeout(r, 0));
+          if (stale()) return;
         }
+        if (stale() || get().catchingUp) return;
         company.syncedAt = Date.now();
         writeCompany(company);
         // Still the same city: pay the branches' earnings into the company cash.
@@ -501,8 +510,9 @@ export const useGame = create<GameStore>((set, get) => {
     },
 
     close() {
-      // An openCity() still loading must not land after this.
+      // An openCity() still loading must not land after this, nor a branch sync.
       loadToken++;
+      syncGen++;
       get().save();
       set({ status: 'idle', game: null, world: null, city: null, ticker: [] });
     },

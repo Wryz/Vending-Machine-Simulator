@@ -31,7 +31,7 @@ export function sellCompany(
   now: number,
   seed: number,
 ): { state: GameState; reputationGained: number } | { error: string } {
-  if (!canSellCompany(state)) return { error: 'Finish chapter 5 before selling the company.' };
+  if (!canSellCompany(state)) return { error: 'Finish chapter 7 before selling the company.' };
   const gained = reputationFor(state);
   const next = newGame({
     cityId,

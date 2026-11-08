@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import { useT } from '@/i18n';
@@ -9,6 +10,7 @@ import { Mono, Paper, Row, Screen, T } from '@/ui/kit';
 import { Led, useSkin } from '@/ui/skin';
 import { RADIUS, SPACE } from '@/ui/theme';
 import { FirstTip } from '@/ui/guide';
+import { markSeen } from '@/ui/markSeen';
 
 /** One operator on the board: place in a small LED, name, this week's sales. */
 function BoardRow({ entry, place }: { entry: RankEntry; place: number }) {
@@ -71,6 +73,12 @@ export default function Rankings() {
   const theme = useTheme();
   const skin = useSkin();
   const game = useGame((s) => s.game);
+  const boardRank = game?.rankings.board?.rank;
+  // Opening the board from anywhere (More key, cash panel) clears its badge.
+  useEffect(() => {
+    const g = useGame.getState().game;
+    if (g) markSeen(g, 'rankings');
+  }, [boardRank]);
   const world = useGame((s) => s.world);
   useGame((s) => s.version);
   if (!game || !world) return null;
