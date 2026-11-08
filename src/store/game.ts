@@ -20,6 +20,7 @@ import { t } from '@/i18n';
 import { content } from '@/i18n/content';
 import { moneyShort } from '@/ui/format';
 import {
+  recordAction,
   addToFootprint,
   addToCompany,
   branchDelta,
@@ -307,7 +308,9 @@ export const useGame = create<GameStore>((set, get) => {
             company.branches[cityKey(city)] ??
             // A new branch starts level; a city saved before branches brings all its cash.
             (hadSave ? { cashCents: 0, salesCents: 0, netCents: 0, units: 0 } : branchMark(game));
-          game = joinCompany(game, company.state, mark).state;
+          const joined = joinCompany(game, company.state, mark);
+          game = joined.state;
+          recordAction(game, 'joinBranch', [cityKey(city), joined.delta]);
         }
         // The company's footprint (countries, continents) counts for chapters 6 and 7.
         addToFootprint(game, whereaboutsOf(city).cc);
@@ -461,6 +464,7 @@ export const useGame = create<GameStore>((set, get) => {
         if (get().city && cityKey(get().city!) === here && get().game) {
           const next = structuredClone(get().game!);
           addToCompany(next, total);
+          recordAction(next, 'branchesPaid', [total]);
           set({ game: next, version: get().version + 1 });
           get().save();
         }

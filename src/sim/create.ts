@@ -98,6 +98,8 @@ export function newGame(opts: NewGameOptions): GameState {
     hiddenPlaces: [],
     footprint: { countries: [], continents: [] },
     chapterStartSalesCents: 0,
+    actionLog: [],
+    actionLogDropped: 0,
     tutorial: { step: 0, done: false },
     goals: emptyGoals(),
     achievements: {},

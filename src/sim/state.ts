@@ -7,6 +7,7 @@ import type { CellData, PlaceCategory, Supplier, WeatherHour } from '@/data/type
 import type { GoalsState } from './goals';
 import type { RankingsState } from './rankings';
 import type { HoodMap } from './hoods';
+import type { LoggedAction } from './actionLog';
 
 /**
  * Game state. Plain JSON (no classes, Maps or Dates) so it can be saved,
@@ -14,7 +15,7 @@ import type { HoodMap } from './hoods';
  * epoch ms (real time).
  */
 
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 export interface Slot {
   productId: string | null;
@@ -302,6 +303,10 @@ export interface GameState {
   footprint: { countries: string[]; continents: string[] };
   /** Company lifetime sales when the current chapter began (chapters 6–7 count sales since). */
   chapterStartSalesCents: number;
+  /** Every player action in order, for a future server replay (schema v10, src/sim/actionLog.ts). */
+  actionLog: LoggedAction[];
+  /** Entries dropped off the front of the log (it keeps ACTION_LOG.cap). */
+  actionLogDropped: number;
   log: LogEntry[];
   nextId: number;
 }

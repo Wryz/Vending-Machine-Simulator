@@ -116,6 +116,12 @@ export const HOODS = {
  * looking at keep trading and pay into the company. How many cities a chapter
  * allows (the city you started in counts).
  */
+/** The action log kept in each save for a future server replay (src/sim/actionLog.ts). */
+export const ACTION_LOG = {
+  /** Entries kept; older ones drop off (the server will checkpoint before this matters). */
+  cap: 5000,
+} as const;
+
 export const BRANCHES = {
   unlockChapter: 3,
   /**
