@@ -45,9 +45,14 @@ STOCK WHAT SELLS
 • Set your prices, fill the coils, and watch customers walk up to buy
 • Collect the coins before the cash box fills
 
+RESTOCK BY VAN
+• Order stock and a delivery van loads at a real warehouse nearby
+• Watch it drive the actual streets of your city to your machine
+• One tap sends a van around every machine that's running low
+
 GROW THE BUSINESS
 • Five chapters, from side hustle to empire
-• Hire drivers, plan routes, rent a warehouse and buy smart machines with telemetry
+• Hire drivers whose vans run your routes for you, rent a warehouse and buy smart machines with telemetry
 • Research upgrades, complete collections, outplay a rival operator
 
 A LIVING CITY
