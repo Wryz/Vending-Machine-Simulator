@@ -38,6 +38,18 @@ export interface Entitlements {
   doubleProfits: boolean;
 }
 
+/** Seen markers for the Company → More keys. */
+export interface SeenMore {
+  /** Trophies unlocked when the Trophies screen was last opened. */
+  trophies?: number;
+  /** Finished research (family slots) when the Research screen was last opened. */
+  research?: number;
+  /** City ranking place last seen, per city id. */
+  rank?: Record<string, number>;
+  /** The Prestige screen was opened while selling was available. */
+  prestige?: boolean;
+}
+
 export interface Profile {
   version: 1;
   installId: string;
@@ -52,6 +64,10 @@ export interface Profile {
   tutorialHidden?: boolean;
   /** One-time screen tips the player has dismissed (src/config/tutorial.ts FIRST_TIPS). */
   tipsSeen?: string[];
+  /** Company tab sections the player opened (true) or closed (false); missing = default. */
+  sectionsOpen?: Record<string, boolean>;
+  /** What the player last saw behind each Company → More key (for its number badge). */
+  seenMore?: SeenMore;
   /** UI language (BCP 47), or null to follow the phone. */
   language?: string | null;
 }

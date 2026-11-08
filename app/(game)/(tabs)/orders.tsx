@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { ACHIEVEMENTS, STREAK_BONUS } from '@/config/progression';
+import { STREAK_BONUS } from '@/config/progression';
 import { t, useT } from '@/i18n';
 import { content } from '@/i18n/content';
 import { claimGoal, goalProgress, type DailyGoal } from '@/sim';
@@ -12,7 +12,7 @@ import { useTheme } from '@/ui/ThemeProvider';
 import { moneyShort } from '@/ui/format';
 import { StatChip } from '@/ui/hud';
 import { Icon } from '@/ui/icons';
-import { Button, Mono, Paper, ProgressBar, Row, Screen, Section, T } from '@/ui/kit';
+import { Button, Mono, Paper, ProgressBar, Row, Screen, T } from '@/ui/kit';
 import { SPACE } from '@/ui/theme';
 import { FirstTip } from '@/ui/guide';
 
@@ -33,7 +33,7 @@ function progressText(g: DailyGoal, have: number): string {
   });
 }
 
-/** Today's orders (daily goals), the streak, and the trophy shelf. */
+/** Today's orders (daily goals) and the streak. Trophies live under Company → More. */
 export default function Orders() {
   const t = useT();
   const theme = useTheme();
@@ -59,8 +59,6 @@ export default function Orders() {
       });
     }
   };
-
-  const unlocked = ACHIEVEMENTS.filter((a) => a.id in game.achievements).length;
 
   return (
     <Screen tab title={t('orders.title')}>
@@ -129,66 +127,6 @@ export default function Orders() {
           );
         })}
       </View>
-
-      <Section title={t('orders.trophies', { got: unlocked, total: ACHIEVEMENTS.length })}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.s }}>
-          {ACHIEVEMENTS.map((a) => {
-            const got = a.id in game.achievements;
-            const title = content.achievementTitle(a.id, a.title);
-            const desc = content.achievementDesc(a.id, a.description);
-            return (
-              <View
-                key={a.id}
-                accessible
-                accessibilityLabel={t(
-                  got ? 'orders.a11y.trophyUnlocked' : 'orders.a11y.trophyLocked',
-                  {
-                    title,
-                    desc,
-                  },
-                )}
-                style={{
-                  width: '48.5%',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: SPACE.s,
-                  padding: SPACE.m,
-                  borderRadius: 18,
-                  backgroundColor: theme.surface,
-                  opacity: got ? 1 : 0.55,
-                }}
-              >
-                <View
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: got ? theme.amber : theme.line,
-                  }}
-                >
-                  <Icon
-                    name={got ? 'star' : 'lock'}
-                    size={18}
-                    color={got ? '#FFFFFF' : theme.muted}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <T weight="bold" size={13} numberOfLines={1}>
-                    {title}
-                  </T>
-                  {a.rewardCents ? (
-                    <Mono size={12} color={got ? theme.signal : theme.muted}>
-                      {moneyShort(a.rewardCents)}
-                    </Mono>
-                  ) : null}
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </Section>
     </Screen>
   );
 }

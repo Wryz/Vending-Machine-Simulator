@@ -1,4 +1,4 @@
-/** Orders tab: today's daily orders (goals), the streak and the trophy shelf. */
+/** Orders tab: today's daily orders (goals) and the streak; trophy strings are used by the Trophies screen. */
 export default {
   title: 'Orders',
   streakLabel: 'Streak in days',

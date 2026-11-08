@@ -168,6 +168,9 @@ export default function GameLayout() {
         <Stack.Screen name="cities" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="shop" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="rankings" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="research" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="prestige" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="trophies" options={{ animation: 'slide_from_right' }} />
       </Stack>
       <CatchUpOverlay />
       <MomentsModal />

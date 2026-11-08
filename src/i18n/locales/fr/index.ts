@@ -8,6 +8,7 @@ import cities from './cities';
 import coach from './coach';
 import collections from './collections';
 import company from './company';
+import companyHub from './companyHub';
 import content from './content';
 import credits from './credits';
 import format from './format';
@@ -49,6 +50,7 @@ const catalog: Shape<typeof en> = {
   coach,
   collections,
   company,
+  companyHub,
   content,
   credits,
   format,
