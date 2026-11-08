@@ -30,7 +30,7 @@ export default {
         u1: 'Kapseln & Sammelfiguren',
         u2: 'Lager',
         u3: 'Brightvend kommt',
-        u4: 'Filialen in bis zu 3 Städten',
+        u4: 'Filialen in deinem Bundesland',
       },
     },
     c4: {
@@ -41,7 +41,7 @@ export default {
         u1: 'Technik & Bedarf',
         u2: 'Warmes Essen',
         u3: 'Event-Tafel',
-        u4: 'Bis zu 5 Städte',
+        u4: 'Filialen im ganzen Land',
       },
     },
     c5: {
@@ -49,11 +49,25 @@ export default {
       goal: 'Werde Top-Betreiber der Stadt (schlag Brightvends Anteil)',
       unlocks: {
         u0: 'Alle Automatentypen',
-        u1: 'Filialen in jeder Stadt',
+        u1: 'Filialen in Nachbarländern',
         u2: 'Alkohollizenz',
       },
     },
     c6: {
+      title: 'Kontinental',
+      goal: 'Filialen in 3 Ländern führen und {amount} Umsatz machen',
+      unlocks: {
+        u0: 'Filialen auf deinem ganzen Kontinent',
+      },
+    },
+    c7: {
+      title: 'Global',
+      goal: 'Filialen auf 2 Kontinenten führen und {amount} Umsatz machen',
+      unlocks: {
+        u0: 'Filialen überall auf der Welt',
+      },
+    },
+    c8: {
       title: 'Prestige',
       goal: 'Verkauf die Firma, wenn du bereit bist',
       unlocks: {

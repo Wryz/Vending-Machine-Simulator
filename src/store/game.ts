@@ -20,6 +20,7 @@ import { t } from '@/i18n';
 import { content } from '@/i18n/content';
 import { moneyShort } from '@/ui/format';
 import {
+  addToFootprint,
   addToCompany,
   branchDelta,
   branchMark,
@@ -60,7 +61,7 @@ import {
 } from './rivalMoments';
 import { cityKey, useProfile, type CityInfo } from './profile';
 
-import { readCompany, writeCompany } from './company';
+import { readCompany, whereaboutsOf, writeCompany } from './company';
 
 export interface TickerEntry {
   at: number;
@@ -308,6 +309,8 @@ export const useGame = create<GameStore>((set, get) => {
             (hadSave ? { cashCents: 0, salesCents: 0, netCents: 0, units: 0 } : branchMark(game));
           game = joinCompany(game, company.state, mark).state;
         }
+        // The company's footprint (countries, continents) counts for chapters 6 and 7.
+        addToFootprint(game, whereaboutsOf(city).cc);
         useProfile.getState().update((p) => {
           p.cities[cityKey(city)] = city;
           p.lastCityKey = cityKey(city);
@@ -476,6 +479,7 @@ export const useGame = create<GameStore>((set, get) => {
           state: companyOf(game),
           branches: { ...prev?.branches, [cityKey(city)]: branchMark(game) },
           syncedAt: prev?.syncedAt ?? 0,
+          home: prev?.home ?? whereaboutsOf(city),
         });
       }
       set({ lastSavedAt: Date.now() });

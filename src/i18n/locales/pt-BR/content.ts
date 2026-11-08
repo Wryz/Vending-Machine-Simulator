@@ -30,7 +30,7 @@ export default {
         u1: 'Cápsulas e colecionáveis',
         u2: 'Depósito',
         u3: 'Chegada da Brightvend',
-        u4: 'Filiais em até 3 cidades',
+        u4: 'Filiais no seu estado ou província',
       },
     },
     c4: {
@@ -41,7 +41,7 @@ export default {
         u1: 'Tecnologia e essenciais',
         u2: 'Comida quente',
         u3: 'Quadro de eventos',
-        u4: 'Até 5 cidades',
+        u4: 'Filiais em todo o seu país',
       },
     },
     c5: {
@@ -49,11 +49,25 @@ export default {
       goal: 'Seja o maior operador da cidade (supere a fatia da Brightvend)',
       unlocks: {
         u0: 'Todos os tipos de máquina',
-        u1: 'Filiais em todas as cidades',
+        u1: 'Filiais em países vizinhos',
         u2: 'Licença de bebidas',
       },
     },
     c6: {
+      title: 'Continental',
+      goal: 'Tenha filiais em 3 países e venda {amount}',
+      unlocks: {
+        u0: 'Filiais em todo o seu continente',
+      },
+    },
+    c7: {
+      title: 'Global',
+      goal: 'Tenha filiais em 2 continentes e venda {amount}',
+      unlocks: {
+        u0: 'Filiais em qualquer lugar do mundo',
+      },
+    },
+    c8: {
       title: 'Prestígio',
       goal: 'Venda a empresa quando estiver pronto',
       unlocks: {

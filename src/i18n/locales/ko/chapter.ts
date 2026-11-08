@@ -18,5 +18,7 @@ export default {
     other: '자판기 {active}/{n} · 기사 {drivers}/3',
   },
   share: '시장 점유율 {pct}% (목표 50%)',
+  countries: '{have}/{n}개국 · {sales} / {goal}',
+  continents: '{have}/{n}개 대륙 · {sales} / {goal}',
   done: '도시를 장악했어요.',
 } satisfies Shape<typeof en>;

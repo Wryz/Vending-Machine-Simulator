@@ -7,6 +7,9 @@ export default {
   noBusiness: 'Kein Geschäft geöffnet.',
   subtitle: 'Coinline · {city}',
   chapter: {
+    countries: 'Länder mit Filiale',
+    continents: 'Kontinente mit Filiale',
+    salesSince: 'Umsatz in diesem Kapitel',
     section: 'Kapitel {n}',
     prestige: 'Prestige',
     sales: 'Umsatz',

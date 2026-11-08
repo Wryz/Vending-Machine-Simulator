@@ -18,5 +18,7 @@ export default {
     other: '自販機 {active}/{n} · ドライバー {drivers}/3',
   },
   share: '市場シェア {pct}%（目標50%）',
+  countries: '{have}/{n}か国・{sales} / {goal}',
+  continents: '{have}/{n}大陸・{sales} / {goal}',
   done: '街はあなたのものです。',
 } satisfies Shape<typeof en>;

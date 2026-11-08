@@ -30,7 +30,7 @@ export default {
         u1: 'Cápsulas y coleccionables',
         u2: 'Almacén',
         u3: 'Llega Brightvend',
-        u4: 'Sucursales en hasta 3 ciudades',
+        u4: 'Sucursales en tu estado o provincia',
       },
     },
     c4: {
@@ -41,7 +41,7 @@ export default {
         u1: 'Tecnología y básicos',
         u2: 'Comida caliente',
         u3: 'Tablón de eventos',
-        u4: 'Hasta 5 ciudades',
+        u4: 'Sucursales en todo tu país',
       },
     },
     c5: {
@@ -49,11 +49,25 @@ export default {
       goal: 'Sé el operador líder de la ciudad (supera la cuota de Brightvend)',
       unlocks: {
         u0: 'Todos los tipos de máquina',
-        u1: 'Sucursales en todas las ciudades',
+        u1: 'Sucursales en países vecinos',
         u2: 'Permiso de alcohol',
       },
     },
     c6: {
+      title: 'Continental',
+      goal: 'Ten sucursales en 3 países y vende {amount}',
+      unlocks: {
+        u0: 'Sucursales en todo tu continente',
+      },
+    },
+    c7: {
+      title: 'Global',
+      goal: 'Ten sucursales en 2 continentes y vende {amount}',
+      unlocks: {
+        u0: 'Sucursales en cualquier parte del mundo',
+      },
+    },
+    c8: {
       title: 'Prestigio',
       goal: 'Vende la empresa cuando estés listo',
       unlocks: {

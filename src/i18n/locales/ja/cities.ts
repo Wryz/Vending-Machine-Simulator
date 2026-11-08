@@ -39,6 +39,8 @@ export default {
     lockedTitle: '支店は第{n}章から',
     lockedBody: '第{n}章からは、開く都市すべてが同じ会社の支店になります。それまでは{name}は資金も別の独立した事業になります。',
     separate: '別事業として始める',
+    farTitle: '{name}は第{n}章で開放',
+    farBody: '会社は本拠地から広がります。まず州・県、次に国、地域、大陸、そして最後に全世界へ。',
     fullTitle: '今は{count}都市が上限です',
     fullBody: 'あなたの会社は{count}都市まで運営できます。次の章でさらに増えます。',
   },

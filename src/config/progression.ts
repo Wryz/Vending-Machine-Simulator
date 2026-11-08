@@ -39,23 +39,43 @@ export const CHAPTERS: readonly Chapter[] = [
       'Capsules & collectibles',
       'Warehouse',
       'Brightvend arrives',
-      'Branches in up to 3 cities',
+      'Branches in your state or province',
     ],
   },
   {
     n: 4,
     title: 'Operator',
     goal: 'Run 40 machines with 3 drivers',
-    unlocks: ['Smart machines', 'Tech & essentials', 'Hot food', 'Events board', 'Up to 5 cities'],
+    unlocks: [
+      'Smart machines',
+      'Tech & essentials',
+      'Hot food',
+      'Events board',
+      'Branches across your country',
+    ],
   },
   {
     n: 5,
     title: 'Empire',
     goal: "Become the city's top operator (beat Brightvend's share)",
-    unlocks: ['All machine types', 'Branches in every city', 'Liquor permit'],
+    unlocks: ['All machine types', 'Branches in neighbouring countries', 'Liquor permit'],
   },
   {
     n: 6,
+    title: 'Continental',
+    goal: 'Run branches in 3 countries and take {amount} in sales',
+    amountCents: 25_000_000, // CHAPTER_GOALS[6].salesCents
+    unlocks: ['Branches across your continent'],
+  },
+  {
+    n: 7,
+    title: 'Global',
+    goal: 'Run branches on 2 continents and take {amount} in sales',
+    amountCents: 100_000_000, // CHAPTER_GOALS[7].salesCents
+    unlocks: ['Branches anywhere in the world'],
+  },
+  {
+    n: 8,
     title: 'Prestige',
     goal: 'Sell the company when you are ready',
     unlocks: ['Reputation perks', 'Restart with a head start'],
@@ -69,6 +89,9 @@ export const CHAPTER_GOALS = {
   4: { machines: 40, drivers: 3 },
   /** Player share of city vending revenue (rolling business day) vs. rival. */
   5: { share: 0.5, minRivalMachines: 1 },
+  /** Company-wide: countries with a branch, and sales taken since the chapter began. */
+  6: { countries: 3, salesCents: 25_000_000 },
+  7: { continents: 2, salesCents: 100_000_000 },
 } as const;
 
 /**
@@ -95,7 +118,15 @@ export const HOODS = {
  */
 export const BRANCHES = {
   unlockChapter: 3,
-  maxCities: { 3: 3, 4: 5, 5: Infinity } as Record<number, number>,
+  /**
+   * How far from the company's home city a chapter lets you open branches
+   * (owner's call, 2026-11-08): state/province → country → UN sub-region
+   * (e.g. South-Eastern Asia) → continent → the world.
+   */
+  reach: { 3: 'state', 4: 'country', 5: 'region', 6: 'continent', 7: 'world' } as Record<
+    number,
+    'state' | 'country' | 'region' | 'continent' | 'world'
+  >,
   /** Catch up other branches at most this often (real minutes) while playing. */
   syncEveryMinutes: 10,
 } as const;

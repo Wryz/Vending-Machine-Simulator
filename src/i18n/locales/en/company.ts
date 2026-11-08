@@ -4,6 +4,9 @@ export default {
   noBusiness: 'No business is open.',
   subtitle: 'Coinline · {city}', // Coinline is the app/company name, do not translate
   chapter: {
+    countries: 'Countries with a branch',
+    continents: 'Continents with a branch',
+    salesSince: 'Sales this chapter',
     section: 'Chapter {n}',
     prestige: 'Prestige', // title shown after the last chapter
     sales: 'Sales',

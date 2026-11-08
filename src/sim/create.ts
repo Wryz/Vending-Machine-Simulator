@@ -96,6 +96,8 @@ export function newGame(opts: NewGameOptions): GameState {
     boosts: { doubleEarningsUntil: 0 },
     prestige,
     hiddenPlaces: [],
+    footprint: { countries: [], continents: [] },
+    chapterStartSalesCents: 0,
     tutorial: { step: 0, done: false },
     goals: emptyGoals(),
     achievements: {},

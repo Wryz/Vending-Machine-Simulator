@@ -47,6 +47,23 @@ export function chapterProgress(game: GameState): { text: string; value: number 
         text: t('chapter.share', { pct: Math.round(playerShare(game) * 100) }),
         value: playerShare(game) / 0.5,
       };
+    case 6:
+    case 7: {
+      const g = game.chapter === 6 ? CHAPTER_GOALS[6] : CHAPTER_GOALS[7];
+      const have =
+        game.chapter === 6 ? game.footprint.countries.length : game.footprint.continents.length;
+      const need = game.chapter === 6 ? CHAPTER_GOALS[6].countries : CHAPTER_GOALS[7].continents;
+      const sales = Math.max(0, game.ledger.lifetimeSalesCents - game.chapterStartSalesCents);
+      return {
+        text: t(game.chapter === 6 ? 'chapter.countries' : 'chapter.continents', {
+          have: Math.min(have, need),
+          n: need,
+          sales: moneyShort(sales),
+          goal: moneyShort(g.salesCents),
+        }),
+        value: (Math.min(have, need) / need) * 0.5 + Math.min(1, sales / g.salesCents) * 0.5,
+      };
+    }
     default:
       return { text: t('chapter.done'), value: 1 };
   }

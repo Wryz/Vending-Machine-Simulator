@@ -39,6 +39,8 @@ export default {
     lockedTitle: 'Las sucursales se abren en el capítulo {n}',
     lockedBody: 'Desde el capítulo {n}, cada ciudad que abras es una sucursal de una sola empresa. Hasta entonces, {name} sería un negocio aparte con su propio dinero.',
     separate: 'Empezar aparte',
+    farTitle: '{name} se abre en el capítulo {n}',
+    farBody: 'Tu empresa crece desde tu ciudad de origen: primero tu estado o provincia, luego tu país, tu región, tu continente y al final el mundo entero.',
     fullTitle: '{count} ciudades es el límite por ahora',
     fullBody: 'Tu empresa puede llevar {count} ciudades. El siguiente capítulo permite más.',
   },

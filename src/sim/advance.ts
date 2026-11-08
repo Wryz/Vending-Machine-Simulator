@@ -570,9 +570,20 @@ function checkChapters(state: GameState, t: number, report: AdvanceReport): void
         state.rival.active &&
         state.ledger.recentPlayerCents > 0 &&
         playerShare(state) >= CHAPTER_GOALS_REF[5].share;
+    else if (ch === 6)
+      done =
+        state.footprint.countries.length >= CHAPTER_GOALS_REF[6].countries &&
+        state.ledger.lifetimeSalesCents - state.chapterStartSalesCents >=
+          CHAPTER_GOALS_REF[6].salesCents;
+    else if (ch === 7)
+      done =
+        state.footprint.continents.length >= CHAPTER_GOALS_REF[7].continents &&
+        state.ledger.lifetimeSalesCents - state.chapterStartSalesCents >=
+          CHAPTER_GOALS_REF[7].salesCents;
     if (!done) return;
     state.chapterDoneAt[ch] = t;
     state.chapter = ch + 1;
+    state.chapterStartSalesCents = state.ledger.lifetimeSalesCents;
     report.chaptersCompleted.push(ch);
     log(state, 'chapter', `Chapter ${ch} complete`);
   }

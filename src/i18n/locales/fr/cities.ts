@@ -40,6 +40,8 @@ export default {
     lockedTitle: 'Succursales au chapitre {n}',
     lockedBody: 'À partir du chapitre {n}, chaque ville ouverte est une succursale d\'une même entreprise. D\'ici là, {name} serait une affaire séparée avec son propre argent.',
     separate: 'Commencer à part',
+    farTitle: '{name} ouvre au chapitre {n}',
+    farBody: 'Ton entreprise s\'étend depuis ta ville d\'origine : d\'abord ta région administrative, puis ton pays, ta région du monde, ton continent et enfin le monde entier.',
     fullTitle: '{count} villes, c\'est la limite pour l\'instant',
     fullBody: 'Ton entreprise peut gérer {count} villes. Le chapitre suivant en permet plus.',
   },

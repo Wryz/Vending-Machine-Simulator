@@ -30,7 +30,7 @@ export default {
         u1: 'Capsules et objets de collection',
         u2: 'Entrepôt',
         u3: 'Arrivée de Brightvend',
-        u4: 'Succursales dans jusqu\'à 3 villes',
+        u4: 'Succursales dans ta région administrative',
       },
     },
     c4: {
@@ -41,7 +41,7 @@ export default {
         u1: 'Tech et essentiels',
         u2: 'Plats chauds',
         u3: 'Tableau des événements',
-        u4: 'Jusqu\'à 5 villes',
+        u4: 'Succursales dans tout ton pays',
       },
     },
     c5: {
@@ -49,11 +49,25 @@ export default {
       goal: 'Deviens le n° 1 de la ville (dépasse la part de Brightvend)',
       unlocks: {
         u0: 'Tous les distributeurs',
-        u1: 'Succursales dans toutes les villes',
+        u1: 'Succursales dans les pays voisins',
         u2: 'Licence alcool',
       },
     },
     c6: {
+      title: 'Continental',
+      goal: 'Gère des succursales dans 3 pays et vends pour {amount}',
+      unlocks: {
+        u0: 'Succursales sur tout ton continent',
+      },
+    },
+    c7: {
+      title: 'Mondial',
+      goal: 'Gère des succursales sur 2 continents et vends pour {amount}',
+      unlocks: {
+        u0: 'Succursales partout dans le monde',
+      },
+    },
+    c8: {
       title: 'Prestige',
       goal: 'Vends l’entreprise quand tu es prêt',
       unlocks: {

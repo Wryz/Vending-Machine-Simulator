@@ -7,12 +7,12 @@ import { useT } from '@/i18n';
 import { content } from '@/i18n/content';
 import { simError } from '@/i18n/sim';
 import { BRANCHES } from '@/config/progression';
-import { branchesUnlocked, maxCities, reputationFor, sellCompany } from '@/sim';
+import { branchesUnlocked, canBranchTo, chapterFor, reputationFor, sellCompany } from '@/sim';
 import { track } from '@/services/analytics';
 import { haptic } from '@/services/haptics';
 import { removeKey, writeJson } from '@/services/storage';
 import { useCityIndex } from '@/store/cityIndex';
-import { readCompany } from '@/store/company';
+import { readCompany, whereaboutsOf } from '@/store/company';
 import { hasSave, prefetchCity, useGame } from '@/store/game';
 import { cityKey, useProfile, type CityInfo } from '@/store/profile';
 import { CityPicker, useCityLabel } from '@/ui/picker/CityPicker';
@@ -102,17 +102,14 @@ export default function Cities() {
     }
     const chapter = game?.chapter ?? 1;
     // One company, many cities (BRANCHES): from the unlock chapter, a new city is a branch.
-    if (game && branchesUnlocked(chapter)) {
-      const company = readCompany();
-      const count = new Set([
-        ...Object.keys(company?.branches ?? {}),
-        ...(city ? [cityKey(city)] : []),
-      ]).size;
-      const max = maxCities(chapter);
-      if (count >= max) {
+    if (game && city && branchesUnlocked(chapter)) {
+      // The company grows outward from home: state, country, region, continent, world.
+      const home = readCompany()?.home ?? whereaboutsOf(city);
+      const there = whereaboutsOf(target);
+      if (!canBranchTo(chapter, home, there)) {
         Alert.alert(
-          t('cities.confirm.fullTitle', { count: max }),
-          t('cities.confirm.fullBody', { count: max }),
+          t('cities.confirm.farTitle', { name, n: chapterFor(home, there) }),
+          t('cities.confirm.farBody'),
         );
         return;
       }

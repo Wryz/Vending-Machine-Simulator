@@ -249,12 +249,15 @@ Each machine has:
 |---|---|---|
 | 1. Side Hustle | Earn $1,000 with your used machine | Second machine, price setting, first contract renegotiation |
 | 2. The Route | Run 5 machines, buy a van | Telemetry, drinks and coffee machines, district 2 |
-| 3. LLC | 15 machines, hire a driver | Card readers, capsules, warehouse, rival expands (its first machine opens in chapter 1, §4.6) |
-| 4. Operator | 40 machines, 3 drivers | Smart machines, tech and essentials, hot food, events board |
-| 5. Empire | Top operator in the city (beat the rival's share) | All machine types, new city unlock, liquor permit |
-| Prestige | "Sell the company" | Prestige currency ("Reputation") for permanent perks; restart in a new city with a head start |
+| 3. LLC | 15 machines, hire a driver | Card readers, capsules, warehouse, rival expands (its first machine opens in chapter 1, §4.6); **branches in your state/province** |
+| 4. Operator | 40 machines, 3 drivers | Smart machines, tech and essentials, hot food, events board; **branches across your country** |
+| 5. Empire | Top operator in the city (beat the rival's share) | All machine types, liquor permit; **branches in your UN sub-region** (e.g. South-Eastern Asia) |
+| 6. Continental | Branches in 3 countries + $250k company sales this chapter | **Branches across your continent** |
+| 7. Global | Branches on 2 continents + $1M company sales this chapter | **Branches anywhere in the world** |
+| 8. Prestige | "Sell the company" (sells every branch) | Prestige currency ("Reputation") for permanent perks; restart in a new city with a head start |
 
-- New cities can be the player's other real nearby city (if data is sufficient) or any of the 9 fallback cities.
+- **One company, many cities (owner's call, 2026-11-08):** from chapter 3 a new city is a *branch*. Cash, chapter, research, collections, perks, goals, trophies and lifetime totals are the company's; machines, vans, drivers, the rival and rankings stay with each city. Branches you aren't viewing keep trading and pay in when you open the app or switch cities (`src/sim/company.ts`, `src/store/company.ts`). Reach grows outward from the home city by chapter: state/province → country → UN sub-region → continent → world (`BRANCHES.reach`; states from Natural Earth admin-1 in the city list, regions/continents from Natural Earth admin-0 in `src/data/geoRegions.ts`).
+- **Districts inside a city follow real neighbourhoods** (OSM names, `pipeline/build-hoods.ts`): each map cell joins its nearest name; a neighbourhood opens in the chapter of the ring its name sits in; the start neighbourhood is always open. Regions without names keep plain rings.
 - The economy is tuned so chapter 1 takes about two hours (mostly idle, a few check-ins) and chapter 3 is reached in roughly a week of casual play. The business clock runs 12× real time (owner's call, 2026-11-08: 60× sold a full machine in 10 minutes; now about an hour). Prestige becomes attractive around week 2–4.
 - **City ranking board** ("Top operators in <City>", unlocks with Company after the first collect): the player, Brightvend (its real simulated sales) and 7 fictional AI operators with city-flavored names, ranked by this week's sales. It updates nightly at the city's local midnight; weeks start on the local Monday. AI sales are seeded per city, week and day (`src/sim/rankings.ts`, tunables in `src/config/rankings.ts`) and scale with the chapter and the player's last week (~0.3× to ~3×, the top tiers softening in later chapters), so there is always someone to pass. Passing an operator overnight is a moment ("You passed Night Owl Snacks! #4 in London"); a rank chip on the money panel opens the board. `weeklyScore(state)` is the same number a Game Center weekly leaderboard submits.
 

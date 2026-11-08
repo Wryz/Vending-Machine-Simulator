@@ -109,6 +109,33 @@ function chapterGoals(game: GameState): Goal[] {
         },
       ];
     }
+    case 6:
+    case 7: {
+      const six = game.chapter === 6;
+      const need = six ? CHAPTER_GOALS[6].salesCents : CHAPTER_GOALS[7].salesCents;
+      const sales = Math.max(0, game.ledger.lifetimeSalesCents - game.chapterStartSalesCents);
+      return [
+        six
+          ? count(
+              game.footprint.countries.length,
+              CHAPTER_GOALS[6].countries,
+              'company.chapter.countries',
+            )
+          : count(
+              game.footprint.continents.length,
+              CHAPTER_GOALS[7].continents,
+              'company.chapter.continents',
+            ),
+        {
+          label: t('company.chapter.salesSince'),
+          value: t('company.chapter.count', {
+            have: moneyShort(Math.min(need, sales)),
+            need: moneyShort(need),
+          }),
+          progress: sales / need,
+        },
+      ];
+    }
     default:
       return [];
   }

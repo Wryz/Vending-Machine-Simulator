@@ -156,6 +156,8 @@ export interface CityIndexEntry {
   p: number;
   /** Outer district: side of its city. */
   d?: RegionDir;
+  /** State / province, ISO 3166-2 (e.g. "US-TX"); absent where none is mapped. */
+  s?: string;
 }
 
 export type WeatherCondition = 'clear' | 'cloudy' | 'rain' | 'snow' | 'storm' | 'fog';

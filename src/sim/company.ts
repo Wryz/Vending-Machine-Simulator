@@ -1,4 +1,5 @@
 import { BRANCHES } from '@/config/progression';
+import { GEO_REGIONS } from '@/data/geoRegions';
 
 import type { GameState } from './state';
 
@@ -21,6 +22,8 @@ export const COMPANY_FIELDS = [
   'goals',
   'achievements',
   'ledger',
+  'footprint',
+  'chapterStartSalesCents',
 ] as const satisfies readonly (keyof GameState)[];
 
 export type CompanyState = Pick<GameState, (typeof COMPANY_FIELDS)[number]>;
@@ -93,8 +96,60 @@ export function branchesUnlocked(chapter: number): boolean {
   return chapter >= BRANCHES.unlockChapter;
 }
 
-export function maxCities(chapter: number): number {
-  let max = 1;
-  for (const [ch, n] of Object.entries(BRANCHES.maxCities)) if (chapter >= Number(ch)) max = n;
-  return max;
+export type Reach = 'none' | 'state' | 'country' | 'region' | 'continent' | 'world';
+
+/** How far from home this chapter lets the company open branches. */
+export function branchReach(chapter: number): Reach {
+  let reach: Reach = 'none';
+  for (const [ch, r] of Object.entries(BRANCHES.reach)) if (chapter >= Number(ch)) reach = r;
+  return reach;
+}
+
+/** Where a city is, for the ladder: country (ISO alpha-2) and state/province (ISO 3166-2). */
+export interface Whereabouts {
+  cc: string;
+  state?: string;
+}
+
+const ORDER: Reach[] = ['state', 'country', 'region', 'continent', 'world'];
+
+/** The smallest reach that covers `target` from `home`. */
+export function reachNeeded(home: Whereabouts, target: Whereabouts): Reach {
+  const sameCountry = !!home.cc && home.cc === target.cc;
+  // Where states aren't mapped on either side, the state step is the country.
+  if (sameCountry && (!home.state || !target.state || home.state === target.state)) return 'state';
+  if (sameCountry) return 'country';
+  const h = GEO_REGIONS[home.cc];
+  const g = GEO_REGIONS[target.cc];
+  if (h && g && h[0] === g[0]) return 'region';
+  if (h && g && h[1] === g[1]) return 'continent';
+  return 'world';
+}
+
+/** Can a company in `chapter`, based in `home`, open a branch in `target`? */
+export function canBranchTo(chapter: number, home: Whereabouts, target: Whereabouts): boolean {
+  const have = branchReach(chapter);
+  if (have === 'none') return false;
+  return ORDER.indexOf(reachNeeded(home, target)) <= ORDER.indexOf(have);
+}
+
+/** The chapter that first lets the company branch out to `target`. */
+export function chapterFor(home: Whereabouts, target: Whereabouts): number {
+  const need = ORDER.indexOf(reachNeeded(home, target));
+  for (const [ch, r] of Object.entries(BRANCHES.reach))
+    if (ORDER.indexOf(r) >= need) return Number(ch);
+  return BRANCHES.unlockChapter;
+}
+
+/** Note a country (and its continent) in the company's footprint. */
+export function addToFootprint(state: { footprint: GameState['footprint'] }, cc: string): void {
+  if (!cc) return;
+  if (!state.footprint.countries.includes(cc)) state.footprint.countries.push(cc);
+  const c = continentOf(cc);
+  if (c && !state.footprint.continents.includes(c)) state.footprint.continents.push(c);
+}
+
+/** The continent a country is on ('' unknown). */
+export function continentOf(cc: string): string {
+  return GEO_REGIONS[cc]?.[1] ?? '';
 }

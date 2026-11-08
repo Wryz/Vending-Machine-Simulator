@@ -18,7 +18,7 @@ export function reputationFor(state: GameState): number {
 }
 
 export function canSellCompany(state: GameState): boolean {
-  return state.chapter >= 6 || !!state.chapterDoneAt[5];
+  return state.chapter >= 8 || !!state.chapterDoneAt[7];
 }
 
 /**

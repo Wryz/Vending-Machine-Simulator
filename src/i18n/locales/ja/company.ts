@@ -7,6 +7,9 @@ export default {
   noBusiness: '開いているビジネスがありません。',
   subtitle: 'Coinline · {city}',
   chapter: {
+    countries: '支店のある国',
+    continents: '支店のある大陸',
+    salesSince: 'この章の売上',
     section: '第{n}章',
     prestige: 'プレステージ',
     sales: '売上',

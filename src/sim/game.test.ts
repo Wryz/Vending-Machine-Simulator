@@ -547,15 +547,29 @@ describe('progression, rival, collections, prestige', () => {
     expect(r.rival.machines.length).toBeLessThan(fleet + 1);
     expect(playerShare(r)).toBeGreaterThan(0);
   });
-  it('chapter 5 completes on market share and unlocks selling the company', () => {
+  it('chapter 5 on market share, 6 and 7 on branches abroad and sales, then selling opens', () => {
     const s = startWithPlacedMachine(world);
     s.chapter = 5;
     s.rival.active = true;
     s.rival.nextDecisionAt = s.now + 1e9;
     s.ledger.recentPlayerCents = 1e7;
     s.ledger.recentRivalCents = 1e3;
-    const { state } = advance(s, world, s.now + MIN);
+    let state = advance(s, world, s.now + MIN).state;
     expect(state.chapter).toBe(6);
+    expect(canSellCompany(state)).toBe(false);
+    // Chapter 6: three countries and enough sales since the chapter began.
+    state.footprint = { countries: ['US', 'CA', 'MX'], continents: ['North America'] };
+    state.ledger.lifetimeSalesCents = state.chapterStartSalesCents + 24_000_000;
+    state = advance(state, world, state.now + MIN).state;
+    expect(state.chapter).toBe(6); // sales not there yet
+    state.ledger.lifetimeSalesCents = state.chapterStartSalesCents + 26_000_000;
+    state = advance(state, world, state.now + MIN).state;
+    expect(state.chapter).toBe(7);
+    // Chapter 7: a second continent, and sales counted from chapter 7's start.
+    state.footprint.continents.push('Asia');
+    state.ledger.lifetimeSalesCents = state.chapterStartSalesCents + 100_000_001;
+    state = advance(state, world, state.now + MIN).state;
+    expect(state.chapter).toBe(8);
     expect(canSellCompany(state)).toBe(true);
     expect(companyValuationCents(state)).toBeGreaterThan(0);
     const sold = sellCompany(state, 'tokyo', state.now, 5);

@@ -39,6 +39,8 @@ export default {
     lockedTitle: '지점은 {n}장부터',
     lockedBody: '{n}장부터는 여는 모든 도시가 한 회사의 지점이 돼요. 그 전에는 {name}은(는) 돈도 따로인 별도 사업이에요.',
     separate: '따로 시작',
+    farTitle: '{name}은(는) {n}장에서 열려요',
+    farBody: '회사는 본거지에서 넓어져요. 먼저 주·도, 그다음 나라, 권역, 대륙, 마지막으로 전 세계로.',
     fullTitle: '지금은 {count}개 도시가 한도예요',
     fullBody: '회사는 {count}개 도시를 운영할 수 있어요. 다음 챕터에서 더 늘어나요.',
   },

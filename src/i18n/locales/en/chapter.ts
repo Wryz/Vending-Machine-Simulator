@@ -17,5 +17,7 @@ export default {
     other: '{active}/{n} machines · {drivers}/3 drivers',
   },
   share: '{pct}% of the market (goal 50%)',
+  countries: '{have}/{n} countries · {sales} of {goal}',
+  continents: '{have}/{n} continents · {sales} of {goal}',
   done: 'You run the city.',
 } as const;

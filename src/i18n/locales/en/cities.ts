@@ -36,6 +36,8 @@ export default {
     lockedTitle: 'Branches open in chapter {n}',
     lockedBody: 'From chapter {n}, every city you open is a branch of one company. Until then, {name} would be a separate business with its own cash.',
     separate: 'Start separately',
+    farTitle: '{name} opens in chapter {n}',
+    farBody: 'Your company grows out from your home city: first your state or province, then your country, your region, your continent, and finally the whole world.',
     fullTitle: '{count} cities is the limit for now',
     fullBody: 'Your company can run {count} cities. The next chapter allows more.',
   },

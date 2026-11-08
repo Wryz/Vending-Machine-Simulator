@@ -39,6 +39,8 @@ export default {
     lockedTitle: 'Filiais abrem no capítulo {n}',
     lockedBody: 'A partir do capítulo {n}, cada cidade que você abre é filial de uma só empresa. Até lá, {name} seria um negócio separado, com dinheiro próprio.',
     separate: 'Começar separado',
+    farTitle: '{name} abre no capítulo {n}',
+    farBody: 'Sua empresa cresce a partir da sua cidade de origem: primeiro seu estado ou província, depois seu país, sua região, seu continente e por fim o mundo todo.',
     fullTitle: '{count} cidades é o limite por enquanto',
     fullBody: 'Sua empresa pode operar {count} cidades. O próximo capítulo libera mais.',
   },

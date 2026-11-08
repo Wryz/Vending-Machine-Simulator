@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import type { CityIndexEntry } from '../src/data/types';
 import type { RegionMeta } from '../workers/data-api/src/meta';
 import type { RegionTarget } from './list-regions';
+import { stateAt } from './lib/admin1';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, 'out');
@@ -42,6 +43,9 @@ for (const r of all) {
     o: r5(at.lng),
     p: r.ring ? 0 : r.pop,
     ...(r.dir ? { d: r.dir } : {}),
+    // State / province (expansion ladder); from the city's own point, so outer districts
+    // across a state line still belong to their own side.
+    ...((st) => (st ? { s: st } : {}))(stateAt(at.lat, at.lng)),
   });
 }
 const json = JSON.stringify(index);

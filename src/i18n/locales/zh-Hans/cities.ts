@@ -39,6 +39,8 @@ export default {
     lockedTitle: '第 {n} 章开放分店',
     lockedBody: '从第 {n} 章起,你开的每座城市都是同一家公司的分店。在此之前,{name}会是资金独立的另一门生意。',
     separate: '单独开始',
+    farTitle: '{name}在第 {n} 章开放',
+    farBody: '公司从总部城市向外扩张:先是你的州或省,然后是国家、地区、大洲,最后是全世界。',
     fullTitle: '目前最多 {count} 座城市',
     fullBody: '你的公司可经营 {count} 座城市。下一章可开更多。',
   },

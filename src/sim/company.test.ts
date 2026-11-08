@@ -1,4 +1,13 @@
-import { branchesUnlocked, companyOf, joinCompany, maxCities, newGame } from './index';
+import {
+  branchesUnlocked,
+  canBranchTo,
+  chapterFor,
+  companyOf,
+  joinCompany,
+  migrateSave,
+  newGame,
+  reachNeeded,
+} from './index';
 import { NOON_NY } from './__fixtures__/world';
 
 describe('one company, many cities', () => {
@@ -28,12 +37,40 @@ describe('one company, many cities', () => {
     expect(company.research.telemetry).toEqual(['*']);
   });
 
-  it('unlocks branches in chapter 3 and more cities later', () => {
+  it('opens the world one step at a time: state, country, region, continent, world', () => {
+    const austin = { cc: 'US', state: 'US-TX' };
+    const dallas = { cc: 'US', state: 'US-TX' };
+    const nyc = { cc: 'US', state: 'US-NY' };
+    const toronto = { cc: 'CA', state: 'CA-ON' };
+    const mexico = { cc: 'MX', state: 'MX-CMX' };
+    const hanoi = { cc: 'VN', state: 'VN-HN' };
+    expect(reachNeeded(austin, dallas)).toBe('state');
+    expect(reachNeeded(austin, nyc)).toBe('country');
+    expect(reachNeeded(austin, toronto)).toBe('region'); // Northern America
+    expect(reachNeeded(austin, mexico)).toBe('continent'); // Central America, North America
+    expect(reachNeeded(austin, hanoi)).toBe('world');
     expect(branchesUnlocked(2)).toBe(false);
-    expect(branchesUnlocked(3)).toBe(true);
-    expect(maxCities(2)).toBe(1);
-    expect(maxCities(3)).toBe(3);
-    expect(maxCities(4)).toBe(5);
-    expect(maxCities(6)).toBe(Infinity);
+    expect(canBranchTo(2, austin, dallas)).toBe(false);
+    expect(canBranchTo(3, austin, dallas)).toBe(true);
+    expect(canBranchTo(3, austin, nyc)).toBe(false);
+    expect(canBranchTo(4, austin, nyc)).toBe(true);
+    expect(canBranchTo(6, austin, hanoi)).toBe(false);
+    expect(canBranchTo(7, austin, hanoi)).toBe(true);
+    expect(chapterFor(austin, hanoi)).toBe(7);
+    expect(chapterFor(austin, toronto)).toBe(5);
+    // No states mapped: the state step is the whole country.
+    expect(reachNeeded({ cc: 'SG' }, { cc: 'SG' })).toBe('state');
+  });
+
+  it('moves old saves in Prestige (old chapter 6) to the new Prestige (8)', () => {
+    const s = newGame({ cityId: 'new-york', now: NOON_NY, seed: 1 }) as unknown as Record<string, unknown>;
+    s.schemaVersion = 8;
+    s.chapter = 6;
+    s.chapterDoneAt = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+    delete s.footprint;
+    const m = migrateSave(s);
+    expect(m.chapter).toBe(8);
+    expect(m.chapterDoneAt[7]).toBe(5);
+    expect(m.footprint).toEqual({ countries: [], continents: [] });
   });
 });

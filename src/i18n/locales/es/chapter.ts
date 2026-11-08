@@ -21,5 +21,7 @@ export default {
     other: '{active}/{n} máquinas · {drivers}/3 repartidores',
   },
   share: '{pct}% del mercado (meta 50%)',
+  countries: '{have}/{n} países · {sales} de {goal}',
+  continents: '{have}/{n} continentes · {sales} de {goal}',
   done: 'La ciudad es tuya.',
 } satisfies Shape<typeof en>;

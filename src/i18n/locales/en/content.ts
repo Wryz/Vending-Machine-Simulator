@@ -34,7 +34,7 @@ export default {
         u1: 'Capsules & collectibles',
         u2: 'Warehouse',
         u3: 'Brightvend arrives',
-        u4: 'Branches in up to 3 cities',
+        u4: 'Branches in your state or province',
       },
     },
     c4: {
@@ -45,7 +45,7 @@ export default {
         u1: 'Tech & essentials',
         u2: 'Hot food',
         u3: 'Events board',
-        u4: 'Up to 5 cities',
+        u4: 'Branches across your country',
       },
     },
     c5: {
@@ -53,11 +53,25 @@ export default {
       goal: "Become the city's top operator (beat Brightvend's share)",
       unlocks: {
         u0: 'All machine types',
-        u1: 'Branches in every city',
+        u1: 'Branches in neighbouring countries',
         u2: 'Liquor permit',
       },
     },
     c6: {
+      title: 'Continental',
+      goal: 'Run branches in 3 countries and take {amount} in sales',
+      unlocks: {
+        u0: 'Branches across your continent',
+      },
+    },
+    c7: {
+      title: 'Global',
+      goal: 'Run branches on 2 continents and take {amount} in sales',
+      unlocks: {
+        u0: 'Branches anywhere in the world',
+      },
+    },
+    c8: {
       title: 'Prestige',
       goal: 'Sell the company when you are ready',
       unlocks: {

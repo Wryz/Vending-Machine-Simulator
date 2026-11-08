@@ -18,5 +18,7 @@ export default {
     other: '{active}/{n} 台售货机 · {drivers}/3 名司机',
   },
   share: '市场份额 {pct}%（目标 50%）',
+  countries: '{have}/{n} 个国家 · {sales} / {goal}',
+  continents: '{have}/{n} 个大洲 · {sales} / {goal}',
   done: '全城都是你的了。',
 } satisfies Shape<typeof en>;

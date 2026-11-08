@@ -14,7 +14,7 @@ import type { HoodMap } from './hoods';
  * epoch ms (real time).
  */
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 export interface Slot {
   productId: string | null;
@@ -298,6 +298,10 @@ export interface GameState {
   /** City ranking board: this week's standings, nightly boards (schema v5). */
   rankings: RankingsState;
   ledger: Ledger;
+  /** Countries and continents the company has branches in (schema v9; kept by the app). */
+  footprint: { countries: string[]; continents: string[] };
+  /** Company lifetime sales when the current chapter began (chapters 6–7 count sales since). */
+  chapterStartSalesCents: number;
   log: LogEntry[];
   nextId: number;
 }

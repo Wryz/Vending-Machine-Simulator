@@ -40,6 +40,8 @@ export default {
     lockedTitle: 'Filialen ab Kapitel {n}',
     lockedBody: 'Ab Kapitel {n} ist jede Stadt eine Filiale derselben Firma. Bis dahin wäre {name} ein eigenes Geschäft mit eigenem Geld.',
     separate: 'Getrennt starten',
+    farTitle: '{name} öffnet in Kapitel {n}',
+    farBody: 'Deine Firma wächst von deiner Heimatstadt aus: erst dein Bundesland, dann dein Land, deine Region, dein Kontinent und am Ende die ganze Welt.',
     fullTitle: '{count} Städte sind vorerst das Limit',
     fullBody: 'Deine Firma kann {count} Städte führen. Das nächste Kapitel erlaubt mehr.',
   },

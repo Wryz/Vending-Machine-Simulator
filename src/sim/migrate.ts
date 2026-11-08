@@ -48,6 +48,25 @@ const MIGRATIONS: Record<number, Migration> = {
   6: (s) => ({ ...s, requests: emptyRequests(), schemaVersion: 7 }),
   // v8: restock deliveries (vans on the road).
   7: (s) => ({ ...s, deliveries: [], schemaVersion: 8 }),
+  // v9: the expansion ladder (chapters 6 Continental and 7 Global; Prestige moves from 6 to 8).
+  8: (s) => {
+    const chapter = Number(s.chapter ?? 1);
+    const done = { ...((s.chapterDoneAt as Record<number, number>) ?? {}) };
+    if (chapter >= 6) {
+      const at = done[5] ?? Number(s.now ?? 0);
+      done[6] = done[6] ?? at;
+      done[7] = done[7] ?? at;
+    }
+    const ledger = s.ledger as { lifetimeSalesCents?: number } | undefined;
+    return {
+      ...s,
+      chapter: chapter >= 6 ? chapter + 2 : chapter,
+      chapterDoneAt: done,
+      footprint: { countries: [], continents: [] },
+      chapterStartSalesCents: ledger?.lifetimeSalesCents ?? 0,
+      schemaVersion: 9,
+    };
+  },
 };
 
 export class SaveError extends Error {}
