@@ -25,8 +25,8 @@ export const MAP_LIFE = {
   /** Agents appear from this zoom and are fully opaque at `fadeInEndZoom`. */
   minZoom: 16,
   fadeInEndZoom: 16.8,
-  /** Simulation + GeoJSON update rate on the map. */
-  fps: 14,
+  /** Simulation + GeoJSON update rate on the map (14 looked choppy; owner, 2026-11-08). */
+  fps: 30,
   /** Debounce before re-querying roads after the camera settles. */
   roadQueryDebounceMs: 350,
   /** onLifeStats callback rate limit. */

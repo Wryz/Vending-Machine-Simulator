@@ -51,7 +51,7 @@ import {
  * - Roads: queried from the rendered road, path and water layers when the
  *   camera settles (debounced), so the sim always matches what is drawn:
  *   people walk outside the drawn asphalt, on paths, and never on water.
- * - Animation: a ~14 fps timer steps the pure sim and pushes one GeoJSON
+ * - Animation: a timer (MAP_LIFE.fps) steps the pure sim and pushes one GeoJSON
  *   string to the `life` source. Only this component re-renders per frame,
  *   never the CityMap.
  * - Paused below MAP_LIFE.minZoom, when the screen isn't focused, when the

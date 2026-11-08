@@ -25,10 +25,16 @@ import { announceSurprises } from '@/store/rivalMoments';
 import { Mono } from '@/ui/kit';
 
 /**
+ * Dev builds, or a local release build made with EXPO_PUBLIC_QA_ENABLED=1 (store
+ * preview recordings run smoother without debug overhead). Never set for shipped builds.
+ */
+const QA_ENABLED = __DEV__ || process.env.EXPO_PUBLIC_QA_ENABLED === '1';
+
+/**
  * Dev builds only: seed a playable state for unattended QA and screenshots,
  * e.g. `EXPO_PUBLIC_QA_ROUTE='/qa?city=new-york&machines=1' npm start`.
  * Opens a fresh game, places and stocks the starter machine (and, with
- * `machines`, more), then lands on the map. Never reachable in release.
+ * `machines`, more), then lands on the map. Never reachable in shipped builds (see QA_ENABLED).
  */
 export default function Qa() {
   const {
@@ -90,7 +96,7 @@ export default function Qa() {
   const [note, setNote] = useState('Seeding…');
 
   useEffect(() => {
-    if (!__DEV__) return;
+    if (!QA_ENABLED) return;
     // Captures for the store: no dev log toasts (RevenueCat logs a missing paywall offering).
     LogBox.ignoreLogs(['[RevenueCat]']);
     (async () => {
@@ -249,7 +255,7 @@ export default function Qa() {
     driver,
   ]);
 
-  if (!__DEV__) return <Redirect href="/" />;
+  if (!QA_ENABLED) return <Redirect href="/" />;
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
       <Mono>{note}</Mono>

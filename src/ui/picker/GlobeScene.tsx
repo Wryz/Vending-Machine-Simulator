@@ -1,6 +1,7 @@
 'use no memo';
 // three.js objects are mutated every frame; keep the React Compiler out of this file.
 import { Canvas, useFrame, useThree } from '@react-three/fiber/native';
+import { Asset } from 'expo-asset';
 import { useEffect, useMemo, useRef, type RefObject } from 'react';
 import { View } from 'react-native';
 import * as THREE from 'three';
@@ -21,7 +22,7 @@ import type { GlobeDot } from './PickerGlobe';
  */
 
 const G = PICKER.globe;
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- Metro bundles the image; R3F's native TextureLoader takes the module id.
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Metro bundles the image; expo-asset resolves it to a file.
 const EARTH = require('../../../assets/globe/earth.jpg') as number;
 
 /** '#RRGGBB' -> 0..1 RGB, raw (the shaders write colors as-is, no color management). */
@@ -32,21 +33,41 @@ function rgb(hex: string): [number, number, number] {
 
 // The texture outlives one Canvas: reopening the picker re-uploads it without reloading the file.
 let earth: THREE.Texture | null = null;
-let earthReady = false;
-const earthWaiters = new Set<() => void>();
-function earthTexture(): THREE.Texture {
-  if (!earth) {
-    // R3F's native polyfill loads a bundled module id through expo-asset (the type says string).
-    earth = new THREE.TextureLoader().load(EARTH as unknown as string, () => {
-      earthReady = true;
-      earthWaiters.forEach((f) => f());
-      earthWaiters.clear();
+let earthLoading = false;
+const earthWaiters = new Set<(t: THREE.Texture) => void>();
+/**
+ * The Earth image, loaded once. We resolve the bundled file to a `file:` URL
+ * with expo-asset ourselves: handing R3F's loader the module id worked in dev
+ * (served by Metro) but never finished in release builds.
+ */
+function loadEarth(): void {
+  if (earth || earthLoading) return;
+  earthLoading = true;
+  Asset.fromModule(EARTH)
+    .downloadAsync()
+    .then((a) => {
+      const uri = a.localUri ?? a.uri;
+      new THREE.TextureLoader().load(
+        uri,
+        (t) => {
+          t.generateMipmaps = true;
+          t.minFilter = THREE.LinearMipmapLinearFilter;
+          t.magFilter = THREE.LinearFilter;
+          earth = t;
+          earthWaiters.forEach((f) => f(t));
+          earthWaiters.clear();
+        },
+        undefined,
+        (e) => {
+          earthLoading = false;
+          console.warn('[globe] earth texture failed', uri, e);
+        },
+      );
+    })
+    .catch((e: unknown) => {
+      earthLoading = false;
+      console.warn('[globe] earth asset failed', e);
     });
-    earth.generateMipmaps = true;
-    earth.minFilter = THREE.LinearMipmapLinearFilter;
-    earth.magFilter = THREE.LinearFilter;
-  }
-  return earth;
 }
 
 const globeVert = /* glsl */ `
@@ -173,13 +194,12 @@ function Globe({
   }, [bridgeRef, invalidate]);
 
   const globeMat = useMemo(() => {
-    const map = earthTexture();
     const m = new THREE.ShaderMaterial({
       vertexShader: globeVert,
       fragmentShader: globeFrag,
       uniforms: {
-        uMap: { value: map },
-        uReady: { value: earthReady ? 1 : 0 },
+        uMap: { value: earth },
+        uReady: { value: earth ? 1 : 0 },
         uOcean: { value: new THREE.Vector3(...rgb(GLOBE.colors.ocean)) },
         uLight: { value: new THREE.Vector3(...lightDir(G.lightUpDeg, G.lightLeftDeg)) },
         uAmbient: { value: G.ambient },
@@ -192,12 +212,14 @@ function Globe({
     return m;
   }, []);
   useEffect(() => {
-    if (earthReady) return;
-    const done = () => {
+    if (earth) return;
+    const done = (t: THREE.Texture) => {
+      globeMat.uniforms.uMap.value = t;
       globeMat.uniforms.uReady.value = 1;
       invalidate();
     };
     earthWaiters.add(done);
+    loadEarth();
     return () => {
       earthWaiters.delete(done);
     };
