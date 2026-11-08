@@ -73,10 +73,8 @@ export function CityPicker({
   }, []);
 
   const cards = useMemo(() => stripCities(index, origin), [index, origin]);
-  // Section labels: near you, then your country, then big cities abroad.
-  const home = cards[0]?.c ?? '';
-  const firstHome = cards.findIndex((c) => c.km > PICKER.localKm && c.c === home);
-  const firstAbroad = cards.findIndex((c) => c.km > PICKER.localKm && c.c !== home);
+  // Section labels: near you, then the featured cities around the world.
+  const firstWorld = Math.min(PICKER.nearest, cards.length);
   const [selected, setSelected] = useState<PickerCity | null>(() => cards[0] ?? null);
   const [aim, setAim] = useState<{ lat: number; lng: number } | null>(null);
   const [fly, setFly] = useState(() => ({ ...origin, zoom: 1.6, key: 0 }));
@@ -399,13 +397,7 @@ export function CityPicker({
               distance={km(item)}
               badge={status[item.r] ? t(`picker.${status[item.r]}`) : null}
               section={
-                i === 0
-                  ? t('picker.nearYou')
-                  : i === firstHome
-                    ? t('picker.yourCountry')
-                    : i === firstAbroad
-                      ? t('picker.bigCities')
-                      : null
+                i === 0 ? t('picker.nearYou') : i === firstWorld ? t('picker.bigCities') : null
               }
               selected={item.r === selected?.r}
               onPress={() => choose(item, 'card')}
@@ -473,10 +465,12 @@ function CityCard({
       ]}
     >
       {section ? (
-        <View style={styles.section}>
-          <T size={10} weight="bold" color={SKIN.marqueeInk} numberOfLines={1}>
-            {section.toUpperCase()}
-          </T>
+        <View style={styles.sectionBox} pointerEvents="none">
+          <View style={styles.section}>
+            <T size={10} weight="bold" color={SKIN.marqueeInk} numberOfLines={1}>
+              {section.toUpperCase()}
+            </T>
+          </View>
         </View>
       ) : null}
       <View style={styles.cardTop}>
@@ -594,10 +588,16 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     backgroundColor: SKIN.greenFace,
   },
-  section: {
+  // A wider, invisible box so the pill can run past the card's edge.
+  sectionBox: {
     position: 'absolute',
     top: -10,
     left: 8,
+    width: CARD_W * 1.8,
+    zIndex: 2,
+    alignItems: 'flex-start',
+  },
+  section: {
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: RADIUS.pill,

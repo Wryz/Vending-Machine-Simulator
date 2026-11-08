@@ -3,15 +3,43 @@
  * and how the globe behaves. Data only.
  */
 export const PICKER = {
-  /** First: cities and outer districts this close to you (any size), nearest first, up to maxLocal… */
-  localKm: 300,
-  maxLocal: 10,
-  /** …then the rest of your country's cities, nearest first… */
-  homePopulation: 300_000,
-  /** …then only the very big cities abroad, nearest first. */
-  foreignPopulation: 5_000_000,
+  /** First: the cities and outer districts nearest to you (any size)… */
+  nearest: 5,
   /** At most this many cards in all (owner, 2026-11-08). */
   maxCards: 30,
+  /**
+   * …then famous cities around the world (one or two per big country), nearest
+   * first. Matched by English name and country in the city list; a city not
+   * built yet is skipped. Edit freely (owner, 2026-11-08).
+   */
+  featured: [
+    { name: 'San Francisco', cc: 'US' },
+    { name: 'New York', cc: 'US' },
+    { name: 'Los Angeles', cc: 'US' },
+    { name: 'Toronto', cc: 'CA' },
+    { name: 'Mexico City', cc: 'MX' },
+    { name: 'São Paulo', cc: 'BR' },
+    { name: 'Buenos Aires', cc: 'AR' },
+    { name: 'London', cc: 'GB' },
+    { name: 'Paris', cc: 'FR' },
+    { name: 'Berlin', cc: 'DE' },
+    { name: 'Madrid', cc: 'ES' },
+    { name: 'Rome', cc: 'IT' },
+    { name: 'Amsterdam', cc: 'NL' },
+    { name: 'Istanbul', cc: 'TR' },
+    { name: 'Dubai', cc: 'AE' },
+    { name: 'Cairo', cc: 'EG' },
+    { name: 'Lagos', cc: 'NG' },
+    { name: 'Johannesburg', cc: 'ZA' },
+    { name: 'Mumbai', cc: 'IN' },
+    { name: 'Bangkok', cc: 'TH' },
+    { name: 'Singapore', cc: 'SG' },
+    { name: 'Hong Kong', cc: 'HK' },
+    { name: 'Shanghai', cc: 'CN' },
+    { name: 'Seoul', cc: 'KR' },
+    { name: 'Tokyo', cc: 'JP' },
+    { name: 'Sydney', cc: 'AU' },
+  ],
   /** The crosshair starts a city when its downtown or district is this close. */
   snapKm: 25,
   /** Globe zoom range in the picker (1 = whole Earth), and the zoom a city card flies to. */

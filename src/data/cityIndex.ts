@@ -28,28 +28,32 @@ export function kmBetween(
 const at = (e: CityIndexEntry) => ({ lat: e.a, lng: e.o });
 
 /**
- * The bottom strip, at most PICKER.maxCards: what's near you first (cities and
- * outer districts of any size), then the rest of your country, then only the
- * very big cities abroad; nearest first within each. Your country is the
- * nearest city's.
+ * The bottom strip, at most PICKER.maxCards: the few cities and outer
+ * districts nearest you, then the featured world cities (PICKER.featured),
+ * nearest first.
  */
 export function stripCities(
   index: readonly CityIndexEntry[],
   origin: { lat: number; lng: number },
 ): PickerCity[] {
-  const withKm = index.map((e) => ({ ...e, km: kmBetween(origin, at(e)) }));
   const byKm = (a: PickerCity, b: PickerCity) => a.km - b.km || a.r.localeCompare(b.r);
-  withKm.sort(byKm);
-  const home = withKm.find((e) => e.c)?.c ?? '';
-  const local = withKm.filter((e) => e.km <= PICKER.localKm).slice(0, PICKER.maxLocal);
-  const taken = new Set(local.map((e) => e.r));
-  const country = withKm.filter(
-    (e) => !taken.has(e.r) && !e.d && e.c === home && e.p >= PICKER.homePopulation,
-  );
-  const abroad = withKm.filter(
-    (e) => !taken.has(e.r) && !e.d && e.c !== home && e.p >= PICKER.foreignPopulation,
-  );
-  return [...local, ...country, ...abroad].slice(0, PICKER.maxCards);
+  const near = index
+    .map((e) => ({ ...e, km: kmBetween(origin, at(e)) }))
+    .sort(byKm)
+    .slice(0, PICKER.nearest);
+  const taken = new Set(near.map((e) => e.r));
+  const featured: PickerCity[] = [];
+  for (const f of PICKER.featured) {
+    // The city's own region (biggest, not an outer district) with that name and country.
+    let best: CityIndexEntry | null = null;
+    for (const e of index)
+      if (!e.d && e.n === f.name && e.c === f.cc && (!best || e.p > best.p)) best = e;
+    if (best && !taken.has(best.r)) {
+      taken.add(best.r);
+      featured.push({ ...best, km: kmBetween(origin, at(best)) });
+    }
+  }
+  return [...near, ...featured.sort(byKm)].slice(0, PICKER.maxCards);
 }
 
 /** The city or district the crosshair would start, if one is close enough. */
