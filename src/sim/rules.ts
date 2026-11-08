@@ -8,7 +8,12 @@ import {
   STAFF,
   TIME,
 } from '@/config/economy';
-import { getMachineType, type MachineType, ALCOHOL_ALLOWED_COUNTRIES } from '@/config/machines';
+import {
+  getMachineType,
+  type MachineType,
+  ALCOHOL_ALLOWED_COUNTRIES,
+  SLOT_ROWS,
+} from '@/config/machines';
 import {
   ALCOHOL_MIN_DISTANCE_M,
   VENUE_CATEGORIES,
@@ -23,11 +28,37 @@ import type { NamedPlace } from '@/data/types';
 
 import { hasResearch } from './demand';
 import { distanceM, type LatLng } from './geo';
-import type { GameState, Machine, RivalMachine, Venue, World } from './state';
+import type { Driver, GameState, Machine, RivalMachine, Venue, World } from './state';
 
 export function slotCapacity(state: GameState, type: MachineType): number {
   const bigger = hasResearch(state, 'bigger-coil', type.family);
   return Math.round(type.capacityPerSlot * (bigger ? 1.5 : 1));
+}
+
+/** Slots a new machine of this type comes with (coil machines start small and add rows). */
+export function startSlots(type: MachineType): number {
+  return Math.min(type.slots, SLOT_ROWS.startSlots);
+}
+
+/**
+ * The next row upgrade for a machine: how many slots it adds and its price,
+ * or null when the machine already has all its type's slots.
+ */
+export function nextSlotRow(machine: Machine): { slots: number; costCents: number } | null {
+  const type = getMachineType(machine.typeId);
+  const have = machine.slots.length;
+  if (have >= type.slots) return null;
+  const bought = Math.max(0, Math.ceil((have - startSlots(type)) / SLOT_ROWS.rowSlots));
+  const prices = SLOT_ROWS.rowCostCents;
+  return {
+    slots: Math.min(SLOT_ROWS.rowSlots, type.slots - have),
+    costCents: prices[Math.min(bought, prices.length - 1)] ?? 0,
+  };
+}
+
+/** A driver works while their van is theirs for good, or until the rental runs out. */
+export function driverOnDuty(driver: Driver, t: number): boolean {
+  return driver.rentedUntil === undefined || t < driver.rentedUntil;
 }
 
 export function cashBoxCapacity(state: GameState, type: MachineType): number {
@@ -45,7 +76,11 @@ export function driverCapacity(state: GameState): number {
 }
 
 export function wholesaleCents(state: GameState, product: Product): number {
-  return Math.round(product.wholesaleCents * (state.warehouse ? 1 - STAFF.warehouseDiscount : 1));
+  return Math.round(
+    product.wholesaleCents *
+      SERVICE.deliveryStockShare *
+      (state.warehouse ? 1 - STAFF.warehouseDiscount : 1),
+  );
 }
 
 export function perkLevel(state: GameState, id: string): number {

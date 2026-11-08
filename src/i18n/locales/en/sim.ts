@@ -44,8 +44,9 @@ export default {
     hasWarehouse: 'You already have a warehouse.',
     hasPermit: 'You already hold a liquor permit.',
     notInCity: 'Not available in this city.',
-    driversLocked: 'Drivers unlock in chapter 3.',
-    driversNeedVan: 'Drivers need a van.',
+    driversLocked: 'Drivers unlock in chapter 2.',
+    slotsMaxed: 'This machine has all its slots.',
+    vanOwned: 'This van is already yours.',
     driverNotFound: 'Driver not found.',
     routeStops: 'A route has at most {n} stops.',
     hireFirst: 'Hire a driver first.',
@@ -97,6 +98,7 @@ export default {
     starterPack: 'Starter Pack',
     orders: 'Orders',
     trophies: 'Trophies',
+    upgrades: 'Upgrades',
   },
   // Activity log lines. {venue} is a real place name.
   log: {

@@ -9,6 +9,8 @@ export default {
     slot: '{slot}번 칸, {product}, {qty}/{cap}',
     slotEmpty: '비어 있음',
     load: '{product} 넣기',
+    replaceWith: '{from}을(를) {product}(으)로 교체',
+    topUp: '{product} 채우기',
     close: '닫기',
     lowerPrice: '가격 내리기',
     raisePrice: '가격 올리기',
@@ -30,6 +32,7 @@ export default {
     pricesLocked: '가격 변경',
     driverPar: '기사 보충 기준',
     slots: '용량 (상품 수)',
+    coils: '칸 (최대 중)',
     power: '하루 전기료',
     breakdowns: '하루 고장 확률',
     theft: '도난 위험',
@@ -64,7 +67,6 @@ export default {
     moreHint: '사양과 자판기 동작 보기',
     pickUp: '회수',
   },
-  emptyCoil: '빈 코일',
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: '밴 배송 중',
@@ -103,5 +105,21 @@ export default {
     min: '{n}분',
     hour: '{n}시간',
     day: '{n}일',
+  },
+  picker: {
+    coil: '코일 {code}',
+    replacing: '{product} 교체: 새 상품을 고르세요',
+    swapping: '{from} → {to} 교체',
+    filling: '이 코일을 {product}(으)로 채우기',
+    empty: '빈 코일: 상품을 고르세요',
+    now: '지금',
+    new: '새로',
+    newBadge: 'NEW',
+    inCoil: '진열 중',
+  },
+  rows: {
+    add: '{n}칸 · {cost}',
+    addHint: '자판기 업그레이드(영구): {max}칸 중 {n}칸',
+    added: '자판기 업그레이드: {n}칸',
   },
 } satisfies Shape<typeof en>;

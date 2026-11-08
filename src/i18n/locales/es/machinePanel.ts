@@ -9,6 +9,8 @@ export default {
     slot: 'Casilla {slot}, {product}, {qty} de {cap}',
     slotEmpty: 'vacía',
     load: 'Cargar {product}',
+    replaceWith: 'Cambiar {from} por {product}',
+    topUp: 'Reponer {product}',
     close: 'Cerrar',
     lowerPrice: 'Bajar precio',
     raisePrice: 'Subir precio',
@@ -30,6 +32,7 @@ export default {
     pricesLocked: 'Cambiar precios',
     driverPar: 'El repartidor llena hasta',
     slots: 'Capacidad (artículos)',
+    coils: 'Huecos (del máximo)',
     power: 'Luz por día',
     breakdowns: 'Prob. de avería al día',
     theft: 'Riesgo de robo',
@@ -64,7 +67,6 @@ export default {
     moreHint: 'Ver ficha y acciones de la máquina',
     pickUp: 'Retirar',
   },
-  emptyCoil: 'Espiral vacía',
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Furgoneta en camino',
@@ -103,5 +105,21 @@ export default {
     min: '{n} min',
     hour: '{n} h',
     day: '{n} d',
+  },
+  picker: {
+    coil: 'ESPIRAL {code}',
+    replacing: 'Cambiando {product}: elige el nuevo artículo',
+    swapping: 'Cambiando {from} por {to}',
+    filling: 'Llenar esta espiral con {product}',
+    empty: 'Espiral vacía: elige un artículo',
+    now: 'AHORA',
+    new: 'NUEVO',
+    newBadge: 'NUEVO',
+    inCoil: 'DENTRO',
+  },
+  rows: {
+    add: '{n} huecos · {cost}',
+    addHint: 'Mejora de máquina, para siempre: {n} de {max} huecos',
+    added: 'Máquina mejorada: {n} huecos',
   },
 } satisfies Shape<typeof en>;

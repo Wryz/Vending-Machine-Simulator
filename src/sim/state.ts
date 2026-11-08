@@ -93,6 +93,12 @@ export interface Driver {
   hiredAt: number;
   machineIds: string[];
   nextRunAt: number;
+  /**
+   * A rented van: the driver works until this time (real ms), then waits for
+   * the rental to be extended. Absent: the van is yours for good (drivers hired
+   * before rentals existed, 2026-11-08, are owned).
+   */
+  rentedUntil?: number;
 }
 
 export interface RivalMachine {

@@ -5,7 +5,7 @@ import { emptySurprises } from './events';
 import { emptyGoals } from './goals';
 import { emptyRankings } from './rankings';
 import { emptyRequests } from './requests';
-import { perkLevel, prestigePerk } from './rules';
+import { perkLevel, prestigePerk, startSlots } from './rules';
 import { SCHEMA_VERSION, type GameState, type Machine } from './state';
 
 export function emptyLedgerDay(dateKey: string) {
@@ -14,7 +14,7 @@ export function emptyLedgerDay(dateKey: string) {
 
 /** An owned machine that is not placed yet (in storage). */
 export function storedMachine(id: string, typeId: MachineTypeId, now: number): Machine {
-  const type = getMachineType(typeId);
+  const n = startSlots(getMachineType(typeId));
   return {
     id,
     typeId,
@@ -34,7 +34,7 @@ export function storedMachine(id: string, typeId: MachineTypeId, now: number): M
     },
     mood: 0.8,
     lowMoodSince: null,
-    slots: Array.from({ length: type.slots }, () => ({
+    slots: Array.from({ length: n }, () => ({
       productId: null,
       qty: 0,
       priceCents: 0,
@@ -46,7 +46,7 @@ export function storedMachine(id: string, typeId: MachineTypeId, now: number): M
     freshUntil: 0,
     placedAt: now,
     lastVisitAt: now,
-    seen: { at: now, qty: Array.from({ length: type.slots }, () => 0), cashBoxCents: 0 },
+    seen: { at: now, qty: Array.from({ length: n }, () => 0), cashBoxCents: 0 },
     stats: { unitsTotal: 0, revenueTotalCents: 0, revenueRecentCents: 0, lastSaleAt: null },
   };
 }

@@ -40,12 +40,15 @@ export function MachineWindow({
   cap,
   selected,
   onSelect,
+  addRow,
 }: {
   slots: WindowSlot[];
   cols: number;
   cap: number;
   selected: number | null;
   onSelect: (slot: number) => void;
+  /** The machine can take another row of slots: an empty, dashed shelf to buy it from. */
+  addRow?: { label: string; hint: string; disabled?: boolean; onPress: () => void };
 }) {
   const skin = useSkin();
   const [width, setWidth] = useState(0);
@@ -118,6 +121,30 @@ export function MachineWindow({
               </View>
             ))
           : null}
+        {addRow && width > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={addRow.label}
+            accessibilityHint={addRow.hint}
+            accessibilityState={{ disabled: !!addRow.disabled }}
+            disabled={addRow.disabled}
+            onPress={addRow.onPress}
+            style={({ pressed }) => [
+              styles.addRow,
+              {
+                height: Math.max(48, Math.round(cellH * 0.6)),
+                opacity: addRow.disabled ? 0.55 : pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Mono size={22} weight="bold" color={skin.ledGreen}>
+              +
+            </Mono>
+            <Mono size={13} weight="bold" color="#FFFFFF">
+              {addRow.label}
+            </Mono>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -396,6 +423,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACE.s,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255,255,255,0.35)',
+    marginTop: 2,
   },
   product: { width: '100%', height: '100%' },
   shade: { position: 'absolute', left: 0, top: 0 },

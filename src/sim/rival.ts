@@ -231,7 +231,9 @@ export function rivalDecide(state: GameState, world: World, t: number, out?: Riv
   if (!rival.ramped && state.chapter >= RIVAL.arrivesChapter) {
     changed = true;
     rival.ramped = true;
-    rival.nextDecisionAt = Math.min(rival.nextDecisionAt, t);
+    // The fleet just arrived: its next move comes a decision period later (no
+    // pulling a machine straight back out in the same minute).
+    rival.nextDecisionAt = t + businessHoursToMs(RIVAL.decisionEveryHours);
     let first: RivalMachine | null = null;
     for (let i = 0; i < RIVAL.startFleet; i++) first ??= placeRivalMachine(state, world, t);
     news(out, state, 'ramp', first);

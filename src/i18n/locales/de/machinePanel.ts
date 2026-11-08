@@ -9,6 +9,8 @@ export default {
     slot: 'Fach {slot}, {product}, {qty} von {cap}',
     slotEmpty: 'leer',
     load: '{product} einfüllen',
+    replaceWith: '{from} durch {product} ersetzen',
+    topUp: '{product} auffüllen',
     close: 'Schließen',
     lowerPrice: 'Preis senken',
     raisePrice: 'Preis erhöhen',
@@ -30,6 +32,7 @@ export default {
     pricesLocked: 'Preise ändern',
     driverPar: 'Fahrer füllt auf bis',
     slots: 'Kapazität (Artikel)',
+    coils: 'Fächer (vom Maximum)',
     power: 'Stromkosten pro Tag',
     breakdowns: 'Pannenrisiko pro Tag',
     theft: 'Diebstahlrisiko',
@@ -64,7 +67,6 @@ export default {
     moreHint: 'Daten und Automaten-Aktionen zeigen',
     pickUp: 'Abbauen',
   },
-  emptyCoil: 'Leere Spirale',
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Lieferwagen unterwegs',
@@ -103,5 +105,21 @@ export default {
     min: '{n} m',
     hour: '{n} h',
     day: '{n} T',
+  },
+  picker: {
+    coil: 'SPIRALE {code}',
+    replacing: '{product} ersetzen: neuen Artikel wählen',
+    swapping: '{from} wird durch {to} ersetzt',
+    filling: 'Diese Spirale mit {product} füllen',
+    empty: 'Leere Spirale: Artikel wählen',
+    now: 'JETZT',
+    new: 'NEU',
+    newBadge: 'NEU',
+    inCoil: 'DRIN',
+  },
+  rows: {
+    add: '{n} Fächer · {cost}',
+    addHint: 'Automaten-Upgrade, dauerhaft: {n} von {max} Fächern',
+    added: 'Automat erweitert: {n} Fächer',
   },
 } satisfies Shape<typeof en>;

@@ -19,6 +19,8 @@ export default {
         u0: 'Telemetría',
         u1: 'Máquinas de bebidas y café',
         u2: 'Distrito 2',
+        u3: 'Repartidores',
+        u4: 'Reglas de repedido',
       },
     },
     c3: {

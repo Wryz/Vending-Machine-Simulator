@@ -9,6 +9,8 @@ export default {
     slot: 'Case {slot}, {product}, {qty} sur {cap}',
     slotEmpty: 'vide',
     load: 'Charger {product}',
+    replaceWith: 'Remplacer {from} par {product}',
+    topUp: 'Compléter {product}',
     close: 'Fermer',
     lowerPrice: 'Baisser le prix',
     raisePrice: 'Monter le prix',
@@ -30,6 +32,7 @@ export default {
     pricesLocked: 'Changer les prix',
     driverPar: 'Le chauffeur remplit à',
     slots: 'Capacité (articles)',
+    coils: 'Cases (sur le maximum)',
     power: 'Électricité par jour',
     breakdowns: 'Risque de panne par jour',
     theft: 'Risque de vol',
@@ -64,7 +67,6 @@ export default {
     moreHint: 'Voir les caractéristiques et actions',
     pickUp: 'Retirer',
   },
-  emptyCoil: 'Spirale vide',
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Camionnette en route',
@@ -106,5 +108,21 @@ export default {
     min: '{n} min',
     hour: '{n} h',
     day: '{n} j',
+  },
+  picker: {
+    coil: 'SPIRALE {code}',
+    replacing: 'Remplacer {product} : choisis le nouvel article',
+    swapping: '{from} remplacé par {to}',
+    filling: 'Remplir cette spirale de {product}',
+    empty: 'Spirale vide : choisis un article',
+    now: 'AVANT',
+    new: 'APRÈS',
+    newBadge: 'NOUVEAU',
+    inCoil: 'DEDANS',
+  },
+  rows: {
+    add: '{n} cases · {cost}',
+    addHint: 'Amélioration de la machine, définitive : {n} cases sur {max}',
+    added: 'Machine améliorée : {n} cases',
   },
 } satisfies Shape<typeof en>;

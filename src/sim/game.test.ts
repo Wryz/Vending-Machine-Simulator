@@ -310,8 +310,8 @@ describe('sales loop', () => {
   });
 });
 
-describe('pacing (SPEC §4.8: chapter 1 in about two hours at 12×)', () => {
-  it('a player who restocks when empty finishes chapter 1 in 60–150 minutes in a decent spot', () => {
+describe('pacing (SPEC §4.8: chapter 1 in about an hour at 24×)', () => {
+  it('a player who restocks when empty finishes chapter 1 in 40–100 minutes in a decent spot', () => {
     const world = testWorld();
     let s = startWithPlacedMachine(world);
     let minutes = 0;
@@ -330,8 +330,8 @@ describe('pacing (SPEC §4.8: chapter 1 in about two hours at 12×)', () => {
     }
     console.log(`chapter 1 completed in ${minutes} minutes`);
     expect(s.chapter).toBe(2);
-    expect(minutes).toBeGreaterThanOrEqual(60);
-    expect(minutes).toBeLessThanOrEqual(150);
+    expect(minutes).toBeGreaterThanOrEqual(40);
+    expect(minutes).toBeLessThanOrEqual(100);
   });
 });
 

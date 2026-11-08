@@ -59,7 +59,8 @@ function withDriver(world: World): GameState {
   s.chapter = 3;
   s.cashCents = 5_000_000;
   s = withClone(s, (d) => buyVan(d)).state;
-  s = withClone(s, (d) => hireDriver(d)).state;
+  // A van of their own: a rental would run out long before the 72 h away.
+  s = withClone(s, (d) => hireDriver(d, { own: true })).state;
   s = withClone(s, (d) =>
     assignRoute(
       d,

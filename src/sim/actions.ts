@@ -36,7 +36,9 @@ import {
   commissionAsk,
   districtOf,
   districtUnlocked,
+  driverOnDuty,
   machineTypeUnlocked,
+  nextSlotRow,
   productAllowed,
   resolveVenue,
   slotCapacity,
@@ -491,6 +493,26 @@ export function rotateMachine(state: GameState, machineId: string, heading: numb
   return { ok: true };
 }
 
+/**
+ * Machine upgrade: one more row of slots, bought with in-game cash. Permanent
+ * (the slots stay with the machine wherever it is placed).
+ */
+export function addSlotRow(
+  state: GameState,
+  machineId: string,
+): ActionResult<{ slots: number; costCents: number }> {
+  const m = getMachine(state, machineId);
+  if (!m) return fail('Machine not found.');
+  const row = nextSlotRow(m);
+  if (!row) return fail('This machine has all its slots.');
+  if (!spend(state, row.costCents, 'Upgrades')) return fail('Not enough cash.');
+  for (let i = 0; i < row.slots; i++) {
+    m.slots.push({ productId: null, qty: 0, priceCents: 0, par: 0, stockedAt: state.now });
+    m.seen.qty.push(0);
+  }
+  return { ok: true, slots: m.slots.length, costCents: row.costCents };
+}
+
 // ------------------------------------------------------------------- company
 
 export function buyResearch(
@@ -557,10 +579,29 @@ const DRIVER_NAMES = [
   'Nora',
 ];
 
-export function hireDriver(state: GameState): ActionResult<{ driverId: string }> {
-  if (state.chapter < 3 && !state.chapterDoneAt[2]) return fail('Drivers unlock in chapter 3.');
-  if (state.vanLevel < 1) return fail('Drivers need a van.');
-  if (!spend(state, STAFF.driverHireCents, 'Hiring')) return fail('Not enough cash.');
+/** Drivers (and their vans) unlock in this chapter (or once the previous one is done). */
+export const DRIVERS_CHAPTER = 2;
+
+export function driversUnlocked(state: GameState): boolean {
+  return state.chapter >= DRIVERS_CHAPTER || !!state.chapterDoneAt[DRIVERS_CHAPTER - 1];
+}
+
+/** One rental period of a driver's van, in real ms. */
+export function driverRentMs(): number {
+  return businessDaysToMs(STAFF.driverRentBusinessDays);
+}
+
+/**
+ * Hire a driver with their own van: rented for a short while (extend it with
+ * `extendDriver`), or with the van bought for good (`own`).
+ */
+export function hireDriver(
+  state: GameState,
+  opts: { own?: boolean } = {},
+): ActionResult<{ driverId: string }> {
+  if (!driversUnlocked(state)) return fail('Drivers unlock in chapter 2.');
+  const cost = opts.own ? STAFF.driverOwnCents : STAFF.driverRentCents;
+  if (!spend(state, cost, 'Hiring')) return fail('Not enough cash.');
   const id = nextId(state, 'd');
   state.drivers.push({
     id,
@@ -568,9 +609,37 @@ export function hireDriver(state: GameState): ActionResult<{ driverId: string }>
     hiredAt: state.now,
     machineIds: [],
     nextRunAt: state.now,
+    ...(opts.own ? {} : { rentedUntil: state.now + driverRentMs() }),
   });
   log(state, 'driver', 'Hired a driver');
   return { ok: true, driverId: id };
+}
+
+/** Extend a driver's van rental by one more period (from now if it has run out). */
+export function extendDriver(
+  state: GameState,
+  driverId: string,
+): ActionResult<{ rentedUntil: number }> {
+  const d = state.drivers.find((x) => x.id === driverId);
+  if (!d) return fail('Driver not found.');
+  if (d.rentedUntil === undefined) return fail('This van is already yours.');
+  if (!spend(state, STAFF.driverRentCents, 'Hiring')) return fail('Not enough cash.');
+  const back = !driverOnDuty(d, state.now);
+  d.rentedUntil = Math.max(state.now, d.rentedUntil) + driverRentMs();
+  // Back from a lapsed rental: the next run starts now.
+  if (back) d.nextRunAt = state.now;
+  return { ok: true, rentedUntil: d.rentedUntil };
+}
+
+/** Buy a rented driver's van for good: no more rentals (the driver earns a daily wage). */
+export function buyDriverVan(state: GameState, driverId: string): ActionResult {
+  const d = state.drivers.find((x) => x.id === driverId);
+  if (!d) return fail('Driver not found.');
+  if (d.rentedUntil === undefined) return fail('This van is already yours.');
+  if (!spend(state, STAFF.driverOwnCents, 'Hiring')) return fail('Not enough cash.');
+  if (!driverOnDuty(d, state.now)) d.nextRunAt = state.now;
+  delete d.rentedUntil;
+  return { ok: true };
 }
 
 export function fireDriver(state: GameState, driverId: string): ActionResult {

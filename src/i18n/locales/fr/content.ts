@@ -19,6 +19,8 @@ export default {
         u0: 'Télémétrie',
         u1: 'Distributeurs de boissons et café',
         u2: 'Quartier 2',
+        u3: 'Chauffeurs',
+        u4: 'Règles de réassort',
       },
     },
     c3: {

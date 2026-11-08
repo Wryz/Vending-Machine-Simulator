@@ -19,6 +19,8 @@ export default {
         u0: 'Telemetrie',
         u1: 'Getränke- & Kaffeeautomaten',
         u2: 'Bezirk 2',
+        u3: 'Fahrer',
+        u4: 'Nachbestell-Regeln',
       },
     },
     c3: {

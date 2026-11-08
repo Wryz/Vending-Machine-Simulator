@@ -28,7 +28,13 @@ export const CHAPTERS: readonly Chapter[] = [
     n: 2,
     title: 'The Route',
     goal: 'Run 5 machines and buy a van',
-    unlocks: ['Telemetry', 'Drinks & coffee machines', 'District 2'],
+    unlocks: [
+      'Telemetry',
+      'Drinks & coffee machines',
+      'District 2',
+      'Drivers',
+      'Auto-reorder rules',
+    ],
   },
   {
     n: 3,
@@ -260,7 +266,7 @@ export const RESEARCH: readonly Research[] = [
     name: 'Auto-reorder rules',
     description: 'Drivers restock to your par levels automatically.',
     costCents: 250_000,
-    unlockChapter: 4,
+    unlockChapter: 2,
     days: 3,
     global: true,
   },

@@ -6,6 +6,8 @@ export default {
     slot: 'Slot {slot}, {product}, {qty} of {cap}',
     slotEmpty: 'empty', // product name stand-in inside the slot label
     load: 'Load {product}',
+    replaceWith: 'Replace {from} with {product}',
+    topUp: 'Top up {product}',
     close: 'Close',
     lowerPrice: 'Lower price',
     raisePrice: 'Raise price',
@@ -27,6 +29,7 @@ export default {
     pricesLocked: 'Price changes',
     driverPar: 'Driver refills to',
     slots: 'Capacity (items it holds)',
+    coils: 'Slots (of the most)',
     power: 'Power cost per day',
     breakdowns: 'Breakdown odds per day',
     theft: 'Theft risk',
@@ -63,7 +66,6 @@ export default {
     moreHint: 'Show specs and machine actions',
     pickUp: 'Pick up', // one-word chip: take the machine back to storage
   },
-  emptyCoil: 'Empty coil',
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Van on its way',
@@ -103,5 +105,21 @@ export default {
     min: '{n} m',
     hour: '{n} h',
     day: '{n} d',
+  },
+  picker: {
+    coil: 'COIL {code}',
+    replacing: 'Replacing {product}: pick the new item',
+    swapping: 'Replacing {from} with {to}',
+    filling: 'Filling this coil with {product}',
+    empty: 'Empty coil: pick an item',
+    now: 'NOW',
+    new: 'NEW',
+    newBadge: 'NEW',
+    inCoil: 'IN COIL',
+  },
+  rows: {
+    add: '{n} slots · {cost}',
+    addHint: 'Machine upgrade, yours for good: {n} of {max} slots',
+    added: 'Machine upgraded: {n} slots',
   },
 } as const;

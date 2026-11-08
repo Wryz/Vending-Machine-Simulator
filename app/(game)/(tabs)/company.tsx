@@ -305,12 +305,16 @@ export default function Company() {
                   label: t('company.staff.drivers'),
                   value: String(game.drivers.length),
                 },
-                ...(game.drivers.length
+                // Only drivers whose van you own earn wages (rentals are paid up front).
+                ...(game.drivers.some((d) => d.rentedUntil === undefined)
                   ? [
                       {
                         icon: 'coin' as const,
                         label: t('company.staff.wagesPerDay'),
-                        value: moneyShort(game.drivers.length * STAFF.driverWageCentsPerDay),
+                        value: moneyShort(
+                          game.drivers.filter((d) => d.rentedUntil === undefined).length *
+                            STAFF.driverWageCentsPerDay,
+                        ),
                       },
                     ]
                   : []),

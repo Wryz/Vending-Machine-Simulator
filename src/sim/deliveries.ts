@@ -16,7 +16,7 @@ import { nextId } from './create';
 import { distanceM, orderStops } from './geo';
 import { addLedger, log } from './ledger';
 import { hasResearch } from './demand';
-import { driverCapacity, slotCapacity, vanCapacity, wholesaleCents } from './rules';
+import { driverCapacity, driverOnDuty, slotCapacity, vanCapacity, wholesaleCents } from './rules';
 import type { Delivery, Driver, GameState, Machine, RestockLine, World } from './state';
 
 /**
@@ -291,7 +291,9 @@ export function fillShare(state: GameState, m: Machine): number {
  * the way, and not on a hired driver's route (the driver handles those).
  */
 export function lowMachines(state: GameState): Machine[] {
-  const driven = new Set(state.drivers.flatMap((d) => d.machineIds));
+  const driven = new Set(
+    state.drivers.filter((d) => driverOnDuty(d, state.now)).flatMap((d) => d.machineIds),
+  );
   return state.machines
     .filter(
       (m) =>

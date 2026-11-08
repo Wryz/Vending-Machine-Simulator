@@ -60,7 +60,7 @@ describe.each(FALLBACK_CITIES.map((c) => c.id))('real data: %s', (cityId) => {
 });
 
 describe('real data pacing (New York)', () => {
-  it('chapter 1 at a 75th-percentile downtown spot takes 60–180 minutes', () => {
+  it('chapter 1 at a 75th-percentile downtown spot takes 40–120 minutes', () => {
     const world = loadWorld('new-york');
     const cells = [...world.cells.values()]
       .filter((c) => Math.hypot(c.lat - world.city.lat, (c.lng - world.city.lng) * 0.76) < 0.01)
@@ -100,7 +100,7 @@ describe('real data pacing (New York)', () => {
     console.log(
       `NY p75 spot (${spot.venue.name}, ${spot.nowCustomers.toFixed(1)} customers/h): chapter 1 in ${minutes} min`,
     );
-    expect(minutes).toBeGreaterThanOrEqual(60);
-    expect(minutes).toBeLessThanOrEqual(180);
+    expect(minutes).toBeGreaterThanOrEqual(40);
+    expect(minutes).toBeLessThanOrEqual(120);
   });
 });

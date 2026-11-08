@@ -9,6 +9,8 @@ export default {
     slot: 'Espiral {slot}, {product}, {qty} de {cap}',
     slotEmpty: 'vazia',
     load: 'Carregar {product}',
+    replaceWith: 'Trocar {from} por {product}',
+    topUp: 'Completar {product}',
     close: 'Fechar',
     lowerPrice: 'Baixar preço',
     raisePrice: 'Subir preço',
@@ -30,6 +32,7 @@ export default {
     pricesLocked: 'Mudar preços',
     driverPar: 'Motorista repõe até',
     slots: 'Capacidade (itens)',
+    coils: 'Espaços (do máximo)',
     power: 'Energia por dia',
     breakdowns: 'Chance de pane por dia',
     theft: 'Risco de furto',
@@ -64,7 +67,6 @@ export default {
     moreHint: 'Mostrar specs e ações da máquina',
     pickUp: 'Recolher',
   },
-  emptyCoil: 'Espiral vazia',
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'Van a caminho',
@@ -103,5 +105,21 @@ export default {
     min: '{n} min',
     hour: '{n} h',
     day: '{n} d',
+  },
+  picker: {
+    coil: 'ESPIRAL {code}',
+    replacing: 'Trocando {product}: escolha o novo item',
+    swapping: 'Trocando {from} por {to}',
+    filling: 'Encher esta espiral com {product}',
+    empty: 'Espiral vazia: escolha um item',
+    now: 'AGORA',
+    new: 'NOVO',
+    newBadge: 'NOVO',
+    inCoil: 'NA ESPIRAL',
+  },
+  rows: {
+    add: '{n} espaços · {cost}',
+    addHint: 'Melhoria da máquina, para sempre: {n} de {max} espaços',
+    added: 'Máquina melhorada: {n} espaços',
   },
 } satisfies Shape<typeof en>;

@@ -155,7 +155,7 @@ Show numbers and icons before text; sentences are for VoiceOver hints. Physical 
 3. **Stock & price:** choose products for slots; set prices (with a suggested price and a demand curve hint).
 4. **Earn:** machines sell continuously in real time via the simulation (§5), including while the app is closed.
 5. **Service:** restock and collect cash. Early on the player plans each restock by hand and orders it; drivers and smart machines take over later.
-   - *Delivery van (2026-11-07, owner's request):* a restock is an order, not instant. It is paid when ordered (stock plus fuel for the round trip). A toy van loads at the nearest warehouse by road: a large industrial area (landuse=industrial, ≥ 1 ha) or a cash-and-carry wholesaler from map data, never a shop (a depot at the city center when none is listed). It drives the fastest street route (bundled per-city road graph from the same Protomaps data, `assets/cities/{id}-roads.json.gz`, A* in `src/sim/roads.ts`, bigger roads faster) to the machine on the map (about 12–75 s) and fills the coils on arrival, with the fresh-stock bonus. One van per machine; the van level sets how many are on the road at once (`src/config/deliveries.ts`).
+   - *Delivery van (2026-11-07, owner's request):* a restock is an order, not instant. It is paid when ordered (stock plus fuel for the round trip; made much cheaper on 2026-11-08 at the owner's request: van orders pay half the wholesale list price, `SERVICE.deliveryStockShare`, and fuel is 6¢/km). A toy van loads at the nearest warehouse by road: a large industrial area (landuse=industrial, ≥ 1 ha) or a cash-and-carry wholesaler from map data, never a shop (a depot at the city center when none is listed). It drives the fastest street route (bundled per-city road graph from the same Protomaps data, `assets/cities/{id}-roads.json.gz`, A* in `src/sim/roads.ts`, bigger roads faster) to the machine on the map (about 12–75 s) and fills the coils on arrival, with the fresh-stock bonus. One van per machine; the van level sets how many are on the road at once (`src/config/deliveries.ts`).
    - *Van runs (2026-11-07):* one van can serve several machines in a row: it loads once, drives stop to stop (nearest next) and unloads at each. The map's **Restock low** key (from 2 machines; badge = machines at or under half full, not on a driver's route) plans one run that shares the van's capacity between them and shows items, cost and time before sending. **Hired drivers use the same vans** (blue on the map): each route run loads at the warehouse, drives the route and fills and collects each machine on arrival, never instantly, and skips machines a van is already heading to. Drivers' vans don't count against the player's own; their stops give no fresh-stock bonus. Only the last stop of a player's run plays the delivery moment; driver arrivals are quiet.
 6. **Grow:** buy machines, unlock machine types and districts, hire staff, upgrade, complete contracts and collections, expand to new cities, eventually sell the company (prestige).
 
@@ -164,12 +164,13 @@ Show numbers and icons before text; sentences are for VoiceOver hints. Physical 
 | Stage | Restocking | Cash collection | Information |
 |---|---|---|---|
 | Chapter 1 | Manual close-up | Manual (coin tray) | Must visit to see stock |
-| Chapter 2 | Manual; van holds more | Manual | Basic telemetry upgrade per machine |
-| Chapter 3 | Hire first driver (auto-restocks one route) | Card readers deposit directly | Telemetry for all machines |
-| Chapter 4 | Warehouse + multiple drivers; auto-reorder rules | Automatic | Smart machines suggest prices |
+| Chapter 2 | Manual; van holds more; **drivers and auto-reorder rules unlock** (2026-11-08) | Manual | Basic telemetry upgrade per machine |
+| Chapter 3 | More drivers (auto-restock routes) | Card readers deposit directly | Telemetry for all machines |
+| Chapter 4 | Warehouse + multiple drivers | Automatic | Smart machines suggest prices |
 | Chapter 5 | Fully automated; player sets policies | Automatic | Analytics dashboard (receipts) |
 
 - Upgrades apply **globally per machine family** once researched, not per machine. This fixes a top complaint about Vending Machine Co.
+- **Drivers come with their own van** (owner's call, 2026-11-08): rent one for a short while ($1,000 for 3 business days, all-in, no wages), extend the rental for the same price at any time (a lapsed rental parks the van until extended), or buy the van for good for $5,000 (from hiring or later); a driver whose van you own earns the daily wage. Your own van upgrades are unchanged (`STAFF` in `src/config/economy.ts`).
 - Manual restocking must stay fun when players choose to do it. Give it a small bonus (for example, a +10% "fresh stock" sales boost for a day) so it's never mandatory.
 
 ### 4.3 Machine types (v1)
@@ -183,7 +184,7 @@ Show numbers and icons before text; sentences are for VoiceOver hints. Physical 
 | Adult (17+/18+) | Beer & wine, Sake/soju (Asia cities) | Requires a liquor permit; can't be placed within 300 m of schools or youth places; ID-check upgrade reduces fines and incidents |
 
 Each machine has:
-- slots;
+- slots: a coil machine starts with **10 slots (two rows of 5) and buys more rows of 5** up to its type's size, each row a small, permanent in-game-cash upgrade that stays with the machine (owner's call, 2026-11-08; `SLOT_ROWS` in `src/config/machines.ts`). Hopper machines with fewer than 10 slots (coffee, capsules, card packs, noodles, pizza, umbrellas, ice) keep their full size;
 - capacity per slot;
 - power cost per day;
 - breakdown rate;
@@ -248,7 +249,7 @@ Each machine has:
 | Chapter | Goal | Unlocks |
 |---|---|---|
 | 1. Side Hustle | Earn $1,000 with your used machine | Second machine, price setting, first contract renegotiation |
-| 2. The Route | Run 5 machines, buy a van | Telemetry, drinks and coffee machines, district 2 |
+| 2. The Route | Run 5 machines, buy a van | Telemetry, drinks and coffee machines, district 2, drivers, auto-reorder rules |
 | 3. LLC | 15 machines, hire a driver | Card readers, capsules, warehouse, rival expands (its first machine opens in chapter 1, §4.6); **branches in your state/province** |
 | 4. Operator | 40 machines, 3 drivers | Smart machines, tech and essentials, hot food, events board; **branches across your country** |
 | 5. Empire | Top operator in the city (beat the rival's share) | All machine types, liquor permit; **branches in your UN sub-region** (e.g. South-Eastern Asia) |
@@ -259,7 +260,7 @@ Each machine has:
 - **One company, many cities (owner's call, 2026-11-08):** from chapter 3 a new city is a *branch*. Cash, chapter, research, collections, perks, goals, trophies and lifetime totals are the company's; machines, vans, drivers, the rival and rankings stay with each city. Branches you aren't viewing keep trading and pay in when you open the app or switch cities (`src/sim/company.ts`, `src/store/company.ts`). Reach grows outward from the home city by chapter: state/province → country → UN sub-region → continent → world (`BRANCHES.reach`; states from Natural Earth admin-1 in the city list, regions/continents from Natural Earth admin-0 in `src/data/geoRegions.ts`).
 - **Online (v2, design only):** shared customers between real players, phone predicts and a per-city server settles; see `docs/design/v2-online.md`. The save's action log (schema v10) is the groundwork.
 - **Districts inside a city follow real neighbourhoods** (OSM names, `pipeline/build-hoods.ts`): each map cell joins its nearest name; a neighbourhood opens in the chapter of the ring its name sits in; the start neighbourhood is always open. Regions without names keep plain rings.
-- The economy is tuned so chapter 1 takes about an hour and a half (mostly idle, a few check-ins) and chapter 3 is reached in roughly a week of casual play. The business clock runs 16× real time (owner's call, 2026-11-08: 60× sold a full machine in 10 minutes; 12× felt slow; 16× lasts about 40 minutes). Prestige becomes attractive around week 2–4.
+- The economy is tuned so chapter 1 takes about an hour and a half (mostly idle, a few check-ins) and chapter 3 is reached in roughly a week of casual play. The business clock runs 24× real time (owner's call, 2026-11-08: 60× sold a full machine in 10 minutes; 12× felt slow; 16× felt a little slow too; at 24× chapter 1 takes about an hour). Prestige becomes attractive around week 2–4.
 - **City ranking board** ("Top operators in <City>", unlocks with Company after the first collect): the player, Brightvend (its real simulated sales) and 7 fictional AI operators with city-flavored names, ranked by this week's sales. It updates nightly at the city's local midnight; weeks start on the local Monday. AI sales are seeded per city, week and day (`src/sim/rankings.ts`, tunables in `src/config/rankings.ts`) and scale with the chapter and the player's last week (~0.3× to ~3×, the top tiers softening in later chapters), so there is always someone to pass. Passing an operator overnight is a moment ("You passed Night Owl Snacks! #4 in London"); a rank chip on the money panel opens the board. `weeklyScore(state)` is the same number a Game Center weekly leaderboard submits.
 
 ---
@@ -268,7 +269,7 @@ Each machine has:
 
 ### 5.1 Principles
 - Deterministic, pure TypeScript module (`src/sim/`), with no React or rendering dependencies and full unit tests.
-- Time-based: the simulation advances in fixed ticks (the business clock runs `TIME.salesTimeScale`× real time, 16× since 2026-11-08; world time, light and weather stay real). On resume, it fast-forwards the elapsed time in coarse steps (15-minute buckets), capped at 72 hours of offline progress (extended by upgrades).
+- Time-based: the simulation advances in fixed ticks (the business clock runs `TIME.salesTimeScale`× real time, 24× since 2026-11-08; world time, light and weather stay real). On resume, it fast-forwards the elapsed time in coarse steps (15-minute buckets), capped at 72 hours of offline progress (extended by upgrades).
 - All numbers live in config (`src/config/economy.ts`, `products.ts`, `machines.ts`, `places.ts`) for tuning without code changes.
 
 ### 5.2 Demand model (per machine, per hour)
@@ -451,7 +452,7 @@ pipeline/                # offline data pipeline (Python/DuckDB), not shipped in
 | Onboarding | Cold open → location explanation → permission → area check → city or picker → first machine tutorial (place, stock, price, first sale) |
 | Tab bar | Keypad keys along the bottom: Map, Keys, Routes, Orders (badge when one is ready), Company. Shop opens from Company |
 | Map (home) | Full-screen map with time-of-day style; machine sprites with family pads and status rings; event pins; rival machines. Floating: cash pill, clock and weather, the chapter goal as a small LED meter, the latest sale; round buttons for settings, 3D/top-down, busy streets (heat) and locate; **+ / − zoom keys**. Zoom far out to the globe (the picker's globe). **Sales are seen, not just counted:** zoomed in, a customer walks up to the machine for each sale, and the sale pops when they buy |
-| Machine sheet | Tapping a machine (or its key) opens its sheet at once while the map flies to it, front on, close enough to watch customers: status, cash box, collect, restock, coils and prices, price/par steppers, spec and contract actions. A 3D key opens the close-up |
+| Machine sheet | Tapping a machine (or its key) opens its sheet at once while the map flies to it, front on, close enough to watch customers: status, cash box, collect, restock, coils and prices, price/par steppers, spec and contract actions. Tapping a coil opens the product picker: a "now → new" strip says what is being replaced, and the product keys fill the width in centred rows. A dashed shelf under the coils buys the next row of slots. A 3D key opens the close-up |
 | Spot Card | A bottom sheet over the map: place name and rating, customers per hour and sales per day, hourly sparkline, the top reasons, machine choice, Place button; nearby places further down |
 | Machine close-up (3D) | From the machine sheet's 3D key. Machine front, slot grid, drag-to-restock from van crate, price tags editable, cash box → coin tray, repair interaction, upgrade spec tag |
 | Route clipboard | Restock route builder, van capacity, drivers and their routes, auto-reorder rules |

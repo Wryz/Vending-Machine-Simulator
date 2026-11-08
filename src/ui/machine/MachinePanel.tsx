@@ -9,12 +9,14 @@ import { t as tg, useT } from '@/i18n';
 import { content } from '@/i18n/content';
 import { simError, venueName } from '@/i18n/sim';
 import {
+  addSlotRow,
   applyAdReward,
   canCarry,
   cashBoxCapacity,
   collectCash,
   dismissRequest,
   hasResearch,
+  nextSlotRow,
   pickUpMachine,
   orderRestock,
   priceResponse,
@@ -26,6 +28,7 @@ import {
   slotCapacity,
   suggestRestock,
   vanCapacity,
+  wholesaleCents,
   type RestockLine,
 } from '@/sim';
 import { adsAvailable, showRewarded } from '@/services/ads';
@@ -44,13 +47,13 @@ import { Button, Mono, Paper, Row, T } from '../kit';
 import { hasTelemetry, machineStatus } from '../machineStatus';
 import { CoinTray } from '../objects/CoinTray';
 import { MachineWindow } from './MachineWindow';
+import { coilCode, ProductPicker } from './ProductPicker';
 import { clockDuration, VanCard } from './VanCard';
 import { RequestCard, type RequestStage } from './RequestCard';
 import { FeaturedStats, SpecGrid, type Spec } from './SpecGrid';
 import { statusLabel } from '../objects/KeyTag';
-import { PRODUCT_IMAGES } from '../productImages';
 import { GuideLine, Pulse, useTutorialStep } from '../guide';
-import { Key, Led, Marquee, useSkin } from '../skin';
+import { Led, Marquee, useSkin } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { SPACE, TOUCH } from '../theme';
 
@@ -288,6 +291,20 @@ export function MachinePanel({
     }
   };
 
+  // Machine upgrade: one more row of slots (permanent).
+  const row = nextSlotRow(machine);
+  const buyRow = () => {
+    const r = useGame.getState().act((d) => addSlotRow(d, machine.id));
+    if (!r.ok) {
+      haptic.error();
+      return show(simError(r.error), 'error');
+    }
+    haptic.success();
+    sound.play('thunk');
+    show(t('machinePanel.rows.added', { n: r.slots }), 'success');
+    track('slot_row', { count: r.slots });
+  };
+
   const sel = selected !== null ? machine.slots[selected] : null;
   const selProduct = sel?.productId ? getProduct(sel.productId) : null;
   const contractLeft = machine.contract.endsAt - game.now;
@@ -333,7 +350,16 @@ export function MachinePanel({
             ? theme.amber
             : undefined,
     },
-    { icon: 'grid', label: t('machinePanel.stats.slots'), value: count(type.slots * cap, t.lang) },
+    {
+      icon: 'grid',
+      label: t('machinePanel.stats.coils'),
+      value: `${machine.slots.length} / ${type.slots}`,
+    },
+    {
+      icon: 'box',
+      label: t('machinePanel.stats.slots'),
+      value: count(machine.slots.length * cap, t.lang),
+    },
     { icon: 'bolt', label: t('machinePanel.stats.power'), value: money(type.powerCentsPerDay) },
     {
       icon: 'wrench',
@@ -528,6 +554,22 @@ export function MachinePanel({
         cap={cap}
         selected={selected}
         onSelect={setSelected}
+        addRow={
+          row
+            ? {
+                label: t('machinePanel.rows.add', {
+                  n: row.slots,
+                  cost: moneyShort(row.costCents),
+                }),
+                hint: t('machinePanel.rows.addHint', {
+                  n: machine.slots.length + row.slots,
+                  max: type.slots,
+                }),
+                disabled: game.cashCents < row.costCents,
+                onPress: buyRow,
+              }
+            : undefined
+        }
         slots={machine.slots.map((s, i) => {
           // Planned now, or on the van (shown as ghosts until it arrives).
           const p = plan[i] ?? incoming[i];
@@ -553,46 +595,14 @@ export function MachinePanel({
 
       {selected !== null && sel ? (
         <Paper tone="surface" style={{ gap: SPACE.m }}>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <T weight="bold">{selProduct ? selProduct.name : t('machinePanel.emptyCoil')}</T>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('machinePanel.a11y.close')}
-              hitSlop={10}
-              onPress={() => setSelected(null)}
-            >
-              <Icon name="close" size={20} color={theme.muted} />
-            </Pressable>
-          </Row>
-          <Row style={{ flexWrap: 'wrap' }}>
-            {allowed.map((pr) => {
-              const on = (plan[selected]?.productId ?? sel.productId) === pr.id;
-              return (
-                <Key
-                  key={pr.id}
-                  tone={on ? 'brand' : 'white'}
-                  height={84}
-                  onPress={() => loadSlot(selected, pr.id)}
-                  accessibilityLabel={t('machinePanel.a11y.load', { product: pr.name })}
-                  faceStyle={{
-                    width: 76,
-                    paddingHorizontal: 4,
-                    flexDirection: 'column',
-                    gap: 0,
-                  }}
-                >
-                  <Image
-                    source={PRODUCT_IMAGES[pr.id]}
-                    style={{ width: 52, height: 52 }}
-                    resizeMode="contain"
-                  />
-                  <T size={10} weight="bold" numberOfLines={1} color={on ? '#FFFFFF' : skin.keyInk}>
-                    {pr.name.split(' ')[0]}
-                  </T>
-                </Key>
-              );
-            })}
-          </Row>
+          <ProductPicker
+            coil={coilCode(selected, type.grid.cols)}
+            current={selProduct}
+            chosen={plan[selected] ? getProduct(plan[selected]!.productId) : null}
+            products={allowed}
+            onPick={(id) => loadSlot(selected, id)}
+            onClose={() => setSelected(null)}
+          />
           {selProduct ? (
             <>
               <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
@@ -622,7 +632,7 @@ export function MachinePanel({
                   {
                     icon: 'box',
                     label: t('machinePanel.stats.wholesale'),
-                    value: money(selProduct.wholesaleCents),
+                    value: money(wholesaleCents(game, selProduct)),
                   },
                   {
                     icon: 'people',

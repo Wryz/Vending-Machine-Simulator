@@ -123,10 +123,11 @@ describe('surprise moments (SPEC §4.6)', () => {
     expect(surpriseBoost(s, id, s.now)).toBe(1.5);
     expect(surpriseBoost(s, 'other', s.now)).toBe(1);
     // Same seed with and without (collecting each minute so the cash box never caps sales).
+    // Short enough that a 10-slot machine doesn't sell out either way at 24×.
     const units = (g: GameState) => {
       let r = g;
       let n = 0;
-      for (let k = 0; k < 6; k++) {
+      for (let k = 0; k < 3; k++) {
         const step = advance(r, world, r.now + MIN);
         n += step.report.units;
         r = withClone(step.state, (d) => collectCash(d, d.machines[0].id)).state;

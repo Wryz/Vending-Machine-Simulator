@@ -19,6 +19,8 @@ export default {
         u0: 'Telemetria',
         u1: 'Máquinas de bebidas e café',
         u2: 'Distrito 2',
+        u3: 'Motoristas',
+        u4: 'Regras de recompra',
       },
     },
     c3: {

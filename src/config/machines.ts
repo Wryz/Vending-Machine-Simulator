@@ -77,6 +77,10 @@ export interface MachineType {
   family: MachineFamily;
   /** Product families this machine can hold. */
   holds: readonly ProductFamily[];
+  /**
+   * Most slots the machine can have. Coil machines (10+) start at
+   * SLOT_ROWS.startSlots and grow a row of SLOT_ROWS.rowSlots at a time.
+   */
   slots: number;
   capacityPerSlot: number;
   purchaseCents: number;
@@ -96,6 +100,20 @@ export interface MachineType {
   grid: { rows: number; cols: number };
   dims: MachineDimensions;
 }
+
+/**
+ * Machine upgrades (owner's call, 2026-11-08): a coil machine starts with 10
+ * slots (two rows of 5) and buys more rows of 5, up to its type's `slots`, for
+ * a small price. Rows are permanent: they stay with the machine when it is
+ * picked up and placed again. Hopper machines (fewer than 10 slots: coffee,
+ * capsules, pizza...) keep their full size from the start.
+ */
+export const SLOT_ROWS = {
+  startSlots: 10,
+  rowSlots: 5,
+  /** Price of each extra row: the first, second... (the last price repeats). */
+  rowCostCents: [10_000, 15_000, 20_000, 30_000, 40_000] as readonly number[],
+} as const;
 
 const STD: MachineDimensions = SNACK_MACHINE_DIMENSIONS;
 const SMALL: MachineDimensions = { heightM: 1.3, widthM: 0.55, depthM: 0.5 };
@@ -141,7 +159,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     name: 'Cold Drinks',
     family: 'drinks',
     holds: ['drink'],
-    slots: 10,
+    slots: 15,
     capacityPerSlot: 30,
     purchaseCents: 260_000,
     installCents: 15_000,
@@ -150,7 +168,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     theftRisk: 0.9,
     captureRate: 0.08,
     unlockChapter: 2,
-    grid: { rows: 2, cols: 5 },
+    grid: { rows: 3, cols: 5 },
     dims: STD,
   },
   {
@@ -158,7 +176,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     name: 'Combo Machine',
     family: 'snacks',
     holds: ['snack', 'drink'],
-    slots: 24,
+    slots: 25,
     capacityPerSlot: 14,
     purchaseCents: 320_000,
     installCents: 20_000,
@@ -167,7 +185,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     theftRisk: 1,
     captureRate: 0.085,
     unlockChapter: 2,
-    grid: { rows: 6, cols: 4 },
+    grid: { rows: 5, cols: 5 },
     dims: WIDE,
   },
   {
@@ -226,7 +244,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     name: 'Blind Box',
     family: 'capsules',
     holds: ['blindbox'],
-    slots: 12,
+    slots: 15,
     capacityPerSlot: 6,
     purchaseCents: 220_000,
     installCents: 15_000,
@@ -235,7 +253,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     theftRisk: 1.2,
     captureRate: 0.04,
     unlockChapter: 3,
-    grid: { rows: 4, cols: 3 },
+    grid: { rows: 3, cols: 5 },
     dims: STD,
   },
   {
@@ -243,7 +261,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     name: 'Chargers & Cables',
     family: 'tech',
     holds: ['tech'],
-    slots: 12,
+    slots: 15,
     capacityPerSlot: 8,
     purchaseCents: 300_000,
     installCents: 20_000,
@@ -252,7 +270,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     theftRisk: 1.6,
     captureRate: 0.03,
     unlockChapter: 4,
-    grid: { rows: 4, cols: 3 },
+    grid: { rows: 3, cols: 5 },
     dims: STD,
   },
   {
@@ -260,7 +278,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     name: 'Earbuds & Accessories',
     family: 'tech',
     holds: ['tech'],
-    slots: 12,
+    slots: 15,
     capacityPerSlot: 6,
     purchaseCents: 350_000,
     installCents: 20_000,
@@ -269,7 +287,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     theftRisk: 1.8,
     captureRate: 0.025,
     unlockChapter: 4,
-    grid: { rows: 4, cols: 3 },
+    grid: { rows: 3, cols: 5 },
     dims: STD,
   },
   {
@@ -286,7 +304,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     theftRisk: 1.1,
     captureRate: 0.035,
     unlockChapter: 4,
-    grid: { rows: 5, cols: 4 },
+    grid: { rows: 4, cols: 5 },
     dims: STD,
   },
   {
@@ -294,7 +312,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     name: 'Hygiene',
     family: 'tech',
     holds: ['hygiene'],
-    slots: 16,
+    slots: 20,
     capacityPerSlot: 10,
     purchaseCents: 260_000,
     installCents: 15_000,
@@ -303,7 +321,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     theftRisk: 0.9,
     captureRate: 0.03,
     unlockChapter: 4,
-    grid: { rows: 4, cols: 4 },
+    grid: { rows: 4, cols: 5 },
     dims: STD,
   },
   {
@@ -354,7 +372,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     theftRisk: 0.8,
     captureRate: 0.06,
     unlockChapter: 4,
-    grid: { rows: 5, cols: 4 },
+    grid: { rows: 4, cols: 5 },
     dims: STD,
   },
   {
@@ -362,7 +380,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     name: 'Flowers',
     family: 'hotFood',
     holds: ['flowers'],
-    slots: 12,
+    slots: 15,
     capacityPerSlot: 3,
     purchaseCents: 400_000,
     installCents: 25_000,
@@ -371,7 +389,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     theftRisk: 0.7,
     captureRate: 0.03,
     unlockChapter: 4,
-    grid: { rows: 3, cols: 4 },
+    grid: { rows: 3, cols: 5 },
     dims: STD,
   },
   {
@@ -423,7 +441,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     captureRate: 0.05,
     unlockChapter: 5,
     requiresPermit: 'liquor',
-    grid: { rows: 5, cols: 4 },
+    grid: { rows: 4, cols: 5 },
     dims: STD,
   },
   {
@@ -431,7 +449,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     name: 'Sake & Soju',
     family: 'alcohol',
     holds: ['alcohol'],
-    slots: 16,
+    slots: 20,
     capacityPerSlot: 10,
     purchaseCents: 450_000,
     installCents: 30_000,
@@ -442,7 +460,7 @@ export const MACHINE_TYPES: readonly MachineType[] = [
     unlockChapter: 5,
     requiresPermit: 'liquor',
     countries: ['JP', 'KR'],
-    grid: { rows: 4, cols: 4 },
+    grid: { rows: 4, cols: 5 },
     dims: STD,
   },
 ];

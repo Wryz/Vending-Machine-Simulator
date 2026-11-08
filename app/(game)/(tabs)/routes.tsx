@@ -11,8 +11,14 @@ import {
   assignRoute,
   autoAssignRoutes,
   type ActionResult,
+  buyDriverVan,
   buyVan,
+  DRIVERS_CHAPTER,
   driverCapacity,
+  driverOnDuty,
+  driverRentMs,
+  driversUnlocked as driversOpen,
+  extendDriver,
   fireDriver,
   hasResearch,
   hireDriver,
@@ -151,11 +157,13 @@ export default function Routes() {
   const ink = theme.paperInk;
   const active = game.machines.filter((m) => m.status === 'active');
   const nextVanCost = SERVICE.vanUpgradeCostCents[game.vanLevel + 1];
-  const driversUnlocked = game.chapter >= 3 || !!game.chapterDoneAt[2];
+  const driversUnlocked = driversOpen(game);
+  const rentFor = duration(driverRentMs());
   const routeOf = new Map<string, Driver>();
   for (const d of game.drivers) for (const id of d.machineIds) routeOf.set(id, d);
   const unassigned = active.filter((m) => !routeOf.has(m.id));
-  const wages = game.drivers.length * STAFF.driverWageCentsPerDay;
+  const wages =
+    game.drivers.filter((d) => d.rentedUntil === undefined).length * STAFF.driverWageCentsPerDay;
   const autoReorder = hasResearch(game, 'auto-reorder', 'snacks');
   const autoReorderInfo = RESEARCH.find((r) => r.id === 'auto-reorder');
 
@@ -236,7 +244,11 @@ export default function Routes() {
 
         <Section title={t('routes.drivers.section')}>
           {!driversUnlocked ? (
-            <LockedCard icon="people" title={t('routes.drivers.section')} chapter={3} />
+            <LockedCard
+              icon="people"
+              title={t('routes.drivers.section')}
+              chapter={DRIVERS_CHAPTER}
+            />
           ) : (
             <Clipboard title={t('routes.drivers.clipboard')}>
               <Row style={{ flexWrap: 'wrap' }}>
@@ -256,6 +268,11 @@ export default function Routes() {
                   value={String(driverCapacity(game))}
                 />
                 <StatChip
+                  icon="clock"
+                  label={t('routes.drivers.rentChip', { time: rentFor })}
+                  value={moneyShort(STAFF.driverRentCents)}
+                />
+                <StatChip
                   icon="coin"
                   label={t('routes.drivers.wagePerDay')}
                   value={moneyShort(STAFF.driverWageCentsPerDay)}
@@ -273,6 +290,9 @@ export default function Routes() {
                 const isEditing = editing === d.id;
                 const full = d.machineIds.length >= STAFF.stopsPerRoute;
                 const nextRun = d.nextRunAt - game.now;
+                const rented = d.rentedUntil !== undefined;
+                const onDuty = driverOnDuty(d, game.now);
+                const rentLeft = (d.rentedUntil ?? 0) - game.now;
                 return (
                   <View key={d.id} style={{ gap: SPACE.xs, marginTop: SPACE.s }}>
                     <Divider dashed />
@@ -285,21 +305,74 @@ export default function Routes() {
                           {t('routes.drivers.stops', {
                             stops: stops.length,
                             max: STAFF.stopsPerRoute,
-                            state:
-                              stops.length === 0
+                            state: !onDuty
+                              ? t('routes.drivers.parked')
+                              : stops.length === 0
                                 ? t('routes.drivers.noRoute')
                                 : nextRun > 60_000
                                   ? t('routes.drivers.nextRun', { time: duration(nextRun) })
                                   : t('routes.drivers.onTheRoad'),
                           })}
                         </T>
+                        <T
+                          size={12}
+                          weight="bold"
+                          color={!rented ? theme.signal : onDuty ? ink : theme.alert}
+                        >
+                          {!rented
+                            ? t('routes.drivers.owned')
+                            : onDuty
+                              ? t('routes.drivers.rentedLeft', { time: duration(rentLeft) })
+                              : t('routes.drivers.rentEnded')}
+                        </T>
                       </View>
-                      <Mono size={13} color={ink}>
-                        {t('routes.drivers.perDay', {
-                          amount: money(-STAFF.driverWageCentsPerDay),
-                        })}
-                      </Mono>
+                      {rented ? null : (
+                        <Mono size={13} color={ink}>
+                          {t('routes.drivers.perDay', {
+                            amount: money(-STAFF.driverWageCentsPerDay),
+                          })}
+                        </Mono>
+                      )}
                     </Row>
+                    {rented ? (
+                      <Row gap={SPACE.s}>
+                        <Button
+                          style={{ flex: 1 }}
+                          kind={onDuty ? 'secondary' : 'primary'}
+                          icon={
+                            <Icon
+                              name="clock"
+                              size={18}
+                              color={onDuty ? theme.ink : theme.onBrand}
+                            />
+                          }
+                          label={t('routes.drivers.extend', {
+                            cost: moneyShort(STAFF.driverRentCents),
+                          })}
+                          disabled={game.cashCents < STAFF.driverRentCents}
+                          accessibilityHint={t('routes.drivers.extendHint', {
+                            name: d.name,
+                            time: rentFor,
+                          })}
+                          onPress={() =>
+                            run((draft) => extendDriver(draft, d.id), t('routes.drivers.extended'))
+                          }
+                        />
+                        <Button
+                          style={{ flex: 1 }}
+                          kind="secondary"
+                          icon={<Icon name="star" size={18} color={theme.ink} />}
+                          label={t('routes.drivers.buyVan', {
+                            cost: moneyShort(STAFF.driverOwnCents),
+                          })}
+                          disabled={game.cashCents < STAFF.driverOwnCents}
+                          accessibilityHint={t('routes.drivers.buyVanHint', { name: d.name })}
+                          onPress={() =>
+                            run((draft) => buyDriverVan(draft, d.id), t('routes.drivers.vanBought'))
+                          }
+                        />
+                      </Row>
+                    ) : null}
                     {(isEditing ? active : stops).map((m) => {
                       const owner = routeOf.get(m.id);
                       const checked = d.machineIds.includes(m.id);
@@ -350,28 +423,34 @@ export default function Routes() {
               <Row gap={SPACE.s}>
                 <Button
                   style={{ flex: 1 }}
-                  label={t('routes.drivers.hire', { cost: money(STAFF.driverHireCents) })}
-                  disabled={game.vanLevel < 1 || game.cashCents < STAFF.driverHireCents}
+                  label={t('routes.drivers.rent', { cost: moneyShort(STAFF.driverRentCents) })}
+                  disabled={game.cashCents < STAFF.driverRentCents}
+                  accessibilityHint={t('routes.drivers.rentHint', { time: rentFor })}
                   onPress={() => run((d) => hireDriver(d), t('routes.drivers.hired'))}
                 />
-                {game.drivers.length > 0 ? (
-                  <Button
-                    kind="secondary"
-                    label={t('routes.drivers.autoAssign')}
-                    accessibilityHint={t('routes.drivers.autoAssignHint')}
-                    onPress={() => {
-                      setEditing(null);
-                      run((d) => autoAssignRoutes(d), t('routes.drivers.assigned'));
-                    }}
-                  />
-                ) : null}
+                <Button
+                  style={{ flex: 1 }}
+                  kind="secondary"
+                  label={t('routes.drivers.own', { cost: moneyShort(STAFF.driverOwnCents) })}
+                  disabled={game.cashCents < STAFF.driverOwnCents}
+                  accessibilityHint={t('routes.drivers.ownHint')}
+                  onPress={() =>
+                    run((d) => hireDriver(d, { own: true }), t('routes.drivers.hired'))
+                  }
+                />
               </Row>
-              {game.vanLevel < 1 ? (
-                <T size={13} color="#5C6066">
-                  {t('routes.drivers.needVan')}
-                </T>
-              ) : null}
               {game.drivers.length > 0 ? (
+                <Button
+                  kind="secondary"
+                  label={t('routes.drivers.autoAssign')}
+                  accessibilityHint={t('routes.drivers.autoAssignHint')}
+                  onPress={() => {
+                    setEditing(null);
+                    run((d) => autoAssignRoutes(d), t('routes.drivers.assigned'));
+                  }}
+                />
+              ) : null}
+              {wages > 0 ? (
                 <T size={12} color="#5C6066">
                   {t('routes.drivers.dailyWages', { amount: money(-wages) })}
                 </T>

@@ -56,6 +56,7 @@ import {
   activeMachines,
   cashBoxCapacity,
   competition,
+  driverOnDuty,
   isEmpty,
   maxOfflineMs,
   machineFresh,
@@ -677,6 +678,8 @@ export function beginAdvance(
     const weightBefore = rivalWeight(s);
     const dt = Math.min(stepAt(s.now), to - s.now);
     const segFrom = s.now;
+    // Drivers whose van is theirs, or still rented at the step's start.
+    const working = s.drivers.filter((d) => driverOnDuty(d, segFrom));
     const tMid = s.now + dt / 2;
     const tEnd = s.now + dt;
     const local = localTime(tMid, world.city.timeZone, world.city.countryCode);
@@ -706,8 +709,8 @@ export function beginAdvance(
     // Steps longer than a driver's route interval (offline catch-up) split the
     // sales of machines on a route at each run, so they're refilled (and their
     // cash boxes emptied) at about the live cadence instead of once per step.
-    const split = s.drivers.length > 0 && dt > runIntervalMs;
-    const driven = split ? new Set(s.drivers.flatMap((d) => d.machineIds)) : null;
+    const split = working.length > 0 && dt > runIntervalMs;
+    const driven = split ? new Set(working.flatMap((d) => d.machineIds)) : null;
     for (const m of s.machines) {
       if (m.status !== 'active') continue;
       const type = getMachineType(m.typeId);
@@ -733,8 +736,12 @@ export function beginAdvance(
 
     // Drivers run their routes on a fixed business-hour interval.
     const runsDue = (until: number) => {
-      for (const d of s.drivers) {
-        while (d.nextRunAt <= until && (runs.get(d.id) ?? 0) < STAFF.maxRunsPerStep) {
+      for (const d of working) {
+        while (
+          d.nextRunAt <= until &&
+          driverOnDuty(d, d.nextRunAt) &&
+          (runs.get(d.id) ?? 0) < STAFF.maxRunsPerStep
+        ) {
           s.now = Math.max(s.now, Math.min(tEnd, d.nextRunAt));
           // Vans due by now have filled their machines before the next run is planned.
           for (const news of arriveDeliveries(s, s.now)) report.deliveries.push(news);
@@ -750,8 +757,12 @@ export function beginAdvance(
     if (driven) {
       // Segment ends: each run time inside the step, then the step's end.
       const ends: number[] = [];
-      for (const d of s.drivers)
-        for (let k = 0, at = d.nextRunAt; at < tEnd && k < STAFF.maxRunsPerStep; k++) {
+      for (const d of working)
+        for (
+          let k = 0, at = d.nextRunAt;
+          at < tEnd && driverOnDuty(d, at) && k < STAFF.maxRunsPerStep;
+          k++
+        ) {
           ends.push(Math.max(segFrom, at));
           at += runIntervalMs;
         }
@@ -782,17 +793,22 @@ export function beginAdvance(
     } else runsDue(tEnd);
     for (const d of s.drivers) if (d.nextRunAt <= tEnd) d.nextRunAt = tEnd + 1;
 
-    // Fixed daily costs, prorated.
+    // Fixed daily costs, prorated. Rented vans are paid up front: only owned drivers earn wages.
     const n = activeMachines(s).length;
+    const wageCents = Math.round(
+      s.drivers.filter((d) => d.rentedUntil === undefined).length *
+        STAFF.driverWageCentsPerDay *
+        bd,
+    );
     const fixed =
       Math.round(powerCents) +
       Math.round(overheadCentsPerDay(n) * bd) +
-      Math.round(s.drivers.length * STAFF.driverWageCentsPerDay * bd) +
+      wageCents +
       Math.round((s.warehouse ? STAFF.warehouseRentCentsPerDay : 0) * bd);
     s.cashCents -= fixed;
     addLedger(s, 'Power', -Math.round(powerCents));
     addLedger(s, 'Overhead', -Math.round(overheadCentsPerDay(n) * bd));
-    addLedger(s, 'Wages', -Math.round(s.drivers.length * STAFF.driverWageCentsPerDay * bd));
+    addLedger(s, 'Wages', -wageCents);
     if (s.warehouse) addLedger(s, 'Rent', -Math.round(STAFF.warehouseRentCentsPerDay * bd));
     costs += fixed;
 

@@ -9,6 +9,8 @@ export default {
     slot: 'スロット{slot}、{product}、{qty}/{cap}',
     slotEmpty: '空',
     load: '{product}を入れる',
+    replaceWith: '{from}を{product}に入れ替える',
+    topUp: '{product}を補充',
     close: '閉じる',
     lowerPrice: '値下げ',
     raisePrice: '値上げ',
@@ -30,6 +32,7 @@ export default {
     pricesLocked: '価格の変更',
     driverPar: 'ドライバー補充量',
     slots: '容量（商品数）',
+    coils: '枠（最大）',
     power: '1日の電気代',
     breakdowns: '1日の故障率',
     theft: '盗難リスク',
@@ -63,7 +66,6 @@ export default {
     moreHint: '仕様と自販機の操作を表示',
     pickUp: '撤去',
   },
-  emptyCoil: '空のコイル',
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: 'バンが配送中',
@@ -102,5 +104,21 @@ export default {
     min: '{n}分',
     hour: '{n}時間',
     day: '{n}日',
+  },
+  picker: {
+    coil: 'コイル {code}',
+    replacing: '{product}を入れ替え：新しい商品を選んでね',
+    swapping: '{from} → {to} に入れ替え',
+    filling: 'このコイルに{product}を入れる',
+    empty: '空のコイル：商品を選んでね',
+    now: 'いま',
+    new: '新',
+    newBadge: '新',
+    inCoil: '入荷中',
+  },
+  rows: {
+    add: '{n}枠 · {cost}',
+    addHint: '自販機アップグレード（永久）：{max}枠中{n}枠',
+    added: '自販機をアップグレード：{n}枠',
   },
 } satisfies Shape<typeof en>;

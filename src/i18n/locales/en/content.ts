@@ -23,6 +23,8 @@ export default {
         u0: 'Telemetry',
         u1: 'Drinks & coffee machines',
         u2: 'District 2',
+        u3: 'Drivers',
+        u4: 'Auto-reorder rules',
       },
     },
     c3: {

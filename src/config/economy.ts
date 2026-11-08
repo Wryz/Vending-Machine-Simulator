@@ -6,16 +6,16 @@
  * city's real local time. The *business clock* runs faster: one real minute
  * simulates `salesTimeScale` business minutes of trade. Every "per day" value
  * below (power, wages, contract terms, breakdown rates) is per business day,
- * i.e. 24 h / salesTimeScale of real time (90 real minutes at 16×).
+ * i.e. 24 h / salesTimeScale of real time (60 real minutes at 24×).
  *
  * Why: a 1:1 clock makes chapter 1 take weeks. 60× (until 2026-11-08) sold a
  * full machine in ~10 minutes and felt like money printing; 12× (briefly) felt
- * slow; at 16× a full machine lasts about 40 minutes and chapter 1 takes about
- * an hour and a half (owner's call, 2026-11-08). This one knob
- * sets the pace; see SPEC §4.8 and docs/spikes/M1-REPORT.md.
+ * slow; 16× (2026-11-08) felt a little slow too, so the owner sped it up to 24×
+ * (2026-11-08). This one knob sets the pace; see SPEC §4.8 and
+ * docs/spikes/M1-REPORT.md.
  */
 export const TIME = {
-  salesTimeScale: 16,
+  salesTimeScale: 24,
   /** Live tick length (real ms). */
   liveTickMs: 60_000,
   /** Offline catch-up step (real minutes) — SPEC §5.1: 15-minute buckets. */
@@ -106,8 +106,14 @@ export const SERVICE = {
   vanCapacityByLevel: [120, 300, 600, 1200],
   vanUpgradeCostCents: [0, 450_000, 1_200_000, 3_000_000],
   /** The chapter-2 goal "buy a van" means reaching level 1. */
-  /** Fuel per km of route (straight-line × routeFactor). */
-  fuelCentsPerKm: 22,
+  /** Fuel per km of route (straight-line × routeFactor). Was 22 before deliveries were made cheap (2026-11-08). */
+  fuelCentsPerKm: 6,
+  /**
+   * Restock orders (your vans and drivers') pay this share of a product's
+   * wholesale list price: deliveries made much cheaper at the owner's request
+   * (2026-11-08). The warehouse discount applies on top.
+   */
+  deliveryStockShare: 0.5,
   routeFactor: 1.3,
   /** SPEC §4.2: manual restock gives +10% sales for a (business) day. */
   freshStockBonus: 0.1,
@@ -128,7 +134,17 @@ export const CASH = {
 } as const;
 
 export const STAFF = {
-  driverHireCents: 250_000,
+  /**
+   * Drivers come with their own van (owner's call, 2026-11-08): rent one for a
+   * short while, extend the rental for the same price, or buy the van for good.
+   * A rental is all-in (no wages); an owned van's driver earns a daily wage.
+   */
+  driverRentCents: 100_000,
+  /** How long one rental (or one extension) lasts, in business days. */
+  driverRentBusinessDays: 3,
+  /** Buying a driver's van for good (or hiring one that way straight away). */
+  driverOwnCents: 500_000,
+  /** Daily wage of a driver whose van you own (rented drivers have none). */
   driverWageCentsPerDay: 9_000,
   /** Stops a driver can run per route. */
   stopsPerRoute: 8,

@@ -9,6 +9,8 @@ export default {
     slot: '{slot} 号货道，{product}，{qty}/{cap}',
     slotEmpty: '空',
     load: '装入{product}',
+    replaceWith: '把{from}换成{product}',
+    topUp: '补满{product}',
     close: '关闭',
     lowerPrice: '降价',
     raisePrice: '涨价',
@@ -30,6 +32,7 @@ export default {
     pricesLocked: '改价',
     driverPar: '司机补货至',
     slots: '容量（商品数）',
+    coils: '货位（占上限）',
     power: '每日电费',
     breakdowns: '每日故障率',
     theft: '失窃风险',
@@ -63,7 +66,6 @@ export default {
     moreHint: '显示参数和售货机操作',
     pickUp: '收回',
   },
-  emptyCoil: '空货道',
   /** The restock van on its way (an order is delivered from the nearest store). */
   van: {
     title: '货车配送中',
@@ -102,5 +104,21 @@ export default {
     min: '{n} 分',
     hour: '{n} 小时',
     day: '{n} 天',
+  },
+  picker: {
+    coil: '货道 {code}',
+    replacing: '正在替换{product}：选择新商品',
+    swapping: '把{from}换成{to}',
+    filling: '在这个货道装入{product}',
+    empty: '空货道：选择商品',
+    now: '现在',
+    new: '替换为',
+    newBadge: '新',
+    inCoil: '在售',
+  },
+  rows: {
+    add: '{n}个货位 · {cost}',
+    addHint: '售货机升级（永久）：{n}/{max}个货位',
+    added: '售货机已升级：{n}个货位',
   },
 } satisfies Shape<typeof en>;
