@@ -851,22 +851,6 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             />
           </GeoJSONSource>
 
-          {/* Pedestrians at close zoom, under the buildings and machines. */}
-          <StreetLifeLayer
-            ref={lifeRef}
-            mapRef={mapRef}
-            cameraRef={camera}
-            world={world}
-            now={game.now}
-            tod={tod}
-            paused={props.lifePaused}
-            onLifeStats={props.onLifeStats}
-            sales={lifeSales}
-            onSalesShown={salesShown}
-            machines={popPoints}
-            initialView={lastRegion.current}
-          />
-
           <GeoJSONSource
             id="machines"
             data={machines}
@@ -1006,6 +990,25 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
               }}
             />
           </GeoJSONSource>
+
+          {/*
+            Pedestrians at close zoom (under the buildings). Mounted after the machines so
+            machine visitors draw over the machine's ground glow and sprite, solid like it.
+          */}
+          <StreetLifeLayer
+            ref={lifeRef}
+            mapRef={mapRef}
+            cameraRef={camera}
+            world={world}
+            now={game.now}
+            tod={tod}
+            paused={props.lifePaused}
+            onLifeStats={props.onLifeStats}
+            sales={lifeSales}
+            onSalesShown={salesShown}
+            machines={popPoints}
+            initialView={lastRegion.current}
+          />
         </Fragment>
       ) : null}
 

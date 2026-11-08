@@ -9,7 +9,7 @@ import type { TutorialStep } from '@/sim';
 import { moneyWhole } from './format';
 import { Icon, type IconName } from './icons';
 import { T } from './kit';
-import { Key, SKIN } from './skin';
+import { Key, useSkin } from './skin';
 import { SPACE } from './theme';
 
 export const COACH_STEPS: readonly TutorialStep[] = [
@@ -55,6 +55,7 @@ export function Coach({
   bottom: number;
 }) {
   const t = useT();
+  const skin = useSkin();
   const at = COACH_STEPS.indexOf(step);
   const last = step === 'goal';
   const action = last ? onClose : onAction;
@@ -63,11 +64,14 @@ export function Coach({
       key={step}
       entering={FadeInDown.duration(320)}
       exiting={FadeOut.duration(200)}
-      style={[styles.card, { bottom }]}
+      style={[
+        styles.card,
+        { bottom, backgroundColor: skin.keyFace, borderBottomColor: skin.keyEdge },
+      ]}
       accessibilityLiveRegion="polite"
     >
       <View style={styles.top}>
-        <View style={styles.icon}>
+        <View style={[styles.icon, { backgroundColor: skin.brandFace }]}>
           <Icon name={ICON[step]} size={26} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
@@ -82,7 +86,7 @@ export function Coach({
                 style={[
                   styles.dot,
                   {
-                    backgroundColor: i <= at ? SKIN.brandFace : SKIN.chromeDark,
+                    backgroundColor: i <= at ? skin.brandFace : skin.chromeDark,
                     width: i === at ? 16 : 7,
                   },
                 ]}
@@ -92,12 +96,12 @@ export function Coach({
           <T
             size={TUTORIAL.text.title}
             weight="bold"
-            color={SKIN.keyInk}
+            color={skin.keyInk}
             accessibilityRole="header"
           >
             {t(`coach.steps.${step}.title`)}
           </T>
-          <T size={TUTORIAL.text.line} color="#4A4F6A">
+          <T size={TUTORIAL.text.line} color={skin.cardMuted}>
             {step === 'delivery'
               ? store
                 ? t('coach.steps.delivery.line', { store })
@@ -113,7 +117,7 @@ export function Coach({
             accessibilityLabel={t('coach.a11y.close')}
             style={styles.close}
           >
-            <Icon name="close" size={18} color={SKIN.chromeDark} />
+            <Icon name="close" size={18} color={skin.iconSoft} />
           </Pressable>
         ) : null}
       </View>
@@ -143,9 +147,7 @@ const styles = StyleSheet.create({
     gap: SPACE.m,
     padding: SPACE.m,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 4,
-    borderBottomColor: SKIN.keyEdge,
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 10,
@@ -159,7 +161,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: SKIN.brandFace,
   },
   dots: { flexDirection: 'row', gap: 4, marginBottom: 2 },
   dot: { height: 7, borderRadius: 3.5 },

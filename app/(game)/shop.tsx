@@ -22,7 +22,7 @@ import { useProfile } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
 import { duration, moneyWhole } from '@/ui/format';
 import { Button, Mono, Paper, Row, Screen, Section, T } from '@/ui/kit';
-import { Led, SKIN } from '@/ui/skin';
+import { Led, useSkin } from '@/ui/skin';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { SPACE } from '@/ui/theme';
 
@@ -99,11 +99,12 @@ function DoubleProfitsOffer({
 }) {
   const theme = useTheme();
   const t = useT();
+  const skin = useSkin();
   const price = useStorePrice('doubleProfits') ?? '…';
   return (
     <Paper tone="surface" style={{ gap: SPACE.s }}>
       <Row style={{ alignItems: 'center', gap: SPACE.m }}>
-        <Led color={SKIN.ledAmber} size={34}>
+        <Led color={skin.ledAmber} size={34}>
           ×2
         </Led>
         <View style={{ flex: 1, gap: 2 }}>

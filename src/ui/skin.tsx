@@ -4,6 +4,7 @@ import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { haptic } from '@/services/haptics';
 
+import { useTheme } from './ThemeProvider';
 import { FONTS, RADIUS, SPACE, TOUCH } from './theme';
 
 /**
@@ -12,26 +13,101 @@ import { FONTS, RADIUS, SPACE, TOUCH } from './theme';
  * window that products sit behind), Key (keypad buttons that press down),
  * Led (glowing digit displays) and Plate (engraved metal labels).
  */
-export const SKIN = {
+export interface SkinPalette {
+  cabinet: string;
+  cabinetLight: string;
+  cabinetDark: string;
+  cabinetEdge: string;
+  /** Text and icons straight on the cabinet body. */
+  onCabinet: string;
+  /** Quieter text on the cabinet body. */
+  onCabinetSoft: string;
+  /** Ink on the light orange status band of the tab bar. */
+  stripInk: string;
+  stripSoft: string;
+  /** Warm shadow under the cabinet's floating parts (tab bar, bin lip). */
+  cabinetShadow: string;
+  chrome: string;
+  chromeDark: string;
+  glass: string;
+  glassTint: string;
+  /** The thin bright rim inside the glass frame. */
+  glassEdge: string;
+  /** Opacity of the glass reflection streaks. */
+  glassShine: number;
+  marquee: string;
+  marqueeGlow: string;
+  marqueeInk: string;
+  bulb: string;
+  led: string;
+  ledEdge: string;
+  ledOff: string;
+  ledGreen: string;
+  ledAmber: string;
+  ledRed: string;
+  keyFace: string;
+  keyEdge: string;
+  keyInk: string;
+  /** Opacity of the shine on top of a key. */
+  keyShine: number;
+  /** Brand-colored icons on a white key. */
+  keyAccent: string;
+  brandFace: string;
+  brandEdge: string;
+  greenFace: string;
+  greenEdge: string;
+  redFace: string;
+  redEdge: string;
+  screw: string;
+  /** Cream note cards floating over the map (order cards, coach tips). */
+  card: string;
+  /** Secondary text on `card`. */
+  cardMuted: string;
+  /** Body text on a marquee-colored face (a selected card). */
+  onMarquee: string;
+  /** A small dark pill with white text floating over a map. */
+  inkPill: string;
+  /** A greyed-out row (something not unlocked yet). */
+  lockedFace: string;
+  /** Quiet icons (a close cross) on a key face or card. */
+  iconSoft: string;
+  /** Hired drivers' vans (the player's own are the cabinet tangerine). */
+  driverVan: string;
+  driverVanEdge: string;
+}
+
+/** The daytime machine: glossy tangerine, cream marquee, white keys. */
+export const SKIN_LIGHT: SkinPalette = {
   cabinet: '#FF6B2C',
   cabinetLight: '#FF9561',
   cabinetDark: '#D9501A',
   cabinetEdge: '#B8410F',
+  onCabinet: '#FFFFFF',
+  onCabinetSoft: '#FFE3D4',
+  stripInk: '#7A2E0B',
+  stripSoft: '#9A4418',
+  cabinetShadow: '#7A2A08',
   chrome: '#E3E7EE',
   chromeDark: '#AEB6C4',
   glass: '#F4FAFE',
   glassTint: '#DCEEFA',
+  glassEdge: '#FFFFFF',
+  glassShine: 1,
   marquee: '#FFF7DA',
   marqueeGlow: '#FFE7A0',
   marqueeInk: '#7A2E0B',
   bulb: '#FFD45C',
   led: '#1C1F33',
+  ledEdge: '#0E1020',
+  ledOff: '#2C3050',
   ledGreen: '#5CFFA0',
   ledAmber: '#FFC94D',
   ledRed: '#FF6A5C',
   keyFace: '#FFFFFF',
   keyEdge: '#C9CEDA',
   keyInk: '#2B2F4A',
+  keyShine: 0.18,
+  keyAccent: '#FF6B2C',
   brandFace: '#FF6B2C',
   brandEdge: '#B8410F',
   greenFace: '#22C26B',
@@ -39,17 +115,86 @@ export const SKIN = {
   redFace: '#FF5547',
   redEdge: '#C02B20',
   screw: '#C9CFDB',
-  /** Hired drivers' vans (the player's own are the cabinet tangerine). */
+  card: '#FFF6DE',
+  cardMuted: '#4A4F6A',
+  iconSoft: '#AEB6C4',
+  lockedFace: '#F1EDF5',
+  onMarquee: '#2B2F4A',
+  inkPill: '#2B2F4A',
   driverVan: '#3D7BE0',
   driverVanEdge: '#2556A8',
-} as const;
+};
+
+/**
+ * The same machine after dark (players on "System" with a dark phone): a deep
+ * burnt-orange cabinet, a dimmed warm marquee, smoky indigo glass and dark
+ * keys and plates with light ink. Cozy, not black; LEDs glow the same.
+ */
+export const SKIN_DARK: SkinPalette = {
+  cabinet: '#9A3E17',
+  cabinetLight: '#A9471B',
+  cabinetDark: '#73300F',
+  cabinetEdge: '#55220A',
+  onCabinet: '#FFF1E0',
+  onCabinetSoft: '#FFD9BF',
+  stripInk: '#FFF1E0',
+  stripSoft: '#FFE0C8',
+  cabinetShadow: '#000000',
+  chrome: '#4A4452',
+  chromeDark: '#2B2731',
+  glass: '#26232F',
+  glassTint: '#332F45',
+  glassEdge: '#4A4560',
+  glassShine: 0.15,
+  marquee: '#DDB57A',
+  marqueeGlow: '#9C5F22',
+  marqueeInk: '#4A1D08',
+  bulb: '#E6B04A',
+  led: '#1C1F33',
+  ledEdge: '#0E1020',
+  ledOff: '#2C3050',
+  ledGreen: '#5CFFA0',
+  ledAmber: '#FFC94D',
+  ledRed: '#FF6A5C',
+  keyFace: '#4A4356',
+  keyEdge: '#2C2733',
+  keyInk: '#FFF1E0',
+  keyShine: 0.08,
+  keyAccent: '#FF9A62',
+  brandFace: '#C44C18',
+  brandEdge: '#7A2C0C',
+  greenFace: '#178046',
+  greenEdge: '#0C5430',
+  redFace: '#C93A30',
+  redEdge: '#83221A',
+  screw: '#5E5768',
+  card: '#37323F',
+  cardMuted: '#D3CAD9',
+  iconSoft: '#A79FB3',
+  lockedFace: '#38333F',
+  onMarquee: '#4A1D08',
+  inkPill: '#2C2733',
+  driverVan: '#3D7BE0',
+  driverVanEdge: '#2556A8',
+};
+
+/**
+ * The light palette, for places outside React (map paint, plain helpers).
+ * Components use `useSkin()` so the machine follows the theme.
+ */
+export const SKIN = SKIN_LIGHT;
+
+/** The machine's palette for the active theme (dark only on "System" + a dark phone). */
+export function useSkin(): SkinPalette {
+  return useTheme().dark ? SKIN_DARK : SKIN_LIGHT;
+}
 
 /** Glossy cabinet body: a vertical gloss, darker sides and a few screw heads. */
 export function Cabinet({
   children,
-  color = SKIN.cabinet,
-  light = SKIN.cabinetLight,
-  dark = SKIN.cabinetDark,
+  color,
+  light,
+  dark,
   style,
   screws = true,
 }: {
@@ -60,14 +205,16 @@ export function Cabinet({
   style?: StyleProp<ViewStyle>;
   screws?: boolean;
 }) {
+  const skin = useSkin();
+  const body = color ?? skin.cabinet;
   return (
-    <View style={[{ backgroundColor: color, overflow: 'hidden' }, style]}>
+    <View style={[{ backgroundColor: body, overflow: 'hidden' }, style]}>
       <Svg style={StyleSheet.absoluteFill} preserveAspectRatio="none" viewBox="0 0 100 100">
         <Defs>
           <LinearGradient id="cab-v" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={light} />
-            <Stop offset="0.35" stopColor={color} />
-            <Stop offset="1" stopColor={dark} />
+            <Stop offset="0" stopColor={light ?? skin.cabinetLight} />
+            <Stop offset="0.35" stopColor={body} />
+            <Stop offset="1" stopColor={dark ?? skin.cabinetDark} />
           </LinearGradient>
           <LinearGradient id="cab-h" x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0" stopColor="#000000" stopOpacity={0.14} />
@@ -91,9 +238,13 @@ export function Cabinet({
 }
 
 export function Screw({ style }: { style: StyleProp<ViewStyle> }) {
+  const skin = useSkin();
   return (
-    <View pointerEvents="none" style={[styles.screw, style]}>
-      <View style={styles.screwSlot} />
+    <View
+      pointerEvents="none"
+      style={[styles.screw, { backgroundColor: skin.screw, borderColor: skin.chromeDark }, style]}
+    >
+      <View style={[styles.screwSlot, { backgroundColor: skin.chromeDark }]} />
     </View>
   );
 }
@@ -108,34 +259,37 @@ export function Marquee({
   subtitle?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const skin = useSkin();
   return (
-    <View style={[styles.marqueeFrame, style]}>
-      <View style={styles.marquee}>
-        <Bulbs />
+    <View style={[styles.marqueeFrame, { backgroundColor: skin.cabinetEdge }, style]}>
+      <View
+        style={[styles.marquee, { backgroundColor: skin.marquee, shadowColor: skin.marqueeGlow }]}
+      >
+        <Bulbs color={skin.bulb} />
         <Text
           accessibilityRole="header"
           numberOfLines={1}
           adjustsFontSizeToFit
-          style={styles.marqueeText}
+          style={[styles.marqueeText, { color: skin.marqueeInk }]}
         >
           {title.toUpperCase()}
         </Text>
         {subtitle ? (
-          <Text numberOfLines={1} style={styles.marqueeSub}>
+          <Text numberOfLines={1} style={[styles.marqueeSub, { color: skin.marqueeInk }]}>
             {subtitle}
           </Text>
         ) : null}
-        <Bulbs />
+        <Bulbs color={skin.bulb} />
       </View>
     </View>
   );
 }
 
-function Bulbs() {
+function Bulbs({ color }: { color: string }) {
   return (
     <View style={styles.bulbs} pointerEvents="none">
       {Array.from({ length: 11 }, (_, i) => (
-        <View key={i} style={styles.bulb} />
+        <View key={i} style={[styles.bulb, { backgroundColor: color, shadowColor: color }]} />
       ))}
     </View>
   );
@@ -154,9 +308,22 @@ export function Glass({
   /** Stretch the glass to fill its frame (for a scrolling window). */
   fill?: boolean;
 }) {
+  const skin = useSkin();
   return (
-    <View style={[styles.glassFrame, style]}>
-      <View style={[styles.glass, { padding }, fill ? { flex: 1 } : null]}>
+    <View
+      style={[
+        styles.glassFrame,
+        { backgroundColor: skin.chrome, borderColor: skin.chromeDark },
+        style,
+      ]}
+    >
+      <View
+        style={[
+          styles.glass,
+          { padding, backgroundColor: skin.glass, borderColor: skin.glassEdge },
+          fill ? { flex: 1 } : null,
+        ]}
+      >
         <Svg
           pointerEvents="none"
           style={StyleSheet.absoluteFill}
@@ -165,13 +332,13 @@ export function Glass({
         >
           <Defs>
             <LinearGradient id="glass-t" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={SKIN.glassTint} stopOpacity={0.9} />
-              <Stop offset="1" stopColor={SKIN.glass} stopOpacity={0.4} />
+              <Stop offset="0" stopColor={skin.glassTint} stopOpacity={0.9} />
+              <Stop offset="1" stopColor={skin.glass} stopOpacity={0.4} />
             </LinearGradient>
           </Defs>
           <Rect width="100" height="100" fill="url(#glass-t)" />
-          <Path d="M62 0 L78 0 L40 100 L24 100 Z" fill="#FFFFFF" opacity={0.45} />
-          <Path d="M82 0 L86 0 L48 100 L44 100 Z" fill="#FFFFFF" opacity={0.5} />
+          <Path d="M62 0 L78 0 L40 100 L24 100 Z" fill="#FFFFFF" opacity={0.45 * skin.glassShine} />
+          <Path d="M82 0 L86 0 L48 100 L44 100 Z" fill="#FFFFFF" opacity={0.5 * skin.glassShine} />
         </Svg>
         {children}
       </View>
@@ -179,14 +346,20 @@ export function Glass({
   );
 }
 
-type KeyTone = 'brand' | 'white' | 'green' | 'red';
+export type KeyTone = 'brand' | 'white' | 'green' | 'red';
 
-const KEY_COLORS: Record<KeyTone, { face: string; edge: string; ink: string }> = {
-  brand: { face: SKIN.brandFace, edge: SKIN.brandEdge, ink: '#FFFFFF' },
-  white: { face: SKIN.keyFace, edge: SKIN.keyEdge, ink: SKIN.keyInk },
-  green: { face: SKIN.greenFace, edge: SKIN.greenEdge, ink: '#FFFFFF' },
-  red: { face: SKIN.redFace, edge: SKIN.redEdge, ink: '#FFFFFF' },
-};
+function keyColors(tone: KeyTone, skin: SkinPalette): { face: string; edge: string; ink: string } {
+  switch (tone) {
+    case 'brand':
+      return { face: skin.brandFace, edge: skin.brandEdge, ink: '#FFFFFF' };
+    case 'green':
+      return { face: skin.greenFace, edge: skin.greenEdge, ink: '#FFFFFF' };
+    case 'red':
+      return { face: skin.redFace, edge: skin.redEdge, ink: '#FFFFFF' };
+    default:
+      return { face: skin.keyFace, edge: skin.keyEdge, ink: skin.keyInk };
+  }
+}
 
 /** Depth of a keypad key's visible edge (pt); the key travels this far when pressed. */
 export const KEY_DEPTH = 5;
@@ -217,7 +390,8 @@ export function Key({
   height?: number;
   accessibilityState?: { selected?: boolean };
 }) {
-  const c = KEY_COLORS[tone];
+  const skin = useSkin();
+  const c = keyColors(tone, skin);
   const radius = round ? (height + KEY_DEPTH) / 2 : RADIUS.s + 2;
   return (
     <Pressable
@@ -260,7 +434,11 @@ export function Key({
               pointerEvents="none"
               style={[
                 styles.keyShine,
-                { borderTopLeftRadius: radius, borderTopRightRadius: radius },
+                {
+                  borderTopLeftRadius: radius,
+                  borderTopRightRadius: radius,
+                  opacity: skin.keyShine,
+                },
               ]}
             />
             {children}
@@ -271,14 +449,15 @@ export function Key({
   );
 }
 
-export function keyInk(tone: KeyTone): string {
-  return KEY_COLORS[tone].ink;
+/** Ink (text and icons) on a key of this tone, for the given palette. */
+export function keyInk(tone: KeyTone, skin: SkinPalette): string {
+  return keyColors(tone, skin).ink;
 }
 
 /** A dark LED display with glowing digits. */
 export function Led({
   children,
-  color = SKIN.ledGreen,
+  color,
   size = 20,
   style,
   accessibilityLabel,
@@ -289,21 +468,23 @@ export function Led({
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }) {
+  const skin = useSkin();
+  const ink = color ?? skin.ledGreen;
   return (
     <View
       accessible={!!accessibilityLabel}
       accessibilityLabel={accessibilityLabel}
-      style={[styles.led, style]}
+      style={[styles.led, { backgroundColor: skin.led, borderColor: skin.ledEdge }, style]}
     >
       <Text
         maxFontSizeMultiplier={1.3}
         style={{
           fontFamily: FONTS.monoBold,
           fontSize: size,
-          color,
+          color: ink,
           fontVariant: ['tabular-nums'],
           letterSpacing: 1,
-          textShadowColor: color,
+          textShadowColor: ink,
           textShadowRadius: 8,
           textShadowOffset: { width: 0, height: 0 },
         }}
@@ -318,18 +499,20 @@ export function Led({
 export function LedBar({
   value,
   segments = 16,
-  color = SKIN.ledGreen,
+  color,
 }: {
   value: number;
   segments?: number;
   color?: string;
 }) {
+  const skin = useSkin();
+  const ink = color ?? skin.ledGreen;
   const lit = Math.round(Math.max(0, Math.min(1, value)) * segments);
   return (
     <View
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}
-      style={[styles.led, styles.ledBar]}
+      style={[styles.led, styles.ledBar, { backgroundColor: skin.led, borderColor: skin.ledEdge }]}
     >
       {Array.from({ length: segments }, (_, i) => (
         <View
@@ -337,8 +520,8 @@ export function LedBar({
           style={[
             styles.segment,
             i < lit
-              ? { backgroundColor: color, shadowColor: color, shadowOpacity: 0.9, shadowRadius: 4 }
-              : { backgroundColor: '#2C3050' },
+              ? { backgroundColor: ink, shadowColor: ink, shadowOpacity: 0.9, shadowRadius: 4 }
+              : { backgroundColor: skin.ledOff },
           ]}
         />
       ))}
@@ -348,13 +531,16 @@ export function LedBar({
 
 /** An engraved metal label plate (section titles). */
 export function Plate({ children, style }: { children: string; style?: StyleProp<ViewStyle> }) {
+  const skin = useSkin();
   return (
-    <View style={[styles.plate, style]}>
-      <View style={styles.plateRivet} />
-      <Text accessibilityRole="header" style={styles.plateText}>
+    <View
+      style={[styles.plate, { backgroundColor: skin.chrome, borderColor: skin.chromeDark }, style]}
+    >
+      <View style={[styles.plateRivet, { backgroundColor: skin.chromeDark }]} />
+      <Text accessibilityRole="header" style={[styles.plateText, { color: skin.keyInk }]}>
         {children.toUpperCase()}
       </Text>
-      <View style={styles.plateRivet} />
+      <View style={[styles.plateRivet, { backgroundColor: skin.chromeDark }]} />
     </View>
   );
 }
@@ -365,30 +551,24 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: SKIN.screw,
     borderWidth: 1,
-    borderColor: SKIN.chromeDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
   screwSlot: {
     width: 7,
     height: 1.6,
-    backgroundColor: SKIN.chromeDark,
     transform: [{ rotate: '35deg' }],
   },
   marqueeFrame: {
     padding: 4,
     borderRadius: RADIUS.m,
-    backgroundColor: SKIN.cabinetEdge,
   },
   marquee: {
     borderRadius: RADIUS.m - 3,
-    backgroundColor: SKIN.marquee,
     paddingVertical: 4,
     paddingHorizontal: SPACE.m,
     alignItems: 'center',
-    shadowColor: SKIN.marqueeGlow,
     shadowOpacity: 1,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
@@ -397,13 +577,11 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.uiBold,
     fontSize: 22,
     letterSpacing: 3,
-    color: SKIN.marqueeInk,
     marginVertical: 2,
   },
   marqueeSub: {
     fontFamily: FONTS.uiMedium,
     fontSize: 12,
-    color: SKIN.marqueeInk,
     opacity: 0.75,
     marginBottom: 2,
   },
@@ -412,8 +590,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: SKIN.bulb,
-    shadowColor: SKIN.bulb,
     shadowOpacity: 1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 0 },
@@ -421,16 +597,12 @@ const styles = StyleSheet.create({
   glassFrame: {
     padding: 5,
     borderRadius: RADIUS.l,
-    backgroundColor: SKIN.chrome,
     borderWidth: 1,
-    borderColor: SKIN.chromeDark,
   },
   glass: {
     borderRadius: RADIUS.l - 5,
-    backgroundColor: SKIN.glass,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#FFFFFF',
   },
   keyFace: {
     alignItems: 'center',
@@ -447,15 +619,12 @@ const styles = StyleSheet.create({
     right: 0,
     height: '45%',
     backgroundColor: '#FFFFFF',
-    opacity: 0.18,
   },
   led: {
-    backgroundColor: SKIN.led,
     borderRadius: 10,
     paddingHorizontal: SPACE.m,
     paddingVertical: 4,
     borderWidth: 2,
-    borderColor: '#0E1020',
   },
   ledBar: { flexDirection: 'row', gap: 3, paddingVertical: 6, paddingHorizontal: 6 },
   segment: { flex: 1, height: 10, borderRadius: 2 },
@@ -467,10 +636,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.m,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: SKIN.chrome,
     borderWidth: 1,
-    borderColor: SKIN.chromeDark,
   },
-  plateRivet: { width: 5, height: 5, borderRadius: 3, backgroundColor: SKIN.chromeDark },
-  plateText: { fontFamily: FONTS.uiBold, fontSize: 13, letterSpacing: 2, color: SKIN.keyInk },
+  plateRivet: { width: 5, height: 5, borderRadius: 3 },
+  plateText: { fontFamily: FONTS.uiBold, fontSize: 13, letterSpacing: 2 },
 });

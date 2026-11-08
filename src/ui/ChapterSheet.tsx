@@ -8,7 +8,7 @@ import type { GameState } from '@/sim';
 import { chapterGoals } from './chapterGoals';
 import { Icon } from './icons';
 import { Button, Mono, ProgressBar, Row, T } from './kit';
-import { Glass, Marquee, SKIN } from './skin';
+import { Glass, Marquee, useSkin } from './skin';
 import { useTheme } from './ThemeProvider';
 import { SPACE } from './theme';
 
@@ -28,6 +28,7 @@ export function ChapterSheet({
 }) {
   const t = useT();
   const theme = useTheme();
+  const skin = useSkin();
   const chapter = n === null ? undefined : CHAPTERS.find((c) => c.n === n);
   const done = !!chapter && !!game.chapterDoneAt[chapter.n];
   const current = !!chapter && chapter.n === game.chapter;
@@ -47,7 +48,11 @@ export function ChapterSheet({
         accessibilityLabel={t('companyHub.chapterSheet.close')}
       >
         {chapter ? (
-          <Pressable style={styles.card} onPress={() => undefined} accessibilityViewIsModal>
+          <Pressable
+            style={[styles.card, { backgroundColor: skin.cabinet }]}
+            onPress={() => undefined}
+            accessibilityViewIsModal
+          >
             <Marquee
               title={t('companyHub.chapterSheet.title', { n: chapter.n })}
               subtitle={content.chapterTitle(chapter.n, chapter.title)}
@@ -118,7 +123,6 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: SPACE.m,
-    backgroundColor: SKIN.cabinet,
     borderRadius: 28,
     padding: SPACE.l,
   },

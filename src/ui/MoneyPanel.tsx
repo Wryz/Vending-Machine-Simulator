@@ -13,7 +13,7 @@ import { money, moneyPrice, moneyShort } from './format';
 import { Icon } from './icons';
 import { Mono, T } from './kit';
 import { RollingMoney } from './RollingMoney';
-import { LedBar, SKIN } from './skin';
+import { LedBar, useSkin } from './skin';
 import { SPACE } from './theme';
 import { LED_GLOW } from './weather';
 
@@ -40,6 +40,7 @@ export function MoneyPanel({
   onPress?: () => void;
 }) {
   const t = useT();
+  const skin = useSkin();
   const progress = chapterProgress(game);
   const chapter = CHAPTERS.find((c) => c.n === game.chapter) ?? CHAPTERS[CHAPTERS.length - 1];
   const today = game.ledger.day.lines.Sales ?? 0;
@@ -59,36 +60,40 @@ export function MoneyPanel({
         })}${doubleProfits ? ` ${t('money.a11y.doubleProfits')}` : ''}`}
         onPress={onPress}
         disabled={!onPress}
-        style={({ pressed }) => [styles.panel, { transform: [{ scale: pressed ? 0.97 : 1 }] }]}
+        style={({ pressed }) => [
+          styles.panel,
+          { backgroundColor: skin.led, borderColor: skin.chrome },
+          { transform: [{ scale: pressed ? 0.97 : 1 }] },
+        ]}
       >
-        <RollingMoney cents={game.cashCents} size={21} color={SKIN.ledGreen} glow />
+        <RollingMoney cents={game.cashCents} size={21} color={skin.ledGreen} glow />
         {/* Chapter: number, meter. */}
         <View style={styles.row}>
-          <View style={styles.chapter}>
-            <T size={11} weight="bold" color={SKIN.marqueeInk}>
+          <View style={[styles.chapter, { backgroundColor: skin.marquee }]}>
+            <T size={11} weight="bold" color={skin.marqueeInk}>
               {chapter.n}
             </T>
           </View>
           <View style={{ width: 92 }}>
-            <LedBar value={Math.min(1, progress.value)} segments={10} color={SKIN.ledAmber} />
+            <LedBar value={Math.min(1, progress.value)} segments={10} color={skin.ledAmber} />
           </View>
           {/* Double Profits owned: a tiny ×2 tag, every sale pays double. */}
           {doubleProfits ? (
-            <Mono size={11} weight="bold" color={SKIN.ledAmber} style={LED_GLOW(SKIN.ledAmber)}>
+            <Mono size={11} weight="bold" color={skin.ledAmber} style={LED_GLOW(skin.ledAmber)}>
               ×2
             </Mono>
           ) : null}
         </View>
         {/* Money coming in: today's sales, and cash waiting in the machines. */}
         <View style={styles.row}>
-          <Icon name="trend" size={14} color={SKIN.ledGreen} />
-          <Mono size={12} weight="bold" color={SKIN.ledGreen} style={LED_GLOW(SKIN.ledGreen)}>
+          <Icon name="trend" size={14} color={skin.ledGreen} />
+          <Mono size={12} weight="bold" color={skin.ledGreen} style={LED_GLOW(skin.ledGreen)}>
             {moneyShort(today)}
           </Mono>
           {inBoxes > 0 ? (
             <>
-              <Icon name="box" size={14} color={SKIN.ledAmber} />
-              <Mono size={12} weight="bold" color={SKIN.ledAmber} style={LED_GLOW(SKIN.ledAmber)}>
+              <Icon name="box" size={14} color={skin.ledAmber} />
+              <Mono size={12} weight="bold" color={skin.ledAmber} style={LED_GLOW(skin.ledAmber)}>
                 {moneyShort(inBoxes)}
               </Mono>
             </>
@@ -102,9 +107,9 @@ export function MoneyPanel({
           entering={FadeIn.duration(220)}
           exiting={FadeOut.duration(220)}
           layout={LinearTransition.duration(200)}
-          style={styles.sale}
+          style={[styles.sale, { backgroundColor: skin.led, borderColor: skin.ledEdge }]}
         >
-          <Mono size={13} weight="bold" color={SKIN.ledGreen} style={LED_GLOW(SKIN.ledGreen)}>
+          <Mono size={13} weight="bold" color={skin.ledGreen} style={LED_GLOW(skin.ledGreen)}>
             {moneyPrice(s.cents, { sign: true })}
           </Mono>
           <T size={12} color="#C9CCE6" numberOfLines={1} style={{ maxWidth: 130 }}>
@@ -119,9 +124,10 @@ export function MoneyPanel({
 /** City rank from the nightly board ("#4 ▲"); tapping opens the ranking board. */
 function RankChip({ game }: { game: GameState }) {
   const t = useT();
+  const skin = useSkin();
   const change = rankChange(game);
   if (!change || !featureUnlocked(game, 'rankings')) return null;
-  const color = change.rank === 1 ? SKIN.ledAmber : change.delta < 0 ? SKIN.ledRed : SKIN.ledGreen;
+  const color = change.rank === 1 ? skin.ledAmber : change.delta < 0 ? skin.ledRed : skin.ledGreen;
   return (
     <Pressable
       accessibilityRole="button"
@@ -151,9 +157,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.m,
     paddingVertical: SPACE.s,
     borderRadius: 14,
-    backgroundColor: SKIN.led,
     borderWidth: 3,
-    borderColor: SKIN.chrome,
     ...shadow,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -171,7 +175,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: SKIN.marquee,
   },
   sale: {
     flexDirection: 'row',
@@ -180,9 +183,7 @@ const styles = StyleSheet.create({
     height: 28,
     paddingHorizontal: SPACE.s + 2,
     borderRadius: 9,
-    backgroundColor: SKIN.led,
     borderWidth: 2,
-    borderColor: '#0E1020',
     ...shadow,
   },
 });

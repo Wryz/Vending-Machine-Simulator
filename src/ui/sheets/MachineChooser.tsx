@@ -15,7 +15,7 @@ import {
 import { moneyShort } from '../format';
 import { Icon } from '../icons';
 import { Button, T } from '../kit';
-import { Marquee, SKIN } from '../skin';
+import { Marquee, useSkin } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { RADIUS, SPACE, TOUCH } from '../theme';
 
@@ -47,6 +47,7 @@ export function MachineChooser({
 }) {
   const t = useT();
   const theme = useTheme();
+  const skin = useSkin();
   const types = useMemo(() => availableMachineTypes(game, world), [game, world]);
   const upcoming = useMemo(() => upcomingFamilies(game, world), [game, world]);
   // What each type would take here a day (only computed while open).
@@ -74,7 +75,11 @@ export function MachineChooser({
             })
       }
       onPress={() => onPick(mt.id, owned ? (stored?.id ?? null) : null)}
-      style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]}
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: skin.keyFace, borderBottomColor: skin.chromeDark },
+        { opacity: pressed ? 0.7 : 1 },
+      ]}
     >
       <View style={[styles.dot, { backgroundColor: theme.family[mt.family] }]} />
       <View style={{ flex: 1, gap: 2 }}>
@@ -96,7 +101,7 @@ export function MachineChooser({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: skin.cabinet }]}>
           <Marquee title={t('spotSheet.chooser.title')} />
           <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ gap: SPACE.s }}>
             {stored ? row(getMachineType(stored.typeId), true) : null}
@@ -104,7 +109,10 @@ export function MachineChooser({
             {upcoming.map((u) => (
               <View
                 key={`lock-${u.type.id}`}
-                style={[styles.row, styles.locked]}
+                style={[
+                  styles.row,
+                  { backgroundColor: skin.lockedFace, borderBottomColor: skin.chromeDark },
+                ]}
                 accessible
                 accessibilityLabel={t('spotSheet.chooser.a11yLocked', {
                   type: name(u.type.id),
@@ -137,7 +145,6 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: SPACE.m,
-    backgroundColor: SKIN.cabinet,
     borderRadius: 28,
     padding: SPACE.l,
   },
@@ -146,13 +153,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.m,
-    backgroundColor: '#FFFFFF',
     borderRadius: RADIUS.s,
     paddingHorizontal: SPACE.m,
     borderBottomWidth: 4,
-    borderBottomColor: SKIN.chromeDark,
   },
-  locked: { backgroundColor: '#F1EDF5' },
   dot: { width: 12, height: 12, borderRadius: 6 },
 });
-

@@ -19,7 +19,7 @@ import { useHud } from '@/store/hud';
 import { haptic } from '@/services/haptics';
 
 import { Icon } from './icons';
-import { Cabinet, Glass, Key, keyInk, LedBar, Marquee, Plate, SKIN } from './skin';
+import { Cabinet, Glass, Key, keyInk, LedBar, Marquee, Plate, useSkin } from './skin';
 import { useTheme } from './ThemeProvider';
 import { FONTS, RADIUS, SPACE, TOUCH } from './theme';
 
@@ -113,6 +113,7 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   accessibilityHint?: string;
 }) {
+  const skin = useSkin();
   if (kind === 'quiet') {
     return (
       <Pressable
@@ -140,7 +141,7 @@ export function Button({
     );
   }
   const tone = kind === 'primary' ? 'brand' : kind === 'danger' ? 'red' : 'white';
-  const fg = keyInk(tone);
+  const fg = keyInk(tone, skin);
   return (
     <Key
       tone={tone}
@@ -171,14 +172,15 @@ export function Paper({
   tone?: 'paper' | 'surface';
 }) {
   const theme = useTheme();
+  const skin = useSkin();
   return (
     <View
       style={[
         styles.paper,
         {
           backgroundColor: theme.dark ? theme.surface : tone === 'paper' ? '#FFFDF7' : '#FFFFFF',
-          borderBottomColor: SKIN.chromeDark,
-          borderColor: SKIN.chrome,
+          borderBottomColor: skin.chromeDark,
+          borderColor: skin.chrome,
         },
         style,
       ]}
@@ -235,17 +237,18 @@ export function Chip({
   /** Spoken label when the visible one needs context ("Use · City Hall"). */
   accessibilityLabel?: string;
 }) {
+  const skin = useSkin();
   const body = (
     <>
       {color ? <View style={[styles.dot, { backgroundColor: color }]} /> : null}
-      <T size={13} weight="bold" color={keyInk(active ? 'brand' : 'white')}>
+      <T size={13} weight="bold" color={keyInk(active ? 'brand' : 'white', skin)}>
         {label}
       </T>
     </>
   );
   if (!onPress)
     return (
-      <View accessibilityRole="text" style={[styles.chipStatic, { backgroundColor: SKIN.chrome }]}>
+      <View accessibilityRole="text" style={[styles.chipStatic, { backgroundColor: skin.chrome }]}>
         {body}
       </View>
     );
@@ -270,13 +273,14 @@ export function StatusDot({ color, size = 8 }: { color: string; size?: number })
 
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
   const theme = useTheme();
+  const skin = useSkin();
   // Money and done states glow green, everything else amber.
   const led =
     !color || color === theme.signal
-      ? SKIN.ledGreen
+      ? skin.ledGreen
       : color === theme.alert
-        ? SKIN.ledRed
-        : SKIN.ledAmber;
+        ? skin.ledRed
+        : skin.ledAmber;
   return <LedBar value={value} color={led} />;
 }
 
@@ -306,6 +310,7 @@ export function Screen({
   const insets = useSafeAreaInsets();
   // The tab bar floats over tab screens: leave room for it.
   const tabBar = useHud((st) => st.tabBarHeight);
+  const skin = useSkin();
   const Body = scroll ? ScrollView : View;
   return (
     <Cabinet style={{ flex: 1 }} screws={false}>
@@ -321,7 +326,7 @@ export function Screen({
             accessibilityLabel={t('kit.a11y.back')}
             faceStyle={{ paddingHorizontal: 0, width: TOUCH - 2 }}
           >
-            <Icon name="back" size={22} color={SKIN.keyInk} />
+            <Icon name="back" size={22} color={skin.keyInk} />
           </Key>
         ) : null}
         <Marquee title={title} subtitle={subtitle} style={{ flex: 1 }} />
@@ -340,7 +345,12 @@ export function Screen({
       </Glass>
       {/* Kick plate with the pickup bin. */}
       <View style={[styles.kick, { paddingBottom: (tab ? tabBar : insets.bottom) + SPACE.s }]}>
-        <View style={styles.bin} />
+        <View
+          style={[
+            styles.bin,
+            { backgroundColor: skin.cabinetEdge, borderTopColor: skin.cabinetShadow },
+          ]}
+        />
       </View>
     </Cabinet>
   );
@@ -447,9 +457,7 @@ const styles = StyleSheet.create({
     width: '46%',
     height: 14,
     borderRadius: 7,
-    backgroundColor: SKIN.cabinetEdge,
     borderTopWidth: 3,
-    borderTopColor: '#7A2A08',
   },
   paper: {
     borderRadius: RADIUS.m,

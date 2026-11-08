@@ -46,11 +46,11 @@ import { CoinTray } from '../objects/CoinTray';
 import { MachineWindow } from './MachineWindow';
 import { clockDuration, VanCard } from './VanCard';
 import { RequestCard, type RequestStage } from './RequestCard';
-import { SpecGrid, type Spec } from './SpecGrid';
+import { FeaturedStats, SpecGrid, type Spec } from './SpecGrid';
 import { statusLabel } from '../objects/KeyTag';
 import { PRODUCT_IMAGES } from '../productImages';
 import { GuideLine, Pulse, useTutorialStep } from '../guide';
-import { Key, Led, Marquee, SKIN } from '../skin';
+import { Key, Led, Marquee, useSkin } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { SPACE, TOUCH } from '../theme';
 
@@ -91,6 +91,7 @@ export function MachinePanel({
   onGone?: () => void;
 }) {
   const theme = useTheme();
+  const skin = useSkin();
   const t = useT();
   const game = useGame((s) => s.game)!;
   const world = useGame((s) => s.world);
@@ -302,8 +303,37 @@ export function MachinePanel({
         : t('machinePanel.stats.theftLow');
   // The city's clock (the phone's until the city data is in).
   const timeZone = world?.city.timeZone;
+  const cashCap = cashBoxCapacity(game, type);
+  const moodPct = Math.round(machine.mood * 100);
   const specs: Spec[] = [
-    { icon: 'grid', label: t('machinePanel.stats.slots'), value: `${type.slots} × ${cap}` },
+    {
+      icon: 'coin',
+      label: t('machinePanel.stats.cashBox'),
+      value: `${moneyShort(machine.cashBoxCents)} / ${moneyShort(cashCap)}`,
+      color: machine.cashBoxCents >= cashCap * 0.95 ? theme.signal : undefined,
+    },
+    {
+      icon: 'percent',
+      label: t('machinePanel.stats.commission'),
+      value: pct(machine.contract.commission),
+    },
+    {
+      icon: 'clock',
+      label: t('machinePanel.stats.contract'),
+      value: contractLeft > 0 ? shortDuration(contractLeft) : t('machinePanel.stats.renewing'),
+    },
+    {
+      icon: 'smile',
+      label: t('machinePanel.stats.moodLabel'),
+      value: `${moodPct}%`,
+      color:
+        machine.mood < CONTRACT.terminateBelow + 0.15
+          ? theme.alert
+          : machine.mood < 0.55
+            ? theme.amber
+            : undefined,
+    },
+    { icon: 'grid', label: t('machinePanel.stats.slots'), value: count(type.slots * cap, t.lang) },
     { icon: 'bolt', label: t('machinePanel.stats.power'), value: money(type.powerCentsPerDay) },
     {
       icon: 'wrench',
@@ -311,27 +341,26 @@ export function MachinePanel({
       value: pct(type.breakdownPerDay, 1),
     },
     { icon: 'eyeOff', label: t('machinePanel.stats.theft'), value: theftLevel },
-    {
-      icon: 'bag',
-      label: t('machinePanel.stats.sold'),
-      value: count(machine.stats.unitsTotal, t.lang),
-    },
-    {
-      icon: 'coin',
-      label: t('machinePanel.stats.revenue'),
-      value: moneyShort(machine.stats.revenueTotalCents),
-    },
-    {
-      icon: 'clock',
-      label: t('machinePanel.stats.placed'),
-      value: placedAt(machine.placedAt, timeZone, t.lang),
-    },
     ...ownedResearch.map((r): Spec => ({
       icon: 'star',
       label: t('machinePanel.stats.upgrade'),
       value: r,
       color: theme.brand,
     })),
+  ];
+
+  // The headline numbers, featured above the spec sheet.
+  const featured: Spec[] = [
+    {
+      icon: 'coin',
+      label: t('machinePanel.stats.revenue'),
+      value: moneyShort(machine.stats.revenueTotalCents),
+    },
+    {
+      icon: 'bag',
+      label: t('machinePanel.stats.sold'),
+      value: count(machine.stats.unitsTotal, t.lang),
+    },
   ];
 
   return (
@@ -346,60 +375,21 @@ export function MachinePanel({
           <Led
             size={14}
             color={
-              status === 'ok' ? SKIN.ledGreen : status === 'broken' ? SKIN.ledRed : SKIN.ledAmber
+              status === 'ok' ? skin.ledGreen : status === 'broken' ? skin.ledRed : skin.ledAmber
             }
             accessibilityLabel={t('machinePanel.a11y.status', { status: statusLabel(status) })}
           >
             {t('machinePanel.statusLed', { status: statusLabel(status).toUpperCase() })}
           </Led>
         </Row>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: SPACE.s }}
-        >
-          <StatChip
-            icon="coin"
-            label={t('machinePanel.stats.cashBox')}
-            value={`${moneyShort(machine.cashBoxCents)} / ${moneyShort(cashBoxCapacity(game, type))}`}
-            color={
-              machine.cashBoxCents >= cashBoxCapacity(game, type) * 0.95 ? theme.signal : undefined
-            }
-          />
-          <StatChip
-            icon="percent"
-            label={t('machinePanel.stats.commission')}
-            value={pct(machine.contract.commission)}
-          />
-          <StatChip
-            icon="clock"
-            label={t('machinePanel.stats.contract')}
-            value={
-              contractLeft > 0 ? shortDuration(contractLeft) : t('machinePanel.stats.renewing')
-            }
-          />
-          <StatChip
-            icon="smile"
-            label={t('machinePanel.stats.mood', { pct: Math.round(machine.mood * 100) })}
-          >
-            <View style={[styles.mood, { backgroundColor: theme.line }]}>
-              <View
-                style={{
-                  width: `${Math.round(machine.mood * 100)}%`,
-                  height: '100%',
-                  borderRadius: 4,
-                  backgroundColor:
-                    machine.mood < CONTRACT.terminateBelow + 0.15
-                      ? theme.alert
-                      : machine.mood < 0.55
-                        ? theme.amber
-                        : theme.signal,
-                }}
-              />
-            </View>
-          </StatChip>
-          {!live ? <StatChip icon="eyeOff" label={t('machinePanel.stats.noTelemetry')} /> : null}
-        </ScrollView>
+        {!live ? (
+          <Row style={{ justifyContent: 'center' }}>
+            <Icon name="eyeOff" size={14} color={theme.muted} />
+            <T size={12} muted>
+              {t('machinePanel.stats.noTelemetry')}
+            </T>
+          </Row>
+        ) : null}
       </View>
 
       {machine.broken ? (
@@ -596,7 +586,7 @@ export function MachinePanel({
                     style={{ width: 52, height: 52 }}
                     resizeMode="contain"
                   />
-                  <T size={10} weight="bold" numberOfLines={1} color={on ? '#FFFFFF' : SKIN.keyInk}>
+                  <T size={10} weight="bold" numberOfLines={1} color={on ? '#FFFFFF' : skin.keyInk}>
                     {pr.name.split(' ')[0]}
                   </T>
                 </Key>
@@ -692,7 +682,8 @@ export function MachinePanel({
       />
       {more ? (
         <>
-          {/* Spec sheet: each number with what it is. */}
+          {/* Spec sheet: the headline numbers, then each number with what it is. */}
+          <FeaturedStats stats={featured} />
           <SpecGrid specs={specs} />
 
           <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -715,6 +706,9 @@ export function MachinePanel({
               }
             />
           </Row>
+          <T size={13} weight="bold" center color={skin.onCabinet}>
+            {`${t('machinePanel.stats.placed')}: ${placedAt(machine.placedAt, timeZone, t.lang)}`}
+          </T>
         </>
       ) : null}
     </View>

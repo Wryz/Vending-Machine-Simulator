@@ -24,7 +24,7 @@ import { meters, moneyShort } from '../format';
 import { Button, Chip, Row, T } from '../kit';
 import { Glyph, Sparkline } from '../objects/small';
 import { Icon } from '../icons';
-import { Glass, Led, Marquee, Plate, SKIN } from '../skin';
+import { Glass, Led, Marquee, Plate, useSkin } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { RADIUS, SPACE } from '../theme';
 import { GuideLine, Pulse, useTutorialStep } from '../guide';
@@ -84,6 +84,7 @@ function SpotBody({
   bottomInset: number;
 }) {
   const theme = useTheme();
+  const skin = useSkin();
   const t = useT();
   /** Place category label in the UI language (config has English). */
   const categoryLabel = (c: PlaceCategory) => t.or(`content.places.${c}`, CATEGORY_LABEL[c]);
@@ -163,7 +164,7 @@ function SpotBody({
         />
         <Row style={{ justifyContent: 'center' }} gap={4}>
           {Array.from({ length: 5 }, (_, i) => (
-            <Icon key={i} name="star" size={22} color={i < rating ? SKIN.ledAmber : '#FFC7AA'} />
+            <Icon key={i} name="star" size={22} color={i < rating ? skin.ledAmber : '#FFC7AA'} />
           ))}
         </Row>
       </View>
@@ -268,7 +269,13 @@ function SpotBody({
         </T>
         {spot.nearby.length === 0 ? <T color="#FFFFFF">{t('spotSheet.noNearby')}</T> : null}
         {spot.nearby.map((p) => (
-          <Row key={p.id} style={styles.place}>
+          <Row
+            key={p.id}
+            style={[
+              styles.place,
+              { backgroundColor: skin.keyFace, borderBottomColor: skin.chromeDark },
+            ]}
+          >
             <Glyph category={p.category} size={20} />
             <View style={{ flex: 1 }}>
               <T size={14} numberOfLines={1}>
@@ -283,7 +290,11 @@ function SpotBody({
             </View>
             {spot.venue.placeId === p.id ? (
               // The current host: a badge, not a button (nothing to do).
-              <View style={styles.hostBadge} accessible accessibilityLabel={`${t('spotSheet.yourHost')} · ${p.name}`}>
+              <View
+                style={[styles.hostBadge, { backgroundColor: skin.cabinetDark }]}
+                accessible
+                accessibilityLabel={`${t('spotSheet.yourHost')} · ${p.name}`}
+              >
                 <T size={12} weight="bold" color="#FFFFFF">
                   {t('spotSheet.yourHost')}
                 </T>
@@ -302,7 +313,7 @@ function SpotBody({
             />
           </Row>
         ))}
-        <T size={11} color="#FFE3D4">
+        <T size={11} color={skin.onCabinetSoft}>
           {t('spotSheet.attribution')}
         </T>
       </View>
@@ -324,6 +335,7 @@ function AreaFacts({
   categoryLabel: (c: PlaceCategory) => string;
 }) {
   const t = useT();
+  const skin = useSkin();
   const passing = Math.round(spot.footfall[hourNow] ?? 0);
   const places = (Object.entries(spot.area.places) as [PlaceCategory, number | undefined][])
     .filter(([, n]) => (n ?? 0) > 0)
@@ -366,7 +378,7 @@ function AreaFacts({
           {places.length ? (
             <Row style={{ flexWrap: 'wrap' }} gap={6}>
               {places.map(([c, n]) => (
-                <Row key={c} gap={4} style={styles.fact}>
+                <Row key={c} gap={4} style={[styles.fact, { backgroundColor: skin.keyFace }]}>
                   <Glyph category={c} size={16} />
                   <T size={12} weight="bold">
                     {Math.round(n ?? 0)}
@@ -410,24 +422,20 @@ function compact(n: number): string {
 
 const styles = StyleSheet.create({
   hostBadge: {
-    backgroundColor: SKIN.cabinetDark,
     borderRadius: 14,
     paddingHorizontal: SPACE.m,
     paddingVertical: 6,
   },
   fact: {
-    backgroundColor: '#FFFFFF',
     borderRadius: RADIUS.s,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   place: {
     minHeight: 48,
-    backgroundColor: '#FFFFFF',
     borderRadius: RADIUS.s,
     paddingHorizontal: SPACE.m,
     borderBottomWidth: 4,
-    borderBottomColor: SKIN.chromeDark,
   },
   reason: {
     width: 20,

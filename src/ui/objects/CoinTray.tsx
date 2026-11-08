@@ -19,7 +19,7 @@ import { cashPiles, denomLabel, trayPieces } from '../cash';
 import { Mono, T } from '../kit';
 import { money } from '../format';
 import { Icon, type IconName } from '../icons';
-import { SKIN } from '../skin';
+import { useSkin } from '../skin';
 import { SPACE } from '../theme';
 
 /** One note or coin dropping into the tray. */
@@ -80,6 +80,7 @@ export function CoinTray({
   commissionCents: number;
 }) {
   const t = useT();
+  const skin = useSkin();
   const currency = useCurrency((s) => s.currency);
   // The box's takings as real local notes and coins (fixed game rates).
   const pieces = useMemo(() => {
@@ -178,25 +179,25 @@ export function CoinTray({
           commission: money(commissionCents),
           net: money(grossCents - commissionCents),
         })}
-        style={styles.panel}
+        style={[styles.panel, { backgroundColor: skin.led, borderColor: skin.chrome }]}
       >
         <Readout
           icon="coin"
           label={t('objects.coinTray.box')}
           value={money(grossCents)}
-          color={SKIN.ledAmber}
+          color={skin.ledAmber}
         />
         <Readout
           icon="handshake"
           label={t('objects.coinTray.venue')}
           value={money(-commissionCents)}
-          color={SKIN.ledRed}
+          color={skin.ledRed}
         />
         <Readout
           icon="bag"
           label={t('objects.coinTray.youKeep')}
           value={money(grossCents - commissionCents)}
-          color={SKIN.ledGreen}
+          color={skin.ledGreen}
           big
         />
       </View>
@@ -284,8 +285,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s,
     paddingHorizontal: SPACE.s,
     borderRadius: 12,
-    backgroundColor: SKIN.led,
     borderWidth: 3,
-    borderColor: SKIN.chrome,
   },
 });

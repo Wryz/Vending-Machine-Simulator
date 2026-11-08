@@ -17,7 +17,7 @@ import { Badge } from './hud';
 import { Icon, type IconName } from './icons';
 import { Mono, T } from './kit';
 import { sfx } from './sfx';
-import { Key, SKIN } from './skin';
+import { Key, useSkin } from './skin';
 import { SPACE } from './theme';
 import { dayIcon, temperature, WEATHER_ICON } from './weather';
 
@@ -29,10 +29,6 @@ export interface TabItem {
   /** Just unlocked and not visited yet. */
   fresh?: boolean;
 }
-
-/** Ink on the light orange status band (readable, not stark black). */
-const STRIP_INK = SKIN.marqueeInk;
-const STRIP_SOFT = '#9A4418';
 
 /** Top corner radius of the tab bar. */
 const CORNER = 22;
@@ -53,6 +49,7 @@ export function TabBar({
   onSelect: (name: string) => void;
 }) {
   const t = useT();
+  const skin = useSkin();
   const insets = useSafeAreaInsets();
   const setHeight = useHud((s) => s.setTabBarHeight);
   const showKeys = tabs.length > 1;
@@ -60,11 +57,27 @@ export function TabBar({
     <View
       accessibilityRole="tablist"
       onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
-      style={[styles.bar, { paddingBottom: showKeys ? 0 : insets.bottom }]}
+      style={[
+        styles.bar,
+        {
+          paddingBottom: showKeys ? 0 : insets.bottom,
+          backgroundColor: skin.cabinetLight,
+          shadowColor: skin.cabinetShadow,
+        },
+      ]}
     >
       <StatusStrip />
       {showKeys ? (
-        <View style={[styles.keys, { paddingBottom: Math.max(insets.bottom - 6, SPACE.s) }]}>
+        <View
+          style={[
+            styles.keys,
+            {
+              paddingBottom: Math.max(insets.bottom - 6, SPACE.s),
+              backgroundColor: skin.cabinet,
+              borderColor: skin.cabinetDark,
+            },
+          ]}
+        >
           {tabs.map((tab) => {
             const on = tab.name === current;
             return (
@@ -94,7 +107,7 @@ export function TabBar({
                     }}
                     faceStyle={{ width: 54, paddingHorizontal: 0 }}
                   >
-                    <Icon name={tab.icon} size={24} color={on ? '#FFFFFF' : SKIN.brandFace} />
+                    <Icon name={tab.icon} size={24} color={on ? '#FFFFFF' : skin.keyAccent} />
                   </Key>
                   {tab.badge ? (
                     <Badge text={tab.badge} />
@@ -102,7 +115,7 @@ export function TabBar({
                     <Badge text={t('tabBar.newBadge')} />
                   ) : null}
                 </View>
-                <T size={11} weight="bold" color={on ? '#FFFFFF' : '#FFE3D4'}>
+                <T size={11} weight="bold" color={on ? skin.onCabinet : skin.onCabinetSoft}>
                   {tab.label}
                 </T>
               </Animated.View>
@@ -131,6 +144,7 @@ function shortDate(at: number, timeZone: string, lang: string): string {
  */
 function StatusStrip() {
   const t = useT();
+  const skin = useSkin();
   const world = useGame((s) => s.world);
   const cityInfo = useGame((s) => s.city);
   const area = useHud((s) => s.area);
@@ -151,7 +165,9 @@ function StatusStrip() {
     cityInfo?.kind === 'fallback' ? content.city(world.city.id, world.city.name) : world.city.name;
   // Most specific name first; the line under it says where that is.
   const title = area ?? district ?? city;
-  const under = [area && district !== city ? district : null, title !== city ? city : null].filter(Boolean).join(' · ');
+  const under = [area && district !== city ? district : null, title !== city ? city : null]
+    .filter(Boolean)
+    .join(' · ');
   const time = clock(now, world.city.timeZone);
   const date = shortDate(now, world.city.timeZone, t.lang);
   const temp = weather ? temperature(weather.tempC, world.city.countryCode, tempUnit) : null;
@@ -168,18 +184,18 @@ function StatusStrip() {
           router.push('/cities');
         }}
       >
-        <Icon name="pin" size={18} color={STRIP_SOFT} />
+        <Icon name="pin" size={18} color={skin.stripSoft} />
         <View style={{ flexShrink: 1 }}>
-          <T size={14} weight="bold" color={STRIP_INK} numberOfLines={1}>
+          <T size={14} weight="bold" color={skin.stripInk} numberOfLines={1}>
             {title}
           </T>
           {under ? (
-            <T size={11} weight="medium" color={STRIP_SOFT} numberOfLines={1}>
+            <T size={11} weight="medium" color={skin.stripSoft} numberOfLines={1}>
               {under}
             </T>
           ) : null}
         </View>
-        <Icon name="chevron" size={14} color={STRIP_SOFT} />
+        <Icon name="chevron" size={14} color={skin.stripSoft} />
       </Pressable>
       <View
         style={styles.when}
@@ -187,22 +203,22 @@ function StatusStrip() {
         accessibilityLabel={[time, date, temp].filter(Boolean).join(', ')}
       >
         <View style={styles.whenRow}>
-          <Icon name={day.name} size={15} color={STRIP_SOFT} />
-          <Mono size={14} weight="bold" color={STRIP_INK}>
+          <Icon name={day.name} size={15} color={skin.stripSoft} />
+          <Mono size={14} weight="bold" color={skin.stripInk}>
             {time}
           </Mono>
           {weather ? (
             <>
               {weather.condition !== 'clear' ? (
-                <Icon name={WEATHER_ICON[weather.condition]} size={15} color={STRIP_SOFT} />
+                <Icon name={WEATHER_ICON[weather.condition]} size={15} color={skin.stripSoft} />
               ) : null}
-              <Mono size={14} weight="bold" color={STRIP_INK}>
+              <Mono size={14} weight="bold" color={skin.stripInk}>
                 {temp}
               </Mono>
             </>
           ) : null}
         </View>
-        <T size={11} weight="medium" color={STRIP_SOFT}>
+        <T size={11} weight="medium" color={skin.stripSoft}>
           {date}
         </T>
       </View>
@@ -217,10 +233,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     // The outer bar is the light orange band; the keys sit in their own orange tray.
-    backgroundColor: SKIN.cabinetLight,
     borderTopLeftRadius: CORNER,
     borderTopRightRadius: CORNER,
-    shadowColor: '#7A2A08',
     shadowOpacity: 0.25,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: -2 },
@@ -242,14 +256,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingTop: SPACE.s + 2,
     paddingHorizontal: SPACE.s,
-    backgroundColor: SKIN.cabinet,
     borderTopLeftRadius: CORNER,
     borderTopRightRadius: CORNER,
     // A thin dark orange edge that follows the rounded corners down the sides.
     borderTopWidth: 2,
     borderLeftWidth: 2,
     borderRightWidth: 2,
-    borderColor: SKIN.cabinetDark,
   },
   tab: { alignItems: 'center', gap: 4, minWidth: 58 },
 });

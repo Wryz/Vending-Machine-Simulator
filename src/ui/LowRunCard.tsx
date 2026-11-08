@@ -7,7 +7,7 @@ import type { RunPlan } from '@/sim';
 import { money } from './format';
 import { Icon } from './icons';
 import { Mono, T } from './kit';
-import { Key, SKIN } from './skin';
+import { Key, useSkin } from './skin';
 import { SPACE } from './theme';
 import { clockDuration } from './machine/VanCard';
 
@@ -28,22 +28,23 @@ export function LowRunCard({
   onClose: () => void;
 }) {
   const t = useT();
+  const skin = useSkin();
   const items = plan.legs.reduce((a, l) => a + l.lines.reduce((b, x) => b + x.qty, 0), 0);
   return (
     <Animated.View
       entering={FadeInDown.duration(220)}
       exiting={FadeOut.duration(150)}
-      style={styles.card}
+      style={[styles.card, { backgroundColor: skin.card, borderColor: skin.cabinet }]}
     >
       <View style={styles.top}>
-        <View style={styles.badge}>
+        <View style={[styles.badge, { backgroundColor: skin.cabinet }]}>
           <Icon name="van" size={24} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <T size={16} weight="bold" color={SKIN.keyInk}>
+          <T size={16} weight="bold" color={skin.keyInk}>
             {t('map.lowRun.title', { n: plan.legs.length })}
           </T>
-          <Mono size={13} color="#4A4F6A">
+          <Mono size={13} color={skin.cardMuted}>
             {t('map.lowRun.detail', {
               items,
               cost: money(plan.wholesaleCents + plan.fuelCents),
@@ -54,7 +55,7 @@ export function LowRunCard({
       </View>
       <View style={styles.keys}>
         <Key onPress={onClose} style={{ flex: 1 }} accessibilityLabel={t('map.lowRun.cancel')}>
-          <T size={15} weight="bold" color={SKIN.keyInk}>
+          <T size={15} weight="bold" color={skin.keyInk}>
             {t('map.lowRun.cancel')}
           </T>
         </Key>
@@ -79,9 +80,7 @@ const styles = StyleSheet.create({
     gap: SPACE.m,
     padding: SPACE.m,
     borderRadius: 18,
-    backgroundColor: '#FFF6DE',
     borderWidth: 2,
-    borderColor: SKIN.cabinet,
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 10,
@@ -93,7 +92,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: SKIN.cabinet,
     alignItems: 'center',
     justifyContent: 'center',
   },

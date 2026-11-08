@@ -6,7 +6,7 @@ import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
 import { money, moneyShort } from '@/ui/format';
 import { Mono, Paper, Row, Screen, T } from '@/ui/kit';
-import { Led, SKIN } from '@/ui/skin';
+import { Led, useSkin } from '@/ui/skin';
 import { RADIUS, SPACE } from '@/ui/theme';
 import { FirstTip } from '@/ui/guide';
 
@@ -14,6 +14,7 @@ import { FirstTip } from '@/ui/guide';
 function BoardRow({ entry, place }: { entry: RankEntry; place: number }) {
   const t = useT();
   const theme = useTheme();
+  const skin = useSkin();
   const me = entry.kind === 'player';
   const name = me ? t('rankings.you') : entry.name;
   return (
@@ -33,12 +34,12 @@ function BoardRow({ entry, place }: { entry: RankEntry; place: number }) {
         borderRadius: RADIUS.m,
         backgroundColor: me ? theme.brandSoft : theme.dark ? theme.surface : '#FFFFFF',
         borderWidth: me ? 2 : 1,
-        borderColor: me ? theme.brand : SKIN.chrome,
+        borderColor: me ? theme.brand : skin.chrome,
       }}
     >
       <Led
         size={15}
-        color={place === 1 ? SKIN.ledAmber : me ? SKIN.ledGreen : '#C9CCE6'}
+        color={place === 1 ? skin.ledAmber : me ? skin.ledGreen : '#C9CCE6'}
         style={{ minWidth: 44, alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2 }}
       >
         {`#${place}`}
@@ -68,6 +69,7 @@ function BoardRow({ entry, place }: { entry: RankEntry; place: number }) {
 export default function Rankings() {
   const t = useT();
   const theme = useTheme();
+  const skin = useSkin();
   const game = useGame((s) => s.game);
   const world = useGame((s) => s.world);
   useGame((s) => s.version);
@@ -99,7 +101,7 @@ export default function Rankings() {
           ? t('rankings.overnightDown', { n: -delta })
           : t('rankings.overnightSame');
   const deltaColor =
-    delta && delta > 0 ? SKIN.ledGreen : delta && delta < 0 ? SKIN.ledRed : SKIN.ledAmber;
+    delta && delta > 0 ? skin.ledGreen : delta && delta < 0 ? skin.ledRed : skin.ledAmber;
 
   return (
     <Screen
@@ -115,13 +117,13 @@ export default function Rankings() {
           gap: SPACE.m,
           padding: SPACE.m,
           borderRadius: RADIUS.l,
-          backgroundColor: SKIN.led,
+          backgroundColor: skin.led,
           borderWidth: 3,
-          borderColor: SKIN.chrome,
+          borderColor: skin.chrome,
         }}
       >
         <View style={{ alignItems: 'center', minWidth: 76 }}>
-          <Led size={38} color={rank === 1 ? SKIN.ledAmber : SKIN.ledGreen} style={{ padding: 0 }}>
+          <Led size={38} color={rank === 1 ? skin.ledAmber : skin.ledGreen} style={{ padding: 0 }}>
             {`#${rank}`}
           </Led>
           <Mono size={12} color="#C9CCE6">
@@ -139,7 +141,7 @@ export default function Rankings() {
               </T>
             </Row>
           ) : null}
-          <Mono size={20} weight="bold" color={SKIN.ledGreen}>
+          <Mono size={20} weight="bold" color={skin.ledGreen}>
             {money(mine)}
           </Mono>
           <T size={12} color="#C9CCE6">

@@ -6,12 +6,13 @@ import { useGame } from '@/store/game';
 
 import { Icon } from './icons';
 import { T } from './kit';
-import { Led, LedBar, SKIN } from './skin';
+import { Led, LedBar, useSkin } from './skin';
 import { SPACE } from './theme';
 
 /** While a long catch-up runs on return: the machine counts the coins. */
 export function CatchUpOverlay() {
   const t = useT();
+  const skin = useSkin();
   const busy = useGame((s) => s.catchingUp);
   const progress = useGame((s) => s.catchUpProgress);
   if (!busy) return null;
@@ -24,18 +25,18 @@ export function CatchUpOverlay() {
       accessibilityLiveRegion="polite"
       accessibilityLabel={t('catchUp.a11y')}
     >
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: skin.cabinet, borderColor: skin.cabinetEdge }]}>
         <View style={styles.coin}>
           <Icon name="coin" size={34} color="#FFFFFF" />
         </View>
-        <T size={18} weight="bold" color="#FFFFFF" center>
+        <T size={18} weight="bold" color={skin.onCabinet} center>
           {t('catchUp.title')}
         </T>
-        <Led size={16} color={SKIN.ledAmber}>
+        <Led size={16} color={skin.ledAmber}>
           {t('catchUp.led')}
         </Led>
         <View style={styles.meter}>
-          <LedBar value={progress} segments={12} color={SKIN.ledAmber} />
+          <LedBar value={progress} segments={12} color={skin.ledAmber} />
         </View>
       </View>
     </Animated.View>
@@ -55,9 +56,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.xl,
     paddingHorizontal: SPACE.xxl,
     borderRadius: 24,
-    backgroundColor: SKIN.cabinet,
     borderWidth: 4,
-    borderColor: SKIN.cabinetEdge,
   },
   meter: { alignSelf: 'stretch' },
   coin: {
@@ -66,7 +65,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: SKIN.ledAmber,
+    backgroundColor: '#FFC94D',
     borderWidth: 4,
     borderColor: '#E8A21A',
   },

@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '../icons';
 import { sfx } from '../sfx';
-import { Cabinet, Key, SKIN } from '../skin';
+import { Cabinet, Key, useSkin } from '../skin';
 import { RADIUS, SPACE, TOUCH } from '../theme';
 
 /** Open and close a sheet safely, whatever it is doing right now. */
@@ -62,6 +62,7 @@ export const GameSheet = forwardRef<
   }
 >(function GameSheet({ openShare, onDismiss, onSnap, closeLabel, cabinet, children }, ref) {
   const insets = useSafeAreaInsets();
+  const skin = useSkin();
   const sheet = useRef<BottomSheetModal>(null);
   const phase = useRef<Phase>('closed');
   const reopen = useRef(false);
@@ -143,7 +144,7 @@ export const GameSheet = forwardRef<
     () => (
       <View style={styles.handle}>
         <View style={styles.keySpace} />
-        <View style={styles.grabber} />
+        <View style={[styles.grabber, { backgroundColor: skin.chrome }]} />
         {closeLabel ? (
           <Key
             round
@@ -155,14 +156,14 @@ export const GameSheet = forwardRef<
             }}
             faceStyle={styles.closeFace}
           >
-            <Icon name="close" size={20} color={SKIN.keyInk} />
+            <Icon name="close" size={20} color={skin.keyInk} />
           </Key>
         ) : (
           <View style={styles.keySpace} />
         )}
       </View>
     ),
-    [closeLabel, close],
+    [closeLabel, close, skin],
   );
 
   return (
@@ -202,6 +203,6 @@ const styles = StyleSheet.create({
     paddingBottom: SPACE.xs,
   },
   keySpace: { width: TOUCH - 6 },
-  grabber: { width: 56, height: 6, borderRadius: 3, backgroundColor: SKIN.chrome },
+  grabber: { width: 56, height: 6, borderRadius: 3 },
   closeFace: { paddingHorizontal: 0, width: TOUCH - 6 },
 });

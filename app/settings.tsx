@@ -26,7 +26,7 @@ import { useTheme } from '@/ui/ThemeProvider';
 import { Icon } from '@/ui/icons';
 import { Button, Divider, Mono, Paper, Row, Screen, Section, T } from '@/ui/kit';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
-import { Led, SKIN } from '@/ui/skin';
+import { Led, useSkin } from '@/ui/skin';
 import { SPACE, TOUCH } from '@/ui/theme';
 
 function Toggle({
@@ -263,6 +263,7 @@ function Level({
   disabled?: boolean;
 }) {
   const t = useT();
+  const skin = useSkin();
   // Nearest step, so older or odd saved values still show a selection.
   const index = VOLUME_STEPS.reduce(
     (best, v, i) => (Math.abs(v - value) < Math.abs(VOLUME_STEPS[best] - value) ? i : best),
@@ -292,12 +293,12 @@ function Level({
     >
       <Row style={{ justifyContent: 'space-between' }}>
         <T weight="medium">{label}</T>
-        <Led size={13} color={index === 0 ? SKIN.ledRed : SKIN.ledGreen}>
+        <Led size={13} color={index === 0 ? skin.ledRed : skin.ledGreen}>
           {VOLUME_STEPS[index] === 0 ? t('settings.sound.off') : pct(VOLUME_STEPS[index])}
         </Led>
       </Row>
       {/* An LED level meter: tap a segment to set the level; the first one is off. */}
-      <View style={styles.meter}>
+      <View style={[styles.meter, { backgroundColor: skin.led, borderColor: skin.ledEdge }]}>
         {VOLUME_STEPS.map((v, i) => {
           const lit = i > 0 && i <= index;
           return (
@@ -310,15 +311,15 @@ function Level({
               style={[
                 styles.segment,
                 i === 0
-                  ? { backgroundColor: index === 0 ? SKIN.ledRed : '#3A2F3A' }
+                  ? { backgroundColor: index === 0 ? skin.ledRed : '#3A2F3A' }
                   : lit
                     ? {
-                        backgroundColor: SKIN.ledGreen,
-                        shadowColor: SKIN.ledGreen,
+                        backgroundColor: skin.ledGreen,
+                        shadowColor: skin.ledGreen,
                         shadowOpacity: 0.9,
                         shadowRadius: 5,
                       }
-                    : { backgroundColor: '#2C3050' },
+                    : { backgroundColor: skin.ledOff },
               ]}
             />
           );
@@ -673,9 +674,7 @@ const styles = StyleSheet.create({
     gap: 6,
     padding: 6,
     borderRadius: 12,
-    backgroundColor: SKIN.led,
     borderWidth: 2,
-    borderColor: '#0E1020',
   },
   segment: { flex: 1, height: TOUCH - 12, borderRadius: 6, shadowOffset: { width: 0, height: 0 } },
 });

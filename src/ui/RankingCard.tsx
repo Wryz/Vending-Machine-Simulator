@@ -6,7 +6,7 @@ import { featureUnlocked, rankChange, weeklyScore, type GameState } from '@/sim'
 
 import { moneyShort } from './format';
 import { Button, Mono, Paper, Row, Section, T } from './kit';
-import { Led, SKIN } from './skin';
+import { Led, useSkin } from './skin';
 import { SPACE } from './theme';
 
 /**
@@ -15,20 +15,21 @@ import { SPACE } from './theme';
  */
 export function RankingCard({ game }: { game: GameState }) {
   const t = useT();
+  const skin = useSkin();
   if (!featureUnlocked(game, 'rankings')) return null;
   const change = rankChange(game);
   const moveColor = !change
-    ? SKIN.ledAmber
+    ? skin.ledAmber
     : change.delta > 0
-      ? SKIN.ledGreen
+      ? skin.ledGreen
       : change.delta < 0
-        ? SKIN.ledRed
-        : SKIN.ledAmber;
+        ? skin.ledRed
+        : skin.ledAmber;
   return (
     <Section title={t('rankings.company.section')}>
       <Paper tone="surface" style={{ gap: SPACE.m }}>
         <Row gap={SPACE.m}>
-          <Led size={26} color={change?.rank === 1 ? SKIN.ledAmber : SKIN.ledGreen}>
+          <Led size={26} color={change?.rank === 1 ? skin.ledAmber : skin.ledGreen}>
             {change ? `#${change.rank}` : '#–'}
           </Led>
           <View style={{ flex: 1, gap: 2 }}>
@@ -37,7 +38,7 @@ export function RankingCard({ game }: { game: GameState }) {
                 <Mono
                   size={14}
                   weight="bold"
-                  color={moveColor === SKIN.ledAmber ? undefined : moveColor}
+                  color={moveColor === skin.ledAmber ? undefined : moveColor}
                 >
                   {change.delta > 0 ? '▲' : change.delta < 0 ? '▼' : '■'}
                 </Mono>

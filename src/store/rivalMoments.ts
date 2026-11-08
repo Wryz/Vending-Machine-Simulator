@@ -122,7 +122,9 @@ export function announceDeliveries(state: GameState, news: readonly DeliveryNews
 
 function venueOf(state: GameState, machineId?: string): string {
   const m = machineId ? state.machines.find((x) => x.id === machineId) : undefined;
-  return m ? venueName(m.venue.name) : state.cityId;
+  if (m) return venueName(m.venue.name);
+  // No machine to name: the city's own name, never its id ("new-york").
+  return useGame.getState().world?.city.name ?? state.cityId;
 }
 
 function factFor(state: GameState, n: RivalNews): string {

@@ -21,7 +21,7 @@ import { Button, Row, T } from '@/ui/kit';
 import { CityPicker, useCityLabel } from '@/ui/picker/CityPicker';
 import { cityInfoFromPick, guessOrigin, useYou } from '@/ui/picker/where';
 import { PRODUCT_IMAGES } from '@/ui/productImages';
-import { Cabinet, Glass, Led, Marquee, SKIN } from '@/ui/skin';
+import { Cabinet, Glass, Led, Marquee, useSkin } from '@/ui/skin';
 import { SPACE } from '@/ui/theme';
 
 /** The used starter machine's price, for the cold open's tagline. */
@@ -36,6 +36,7 @@ type Step = 'cold-open' | 'intro' | 'pick';
  */
 export default function Onboarding() {
   const t = useT();
+  const skin = useSkin();
   const label = useCityLabel();
   const insets = useSafeAreaInsets();
   const index = useCityIndex((s) => s.entries);
@@ -111,7 +112,7 @@ export default function Onboarding() {
               {SHOWCASE.map((id) => (
                 <View key={id} style={styles.coil}>
                   <Image source={PRODUCT_IMAGES[id]} style={styles.product} resizeMode="contain" />
-                  <View style={styles.coilLine} />
+                  <View style={[styles.coilLine, { backgroundColor: skin.chromeDark }]} />
                 </View>
               ))}
             </View>
@@ -172,6 +173,7 @@ const INTRO: readonly { icon: IconName; title: TKey; line: TKey }[] = [
 
 function Intro({ onDone }: { onDone: () => void }) {
   const t = useT();
+  const skin = useSkin();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
@@ -201,8 +203,13 @@ function Intro({ onDone }: { onDone: () => void }) {
             <View key={c.title} style={{ width, padding: SPACE.l, justifyContent: 'center' }}>
               <Glass padding={SPACE.xl}>
                 <View style={{ alignItems: 'center', gap: SPACE.l, paddingVertical: SPACE.xl }}>
-                  <View style={styles.bigIcon}>
-                    <Icon name={c.icon} size={56} color={SKIN.brandFace} />
+                  <View
+                    style={[
+                      styles.bigIcon,
+                      { backgroundColor: skin.keyFace, borderColor: skin.chrome },
+                    ]}
+                  >
+                    <Icon name={c.icon} size={56} color={skin.keyAccent} />
                   </View>
                   <T size={24} weight="bold" center accessibilityRole="header">
                     {t(c.title)}
@@ -268,7 +275,6 @@ const styles = StyleSheet.create({
     width: '86%',
     height: 5,
     borderRadius: 3,
-    backgroundColor: SKIN.chromeDark,
     marginTop: 2,
   },
   bigIcon: {
@@ -277,9 +283,7 @@ const styles = StyleSheet.create({
     borderRadius: 55,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
     borderWidth: 6,
-    borderColor: SKIN.chrome,
   },
   city: { flexDirection: 'row', alignItems: 'center', gap: SPACE.m, padding: SPACE.m },
   previewSky: {

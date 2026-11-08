@@ -20,7 +20,7 @@ import { useProfile } from '@/store/profile';
 
 import { Icon, type IconName } from './icons';
 import { T } from './kit';
-import { Key, SKIN } from './skin';
+import { Key, useSkin } from './skin';
 import { RADIUS, SPACE } from './theme';
 
 /**
@@ -104,19 +104,20 @@ export function GuideLine({
   /** A key on the line that does the step (e.g. "Place" while the real key is further down). */
   action?: { label: string; onPress: () => void };
 }) {
+  const skin = useSkin();
   return (
     <Animated.View
       key={text}
       entering={FadeIn.duration(250)}
       exiting={FadeOut.duration(150)}
-      style={styles.line}
+      style={[styles.line, { backgroundColor: skin.card }]}
       accessibilityLiveRegion="polite"
       accessibilityRole="text"
     >
       <View style={styles.tap}>
         <Icon name="tap" size={22} color="#FFFFFF" />
       </View>
-      <T size={TUTORIAL.text.line} weight="bold" color={SKIN.keyInk} style={{ flex: 1 }}>
+      <T size={TUTORIAL.text.line} weight="bold" color={skin.keyInk} style={{ flex: 1 }}>
         {text}
       </T>
       {action ? (
@@ -144,6 +145,7 @@ const TIP_ICON: Record<FirstTipId, IconName> = {
  */
 export function FirstTip({ id, style }: { id: FirstTipId; style?: StyleProp<ViewStyle> }) {
   const t = useT();
+  const skin = useSkin();
   const seen = useProfile((s) => s.tipsSeen?.includes(id) ?? false);
   if (seen) return null;
   const done = () =>
@@ -154,17 +156,21 @@ export function FirstTip({ id, style }: { id: FirstTipId; style?: StyleProp<View
     <Animated.View
       entering={FadeIn.duration(250)}
       exiting={FadeOut.duration(150)}
-      style={[styles.tip, style]}
+      style={[
+        styles.tip,
+        { backgroundColor: skin.keyFace, borderBottomColor: skin.keyEdge },
+        style,
+      ]}
       accessibilityLiveRegion="polite"
     >
-      <View style={styles.tipIcon}>
+      <View style={[styles.tipIcon, { backgroundColor: skin.brandFace }]}>
         <Icon name={TIP_ICON[id]} size={24} color="#FFFFFF" />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <T size={TUTORIAL.text.line} weight="bold" color={SKIN.keyInk} accessibilityRole="header">
+        <T size={TUTORIAL.text.line} weight="bold" color={skin.keyInk} accessibilityRole="header">
           {t(`coach.tips.${id}.title`)}
         </T>
-        <T size={15} color="#4A4F6A">
+        <T size={15} color={skin.cardMuted}>
           {t(`coach.tips.${id}.line`)}
         </T>
       </View>
@@ -189,7 +195,6 @@ const styles = StyleSheet.create({
     gap: SPACE.m,
     padding: SPACE.m,
     borderRadius: 14,
-    backgroundColor: '#FFF6DE',
     borderWidth: 2,
     borderColor: TUTORIAL.pulse.color,
   },
@@ -207,9 +212,7 @@ const styles = StyleSheet.create({
     gap: SPACE.m,
     padding: SPACE.m,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 4,
-    borderBottomColor: SKIN.keyEdge,
   },
   tipIcon: {
     width: 44,
@@ -217,6 +220,5 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: SKIN.brandFace,
   },
 });

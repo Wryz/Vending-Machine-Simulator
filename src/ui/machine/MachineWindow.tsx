@@ -7,7 +7,7 @@ import { MACHINE_WINDOW as W } from '@/config/machines';
 
 import { Mono } from '../kit';
 import { PRODUCT_IMAGES } from '../productImages';
-import { SKIN } from '../skin';
+import { useSkin } from '../skin';
 import { SPACE } from '../theme';
 
 export interface WindowSlot {
@@ -47,6 +47,7 @@ export function MachineWindow({
   selected: number | null;
   onSelect: (slot: number) => void;
 }) {
+  const skin = useSkin();
   const [width, setWidth] = useState(0);
   // Products already in the coils when the window opens don't animate in.
   const [live, setLive] = useState(false);
@@ -64,7 +65,10 @@ export function MachineWindow({
   for (let i = 0; i < slots.length; i += cols) rows.push(slots.slice(i, i + cols));
 
   return (
-    <View style={styles.frame} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+    <View
+      style={[styles.frame, { backgroundColor: skin.chrome, borderBottomColor: skin.chromeDark }]}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
       <View style={styles.interior}>
         {/* The light strip along the top of the cabinet. */}
         <View style={styles.light} />
@@ -98,12 +102,12 @@ export function MachineWindow({
                     const on = selected === i;
                     return (
                       <View key={i} style={{ width: cellW, alignItems: 'center' }}>
-                        <View style={[styles.tag, on ? styles.tagOn : null]}>
+                        <View style={[styles.tag, on ? { backgroundColor: skin.brandFace } : null]}>
                           <Mono size={9} weight="bold" color={on ? '#FFFFFF' : '#8A8FA8'}>
                             {String.fromCharCode(65 + r)}
                             {c + 1}
                           </Mono>
-                          <Mono size={12} weight="bold" color={on ? '#FFFFFF' : SKIN.ledGreen}>
+                          <Mono size={12} weight="bold" color={on ? '#FFFFFF' : skin.ledGreen}>
                             {slot.productId ? slot.price : '—'}
                           </Mono>
                         </View>
@@ -148,6 +152,7 @@ function Coil({
   animate: boolean;
   onPress: () => void;
 }) {
+  const skin = useSkin();
   const real = shown(slot.qty, cap);
   const total = Math.max(real, shown(slot.qty + slot.planned, cap));
   const image = slot.productId ? PRODUCT_IMAGES[slot.productId] : undefined;
@@ -265,7 +270,9 @@ function Coil({
       onPress={onPress}
       style={{ width, height }}
     >
-      {selected ? <View pointerEvents="none" style={styles.selected} /> : null}
+      {selected ? (
+        <View pointerEvents="none" style={[styles.selected, { borderColor: skin.brandFace }]} />
+      ) : null}
       {layers}
       {image
         ? drops.map((id) => (
@@ -293,7 +300,7 @@ function Coil({
           entering={pricePop(size)}
           style={[styles.pop, { top: front.bottom - size * 1.1, opacity: 0 }]}
         >
-          <Mono size={13} weight="bold" color={SKIN.ledGreen}>
+          <Mono size={13} weight="bold" color={skin.ledGreen}>
             +{slot.price}
           </Mono>
         </Animated.View>
@@ -343,9 +350,7 @@ const styles = StyleSheet.create({
   frame: {
     borderRadius: 14,
     padding: 6,
-    backgroundColor: SKIN.chrome,
     borderBottomWidth: 4,
-    borderBottomColor: SKIN.chromeDark,
   },
   interior: {
     borderRadius: 9,
@@ -382,7 +387,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#1E2133',
   },
-  tagOn: { backgroundColor: SKIN.brandFace },
   selected: {
     position: 'absolute',
     left: 2,
@@ -391,7 +395,6 @@ const styles = StyleSheet.create({
     bottom: 2,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: SKIN.brandFace,
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
   product: { width: '100%', height: '100%' },

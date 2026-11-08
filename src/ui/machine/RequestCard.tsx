@@ -13,7 +13,7 @@ import { Button, Mono, T } from '../kit';
 import { Icon } from '../icons';
 import { Glyph } from '../objects/small';
 import { PRODUCT_IMAGES } from '../productImages';
-import { SKIN } from '../skin';
+import { SKIN_LIGHT } from '../skin';
 import { useTheme } from '../ThemeProvider';
 import { SPACE, TOUCH } from '../theme';
 
@@ -62,6 +62,8 @@ export function RequestCard({
 }) {
   const t = useT();
   const theme = useTheme();
+  // A paper note: it stays cream with dark ink after dark too (like receipts).
+  const ink = SKIN_LIGHT.keyInk;
   const product = getProduct(request.productId);
   const image = PRODUCT_IMAGES[product.id];
   const place = request.from.name ? venueName(request.from.name) : '';
@@ -90,7 +92,7 @@ export function RequestCard({
           <Mono size={11} weight="bold" color="#8A6A1E">
             {t('requests.card.label').toUpperCase()}
           </Mono>
-          <T size={17} weight="bold" color={SKIN.keyInk}>
+          <T size={17} weight="bold" color={ink}>
             {t('requests.card.title', { product: product.name })}
           </T>
           <T size={15} color="#4A4F6A">
@@ -111,9 +113,9 @@ export function RequestCard({
       {fits ? (
         stage.kind === 'coming' ? (
           <View style={styles.status}>
-            <Icon name="van" size={22} color={SKIN.cabinetDark} />
+            <Icon name="van" size={22} color={SKIN_LIGHT.cabinetDark} />
             <View style={{ flex: 1 }}>
-              <T size={15} weight="bold" color={SKIN.keyInk}>
+              <T size={15} weight="bold" color={ink}>
                 {t('requests.card.coming', { time: stage.eta })}
               </T>
               <T size={13} color="#4A4F6A">

@@ -13,7 +13,8 @@ import { useCityIndex } from '@/store/cityIndex';
 import { RoundButton } from '../hud';
 import { Icon } from '../icons';
 import { T } from '../kit';
-import { Key, Marquee, SKIN } from '../skin';
+import { Key, Marquee, SKIN_LIGHT, useSkin } from '../skin';
+import { useTheme } from '../ThemeProvider';
 import { RADIUS, SPACE } from '../theme';
 import { PickerGlobe, type GlobeDot } from './PickerGlobe';
 import { RegionMap } from './RegionMap';
@@ -72,6 +73,7 @@ export function CityPicker({
   const t = useT();
   const label = useCityLabel();
   const insets = useSafeAreaInsets();
+  const skin = useSkin();
   const { width, height } = useWindowDimensions();
   const index = useCityIndex((s) => s.entries);
   useEffect(() => {
@@ -189,10 +191,10 @@ export function CityPicker({
         : selReach?.branch
           ? t('picker.openBranch', { city: label(target!) })
           : spot && here !== 'saved'
-        ? t('picker.startSpot', { city: label(spot.region) })
-        : t(mode === 'sell' ? 'picker.sell' : here === 'saved' ? 'picker.go' : 'picker.start', {
-            city: label(selected),
-          })
+            ? t('picker.startSpot', { city: label(spot.region) })
+            : t(mode === 'sell' ? 'picker.sell' : here === 'saved' ? 'picker.go' : 'picker.start', {
+                city: label(selected),
+              })
     : nearest
       ? t('picker.flyNearest', { city: label(nearest) })
       : t('picker.none');
@@ -288,19 +290,19 @@ export function CityPicker({
               key={selected?.r ?? (nearest ? `n-${nearest.r}` : 'none')}
               entering={FadeIn.duration(180)}
               exiting={FadeOut.duration(120)}
-              style={styles.bubble}
+              style={[styles.bubble, { backgroundColor: skin.keyFace }]}
             >
               {selected ? (
-                <T size={15} weight="bold" color={SKIN.keyInk} numberOfLines={1}>
+                <T size={15} weight="bold" color={skin.keyInk} numberOfLines={1}>
                   {`${flagOf(selected.c)} ${label(selected)}`.trim()}
                 </T>
               ) : (
                 <>
-                  <T size={14} weight="bold" color={SKIN.keyInk} numberOfLines={1}>
+                  <T size={14} weight="bold" color={skin.keyInk} numberOfLines={1}>
                     {t('picker.none')}
                   </T>
                   {nearest ? (
-                    <T size={12} color="#4A4F6A" numberOfLines={1}>
+                    <T size={12} color={skin.cardMuted} numberOfLines={1}>
                       {t('picker.nearest', {
                         city: label(nearest),
                         km: t('picker.km', { n: Math.round(nearest.km).toLocaleString() }),
@@ -336,7 +338,7 @@ export function CityPicker({
       </View>
       {zoomed && selected && here !== 'saved' ? (
         <View pointerEvents="none" style={[styles.hintWrap, { top: top + 112 }]}>
-          <View style={[styles.hint, outside && { backgroundColor: SKIN.redFace }]}>
+          <View style={[styles.hint, { backgroundColor: outside ? skin.redFace : skin.inkPill }]}>
             <Icon name="pin" size={16} color="#FFFFFF" />
             <T size={13} weight="bold" color="#FFFFFF">
               {outside
@@ -354,14 +356,17 @@ export function CityPicker({
           accessibilityRole="button"
           accessibilityLabel={t('picker.locate')}
           accessibilityHint={t('picker.locateHint')}
-          style={[styles.locatePill, { top: top + 112 }]}
+          style={[
+            styles.locatePill,
+            { top: top + 112, backgroundColor: skin.cabinet, borderBottomColor: skin.cabinetEdge },
+          ]}
         >
           <Icon name="locate" size={18} color="#FFFFFF" />
           <View>
             <T size={14} weight="bold" color="#FFFFFF">
               {t('picker.locate')}
             </T>
-            <T size={11} color="#FFE7D6">
+            <T size={11} color={skin === SKIN_LIGHT ? '#FFE7D6' : skin.onCabinetSoft}>
               {t('picker.locateHint')}
             </T>
           </View>
@@ -369,7 +374,16 @@ export function CityPicker({
       ) : null}
 
       {/* The strip and the key. */}
-      <View style={[styles.bottom, { paddingBottom: insets.bottom + SPACE.m }]}>
+      <View
+        style={[
+          styles.bottom,
+          {
+            paddingBottom: insets.bottom + SPACE.m,
+            backgroundColor: skin.cabinet,
+            borderTopColor: skin.cabinetLight,
+          },
+        ]}
+      >
         <FlatList
           ref={list}
           horizontal
@@ -423,7 +437,7 @@ export function CityPicker({
           )}
         />
         {error ? (
-          <T size={13} color={SKIN.redFace} center style={{ marginTop: SPACE.xs }}>
+          <T size={13} color={skin.redFace} center style={{ marginTop: SPACE.xs }}>
             {error}
           </T>
         ) : null}
@@ -473,6 +487,10 @@ function CityCard({
 }) {
   const flag = flagOf(city.c);
   const t = useT();
+  const skin = useSkin();
+  const dark = useTheme().dark;
+  const ink = selected ? skin.onMarquee : skin.keyInk;
+  const soft = dark ? (selected ? skin.marqueeInk : skin.cardMuted) : '#5B6080';
   return (
     <Pressable
       onPress={onPress}
@@ -481,15 +499,23 @@ function CityCard({
       accessibilityState={{ selected }}
       style={({ pressed }) => [
         styles.card,
-        selected && styles.cardSelected,
+        { backgroundColor: skin.keyFace, borderBottomColor: skin.keyEdge },
+        selected && [
+          styles.cardSelected,
+          {
+            backgroundColor: skin.marquee,
+            borderColor: skin.bulb,
+            borderBottomColor: skin.cabinetEdge,
+          },
+        ],
         opensIn !== null && styles.cardLocked,
         { transform: [{ translateY: pressed ? 2 : 0 }] },
       ]}
     >
       {section ? (
         <View style={styles.sectionBox} pointerEvents="none">
-          <View style={styles.section}>
-            <T size={10} weight="bold" color={SKIN.marqueeInk} numberOfLines={1}>
+          <View style={[styles.section, { backgroundColor: skin.marquee }]}>
+            <T size={10} weight="bold" color={skin.marqueeInk} numberOfLines={1}>
               {section.toUpperCase()}
             </T>
           </View>
@@ -498,25 +524,25 @@ function CityCard({
       <View style={styles.cardTop}>
         <T size={28}>{flag || '🏙️'}</T>
         {badge ? (
-          <View style={styles.badge}>
+          <View style={[styles.badge, { backgroundColor: skin.greenFace }]}>
             <T size={10} weight="bold" color="#FFFFFF">
               {badge}
             </T>
           </View>
         ) : null}
       </View>
-      <T size={14} weight="bold" color={SKIN.keyInk} numberOfLines={2} style={{ lineHeight: 17 }}>
+      <T size={14} weight="bold" color={ink} numberOfLines={2} style={{ lineHeight: 17 }}>
         {name}
       </T>
       {opensIn !== null ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Icon name="lock" size={12} color="#5B6080" />
-          <T size={12} color="#5B6080" numberOfLines={1}>
+          <Icon name="lock" size={12} color={soft} />
+          <T size={12} color={soft} numberOfLines={1}>
             {t('picker.lockedCard', { n: opensIn })}
           </T>
         </View>
       ) : (
-        <T size={12} color="#5B6080" numberOfLines={1}>
+        <T size={12} color={soft} numberOfLines={1}>
           {distance}
         </T>
       )}
@@ -543,9 +569,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACE.s,
     paddingHorizontal: SPACE.m,
     borderRadius: RADIUS.pill,
-    backgroundColor: SKIN.cabinet,
     borderBottomWidth: 3,
-    borderBottomColor: SKIN.cabinetEdge,
   },
   crossWrap: { position: 'absolute', width: 28, height: 28 },
   hintWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
@@ -556,7 +580,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: SPACE.m,
     borderRadius: RADIUS.pill,
-    backgroundColor: SKIN.keyInk,
   },
   cross: {
     flex: 1,
@@ -575,7 +598,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: SPACE.m,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.18,
@@ -588,11 +610,9 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingTop: SPACE.m,
-    backgroundColor: SKIN.cabinet,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     borderTopWidth: 4,
-    borderTopColor: SKIN.cabinetLight,
   },
   card: {
     width: CARD_W,
@@ -600,17 +620,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     padding: SPACE.s,
     borderRadius: 16,
-    backgroundColor: SKIN.keyFace,
     borderBottomWidth: 4,
-    borderBottomColor: SKIN.keyEdge,
     justifyContent: 'space-between',
   },
   cardSelected: {
-    backgroundColor: SKIN.marquee,
     borderWidth: 3,
-    borderColor: SKIN.bulb,
     borderBottomWidth: 5,
-    borderBottomColor: SKIN.cabinetEdge,
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   cardLocked: { opacity: 0.55 },
@@ -618,7 +633,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADIUS.pill,
-    backgroundColor: SKIN.greenFace,
   },
   // A wider, invisible box so the pill can run past the card's edge.
   sectionBox: {
@@ -633,7 +647,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: RADIUS.pill,
-    backgroundColor: SKIN.marquee,
   },
   keyFace: {
     flexDirection: 'row',

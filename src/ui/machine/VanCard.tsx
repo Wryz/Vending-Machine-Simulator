@@ -7,7 +7,7 @@ import { deliveryProgress, type Delivery } from '@/sim';
 
 import { Icon } from '../icons';
 import { Mono, T } from '../kit';
-import { LedBar, SKIN } from '../skin';
+import { LedBar, useSkin } from '../skin';
 import { SPACE } from '../theme';
 
 /** "0:34", "1:05": time left on a short trip. */
@@ -22,6 +22,7 @@ export function clockDuration(ms: number): string {
  */
 export function VanCard({ delivery, driverName }: { delivery: Delivery; driverName?: string }) {
   const t = useT();
+  const skin = useSkin();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 250);
@@ -34,21 +35,23 @@ export function VanCard({ delivery, driverName }: { delivery: Delivery; driverNa
   const store = delivery.from.name ? venueName(delivery.from.name) : '';
   return (
     <View
-      style={styles.card}
+      style={[styles.card, { backgroundColor: skin.card, borderColor: skin.cabinet }]}
       accessible
       accessibilityLabel={t('machinePanel.van.a11y', { n: delivery.units, time: left })}
     >
       <View style={styles.top}>
-        <View style={[styles.badge, driverName ? { backgroundColor: SKIN.driverVan } : null]}>
+        <View
+          style={[styles.badge, { backgroundColor: driverName ? skin.driverVan : skin.cabinet }]}
+        >
           <Icon name="van" size={26} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <T size={17} weight="bold" color={SKIN.keyInk}>
+          <T size={17} weight="bold" color={skin.keyInk}>
             {driverName
               ? t('machinePanel.van.driverTitle', { name: driverName })
               : t('machinePanel.van.title')}
           </T>
-          <T size={14} color="#4A4F6A" numberOfLines={1}>
+          <T size={14} color={skin.cardMuted} numberOfLines={1}>
             {elsewhere
               ? t('machinePanel.van.otherStops')
               : loading
@@ -58,11 +61,11 @@ export function VanCard({ delivery, driverName }: { delivery: Delivery; driverNa
                   : t('machinePanel.van.fromDepot')}
           </T>
         </View>
-        <Mono size={15} weight="bold" color={SKIN.keyInk}>
+        <Mono size={15} weight="bold" color={skin.keyInk}>
           {t('machinePanel.van.eta', { time: left })}
         </Mono>
       </View>
-      <LedBar value={deliveryProgress(delivery, now)} color={SKIN.ledAmber} />
+      <LedBar value={deliveryProgress(delivery, now)} color={skin.ledAmber} />
     </View>
   );
 }
@@ -72,16 +75,13 @@ const styles = StyleSheet.create({
     gap: SPACE.s,
     padding: SPACE.m,
     borderRadius: 16,
-    backgroundColor: '#FFF6DE',
     borderWidth: 2,
-    borderColor: SKIN.cabinet,
   },
   top: { flexDirection: 'row', gap: SPACE.m, alignItems: 'center' },
   badge: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: SKIN.cabinet,
     alignItems: 'center',
     justifyContent: 'center',
   },

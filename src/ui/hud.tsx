@@ -7,7 +7,7 @@ import { Icon, type IconName } from './icons';
 import { T } from './kit';
 import { RollingMoney } from './RollingMoney';
 import { sfx } from './sfx';
-import { Key, keyInk, SKIN } from './skin';
+import { Key, keyInk, useSkin } from './skin';
 import { useTheme } from './ThemeProvider';
 import { RADIUS, SPACE, TOUCH } from './theme';
 
@@ -28,6 +28,7 @@ export function RoundButton({
   size?: number;
 }) {
   const t = useT();
+  const skin = useSkin();
   return (
     <View>
       <Key
@@ -41,7 +42,7 @@ export function RoundButton({
         }}
         faceStyle={{ paddingHorizontal: 0, width: size }}
       >
-        <Icon name={icon} size={size * 0.46} color={keyInk(active ? 'brand' : 'white')} />
+        <Icon name={icon} size={size * 0.46} color={keyInk(active ? 'brand' : 'white', skin)} />
       </Key>
       {badge ? <Badge text={badge} /> : null}
     </View>
@@ -61,14 +62,15 @@ export function Badge({ text }: { text: string }) {
 
 /** Cash on the machine's LED display. */
 export function CashPill({ cents, onPress }: { cents: number; onPress?: () => void }) {
+  const skin = useSkin();
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : 'text'}
       onPress={onPress}
       style={({ pressed }) => [styles.cash, { transform: [{ scale: pressed ? 0.96 : 1 }] }]}
     >
-      <View style={styles.cashLed}>
-        <RollingMoney cents={cents} size={19} color={SKIN.ledGreen} glow />
+      <View style={[styles.cashLed, { backgroundColor: skin.led, borderColor: skin.chrome }]}>
+        <RollingMoney cents={cents} size={19} color={skin.ledGreen} glow />
       </View>
     </Pressable>
   );
@@ -92,19 +94,16 @@ export function StatChip({
   children?: ReactNode;
 }) {
   const t = useT();
-  const theme = useTheme();
+  const skin = useSkin();
   return (
     <View
       accessible
       accessibilityLabel={value ? t('hud.statValue', { label, value }) : label}
-      style={[
-        styles.stat,
-        { backgroundColor: theme.dark ? theme.raised : SKIN.chrome, borderColor: SKIN.chromeDark },
-      ]}
+      style={[styles.stat, { backgroundColor: skin.chrome, borderColor: skin.chromeDark }]}
     >
-      <Icon name={icon} size={18} color={color ?? SKIN.keyInk} />
+      <Icon name={icon} size={18} color={color ?? skin.keyInk} />
       {value ? (
-        <T size={14} weight="bold" color={color ?? SKIN.keyInk}>
+        <T size={14} weight="bold" color={color ?? skin.keyInk}>
           {value}
         </T>
       ) : null}
@@ -156,11 +155,12 @@ export function InfoPill({
   style?: StyleProp<ViewStyle>;
 }) {
   const theme = useTheme();
+  const skin = useSkin();
   return (
     <View
       style={[
         styles.info,
-        { backgroundColor: SKIN.led, borderColor: '#0E1020', shadowColor: theme.shadow },
+        { backgroundColor: skin.led, borderColor: skin.ledEdge, shadowColor: theme.shadow },
         style,
       ]}
     >
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: SKIN.ledAmber,
+    backgroundColor: '#FFC94D',
     borderWidth: 3,
     borderColor: '#E8A21A',
     zIndex: 1,
@@ -223,10 +223,8 @@ const styles = StyleSheet.create({
   },
   cash: { flexDirection: 'row', alignItems: 'center', gap: -10 },
   cashLed: {
-    backgroundColor: SKIN.led,
     borderRadius: 12,
     borderWidth: 3,
-    borderColor: SKIN.chrome,
     paddingHorizontal: SPACE.m,
     paddingVertical: 4,
     ...shadow,

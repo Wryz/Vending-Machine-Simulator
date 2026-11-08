@@ -18,6 +18,7 @@ export default {
     contract: 'Contract',
     renewing: 'renewing', // contract time left when it is renewing now
     mood: 'Venue mood {pct}%',
+    moodLabel: 'Venue mood',
     noTelemetry: 'No telemetry: stock shown from your last visit',
     techIn: 'Technician arrives in',
     suggested: 'Suggested price',
@@ -25,7 +26,7 @@ export default {
     demand: 'Demand at this price',
     pricesLocked: 'Price changes',
     driverPar: 'Driver refills to',
-    slots: 'Coils × items each',
+    slots: 'Capacity (items it holds)',
     power: 'Power cost per day',
     breakdowns: 'Breakdown odds per day',
     theft: 'Theft risk',

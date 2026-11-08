@@ -11,7 +11,7 @@ import { moneyShort } from './format';
 import { Icon, type IconName } from './icons';
 import { Mono, T } from './kit';
 import { BRIGHTVEND, RivalPortrait } from './RivalPortrait';
-import { Key, keyInk } from './skin';
+import { Key, keyInk, useSkin } from './skin';
 import { sfx } from './sfx';
 import { useTheme } from './ThemeProvider';
 import { RADIUS, SPACE } from './theme';
@@ -56,6 +56,7 @@ const VIP_GOLD = '#F5B700';
  */
 export function CelebrationHost() {
   const t = useT();
+  const skin = useSkin();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const head = useCelebrations((s) => s.queue[0]);
@@ -144,7 +145,7 @@ export function CelebrationHost() {
               }}
               faceStyle={{ paddingHorizontal: SPACE.m }}
             >
-              <T size={14} weight="bold" color={keyInk('green')}>
+              <T size={14} weight="bold" color={keyInk('green', skin)}>
                 {head.action.label}
               </T>
             </Key>

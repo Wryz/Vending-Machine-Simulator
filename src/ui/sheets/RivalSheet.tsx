@@ -14,7 +14,8 @@ import { Icon } from '../icons';
 import { T, Toast } from '../kit';
 import { BRIGHTVEND, RivalPortrait } from '../RivalPortrait';
 import { sfx } from '../sfx';
-import { Glass, Key, keyInk, Led, Marquee, SKIN } from '../skin';
+import { Glass, Key, keyInk, Led, Marquee, useSkin } from '../skin';
+import { useTheme } from '../ThemeProvider';
 import { RADIUS, SPACE } from '../theme';
 import { GameSheet, SheetScroll, type GameSheetHandle } from './GameSheet';
 
@@ -35,6 +36,8 @@ export const RivalSheet = forwardRef<
   }
 >(function RivalSheet({ rivalId, bottomInset, onDismiss, onBetterSpot }, ref) {
   const t = useT();
+  const skin = useSkin();
+  const dark = useTheme().dark;
   const game = useGame((s) => s.game);
   const sheet = useRef<GameSheetHandle>(null);
   useImperativeHandle(
@@ -90,7 +93,12 @@ export const RivalSheet = forwardRef<
       ref={sheet}
       openShare={SHEET_OPEN_SHARE.rival}
       closeLabel={t('rival.sheet.a11y.close')}
-      cabinet={{ color: BRIGHTVEND.violet, light: '#9A86FF', dark: BRIGHTVEND.violetDark }}
+      cabinet={
+        dark
+          ? // After dark: the same violet, deepened like the house cabinet.
+            { color: '#4E3BB0', light: '#5D49C2', dark: '#36287F' }
+          : { color: BRIGHTVEND.violet, light: '#9A86FF', dark: BRIGHTVEND.violetDark }
+      }
       onDismiss={() => {
         setToast(null);
         onDismiss();
@@ -133,11 +141,11 @@ export const RivalSheet = forwardRef<
                   <T size={12} weight="bold" muted>
                     {t('rival.sheet.theirs')}
                   </T>
-                  <Led color={SKIN.ledRed} size={22}>
+                  <Led color={skin.ledRed} size={22}>
                     {match.theirsCents !== null ? money(match.theirsCents) : '—'}
                   </Led>
                 </View>
-                <View style={styles.divider} />
+                <View style={[styles.divider, { backgroundColor: skin.iconSoft }]} />
                 <View style={styles.priceCol}>
                   <T size={12} weight="bold" muted>
                     {t('rival.sheet.yours')}
@@ -168,8 +176,8 @@ export const RivalSheet = forwardRef<
                 onPress={undercut}
               >
                 <View style={styles.keyRow}>
-                  <Icon name="tag" size={20} color={keyInk('brand')} />
-                  <T size={16} weight="bold" color={keyInk('brand')}>
+                  <Icon name="tag" size={20} color={keyInk('brand', skin)} />
+                  <T size={16} weight="bold" color={keyInk('brand', skin)}>
                     {t('rival.sheet.undercut')}
                   </T>
                 </View>
@@ -183,8 +191,8 @@ export const RivalSheet = forwardRef<
                 }}
               >
                 <View style={styles.keyRow}>
-                  <Icon name="flame" size={20} color={keyInk('white')} />
-                  <T size={15} weight="bold" color={keyInk('white')} numberOfLines={1}>
+                  <Icon name="flame" size={20} color={keyInk('white', skin)} />
+                  <T size={15} weight="bold" color={keyInk('white', skin)} numberOfLines={1}>
                     {t('rival.sheet.betterSpot')}
                   </T>
                 </View>
@@ -239,7 +247,7 @@ const styles = StyleSheet.create({
   },
   prices: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
   priceCol: { alignItems: 'center', gap: 4 },
-  divider: { width: 2, height: 44, borderRadius: 1, backgroundColor: SKIN.chromeDark },
+  divider: { width: 2, height: 44, borderRadius: 1 },
   keys: { flexDirection: 'row', gap: SPACE.m },
   keyRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.s },
   toast: { position: 'absolute', top: SPACE.s, left: SPACE.l, right: SPACE.l, zIndex: 3 },
