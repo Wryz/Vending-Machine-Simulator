@@ -1,4 +1,4 @@
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { getMachineType } from '@/config/machines';
 import { getProduct } from '@/config/products';
@@ -10,25 +10,43 @@ import { machineTypeFor, type CustomerRequest } from '@/sim';
 
 import { moneyShort } from '../format';
 import { Button, Mono, T } from '../kit';
+import { Icon } from '../icons';
 import { Glyph } from '../objects/small';
 import { PRODUCT_IMAGES } from '../productImages';
 import { SKIN } from '../skin';
-import { SPACE } from '../theme';
+import { useTheme } from '../ThemeProvider';
+import { SPACE, TOUCH } from '../theme';
+
+/**
+ * Where a request stands at this machine:
+ * - `load`: nothing planned yet (add it to the restock plan);
+ * - `planned`: in the plan, not ordered (order the van from here);
+ * - `coming`: a van with it is on its way (wait; served when it arrives);
+ * - `vanBusy`: a van without it is on its way (add it after that one).
+ * A machine that can't sell it shows which type could instead.
+ */
+export type RequestStage =
+  | { kind: 'load' }
+  | { kind: 'planned'; orderLabel: string }
+  | { kind: 'coming'; eta: string }
+  | { kind: 'vanBusy' };
 
 /**
  * A customer's request in the machine sheet: who (where they came from, why),
- * what they want, how long they'll wait and the tip. "Load it" puts the
- * product in a coil (then Restock); when this machine can't sell it, the card
- * says which machine type nearby could.
+ * what they want, how long they'll wait and the tip, then the one next step
+ * (add it, order the van, or wait for it). When this machine can't sell it,
+ * the card says which machine type nearby could. The X waves it away.
  */
 export function RequestCard({
   request,
   waitLabel,
   chapter,
   fits,
-  loaded,
+  stage,
   priceCents,
   onLoad,
+  onOrder,
+  onDismiss,
 }: {
   request: CustomerRequest;
   /** Time left before they give up, already formatted. */
@@ -36,12 +54,14 @@ export function RequestCard({
   chapter: number;
   /** This machine can sell it. */
   fits: boolean;
-  /** It is already planned for a coil (waiting for Restock). */
-  loaded: boolean;
+  stage: RequestStage;
   priceCents: number;
   onLoad: () => void;
+  onOrder: () => void;
+  onDismiss: () => void;
 }) {
   const t = useT();
+  const theme = useTheme();
   const product = getProduct(request.productId);
   const image = PRODUCT_IMAGES[product.id];
   const place = request.from.name ? venueName(request.from.name) : '';
@@ -49,6 +69,16 @@ export function RequestCard({
   const otherType = other ? getMachineType(other) : null;
   return (
     <View style={styles.card} accessibilityLiveRegion="polite">
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('requests.card.dismiss')}
+        onPress={onDismiss}
+        style={({ pressed }) => [styles.close, { opacity: pressed ? 0.5 : 1 }]}
+      >
+        <View style={styles.closeFace}>
+          <Icon name="close" size={14} color="#8A6A1E" />
+        </View>
+      </Pressable>
       <View style={styles.top}>
         <View style={styles.thumb}>
           {image ? <Image source={image} style={styles.image} resizeMode="contain" /> : null}
@@ -56,7 +86,7 @@ export function RequestCard({
             <Glyph category={request.from.category} size={14} />
           </View>
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: 2, paddingRight: SPACE.xl }}>
           <Mono size={11} weight="bold" color="#8A6A1E">
             {t('requests.card.label').toUpperCase()}
           </Mono>
@@ -79,12 +109,43 @@ export function RequestCard({
         </Mono>
       </View>
       {fits ? (
-        <Button
-          kind={loaded ? 'secondary' : 'primary'}
-          label={loaded ? t('requests.card.loaded') : t('requests.card.load')}
-          disabled={loaded}
-          onPress={onLoad}
-        />
+        stage.kind === 'coming' ? (
+          <View style={styles.status}>
+            <Icon name="van" size={22} color={SKIN.cabinetDark} />
+            <View style={{ flex: 1 }}>
+              <T size={15} weight="bold" color={SKIN.keyInk}>
+                {t('requests.card.coming', { time: stage.eta })}
+              </T>
+              <T size={13} color="#4A4F6A">
+                {t('requests.card.comingNote')}
+              </T>
+            </View>
+          </View>
+        ) : stage.kind === 'vanBusy' ? (
+          <View style={styles.status}>
+            <Icon name="van" size={22} color="#8A5A00" />
+            <T size={14} color="#8A5A00" style={{ flex: 1 }}>
+              {t('requests.card.vanBusy')}
+            </T>
+          </View>
+        ) : stage.kind === 'planned' ? (
+          <>
+            <T size={14} color="#4A4F6A">
+              {t('requests.card.planned')}
+            </T>
+            <Button
+              label={stage.orderLabel}
+              icon={<Icon name="van" size={20} color={theme.onBrand} />}
+              onPress={onOrder}
+            />
+          </>
+        ) : (
+          <Button
+            label={t('requests.card.load')}
+            icon={<Icon name="box" size={20} color={theme.onBrand} />}
+            onPress={onLoad}
+          />
+        )
       ) : otherType ? (
         <T size={14} color="#8A5A00">
           {t('requests.card.otherMachine', {
@@ -133,4 +194,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chips: { flexDirection: 'row', justifyContent: 'space-between' },
+  status: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s,
+    padding: SPACE.s,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  // 44pt hit target in the corner; the visible face is smaller.
+  close: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: TOUCH,
+    height: TOUCH,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  closeFace: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFE7A8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

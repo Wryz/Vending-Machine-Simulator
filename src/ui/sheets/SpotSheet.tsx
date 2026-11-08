@@ -2,17 +2,15 @@ import { router } from 'expo-router';
 import { forwardRef, useMemo, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
-import { getMachineType, type MachineTypeId } from '@/config/machines';
+import type { MachineTypeId } from '@/config/machines';
 import { SHEET_OPEN_SHARE } from '@/config/map';
 import { CATEGORY_LABEL, VENUE_CATEGORIES, VENUE_RADIUS_M } from '@/config/places';
 import { TUTORIAL } from '@/config/tutorial';
 import type { PlaceCategory } from '@/data/types';
 import { useT } from '@/i18n';
-import { content } from '@/i18n/content';
 import { logText, simError } from '@/i18n/sim';
 import {
   availableMachineTypes,
-  upcomingFamilies,
   evaluateSpot,
   hidePlace,
   localTime,
@@ -31,6 +29,7 @@ import { useTheme } from '../ThemeProvider';
 import { RADIUS, SPACE } from '../theme';
 import { GuideLine, Pulse, useTutorialStep } from '../guide';
 import { GameSheet, SheetScroll, type GameSheetHandle } from './GameSheet';
+import { MachineChooser } from './MachineChooser';
 
 export interface SpotPoint {
   lat: number;
@@ -88,14 +87,11 @@ function SpotBody({
   const t = useT();
   /** Place category label in the UI language (config has English). */
   const categoryLabel = (c: PlaceCategory) => t.or(`content.places.${c}`, CATEGORY_LABEL[c]);
-  const typeName = (id: MachineTypeId) => content.machineType(id, getMachineType(id).name);
   const storedId = machineId || game.machines.find((m) => m.status === 'stored')?.id || '';
   const stored = game.machines.find((m) => m.id === storedId);
   const types = availableMachineTypes(game, world);
-  const upcoming = upcomingFamilies(game, world);
-  const [typeId, setTypeId] = useState<MachineTypeId>(
-    stored?.typeId ?? types[0]?.id ?? 'used-snack',
-  );
+  // The card's numbers use your stored machine, else the first type you can buy (you pick on Place).
+  const typeId: MachineTypeId = stored?.typeId ?? types[0]?.id ?? 'used-snack';
   const [placeId, setPlaceId] = useState<string | undefined>(point.placeId);
 
   const spot = useMemo(
@@ -107,18 +103,22 @@ function SpotBody({
   const hourNow = Math.floor(localTime(game.now, world.city.timeZone, world.city.countryCode).hour);
   const rating = Math.round(spot.rating);
   const canPlace = !spot.districtLocked && !spot.blocked;
-  const placingOwned = !!stored && stored.typeId === typeId;
-  const place = () =>
+  const [choosing, setChoosing] = useState(false);
+  const goPlace = (pick: MachineTypeId, ownedId: string | null) => {
+    setChoosing(false);
     router.push({
       pathname: '/place',
       params: {
         lat: String(point.lat),
         lng: String(point.lng),
-        typeId,
-        machineId: placingOwned ? stored.id : '',
+        typeId: pick,
+        machineId: ownedId ?? '',
         placeId: spot.venue.placeId,
       },
     });
+  };
+  // Choose which machine first (the stored one, a type to buy, or what opens later).
+  const place = () => setChoosing(true);
   // Tutorial: say whether this is a good first spot, with a Place key up top.
   const guiding = useTutorialStep() === 'place';
   const quiet = spot.rating < TUTORIAL.quietBelowStars;
@@ -233,38 +233,6 @@ function SpotBody({
         </View>
       </Glass>
 
-      {stored || types.length > 1 || upcoming.length ? (
-        <Row style={{ flexWrap: 'wrap' }}>
-          {stored ? (
-            <Chip
-              label={t('spotSheet.yours', { type: typeName(stored.typeId) })}
-              active={typeId === stored.typeId}
-              onPress={() => setTypeId(stored.typeId)}
-            />
-          ) : null}
-          {types
-            .slice(0, 6)
-            .map((mt) =>
-              stored && stored.typeId === mt.id ? null : (
-                <Chip
-                  key={mt.id}
-                  label={content.machineType(mt.id, mt.name)}
-                  color={theme.family[mt.family]}
-                  active={typeId === mt.id && !placingOwned}
-                  onPress={() => setTypeId(mt.id)}
-                />
-              ),
-            )}
-          {/* Families that open later, greyed with their chapter, so you can see what's coming. */}
-          {upcoming.map((u) => (
-            <Chip
-              key={u.type.id}
-              label={t('spotSheet.lockedType', { type: typeName(u.type.id), n: u.chapter })}
-            />
-          ))}
-        </Row>
-      ) : null}
-
       {spot.districtLocked ? (
         <T color={theme.alert}>
           {spot.hood
@@ -275,20 +243,29 @@ function SpotBody({
       {spot.blocked ? <T color={theme.alert}>{simError(spot.blocked)}</T> : null}
       <Pulse on={guiding && canPlace && !quiet}>
         <Button
-          label={
-            placingOwned
-              ? t('spotSheet.placeMine')
-              : t('spotSheet.placeType', { type: typeName(typeId) })
-          }
+          label={stored ? t('spotSheet.placeMine') : t('spotSheet.placeHere')}
           disabled={!canPlace}
           onPress={place}
         />
       </Pulse>
+      <MachineChooser
+        visible={choosing}
+        game={game}
+        world={world}
+        point={point}
+        placeId={spot.venue.placeId}
+        stored={stored ? { id: stored.id, typeId: stored.typeId } : null}
+        onPick={goPlace}
+        onClose={() => setChoosing(false)}
+      />
 
       <AreaFacts spot={spot} hourNow={hourNow} categoryLabel={categoryLabel} />
 
       <View style={{ gap: SPACE.s }}>
         <Plate>{t('spotSheet.nearby')}</Plate>
+        <T size={12} color="#FFFFFF">
+          {t('spotSheet.hostExplain', { pct: `${Math.round(spot.commission * 100)}%` })}
+        </T>
         {spot.nearby.length === 0 ? <T color="#FFFFFF">{t('spotSheet.noNearby')}</T> : null}
         {spot.nearby.map((p) => (
           <Row key={p.id} style={styles.place}>
@@ -304,12 +281,18 @@ function SpotBody({
                 })}
               </T>
             </View>
-            {p.distanceM <= VENUE_RADIUS_M && VENUE_CATEGORIES.includes(p.category) ? (
+            {spot.venue.placeId === p.id ? (
+              // The current host: a badge, not a button (nothing to do).
+              <View style={styles.hostBadge} accessible accessibilityLabel={`${t('spotSheet.yourHost')} · ${p.name}`}>
+                <T size={12} weight="bold" color="#FFFFFF">
+                  {t('spotSheet.yourHost')}
+                </T>
+              </View>
+            ) : p.distanceM <= VENUE_RADIUS_M && VENUE_CATEGORIES.includes(p.category) ? (
               <Chip
-                label={spot.venue.placeId === p.id ? t('spotSheet.host') : t('spotSheet.use')}
-                active={spot.venue.placeId === p.id}
+                label={t('spotSheet.makeHost')}
                 onPress={() => setPlaceId(p.id)}
-                accessibilityLabel={`${spot.venue.placeId === p.id ? t('spotSheet.host') : t('spotSheet.use')} · ${p.name}`}
+                accessibilityLabel={`${t('spotSheet.makeHost')} · ${p.name}`}
               />
             ) : null}
             <Chip
@@ -426,6 +409,12 @@ function compact(n: number): string {
 }
 
 const styles = StyleSheet.create({
+  hostBadge: {
+    backgroundColor: SKIN.cabinetDark,
+    borderRadius: 14,
+    paddingHorizontal: SPACE.m,
+    paddingVertical: 6,
+  },
   fact: {
     backgroundColor: '#FFFFFF',
     borderRadius: RADIUS.s,

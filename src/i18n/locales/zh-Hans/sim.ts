@@ -5,6 +5,7 @@ import type en from '../en/sim';
 export default {
   errors: {
     vanOnItsWay: '已经有一辆货车在路上了。',
+    requestGone: '这个请求已经没有了。',
     vansOut: '你的货车都出去了。',
     pickRestock: '选择要补的商品。',
     nothingLow: '没有快空的售货机。',

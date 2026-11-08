@@ -28,9 +28,19 @@ export default {
     label: 'Customer request',
     /** {product} = invented product name. */
     title: 'Wants {product}',
-    /** Button: put the product in a coil (then Restock). */
-    load: 'Load it',
-    loaded: 'Now tap Restock',
+    /** Button: put the product in a coil of the restock plan. */
+    load: 'Add to restock',
+    // shown once the product is in the restock plan
+    planned: 'In your restock plan. Order it to send a van.',
+    // button: send the van now
+    order: 'Order restock · {cost}',
+    // a van with it is on its way; {time} like "1:05"
+    coming: 'Waiting for delivery · about {time}',
+    comingNote: 'They buy it as soon as the van arrives.',
+    // a van without it is on its way
+    vanBusy: 'A van is already on its way. Add it once it arrives.',
+    // accessibility label of the X
+    dismiss: 'Dismiss request',
     /** Time left before they give up, e.g. "8 min". */
     waiting: 'Waits {time}',
     tip: 'Tip {amount}',

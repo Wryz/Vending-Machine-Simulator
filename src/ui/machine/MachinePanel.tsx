@@ -13,15 +13,14 @@ import {
   canCarry,
   cashBoxCapacity,
   collectCash,
+  dismissRequest,
   hasResearch,
   pickUpMachine,
   orderRestock,
   priceResponse,
   productsFor,
-  renegotiate,
   repairMachine,
   quoteDelivery,
-  rotateMachine,
   setPar,
   setPrice,
   slotCapacity,
@@ -46,7 +45,8 @@ import { hasTelemetry, machineStatus } from '../machineStatus';
 import { CoinTray } from '../objects/CoinTray';
 import { MachineWindow } from './MachineWindow';
 import { clockDuration, VanCard } from './VanCard';
-import { RequestCard } from './RequestCard';
+import { RequestCard, type RequestStage } from './RequestCard';
+import { SpecGrid, type Spec } from './SpecGrid';
 import { statusLabel } from '../objects/KeyTag';
 import { PRODUCT_IMAGES } from '../productImages';
 import { GuideLine, Pulse, useTutorialStep } from '../guide';
@@ -169,6 +169,24 @@ export function MachinePanel({
   const requestFits = !!request && canCarry(game, machine, request.productId);
   const requestLoaded =
     !!request && Object.values(plan).some((l) => l.productId === request.productId);
+  const requestOnVan =
+    !!request && !!onTheWay?.lines.some((l) => l.productId === request.productId && l.qty > 0);
+  const requestStage: RequestStage = requestOnVan
+    ? { kind: 'coming', eta: clockDuration(onTheWay!.arriveAt - game.now) }
+    : onTheWay
+      ? { kind: 'vanBusy' }
+      : requestLoaded
+        ? {
+            kind: 'planned',
+            orderLabel: t('requests.card.order', { cost: moneyShort(plannedCost) }),
+          }
+        : { kind: 'load' };
+  const dismiss = () => {
+    if (!request) return;
+    const r = useGame.getState().act((d) => dismissRequest(d, request.id));
+    if (!r.ok) show(simError(r.error), 'error');
+    else haptic.select();
+  };
   /** Put the requested product in a coil: one that has it, else an empty one, else the emptiest. */
   const loadRequest = () => {
     if (!request) return;
@@ -275,6 +293,46 @@ export function MachinePanel({
   const ownedResearch = RESEARCH.filter((r) => hasResearch(game, r.id, type.family)).map((r) =>
     content.researchName(r.id, r.name),
   );
+
+  const theftLevel =
+    type.theftRisk >= 1.4
+      ? t('machinePanel.stats.theftHigh')
+      : type.theftRisk >= 1
+        ? t('machinePanel.stats.theftMed')
+        : t('machinePanel.stats.theftLow');
+  // The city's clock (the phone's until the city data is in).
+  const timeZone = world?.city.timeZone;
+  const specs: Spec[] = [
+    { icon: 'grid', label: t('machinePanel.stats.slots'), value: `${type.slots} × ${cap}` },
+    { icon: 'bolt', label: t('machinePanel.stats.power'), value: money(type.powerCentsPerDay) },
+    {
+      icon: 'wrench',
+      label: t('machinePanel.stats.breakdowns'),
+      value: pct(type.breakdownPerDay, 1),
+    },
+    { icon: 'eyeOff', label: t('machinePanel.stats.theft'), value: theftLevel },
+    {
+      icon: 'bag',
+      label: t('machinePanel.stats.sold'),
+      value: count(machine.stats.unitsTotal, t.lang),
+    },
+    {
+      icon: 'coin',
+      label: t('machinePanel.stats.revenue'),
+      value: moneyShort(machine.stats.revenueTotalCents),
+    },
+    {
+      icon: 'clock',
+      label: t('machinePanel.stats.placed'),
+      value: placedAt(machine.placedAt, timeZone, t.lang),
+    },
+    ...ownedResearch.map((r): Spec => ({
+      icon: 'star',
+      label: t('machinePanel.stats.upgrade'),
+      value: r,
+      color: theme.brand,
+    })),
+  ];
 
   return (
     <View style={{ gap: SPACE.l }}>
@@ -388,12 +446,14 @@ export function MachinePanel({
           waitLabel={shortDuration(Math.max(0, request.until - game.now))}
           chapter={game.chapter}
           fits={requestFits}
-          loaded={requestLoaded}
+          stage={requestStage}
           priceCents={
             machine.slots.find((s) => s.productId === request.productId)?.priceCents ||
             getProduct(request.productId).suggestedCents
           }
           onLoad={loadRequest}
+          onOrder={commitRestock}
+          onDismiss={dismiss}
         />
       ) : null}
 
@@ -448,7 +508,7 @@ export function MachinePanel({
       </Row>
       {plannedUnits && !onTheWay ? (
         <Row gap={SPACE.s}>
-          <Pulse on={guide?.key === 'restock' || requestLoaded} style={{ flex: 1 }}>
+          <Pulse on={guide?.key === 'restock'} style={{ flex: 1 }}>
             <Button
               label={t('machinePanel.actions.restock', {
                 n: plannedUnits,
@@ -562,30 +622,35 @@ export function MachinePanel({
                   onPress={() => changePrice(selected, 1)}
                 />
               </Row>
-              <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-                <StatChip
-                  icon="tag"
-                  label={t('machinePanel.stats.suggested')}
-                  value={moneyPrice(selProduct.suggestedCents)}
-                />
-                <StatChip
-                  icon="box"
-                  label={t('machinePanel.stats.wholesale')}
-                  value={money(selProduct.wholesaleCents)}
-                />
-                <StatChip
-                  icon="people"
-                  label={t('machinePanel.stats.demand')}
-                  value={pct(priceResponse(sel.priceCents / selProduct.suggestedCents))}
-                />
-                {!canPrice ? (
-                  <StatChip
-                    icon="lock"
-                    label={t('machinePanel.stats.pricesLocked')}
-                    value={t('machinePanel.stats.pricesLockedValue')}
-                  />
-                ) : null}
-              </Row>
+              <SpecGrid
+                specs={[
+                  {
+                    icon: 'tag',
+                    label: t('machinePanel.stats.suggested'),
+                    value: moneyPrice(selProduct.suggestedCents),
+                  },
+                  {
+                    icon: 'box',
+                    label: t('machinePanel.stats.wholesale'),
+                    value: money(selProduct.wholesaleCents),
+                  },
+                  {
+                    icon: 'people',
+                    label: t('machinePanel.stats.demand'),
+                    value: pct(priceResponse(sel.priceCents / selProduct.suggestedCents)),
+                  },
+                  ...(canPrice
+                    ? []
+                    : [
+                        {
+                          icon: 'tag' as const,
+                          label: t('machinePanel.stats.pricesLocked'),
+                          value: '',
+                          lockedUntil: PRICES_OPEN_CHAPTER,
+                        },
+                      ]),
+                ]}
+              />
               {hasResearch(game, 'auto-reorder', type.family) ? (
                 <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
                   <Stepper
@@ -627,78 +692,10 @@ export function MachinePanel({
       />
       {more ? (
         <>
-          {/* Spec: icons and numbers. */}
-          <Row style={{ flexWrap: 'wrap' }}>
-            <StatChip
-              icon="grid"
-              label={t('machinePanel.stats.slots')}
-              value={`${type.slots}×${cap}`}
-            />
-            <StatChip
-              icon="bolt"
-              label={t('machinePanel.stats.power')}
-              value={money(type.powerCentsPerDay)}
-            />
-            <StatChip
-              icon="wrench"
-              label={t('machinePanel.stats.breakdowns')}
-              value={`${(type.breakdownPerDay * 100).toFixed(1)}%`}
-            />
-            <StatChip
-              icon="lock"
-              label={t('machinePanel.stats.theft')}
-              value={
-                type.theftRisk >= 1.4
-                  ? t('machinePanel.stats.theftHigh')
-                  : type.theftRisk >= 1
-                    ? t('machinePanel.stats.theftMed')
-                    : t('machinePanel.stats.theftLow')
-              }
-            />
-            <StatChip
-              icon="bag"
-              label={t('machinePanel.stats.sold')}
-              value={String(machine.stats.unitsTotal)}
-            />
-            <StatChip
-              icon="coin"
-              label={t('machinePanel.stats.revenue')}
-              value={moneyShort(machine.stats.revenueTotalCents)}
-            />
-            {ownedResearch.map((r) => (
-              <StatChip
-                key={r}
-                icon="star"
-                label={t('machinePanel.stats.upgrade')}
-                value={r}
-                color={theme.brand}
-              />
-            ))}
-          </Row>
+          {/* Spec sheet: each number with what it is. */}
+          <SpecGrid specs={specs} />
 
-          <Row style={{ flexWrap: 'wrap' }}>
-            <IconChip
-              icon="rotate"
-              label={t('machinePanel.actions.rotate')}
-              onPress={() =>
-                useGame.getState().act((d) => rotateMachine(d, machine.id, machine.heading + 90))
-              }
-            />
-            {!machine.contract.renegotiated ? (
-              <IconChip
-                icon="handshake"
-                label={t('machinePanel.actions.renegotiate')}
-                onPress={() => {
-                  const r = useGame.getState().act((d) => renegotiate(d, machine.id));
-                  show(
-                    r.ok
-                      ? t('machinePanel.toast.commission', { pct: pct(r.commission, 1) })
-                      : simError(r.error),
-                    r.ok ? 'success' : 'error',
-                  );
-                }}
-              />
-            ) : null}
+          <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
             <IconChip
               icon="box"
               label={t('machinePanel.actions.pickUp')}
@@ -787,6 +784,33 @@ function IconChip({
       </T>
     </Pressable>
   );
+}
+
+/** Price changes open once chapter 1 is done (see `canPrice`). */
+const PRICES_OPEN_CHAPTER = 2;
+
+/** A whole number in the UI language ("1,128", "1.128"). */
+function count(n: number, lang: string): string {
+  try {
+    return new Intl.NumberFormat(lang).format(n);
+  } catch {
+    return String(n);
+  }
+}
+
+/** When a machine was placed, in the city's local time and the UI language ("6 Nov, 14:05"). */
+function placedAt(at: number, timeZone: string | undefined, lang: string): string {
+  try {
+    return new Intl.DateTimeFormat(lang === 'en' ? 'en-GB' : lang, {
+      timeZone,
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(at));
+  } catch {
+    return new Date(at).toISOString().slice(0, 16).replace('T', ' ');
+  }
 }
 
 /** "12 h", "3 d", "45 m". */

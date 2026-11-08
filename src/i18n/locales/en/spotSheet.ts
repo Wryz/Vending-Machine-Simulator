@@ -1,5 +1,19 @@
 /** Spot Card sheet over the map (src/ui/sheets/SpotSheet.tsx): is this a good spot, and why. */
 export default {
+  placeHere: 'Place a machine here',
+  yourHost: 'Your host',
+  makeHost: 'Make host',
+  hostExplain: 'Your machine stands at its host: the host brings its customers and takes {pct} of sales. Pick another nearby place with Make host.',
+  chooser: {
+    title: 'Choose a machine',
+    perDay: 'About {amount} a day here',
+    install: 'Install {price}',
+    chapter: 'Chapter {n}',
+    cancel: 'Cancel',
+    a11yOwned: 'Place your {type}',
+    a11yBuy: 'Buy and place {type} for {price}',
+    a11yLocked: '{type}, opens in chapter {n}',
+  },
   streetCorner: 'Street corner', // marquee title for a spot with no venue
   district: 'District {n}', // marquee subtitle; {n} = district number
   venueLine: '{category} · {distance}', // marquee subtitle
@@ -7,15 +21,11 @@ export default {
   perDay: 'per day', // small caption under an LED number (sales)
   yours: '{type} (yours)', // machine type chip for the stored machine you own
   districtLocked: 'This area opens in chapter {n}. Your open area is outlined in orange.', // {n} = chapter number
-  lockedType: '🔒 {type} · Ch. {n}', // greyed chip: a machine type that opens in chapter {n}
   hoodLocked: '{name} opens in chapter {n}. Your open area is outlined in orange.', // {name} = real neighbourhood
   placeMine: 'Place my machine here',
-  placeType: 'Place {type}',
   nearby: 'Nearby', // plate heading
   noNearby: 'No named places within 400 m.',
   placeLine: '{category} · {distance}',
-  host: 'Host', // chip: this place hosts the machine, ~6 chars
-  use: 'Use', // chip: make this place the host, ~6 chars
   report: 'Report', // chip: report/hide a map place
   attribution: 'Places from open map data. No affiliation or endorsement.',
   about: 'About this area', // plate heading: facts about the block

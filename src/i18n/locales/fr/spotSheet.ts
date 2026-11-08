@@ -3,6 +3,20 @@ import type { Shape } from '../../core';
 import type en from '../en/spotSheet';
 
 export default {
+  placeHere: 'Installer une machine ici',
+  yourHost: 'Ton hôte',
+  makeHost: 'Choisir comme hôte',
+  hostExplain: 'Ta machine est chez son hôte : il amène ses clients et garde {pct} des ventes. Choisis un autre lieu proche avec Choisir comme hôte.',
+  chooser: {
+    title: 'Choisis une machine',
+    perDay: 'Environ {amount} par jour ici',
+    install: 'Installation {price}',
+    chapter: 'Chapitre {n}',
+    cancel: 'Annuler',
+    a11yOwned: 'Installer ton {type}',
+    a11yBuy: 'Acheter et installer {type} pour {price}',
+    a11yLocked: '{type}, ouvre au chapitre {n}',
+  },
   streetCorner: 'Coin de rue',
   district: 'Quartier {n}',
   venueLine: '{category} · {distance}',
@@ -10,15 +24,11 @@ export default {
   perDay: 'par jour',
   yours: '{type} (à toi)',
   districtLocked: 'Cette zone ouvre au chapitre {n}. Ta zone ouverte est entourée en orange.',
-  lockedType: '🔒 {type} · Ch. {n}',
   hoodLocked: '{name} ouvre au chapitre {n}. Ta zone ouverte est entourée en orange.',
   placeMine: 'Installer mon distributeur ici',
-  placeType: 'Installer {type}',
   nearby: 'À proximité',
   noNearby: 'Aucun lieu nommé à moins de 400 m.',
   placeLine: '{category} · {distance}',
-  host: 'Hôte',
-  use: 'Choisir',
   report: 'Signaler',
   attribution:
     'Lieux issus de données cartographiques ouvertes. Aucune affiliation ni approbation.',

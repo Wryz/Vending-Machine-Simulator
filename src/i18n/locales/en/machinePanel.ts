@@ -23,19 +23,22 @@ export default {
     suggested: 'Suggested price',
     wholesale: 'Wholesale cost',
     demand: 'Demand at this price',
-    pricesLocked: 'Prices unlock after chapter 1',
-    pricesLockedValue: 'Ch. 2', // short chip value, ~6 chars
+    pricesLocked: 'Price changes',
     driverPar: 'Driver refills to',
-    slots: 'Slots',
-    power: 'Power per day',
-    breakdowns: 'Breakdowns per day',
+    slots: 'Coils × items each',
+    power: 'Power cost per day',
+    breakdowns: 'Breakdown odds per day',
     theft: 'Theft risk',
     theftHigh: 'High', // theft risk level, ~5 chars
     theftMed: 'Med', // theft risk level (medium), ~5 chars
     theftLow: 'Low', // theft risk level, ~5 chars
-    sold: 'Items sold',
-    revenue: 'Revenue',
-    upgrade: 'Upgrade',
+    sold: 'Items sold, all time',
+    revenue: 'Sales, all time',
+    upgrade: 'Upgrade installed',
+    // when this machine was placed (city local time)
+    placed: 'Placed',
+    // a locked stat: the chapter that opens it, ~10 chars
+    chapter: 'Chapter {n}',
   },
   broken: {
     fridge: 'Fridge broken',
@@ -57,8 +60,6 @@ export default {
     more: 'More', // fold-out toggle
     less: 'Less', // fold-out toggle
     moreHint: 'Show specs and machine actions',
-    rotate: 'Rotate', // one-word chip
-    renegotiate: 'Renegotiate', // one-word chip
     pickUp: 'Pick up', // one-word chip: take the machine back to storage
   },
   emptyCoil: 'Empty coil',
@@ -89,7 +90,6 @@ export default {
     adRestocked: 'Restocked.',
     ordered: 'Van on its way · here in {time}',
     repaired: 'Repaired',
-    commission: 'Commission now {pct}',
   },
   pickUp: {
     title: 'Pick up this machine?',

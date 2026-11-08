@@ -5,7 +5,7 @@ import type en from '../en/picker';
 export default {
   openBranch: '在{city}开分店',
   opensIn: '{city}在第 {n} 章开放',
-  lockedCard: '🔒 第 {n} 章',
+  lockedCard: '第 {n} 章',
   title: '去哪里？',
   subtitle: '转动地球仪或选一座城市',
   locate: '使用我的位置',

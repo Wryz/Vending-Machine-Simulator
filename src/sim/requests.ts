@@ -102,6 +102,20 @@ export function serveRequests(
 }
 
 /**
+ * The player waves a request away (the X on its card): it closes with no sale
+ * and no tip. For requests they can't or won't serve.
+ */
+export function dismissRequest(
+  state: GameState,
+  requestId: string,
+): { ok: true; request: CustomerRequest } | { ok: false; error: string } {
+  const i = state.requests.open.findIndex((r) => r.id === requestId);
+  if (i < 0) return { ok: false, error: 'That request is gone.' };
+  const [request] = state.requests.open.splice(i, 1);
+  return { ok: true, request };
+}
+
+/**
  * Maybe a new customer request (call on live ticks only). Someone from a real
  * place near one of your machines asks for a product that place makes them
  * want, and that isn't in stock nearby yet. Mostly things this machine can
@@ -198,13 +212,18 @@ function requestAt(
     const fresh = want.products.filter((id) => !stockedNearby.has(id));
     const carry = fresh.filter((id) => canCarry(state, m, id));
     // Hints only for other machine types: a product this type holds but hasn't
-    // unlocked yet would point at the same kind of machine.
+    // unlocked yet would point at the same kind of machine. And only ones the
+    // player can act on now (the type and product are open in this chapter).
     const holds = getMachineType(m.typeId).holds;
-    const other = fresh.filter(
-      (id) => !holds.includes(getProduct(id).family) && machineTypeFor(id) !== null,
-    );
-    // Hints for another machine type stay a minority; otherwise something this machine can sell.
-    const pool = wantOther ? other : carry;
+    const other = fresh.filter((id) => {
+      const product = getProduct(id);
+      if (holds.includes(product.family) || state.chapter < product.unlockChapter) return false;
+      const type = machineTypeFor(id);
+      return type !== null && state.chapter >= getMachineType(type).unlockChapter;
+    });
+    // Hints for another machine type stay a minority (and only when one is open);
+    // otherwise something this machine can sell.
+    const pool = wantOther && other.length ? other : carry;
     if (!pool.length) continue;
     const productId = pool[Math.floor(r(`product${attempt}`) * pool.length) % pool.length];
     return {

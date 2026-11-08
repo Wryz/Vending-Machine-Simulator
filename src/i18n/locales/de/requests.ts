@@ -25,8 +25,13 @@ export default {
   card: {
     label: 'Kundenwunsch',
     title: 'Möchte {product}',
-    load: 'Einladen',
-    loaded: 'Jetzt Auffüllen tippen',
+    load: 'Zum Auffüllen hinzufügen',
+    planned: 'Im Auffüllplan. Bestellen, damit ein Lieferwagen kommt.',
+    order: 'Auffüllen bestellen · {cost}',
+    coming: 'Warten auf Lieferung · ca. {time}',
+    comingNote: 'Sie kaufen es, sobald der Lieferwagen da ist.',
+    vanBusy: 'Ein Lieferwagen ist schon unterwegs. Danach hinzufügen.',
+    dismiss: 'Wunsch ablehnen',
     waiting: 'Wartet {time}',
     tip: 'Trinkgeld {amount}',
     otherMachine:

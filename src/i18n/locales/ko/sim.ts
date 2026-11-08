@@ -5,6 +5,7 @@ import type en from '../en/sim';
 export default {
   errors: {
     vanOnItsWay: '이미 밴이 가고 있어요.',
+    requestGone: '그 요청은 이미 사라졌어요.',
     vansOut: '모든 밴이 나가 있어요.',
     pickRestock: '채울 상품을 고르세요.',
     nothingLow: '부족한 자판기가 없어요.',

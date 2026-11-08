@@ -5,7 +5,7 @@ import type en from '../en/picker';
 export default {
   openBranch: '{city}に支店を出す',
   opensIn: '{city}は第{n}章で開放',
-  lockedCard: '🔒 第{n}章',
+  lockedCard: '第{n}章',
   title: 'どこへ？',
   subtitle: '地球儀を回すか都市を選ぼう',
   locate: '現在地を使う',

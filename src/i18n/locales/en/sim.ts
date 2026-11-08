@@ -8,6 +8,7 @@
 export default {
   errors: {
     vanOnItsWay: 'A van is already on its way here.',
+    requestGone: 'That request is gone.',
     vansOut: 'All your vans are out.',
     pickRestock: 'Pick something to restock.',
     nothingLow: 'Nothing is running low.',

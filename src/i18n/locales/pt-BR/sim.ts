@@ -5,6 +5,7 @@ import type en from '../en/sim';
 export default {
   errors: {
     vanOnItsWay: 'Já tem uma van a caminho.',
+    requestGone: 'Esse pedido já foi embora.',
     vansOut: 'Todas as suas vans estão na rua.',
     pickRestock: 'Escolha algo para repor.',
     nothingLow: 'Nada está acabando.',

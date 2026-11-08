@@ -4,6 +4,7 @@ import { REQUEST_WANTS, REQUESTS } from '@/config/requests';
 
 import {
   canCarry,
+  dismissRequest,
   machineTypeFor,
   migrateSave,
   newGame,
@@ -134,6 +135,8 @@ describe('customer requests', () => {
 
   it('mostly ask for something this machine can sell (hints stay a minority)', () => {
     const s = placed();
+    // Hints only point at machine types that are open, so play a later chapter.
+    s.chapter = 4;
     const m = s.machines[0];
     let t = s.now;
     let total = 0;
@@ -156,6 +159,48 @@ describe('customer requests', () => {
     expect(total).toBeGreaterThanOrEqual(40);
     expect(hints / total).toBeLessThan(REQUESTS.otherMachineShare + 0.15);
     expect(hints).toBeGreaterThan(0);
+  });
+
+  it('never point at a machine type or product the chapter has not opened', () => {
+    const s = placed();
+    expect(s.chapter).toBe(1);
+    let t = s.now;
+    let total = 0;
+    for (let i = 0; i < 400 && total < 60; i++) {
+      const news = rollRequest(s, world, t);
+      if (news?.kind === 'new') {
+        total++;
+        const id = news.request.productId;
+        if (!canCarry(s, s.machines[0], id)) {
+          const type = machineTypeFor(id)!;
+          expect(getMachineType(type).unlockChapter).toBeLessThanOrEqual(s.chapter);
+        }
+        expect(getProduct(id).unlockChapter).toBeLessThanOrEqual(s.chapter);
+        s.requests.open = [];
+      }
+      t = Math.max(t + 1, s.requests.nextAt);
+    }
+    expect(total).toBeGreaterThanOrEqual(30);
+  });
+
+  it('can be dismissed (no sale, no tip) and logged as a player action', () => {
+    const s = placed();
+    const { news } = firstRequest(s);
+    const cash = s.cashCents;
+    const logged = s.actionLog.length;
+    const r = dismissRequest(s, news.request.id);
+    expect(r.ok).toBe(true);
+    expect(s.requests.open).toHaveLength(0);
+    expect(s.requests.served).toBe(0);
+    expect(s.cashCents).toBe(cash);
+    expect(s.actionLog.length).toBe(logged + 1);
+    expect(s.actionLog[s.actionLog.length - 1].a).toBe('dismissRequest');
+    // Already gone: an error, nothing logged.
+    expect(dismissRequest(s, news.request.id)).toEqual({
+      ok: false,
+      error: 'That request is gone.',
+    });
+    expect(s.actionLog.length).toBe(logged + 1);
   });
 
   it('point to a machine type that sells what this one cannot', () => {

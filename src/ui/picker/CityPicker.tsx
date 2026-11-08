@@ -508,9 +508,18 @@ function CityCard({
       <T size={14} weight="bold" color={SKIN.keyInk} numberOfLines={2} style={{ lineHeight: 17 }}>
         {name}
       </T>
-      <T size={12} color="#5B6080" numberOfLines={1}>
-        {opensIn !== null ? t('picker.lockedCard', { n: opensIn }) : distance}
-      </T>
+      {opensIn !== null ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Icon name="lock" size={12} color="#5B6080" />
+          <T size={12} color="#5B6080" numberOfLines={1}>
+            {t('picker.lockedCard', { n: opensIn })}
+          </T>
+        </View>
+      ) : (
+        <T size={12} color="#5B6080" numberOfLines={1}>
+          {distance}
+        </T>
+      )}
     </Pressable>
   );
 }
