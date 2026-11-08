@@ -161,7 +161,9 @@ Coinline is a single-player vending business game on a real map. No account or l
 
 ## Screenshots and preview video
 
-Uploaded to App Store Connect in this order (video first):
+No app preview video is on the listing for 1.0 (owner, 2026-11-08: not worth it yet). Two drafts are kept in `marketing/`: `preview-iphone-886x1920.mp4` (dev build, choppy) and `preview-iphone-886x1920-v2.mp4` (release build, first-play story, silent). Screenshots on the listing, in order:
+
+Previously listed:
 
 0. `marketing/preview-iphone-886x1920.mp4`: 28 s App Preview. London map overview, the camera flies to The Grand Caffè, people walk up and sales pop. 886×1920, H.264 30 fps, silent stereo AAC track (Apple's spec).
 1. `marketing/6.3in-01.jpg`: "Watch customers walk up and buy"
