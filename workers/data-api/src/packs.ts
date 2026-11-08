@@ -6,6 +6,9 @@ import { regionPackKey, regionRoadsKey } from './area';
 import { badRequest, notFound } from './http';
 
 export const cityPackKey = (cityId: string) => `city/${cityId}.json.gz`;
+export const cityRoadsKey = (cityId: string) => `city/${cityId}-roads.json.gz`;
+/** The picker's city list (CityIndexEntry[], JSON), written by pipeline/build-index.ts. */
+export const regionIndexKey = 'index/regions.json';
 
 /**
  * Packs are stored gzip-compressed and served as the raw gzip bytes with
@@ -53,4 +56,30 @@ export function regionRoads(
 export function cityPack(request: Request, env: Env, cityId: string): Promise<Response> | Response {
   if (!FALLBACK_CITIES.some((c) => c.id === cityId)) return notFound('unknown_city');
   return servePack(request, env, cityPackKey(cityId));
+}
+
+/** GET /city/{cityId}/roads.bin: a former built-in city's streets (saves from before regions). */
+export function cityRoads(
+  request: Request,
+  env: Env,
+  cityId: string,
+): Promise<Response> | Response {
+  if (!FALLBACK_CITIES.some((c) => c.id === cityId)) return notFound('unknown_city');
+  return servePack(request, env, cityRoadsKey(cityId));
+}
+
+/** GET /regions/index.json: every playable city for the picker. */
+export async function regionIndex(request: Request, env: Env): Promise<Response> {
+  const obj = await env.DATA.get(regionIndexKey);
+  if (!obj) return notFound('index_not_found');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Cache-Control': CACHE.index,
+    ETag: obj.httpEtag,
+  };
+  if (request.headers.get('If-None-Match') === obj.httpEtag) {
+    await obj.body.cancel();
+    return new Response(null, { status: 304, headers });
+  }
+  return new Response(request.method === 'HEAD' ? null : obj.body, { status: 200, headers });
 }

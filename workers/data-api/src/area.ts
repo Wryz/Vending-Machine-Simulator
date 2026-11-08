@@ -45,23 +45,7 @@ export async function areaCheck(url: URL, env: Env): Promise<Response> {
   const lat = roundCoord(rawLat);
   const lng = roundCoord(rawLng);
 
-  // 1) Inside one of the 9 fallback cities?
-  let best: { id: string; name: string; lat: number; lng: number; d: number } | null = null;
-  for (const c of FALLBACK_CITIES) {
-    const d = haversineM(lat, lng, c.lat, c.lng);
-    if (d <= CITY_RADIUS_M && (!best || d < best.d)) best = { ...c, d };
-  }
-  if (best) {
-    return respond({
-      playable: true,
-      cityName: best.name,
-      reason: 'ok',
-      centroid: { lat: best.lat, lng: best.lng },
-      cityId: best.id,
-    });
-  }
-
-  // 2) Computed region?
+  // 1) Computed region (or a built neighbour of the same city)?
   const res5 = latLngToCell(lat, lng, REGION_RES);
   const [cLat, cLng] = cellToLatLng(res5);
   const centroid = { lat: roundCoord(cLat), lng: roundCoord(cLng) };
@@ -69,6 +53,22 @@ export async function areaCheck(url: URL, env: Env): Promise<Response> {
   if (!pack) {
     const near = await nearestBuiltNeighbour(env, res5, lat, lng);
     if (near) return near;
+    // Legacy: the former built-in cities, while their regions are being built.
+    let best: { id: string; name: string; lat: number; lng: number; d: number } | null = null;
+    for (const c of FALLBACK_CITIES) {
+      const d = haversineM(lat, lng, c.lat, c.lng);
+      if (d <= CITY_RADIUS_M && (!best || d < best.d)) best = { ...c, d };
+    }
+    if (best) {
+      return respond({
+        playable: true,
+        cityName: best.name,
+        reason: 'ok',
+        centroid: { lat: best.lat, lng: best.lng },
+        cityId: best.id,
+      });
+    }
+
     // Counts only: the res-5 cell (~250 km²) is coarse enough to log.
     console.log(`area_check_miss res5=${res5}`);
     return respond({
@@ -80,7 +80,7 @@ export async function areaCheck(url: URL, env: Env): Promise<Response> {
     });
   }
 
-  // 3) SPEC §6.2 thresholds over res-9 cells within 2 km.
+  // 2) SPEC §6.2 thresholds over res-9 cells within 2 km.
   const origin = latLngToCell(lat, lng, CELL_RES);
   const near = gridDisk(origin, DISK_K).filter((h) => {
     const [hLat, hLng] = cellToLatLng(h);
@@ -92,6 +92,11 @@ export async function areaCheck(url: URL, env: Env): Promise<Response> {
   );
   const own = metas.find((m) => m.res5 === res5);
   const cityName = own?.name ?? null;
+  // Open downtown (or the district's busiest spot), not the middle of the hexagon.
+  const opens = own?.center
+    ? { lat: roundCoord(own.center.lat), lng: roundCoord(own.center.lng) }
+    : centroid;
+  const about = placeOf(own);
 
   if (!own) {
     // Pack exists but no summary: the region was computed, so let the player in.
@@ -115,12 +120,26 @@ export async function areaCheck(url: URL, env: Env): Promise<Response> {
   for (let i = 0; i < PLACE_CATEGORIES.length; i++) if (mask & (1 << i)) categories++;
 
   if (named < MIN_NAMED_PLACES || categories < MIN_CATEGORIES) {
-    return respond({ playable: false, cityName, reason: 'not_enough_places', centroid, res5 });
+    return respond({
+      playable: false,
+      cityName,
+      reason: 'not_enough_places',
+      centroid: opens,
+      res5,
+      ...about,
+    });
   }
   if (pop < MIN_RESIDENTS) {
-    return respond({ playable: false, cityName, reason: 'not_enough_population', centroid, res5 });
+    return respond({
+      playable: false,
+      cityName,
+      reason: 'not_enough_population',
+      centroid: opens,
+      res5,
+      ...about,
+    });
   }
-  return respond({ playable: true, cityName, reason: 'ok', centroid, res5 });
+  return respond({ playable: true, cityName, reason: 'ok', centroid: opens, res5, ...about });
 }
 
 /**
@@ -145,7 +164,8 @@ async function nearestBuiltNeighbour(
   for (const c of candidates) {
     if (!(await env.DATA.head(regionPackKey(c.h)))) continue;
     const meta = await readMeta(env, c.h);
-    const centroid = { lat: roundCoord(c.hLat), lng: roundCoord(c.hLng) };
+    const at = meta?.center ?? { lat: c.hLat, lng: c.hLng };
+    const centroid = { lat: roundCoord(at.lat), lng: roundCoord(at.lng) };
     if (meta) {
       const t = meta.totals;
       if (
@@ -161,9 +181,20 @@ async function nearestBuiltNeighbour(
       reason: 'ok',
       centroid,
       res5: c.h,
+      ...placeOf(meta),
     });
   }
   return null;
+}
+
+/** Country, time zone and outer-district side from a region summary, when it has them. */
+function placeOf(meta: RegionMeta | null | undefined): Partial<AreaCheckResponse> {
+  if (!meta) return {};
+  return {
+    ...(meta.cc ? { cc: meta.cc } : {}),
+    ...(meta.tz ? { tz: meta.tz } : {}),
+    ...(meta.dir ? { dir: meta.dir } : {}),
+  };
 }
 
 async function readMeta(env: Env, res5: string): Promise<RegionMeta | null> {

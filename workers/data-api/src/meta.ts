@@ -9,6 +9,11 @@ export interface RegionMeta {
   res5?: string;
   cityId?: string;
   name?: string;
+  /** Where the game opens (downtown / busiest spot); older metas: none. */
+  center?: { lat: number; lng: number };
+  cc?: string;
+  tz?: string;
+  dir?: 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
   generatedAt: string;
   totals: {
     cells: number;

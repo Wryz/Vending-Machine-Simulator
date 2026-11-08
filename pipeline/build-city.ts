@@ -38,6 +38,7 @@ import {
   type RegionPack,
   type Supplier,
 } from '../src/data/types';
+import type { RegionDir } from '../src/data/types';
 import type { RegionMeta } from '../workers/data-api/src/meta';
 import { RoadCollector } from './lib/roads';
 import {
@@ -445,6 +446,12 @@ export interface AreaTarget {
   roadsFile: string;
   metaFile: string;
   maxPackBytes: number;
+  /** Where the game opens; when absent, the busiest emitted cell (most named places). */
+  center?: { lat: number; lng: number };
+  /** Country (ISO alpha-2), IANA time zone and, for an outer district, its side of the city. */
+  cc?: string;
+  tz?: string;
+  dir?: RegionDir;
 }
 
 export function cityTarget(city: City): AreaTarget {
@@ -736,12 +743,25 @@ export async function buildArea(city: AreaTarget, skipExtract: boolean): Promise
   const packSuppliers = suppliers
     .sort((a, b) => sizeOf(b) - sizeOf(a) || a.id.localeCompare(b.id))
     .slice(0, MAX_SUPPLIERS);
+  // Where the game opens: downtown (given), else the cell with the most named places.
+  const busiest = cells.reduce<CellData | null>(
+    (best, c) => (!best || c.places.length > best.places.length ? c : best),
+    null,
+  );
+  const center = city.center ??
+    (busiest ? { lat: busiest.lat, lng: busiest.lng } : null) ?? {
+      lat: city.lat,
+      lng: city.lng,
+    };
   const pack = (): RegionPack => ({
     schemaVersion: 1,
     ...(city.cityId ? { cityId: city.cityId } : {}),
     ...(city.res5 ? { res5: city.res5 } : {}),
     name: city.name,
-    center: { lat: city.lat, lng: city.lng },
+    center,
+    ...(city.cc ? { cc: city.cc } : {}),
+    ...(city.tz ? { tz: city.tz } : {}),
+    ...(city.dir ? { dir: city.dir } : {}),
     generatedAt: new Date().toISOString(),
     sources: [
       `Places & buildings: © OpenStreetMap contributors (ODbL 1.0), via Protomaps basemap build ${PLANET_BUILD}`,
@@ -791,6 +811,10 @@ export async function buildArea(city: AreaTarget, skipExtract: boolean): Promise
     ...(city.cityId ? { cityId: city.cityId } : {}),
     ...(city.res5 ? { res5: city.res5 } : {}),
     name: city.name,
+    center,
+    ...(city.cc ? { cc: city.cc } : {}),
+    ...(city.tz ? { tz: city.tz } : {}),
+    ...(city.dir ? { dir: city.dir } : {}),
     generatedAt: new Date().toISOString(),
     totals: { cells: cells.length, namedPlaces: namedTotal, categories, pop },
     cells: metaCells,

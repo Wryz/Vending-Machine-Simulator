@@ -53,6 +53,10 @@ export function regionTarget(r: RegionTarget): AreaTarget {
     roadsFile: join(REGIONS, `${r.res5}-roads.json.gz`),
     metaFile: join(REGIONS, `${r.res5}.meta.json`),
     maxPackBytes: MAX_REGION_PACK_BYTES,
+    ...(r.center ? { center: r.center } : {}),
+    cc: r.cc,
+    tz: r.tz,
+    ...(r.dir ? { dir: r.dir } : {}),
   };
 }
 

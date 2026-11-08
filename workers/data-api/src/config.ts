@@ -37,6 +37,8 @@ export const CACHE = {
   /** Weather: edge cache 1 h (s-maxage), clients 15 min. */
   weather: 'public, max-age=900, s-maxage=3600',
   areaCheck: 'public, max-age=3600',
+  /** The picker's city list grows as regions are built: an hour at the edge, a day on device. */
+  index: 'public, max-age=3600',
   health: 'no-store',
 } as const;
 

@@ -95,6 +95,9 @@ export interface RoadNet {
   cls: number[];
 }
 
+/** Side of its city an outer-district region lies on. */
+export type RegionDir = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+
 export interface RegionPack {
   schemaVersion: 1;
   /** Fallback city id, or undefined for a "your area" region. */
@@ -102,7 +105,12 @@ export interface RegionPack {
   /** H3 resolution-5 parent (for "your area" regions). */
   res5?: string;
   name: string;
+  /** Where the game opens: downtown for a city's own region, the busiest spot of an outer district. */
   center: { lat: number; lng: number };
+  /** Country (ISO 3166-1 alpha-2), IANA time zone, outer-district side (packs from 2026-11-08 on). */
+  cc?: string;
+  tz?: string;
+  dir?: RegionDir;
   generatedAt: string;
   /** Human-readable data sources for the credits screen. */
   sources: string[];
@@ -121,6 +129,33 @@ export interface AreaCheckResponse {
   cityId?: string;
   /** H3 res-5 region to download via GET /cells/{res5}.bin. */
   res5?: string;
+  /** The region's country (ISO alpha-2), IANA time zone and outer-district side, when known. */
+  cc?: string;
+  tz?: string;
+  dir?: RegionDir;
+}
+
+/**
+ * One playable city in the picker (GET /regions/index.json, also bundled):
+ * a city's own region with its downtown point, biggest first. Outer districts
+ * are listed with `d` (the side of their city) and the city's name.
+ */
+export interface CityIndexEntry {
+  /** H3 res-5 region id. */
+  r: string;
+  /** Name (OSM, English when tagged). */
+  n: string;
+  /** Country, ISO alpha-2 ('' unknown). */
+  c: string;
+  /** IANA time zone. */
+  z: string;
+  /** Where the game opens. */
+  a: number;
+  o: number;
+  /** Population of the city (0 for outer districts). */
+  p: number;
+  /** Outer district: side of its city. */
+  d?: RegionDir;
 }
 
 export type WeatherCondition = 'clear' | 'cloudy' | 'rain' | 'snow' | 'storm' | 'fog';

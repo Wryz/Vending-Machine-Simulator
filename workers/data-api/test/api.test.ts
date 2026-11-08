@@ -277,6 +277,48 @@ describe('packs', () => {
     expect((await call(makeEnv(), `/cells/${res5}/roads.bin`)).status).toBe(404);
   });
 
+  it('GET /regions/index.json and /city/{id}/roads.bin', async () => {
+    const index = JSON.stringify([
+      { r: res5, n: 'Berlin', c: 'DE', z: 'Europe/Berlin', a: 52.5, o: 13.4, p: 3e6 },
+    ]);
+    const env = makeEnv(
+      new FakeBucket()
+        .put('index/regions.json', index)
+        .put('city/tokyo-roads.json.gz', gz('{"schemaVersion":1}')),
+    );
+    const res = await call(env, '/regions/index.json');
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe(index);
+    expect((await call(env, '/city/tokyo/roads.bin')).status).toBe(200);
+    expect((await call(env, '/city/atlantis/roads.bin')).status).toBe(404);
+  });
+
+  it('opens a region downtown and says its time zone and country', async () => {
+    const meta = {
+      schemaVersion: 1,
+      res5,
+      name: 'Berlin',
+      center: { lat: 52.5163, lng: 13.3777 },
+      cc: 'DE',
+      tz: 'Europe/Berlin',
+      generatedAt: '2026-11-08T00:00:00Z',
+      totals: { cells: 0, namedPlaces: 0, categories: 0, pop: 0 },
+      cells: [],
+    };
+    const env = makeEnv(
+      new FakeBucket()
+        .put(`cells/${res5}.json.gz`, gz('{}'))
+        .put(`cells/${res5}.meta.json`, JSON.stringify(meta)),
+    );
+    const body = (await (
+      await call(env, '/area/check?lat=52.52&lng=13.4')
+    ).json()) as AreaCheckResponse;
+    expect(body.res5).toBe(res5);
+    expect(body.centroid).toEqual({ lat: 52.52, lng: 13.38 });
+    expect(body.tz).toBe('Europe/Berlin');
+    expect(body.cc).toBe('DE');
+  });
+
   it('GET /city/{cityId}/pack', async () => {
     const env = makeEnv(new FakeBucket().put('city/paris.json.gz', gz(packJson)));
     const res = await call(env, '/city/paris/pack');
