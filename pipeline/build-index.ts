@@ -19,8 +19,14 @@ const OUT = join(HERE, 'out');
 const r5 = (v: number) => Math.round(v * 1e4) / 1e4;
 
 const all = JSON.parse(readFileSync(join(OUT, 'regions.json'), 'utf8')) as RegionTarget[];
+// Only regions already on R2 (upload-regions.sh), so every listed city downloads.
+const uploadedFile = join(OUT, 'regions-uploaded.txt');
+const uploaded = new Set(
+  existsSync(uploadedFile) ? readFileSync(uploadedFile, 'utf8').split('\n').filter(Boolean) : [],
+);
 const index: CityIndexEntry[] = [];
 for (const r of all) {
+  if (!uploaded.has(r.res5)) continue;
   const metaFile = join(OUT, 'regions', `${r.res5}.meta.json`);
   if (!existsSync(metaFile)) continue;
   const meta = JSON.parse(readFileSync(metaFile, 'utf8')) as RegionMeta;

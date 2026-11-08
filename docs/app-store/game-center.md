@@ -1,6 +1,6 @@
 # Game Center setup (App Store Connect)
 
-Everything App Store Connect needs for Coinline's Game Center: 9 weekly city leaderboards, 1 all-time leaderboard and 16 achievements (our trophies). The ids are the single source in `src/config/gameCenter.ts` and must match exactly. Prepared 2026-11-06.
+Everything App Store Connect needs for Coinline's Game Center: 1 worldwide weekly leaderboard, 1 all-time leaderboard and 16 achievements (our trophies). The ids are the single source in `src/config/gameCenter.ts` and must match exactly. Prepared 2026-11-06.
 
 What the app does (`src/services/gameCenter.ts`, native code in `modules/game-center`):
 - At launch it signs in silently only if the player already uses Game Center. It never shows Apple's sign-in sheet by itself; Settings has a "Sign in to Game Center" button for that.
@@ -16,28 +16,13 @@ What the app does (`src/services/gameCenter.ts`, native code in `modules/game-ce
 
 Enable Game Center for the app if asked. Then create:
 
-### Leaderboards: 9 recurring (weekly) leaderboards
+### Leaderboard: 1 recurring (weekly, worldwide) *(2026-11-08; replaces the 9 per-city boards, deleted before release)*
 
-For each row: **Leaderboard type: Recurring**.
-- Reference name / Leaderboard ID: from the table.
-- **Score format type: Money, two decimal places** (we submit cents). If only whole-number money is offered, use **Integer** and accept a cents display, or ask to change the code to submit dollars.
-- **Score submission type: Best score.** Sort order: **High to low.** Score range: 0 to 100000000000 (optional).
-- **Start date: the next date with the weekday/time below, in UTC** (convert if ASC shows your local zone). **Duration: 1 week. Restarts every: 1 week.**
-- Localization (at least English (U.S.)): display name from the table; score format: currency **USD** if asked (the game shows dollars everywhere); no suffix.
+| Leaderboard ID | Reference name | Display name (en) | Start | Duration / restart |
+|---|---|---|---|---|
+| `coinline.weekly.world` | Weekly: worldwide | This week: worldwide | Monday 12:00 UTC (06:00 CST) | 7 days / 7 days |
 
-The start time is the city's local Monday 00:00 in standard time, so Game Center's weeks line up with the in-game week (daylight time only moves the local week earlier, which is harmless).
-
-| Leaderboard ID | Reference name | Display name (en) | Start (UTC) |
-|---|---|---|---|
-| `coinline.weekly.new_york` | Weekly: New York | New York: this week | Monday 05:00 UTC |
-| `coinline.weekly.los_angeles` | Weekly: Los Angeles | Los Angeles: this week | Monday 08:00 UTC |
-| `coinline.weekly.chicago` | Weekly: Chicago | Chicago: this week | Monday 06:00 UTC |
-| `coinline.weekly.london` | Weekly: London | London: this week | Monday 00:00 UTC |
-| `coinline.weekly.paris` | Weekly: Paris | Paris: this week | Sunday 23:00 UTC |
-| `coinline.weekly.tokyo` | Weekly: Tokyo | Tokyo: this week | Sunday 15:00 UTC |
-| `coinline.weekly.seoul` | Weekly: Seoul | Seoul: this week | Sunday 15:00 UTC |
-| `coinline.weekly.singapore` | Weekly: Singapore | Singapore: this week | Sunday 16:00 UTC |
-| `coinline.weekly.sydney` | Weekly: Sydney | Sydney: this week | Sunday 14:00 UTC |
+Score format **Money – Dollar with decimal** (we submit cents), **Best score**, **High to low**. The start is Monday 12:00 UTC so every city's in-game week (local Monday 00:00) has begun before a new period opens. Per-city, state and country boards come later with our own server (SPEC §6.3).
 
 ### Leaderboard: 1 classic (all-time)
 
@@ -74,7 +59,7 @@ Other languages: titles/descriptions exist in the game's i18n content catalogs (
 
 ## 3. Attach to the version
 
-App Store Connect → the iOS version (1.0) → **Game Center** section → turn on, then **add all 10 leaderboards and 16 achievements** to this version. Leaderboards/achievements go live with the version's review; after first release they can't be deleted (only hidden), and ids can't be reused.
+App Store Connect → the iOS version (1.0) → **Game Center** section → turn on, then **add both leaderboards and all 16 achievements** to this version. Leaderboards/achievements go live with the version's review; after first release they can't be deleted (only hidden), and ids can't be reused.
 
 ## 4. Testing
 
