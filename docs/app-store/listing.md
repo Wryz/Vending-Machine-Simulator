@@ -145,7 +145,7 @@ Double Profits is a one-time, non-consumable upgrade. After purchase, every in-g
 ```
 Coinline is a single-player vending business game on a real map. No account or login.
 
-- On first launch the game offers a list of cities to start in (location is not requested in this version).
+- On first launch the player can "Use my location" (approximate location, asked once, rounded to about 1 km on the device, never stored on a server) to play their own area, or pick one of 9 cities. Denying location simply shows the city list.
 - Ads are optional rewarded ads only (for example, "x2 earnings"). They are requested as non-personalized. The App Tracking Transparency prompt appears only if the player turns on "Personalized ads" in Settings.
 - In-app purchases are in Company tab › Shop, with a Restore purchases button. Double Profits (one-time) doubles in-game income from sales.
 - The Starter Pack appears after chapter 1 (about 10 minutes of play: place the first machine, stock it, collect $1,000 in sales).
