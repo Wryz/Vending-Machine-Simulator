@@ -12,6 +12,15 @@ export default {
   /** Pin label where a delivery van loads (no name in the map data). */
   warehouse: '倉庫',
   wholesale: '卸売店',
+  restockLow: '在庫が少ない自販機を補充',
+  lowRun: {
+    title: { one: '在庫が少ない自販機{n}台を補充', other: '在庫が少ない自販機{n}台を補充' },
+    /** {items} units, {cost} money, {time} like "1:10". */
+    detail: '{items}個 · {cost} · 約{time}',
+    send: 'バンを出す',
+    cancel: 'あとで',
+    vansOut: 'バンはすべて出ています',
+  },
   backTo: '{city}に戻る',
   a11y: {
     van: '{venue}への配送バン',

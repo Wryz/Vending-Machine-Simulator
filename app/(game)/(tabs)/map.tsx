@@ -8,7 +8,7 @@ import { CAMERA, GLOBE, MACHINE_SHEET, MAP_TAP, SHEET_OPEN_SHARE } from '@/confi
 import type { Feature } from '@/config/progression';
 import { useCityClock } from '@/hooks/useCityClock';
 import { useT } from '@/i18n';
-import { venueName } from '@/i18n/sim';
+import { simError, venueName } from '@/i18n/sim';
 import { CityMap, type CityMapHandle, type MapCameraState, type SalePop } from '@/map/CityMap';
 import { WeatherOverlay } from '@/map/WeatherOverlay';
 import {
@@ -16,13 +16,19 @@ import {
   baseTraffic,
   featureUnlocked,
   localTime,
+  lowMachines,
   nearbyPlaces,
+  orderLowRun,
+  planLowRun,
+  vansFree,
+  type RunPlan,
   suggestSpot,
   tutorialStep,
   visibleEvents,
 } from '@/sim';
 import type { SoundscapeEnv } from '@/audio/soundscape';
 import { soundscape } from '@/services/audio';
+import { track } from '@/services/analytics';
 import { haptic } from '@/services/haptics';
 import { cityKey, useProfile } from '@/store/profile';
 import { useGame } from '@/store/game';
@@ -41,6 +47,7 @@ import { RivalSheet } from '@/ui/sheets/RivalSheet';
 import { MoneyPanel, type IncomingSale } from '@/ui/MoneyPanel';
 import { SpotSheet, type SpotPoint } from '@/ui/sheets/SpotSheet';
 import { Icon } from '@/ui/icons';
+import { LowRunCard } from '@/ui/LowRunCard';
 import { sfx } from '@/ui/sfx';
 import { Key } from '@/ui/skin';
 import { SPACE } from '@/ui/theme';
@@ -461,6 +468,30 @@ export default function MapScreen() {
     showGoodSpot();
   };
   const firstVan = coachStep === 'delivery' ? game.deliveries[0] : undefined;
+  // "Restock low": one van tops up every machine running low (once there are a few to run).
+  const lowCount = useMemo(
+    () => (activeMachines(game).length >= 2 ? lowMachines(game).length : 0),
+    [game],
+  );
+  const [lowRun, setLowRun] = useState<RunPlan | null>(null);
+  const openLowRun = () => {
+    const plan = planLowRun(game, world);
+    if (!plan) return;
+    haptic.tick();
+    setLowRun(plan);
+  };
+  const sendLowRun = () => {
+    const res = useGame.getState().act((d, w) => orderLowRun(d, w));
+    setLowRun(null);
+    if (!res.ok) {
+      haptic.error();
+      setPlaceNote(simError(res.error));
+      return;
+    }
+    haptic.success();
+    track('restock', { count: res.units });
+  };
+  const showLowKey = lowCount > 0 && !coachStep && !hint && !machineId && !spot;
   const unlocked = (f: Feature) => featureUnlocked(game, f);
   const company = unlocked('company');
   const tabBarHeight = useHud((s) => s.tabBarHeight);
@@ -585,7 +616,7 @@ export default function MapScreen() {
         </Animated.View>
       ) : null}
       {/* The big Place key, bottom center: always one tap from a new machine. */}
-      {!coachStep && !hint && !machineId && !spot ? (
+      {!coachStep && !hint && !machineId && !spot && !lowRun ? (
         <Animated.View
           entering={FadeIn.duration(250)}
           exiting={FadeOut.duration(150)}
@@ -616,6 +647,29 @@ export default function MapScreen() {
             </T>
           </Key>
         </Animated.View>
+      ) : null}
+      {showLowKey && !lowRun ? (
+        <View
+          pointerEvents="box-none"
+          style={[styles.zoom, { left: SPACE.l, bottom: tabBarHeight + SPACE.m }]}
+        >
+          <RoundButton
+            icon="van"
+            label={t('map.restockLow')}
+            badge={String(lowCount)}
+            onPress={openLowRun}
+          />
+        </View>
+      ) : null}
+      {lowRun && !machineId && !spot ? (
+        <View pointerEvents="box-none" style={[styles.lowRun, { bottom: tabBarHeight + SPACE.m }]}>
+          <LowRunCard
+            plan={lowRun}
+            vansOut={vansFree(game) <= 0}
+            onSend={sendLowRun}
+            onClose={() => setLowRun(null)}
+          />
+        </View>
       ) : null}
       {coachStep && !hint && !machineId && !spot ? (
         <Coach
@@ -693,6 +747,7 @@ const styles = StyleSheet.create({
   hint: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   zoom: { position: 'absolute', gap: SPACE.s },
   placeKey: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: SPACE.s },
+  lowRun: { position: 'absolute', left: SPACE.l, right: SPACE.l },
   placeFace: { flexDirection: 'row', gap: SPACE.s, paddingHorizontal: SPACE.xl },
   attribution: { position: 'absolute', left: SPACE.m },
   globeBack: { position: 'absolute', left: SPACE.xl, right: SPACE.xl },

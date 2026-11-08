@@ -81,8 +81,30 @@ export function announceRequests(state: GameState, news: readonly RequestNews[])
 /** A restock van arrived: "24 items at Hudson Works". */
 export function announceDeliveries(state: GameState, news: readonly DeliveryNews[]): void {
   const push = useCelebrations.getState().push;
-  for (const n of news) {
+  for (const [i, n] of news.entries()) {
     if (n.kind !== 'arrived' || n.units <= 0) continue;
+    const d = n.delivery;
+    // Hired drivers' vans arrive quietly: the receipt counts their runs.
+    if (d.driverId) continue;
+    // One moment per van: a multi-stop run celebrates its last stop.
+    const run = d.run;
+    const more =
+      !!run &&
+      (state.deliveries.some((x) => x.run === run) ||
+        news.slice(i + 1).some((x) => x.delivery.run === run));
+    if (more) continue;
+    if ((d.leg ?? 0) > 0) {
+      push({
+        kind: 'surprise',
+        icon: 'delivery',
+        label: t('machinePanel.delivered.label'),
+        title: t('machinePanel.delivered.titleRun', { n: (d.leg ?? 0) + 1 }),
+        subtitle: t('machinePanel.delivered.subtitle', {
+          pct: Math.round(SERVICE.freshStockBonus * 100),
+        }),
+      });
+      continue;
+    }
     push({
       kind: 'surprise',
       icon: 'delivery',

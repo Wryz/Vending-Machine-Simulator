@@ -16,6 +16,16 @@ export const DELIVERY = {
   vansByLevel: [1, 1, 2, 3],
   /** Warehouses (closest in a straight line) compared by road to pick the nearest drive. */
   routeCandidates: 4,
+  /** Unloading at each stop of a multi-stop run before driving to the next. */
+  unloadMs: 3_000,
+} as const;
+
+/** The map's "Restock low" key: one van runs to every machine running low. */
+export const RESTOCK_RUN = {
+  /** A machine is low at or under this share of its full capacity. */
+  lowShare: 0.5,
+  /** Stops per run (the van's capacity is shared between them). */
+  maxStops: 6,
 } as const;
 
 /** Street routing for the vans (src/sim/roads.ts). */
@@ -28,4 +38,6 @@ export const ROADS = {
   maxSnapRings: 10,
   /** Longest path kept on a delivery (points); longer ones are thinned. */
   maxPathPoints: 400,
+  /** Street routes remembered per city (drivers repeat the same legs every run). */
+  routeCacheSize: 256,
 } as const;

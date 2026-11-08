@@ -73,12 +73,15 @@ export default {
     fromDepot: '창고에서',
     eta: '{time} 후 도착',
     loading: '창고에서 싣는 중',
+    driverTitle: '{name}의 밴이 가는 중',
+    otherStops: '다른 자판기를 먼저 들러요',
     a11y: '{n}개를 실은 밴이 배송 중, {time} 후 도착',
   },
   /** Moment when the van arrives. */
   delivered: {
     label: '상품 도착',
     title: { one: '{venue}에 {n}개', other: '{venue}에 {n}개' },
+    titleRun: { one: '자판기 {n}대 보충 완료', other: '자판기 {n}대 보충 완료' },
     subtitle: '새 상품은 오늘 {pct}% 더 잘 팔려요',
   },
   toast: {

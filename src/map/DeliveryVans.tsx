@@ -13,7 +13,7 @@ import Animated, {
 
 import { useT } from '@/i18n';
 import { venueName } from '@/i18n/sim';
-import { deliveryProgress, pointAlong, type Delivery, type GameState } from '@/sim';
+import { currentLegs, deliveryProgress, pointAlong, type Delivery, type GameState } from '@/sim';
 import { Icon } from '@/ui/icons';
 import { T } from '@/ui/kit';
 import { SKIN } from '@/ui/skin';
@@ -23,6 +23,8 @@ import { SKIN } from '@/ui/skin';
  * warehouse (a crate pin), then drives the street route (drawn by CityMap as a
  * dashed line) to the machine. Positions are interpolated on the device clock
  * so the van moves smoothly between sim ticks. Hidden when zoomed far out.
+ * A multi-stop run is one van, shown on the leg it is driving now; hired
+ * drivers' vans are blue.
  */
 
 const MIN_ZOOM = 12;
@@ -46,7 +48,7 @@ export const DeliveryVans = memo(function DeliveryVans({ game, zoom }: Props) {
   if (!active) return null;
   return (
     <>
-      {game.deliveries.map((d) => {
+      {currentLegs(game.deliveries).map((d) => {
         const m = game.machines.find((x) => x.id === d.machineId && x.status === 'active');
         if (!m) return null;
         return <Trip key={d.id} delivery={d} to={m} now={now} zoom={zoom} />;
@@ -105,15 +107,27 @@ function Trip({
           accessible
           accessibilityLabel={t('map.a11y.van', { venue: venueName(to.venue.name) })}
         >
-          <ToyVan facingRight={east} driving={now > delivery.departAt && now < delivery.arriveAt} />
+          <ToyVan
+            facingRight={east}
+            driving={now > delivery.departAt && now < delivery.arriveAt}
+            driver={!!delivery.driverId}
+          />
         </View>
       </Marker>
     </>
   );
 }
 
-/** A little toy delivery van in the brand tangerine, bouncing as it drives. */
-function ToyVan({ facingRight, driving }: { facingRight: boolean; driving: boolean }) {
+/** A little toy delivery van in the brand tangerine (drivers': blue), bouncing as it drives. */
+function ToyVan({
+  facingRight,
+  driving,
+  driver,
+}: {
+  facingRight: boolean;
+  driving: boolean;
+  driver: boolean;
+}) {
   const reduced = useReducedMotion();
   const bounce = useSharedValue(0);
   useEffect(() => {
@@ -136,7 +150,12 @@ function ToyVan({ facingRight, driving }: { facingRight: boolean; driving: boole
       <View style={styles.shadow} />
       <Animated.View style={body}>
         {/* Cargo box with a cream stripe, then the cab with its window. */}
-        <View style={styles.box}>
+        <View
+          style={[
+            styles.box,
+            driver && { backgroundColor: SKIN.driverVan, borderBottomColor: SKIN.driverVanEdge },
+          ]}
+        >
           <View style={styles.stripe} />
         </View>
         <View style={styles.cab}>

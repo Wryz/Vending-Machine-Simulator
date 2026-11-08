@@ -39,6 +39,9 @@ export const SKIN = {
   redFace: '#FF5547',
   redEdge: '#C02B20',
   screw: '#C9CFDB',
+  /** Hired drivers' vans (the player's own are the cabinet tangerine). */
+  driverVan: '#3D7BE0',
+  driverVanEdge: '#2556A8',
 } as const;
 
 /** Glossy cabinet body: a vertical gloss, darker sides and a few screw heads. */

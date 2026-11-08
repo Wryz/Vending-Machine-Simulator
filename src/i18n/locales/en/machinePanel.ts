@@ -70,12 +70,15 @@ export default {
     fromDepot: 'From the warehouse',
     eta: 'Here in {time}',
     loading: 'Loading at the warehouse',
+    driverTitle: "{name}'s van on its way",
+    otherStops: 'Making another stop first',
     a11y: 'Van on its way with {n} items, here in {time}',
   },
   /** Moment when the van arrives. */
   delivered: {
     label: 'Stock delivered',
     title: { one: '{n} item at {venue}', other: '{n} items at {venue}' },
+    titleRun: { one: '{n} machine restocked', other: '{n} machines restocked' },
     subtitle: 'Fresh stock sells {pct}% more today',
   },
   toast: {

@@ -13,6 +13,15 @@ export default {
   /** Pin label where a delivery van loads (no name in the map data). */
   warehouse: 'Lager',
   wholesale: 'Großhändler',
+  restockLow: 'Knappe Automaten auffüllen',
+  lowRun: {
+    title: { one: '{n} knappen Automaten auffüllen', other: '{n} knappe Automaten auffüllen' },
+    /** {items} units, {cost} money, {time} like "1:10". */
+    detail: '{items} Artikel · {cost} · etwa {time}',
+    send: 'Losschicken',
+    cancel: 'Nicht jetzt',
+    vansOut: 'Alle Lieferwagen sind unterwegs',
+  },
   backTo: 'Zurück nach {city}',
   a11y: {
     van: 'Lieferwagen zu {venue}',

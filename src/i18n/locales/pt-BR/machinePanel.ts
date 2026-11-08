@@ -73,12 +73,15 @@ export default {
     fromDepot: 'Do armazém',
     eta: 'Chega em {time}',
     loading: 'Carregando no armazém',
+    driverTitle: 'A van de {name} está a caminho',
+    otherStops: 'Fazendo outra parada antes',
     a11y: 'Van a caminho com {n} itens, chega em {time}',
   },
   /** Moment when the van arrives. */
   delivered: {
     label: 'Estoque entregue',
     title: { one: '{n} item em {venue}', other: '{n} itens em {venue}' },
+    titleRun: { one: '{n} máquina reposta', other: '{n} máquinas repostas' },
     subtitle: 'Estoque fresco vende {pct}% a mais hoje',
   },
   toast: {

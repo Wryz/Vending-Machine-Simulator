@@ -12,6 +12,15 @@ export default {
   /** Pin label where a delivery van loads (no name in the map data). */
   warehouse: '창고',
   wholesale: '도매상',
+  restockLow: '부족한 자판기 채우기',
+  lowRun: {
+    title: { one: '부족한 자판기 {n}대 채우기', other: '부족한 자판기 {n}대 채우기' },
+    /** {items} units, {cost} money, {time} like "1:10". */
+    detail: '{items}개 · {cost} · 약 {time}',
+    send: '밴 보내기',
+    cancel: '나중에',
+    vansOut: '밴이 모두 나가 있어요',
+  },
   backTo: '{city}(으)로 돌아가기',
   a11y: {
     van: '{venue}(으)로 가는 배송 밴',

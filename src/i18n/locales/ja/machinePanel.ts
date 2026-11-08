@@ -72,12 +72,15 @@ export default {
     fromDepot: '倉庫から',
     eta: 'あと{time}',
     loading: '倉庫で積み込み中',
+    driverTitle: '{name}のバンが向かっています',
+    otherStops: '先に別の自販機に寄っています',
     a11y: '{n}個を載せたバンが配送中、あと{time}',
   },
   /** Moment when the van arrives. */
   delivered: {
     label: '商品が届きました',
     title: { one: '{venue}に{n}個', other: '{venue}に{n}個' },
+    titleRun: { one: '自販機{n}台を補充', other: '自販機{n}台を補充' },
     subtitle: '新しい商品は今日{pct}%よく売れます',
   },
   toast: {

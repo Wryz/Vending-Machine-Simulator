@@ -157,6 +157,14 @@ export interface Delivery {
   /** Wholesale paid for the stock (refunded if the machine is gone on arrival). */
   wholesaleCents: number;
   fuelCents: number;
+  /**
+   * The van's trip: stops of one run share it and are driven in `leg` order
+   * (each leg's path starts at the previous stop). Old saves: none (own id, leg 0).
+   */
+  run?: string;
+  leg?: number;
+  /** A hired driver's van: collects the cash box too, no fresh-stock bonus, not one of the player's vans. */
+  driverId?: string;
 }
 
 export interface RequestsState {

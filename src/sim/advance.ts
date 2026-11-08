@@ -5,7 +5,7 @@ import { getMachineType, type MachineType } from '@/config/machines';
 import { getProduct, type Product } from '@/config/products';
 import type { CellData, WeatherHour } from '@/data/types';
 
-import { cloneState, collectCash, fuelCents } from './actions';
+import { cloneState, collectCash } from './actions';
 import {
   baseTraffic,
   customersPerHour,
@@ -26,10 +26,9 @@ import {
   type SurpriseNews,
 } from './events';
 import { bump, checkAchievements, rollGoalsDay } from './goals';
-import { orderStops } from './geo';
 import { addLedger, log, rollLedgerDay } from './ledger';
 import { rankingsStep, type RankBoard } from './rankings';
-import { arriveDeliveries, type DeliveryNews } from './deliveries';
+import { arriveDeliveries, dispatchDriver, type DeliveryNews } from './deliveries';
 import { rollRequest, serveRequests, type RequestNews } from './requests';
 import { happens, nextRandom, poisson } from './rng';
 import {
@@ -45,15 +44,12 @@ import {
   activeMachines,
   cashBoxCapacity,
   competition,
-  driverCapacity,
   isEmpty,
   maxOfflineMs,
   machineFresh,
   overheadCentsPerDay,
   rivalWeight,
   salesMultiplierBase,
-  slotCapacity,
-  wholesaleCents,
 } from './rules';
 import type { GameState, Machine, SimOptions, World } from './state';
 import {
@@ -527,59 +523,6 @@ function contractStep(
   void world;
 }
 
-/** A driver's route run: collect cash and restock (auto-reorder to par when researched). */
-function driverRun(
-  state: GameState,
-  world: World,
-  machineIds: readonly string[],
-  report: AdvanceReport,
-): number {
-  const stops = orderStops(
-    world.city,
-    machineIds
-      .map((id) => state.machines.find((m) => m.id === id))
-      .filter((m): m is Machine => !!m && m.status === 'active'),
-  );
-  if (!stops.length) return 0;
-  let capacity = driverCapacity(state);
-  let costs = 0;
-  let restocked = 0;
-  for (const m of stops) {
-    collectCash(state, m.id);
-    const type = getMachineType(m.typeId);
-    const cap = slotCapacity(state, type);
-    const autoReorder = hasResearch(state, 'auto-reorder', type.family);
-    for (const s of m.slots) {
-      if (!s.productId || capacity <= 0) continue;
-      const target = autoReorder && s.par > 0 ? Math.min(cap, s.par) : cap;
-      const need = Math.min(capacity, Math.max(0, target - s.qty));
-      if (need <= 0) continue;
-      const p = getProduct(s.productId);
-      const cost = wholesaleCents(state, p) * need;
-      if (cost > state.cashCents) break;
-      state.cashCents -= cost;
-      addLedger(state, 'Wholesale', -cost);
-      costs += cost;
-      // Mixing batches: keep the older stocked time only if most stock is old.
-      if (s.qty < need) s.stockedAt = state.now;
-      s.qty += need;
-      capacity -= need;
-      restocked += need;
-    }
-    m.lastVisitAt = state.now;
-    if (hasResearch(state, 'telemetry', type.family))
-      m.seen = { at: state.now, qty: m.slots.map((x) => x.qty), cashBoxCents: m.cashBoxCents };
-  }
-  const fuel = fuelCents(state, world, stops);
-  state.cashCents -= fuel;
-  addLedger(state, 'Fuel', -fuel);
-  costs += fuel;
-  report.driverRuns++;
-  if (restocked > 0)
-    log(state, 'driver', `Driver restocked ${restocked} items across ${stops.length} machines`);
-  return costs;
-}
-
 function checkChapters(state: GameState, t: number, report: AdvanceReport): void {
   for (;;) {
     const ch = state.chapter;
@@ -740,7 +683,11 @@ export function beginAdvance(
       let runs = 0;
       while (d.nextRunAt <= tEnd && runs < 6) {
         s.now = Math.max(s.now, Math.min(tEnd, d.nextRunAt));
-        costs += driverRun(s, world, d.machineIds, report);
+        // Vans due by now have filled their machines before the next run is planned.
+        for (const news of arriveDeliveries(s, s.now)) report.deliveries.push(news);
+        const spent = dispatchDriver(s, world, d);
+        if (spent > 0) report.driverRuns++;
+        costs += spent;
         d.nextRunAt += businessHoursToMs(STAFF.routeIntervalHours);
         runs++;
       }

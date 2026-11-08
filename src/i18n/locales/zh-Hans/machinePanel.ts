@@ -72,12 +72,15 @@ export default {
     fromDepot: '来自仓库',
     eta: '{time}后到达',
     loading: '正在仓库装货',
+    driverTitle: '{name}的货车正在路上',
+    otherStops: '先去另一台售货机',
     a11y: '货车载着{n}件商品配送中，{time}后到达',
   },
   /** Moment when the van arrives. */
   delivered: {
     label: '货已送到',
     title: { one: '{venue} {n}件', other: '{venue} {n}件' },
+    titleRun: { one: '已为 {n} 台售货机补货', other: '已为 {n} 台售货机补货' },
     subtitle: '新货今天多卖{pct}%',
   },
   toast: {

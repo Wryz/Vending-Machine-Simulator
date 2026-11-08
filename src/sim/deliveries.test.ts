@@ -4,6 +4,15 @@ import { SERVICE } from '@/config/economy';
 import {
   advance,
   arriveDeliveries,
+  assignRoute,
+  buyVan,
+  currentLegs,
+  dispatchDriver,
+  hireDriver,
+  lowMachines,
+  orderLowRun,
+  vanCount,
+  vansFree,
   deliveryProgress,
   migrateSave,
   nearestSupplier,
@@ -151,5 +160,101 @@ describe('restock deliveries', () => {
     delete s.deliveries;
     s.schemaVersion = 7;
     expect(migrateSave(s).deliveries).toEqual([]);
+  });
+});
+
+/** The placed machine plus a copy of it ~300 m east (a second stop). */
+function twoMachines(world: World): GameState {
+  const s = placed(world);
+  const a = s.machines[0];
+  const lines = suggestRestock(s, a.id, 10_000);
+  a.slots.forEach((x, i) => {
+    x.productId = lines[i]?.productId ?? null;
+    x.qty = 1;
+  });
+  s.machines.push({ ...structuredClone(a), id: 'm-east', lng: a.lng + 0.0035 });
+  return s;
+}
+
+describe('multi-stop van runs', () => {
+  it('"Restock low" sends one van that drives stop to stop', () => {
+    const w = worldWithStores();
+    const s = twoMachines(w);
+    s.cashCents = 1_000_000;
+    expect(
+      lowMachines(s)
+        .map((m) => m.id)
+        .sort(),
+    ).toEqual([s.machines[0].id, 'm-east'].sort());
+    const res = orderLowRun(s, w);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.deliveries).toHaveLength(2);
+    const [a, b] = res.deliveries;
+    expect(a.run).toBe(b.run);
+    // The second leg starts where the first ends, after unloading.
+    expect(b.departAt).toBe(a.arriveAt + DELIVERY.unloadMs);
+    expect(b.path![0]).toEqual(a.path![a.path!.length - 1]);
+    // One van, and nothing left to send.
+    expect(vansFree(s)).toBe(0);
+    expect(lowMachines(s)).toHaveLength(0);
+    expect(currentLegs(s.deliveries).map((d) => d.id)).toEqual([a.id]);
+    // The van's capacity is shared across the stops.
+    expect(res.units).toBeLessThanOrEqual(SERVICE.vanCapacityByLevel[s.vanLevel]);
+    arriveDeliveries(s, b.arriveAt);
+    expect(s.deliveries).toHaveLength(0);
+    for (const m of s.machines) expect(m.freshUntil).toBeGreaterThan(s.now);
+  });
+
+  it('nothing low, nothing sent', () => {
+    const w = worldWithStores();
+    const s = placed(w);
+    s.machines[0].slots.forEach((x, i) => {
+      x.productId = suggestRestock(s, s.machines[0].id)[i]?.productId ?? x.productId;
+      x.qty = 999;
+    });
+    expect(orderLowRun(s, w)).toMatchObject({ ok: false, error: 'Nothing is running low.' });
+  });
+
+  it('a hired driver drives a van instead of refilling instantly', () => {
+    const w = worldWithStores();
+    let s = twoMachines(w);
+    s.chapter = 3;
+    s.cashCents = 5_000_000;
+    s = withClone(s, (d) => buyVan(d)).state;
+    s = withClone(s, (d) => hireDriver(d)).state;
+    s = withClone(s, (d) =>
+      assignRoute(
+        d,
+        d.drivers[0].id,
+        d.machines.map((m) => m.id),
+      ),
+    ).state;
+    for (const m of s.machines) {
+      m.slots.forEach((x) => (x.qty = 1));
+      m.cashBoxCents = 5_000;
+    }
+    const driver = s.drivers[0];
+    const before = s.cashCents;
+    const spent = dispatchDriver(s, w, driver);
+    expect(spent).toBeGreaterThan(0);
+    expect(s.cashCents).toBe(before - spent);
+    // On the road, not in the machines yet.
+    expect(s.deliveries).toHaveLength(2);
+    expect(s.deliveries.every((d) => d.driverId === driver.id)).toBe(true);
+    expect(s.machines.every((m) => m.slots.every((x) => x.qty === 1))).toBe(true);
+    // Drivers' vans are not the player's.
+    expect(vansFree(s)).toBe(vanCount(s));
+    // A second run skips machines its van is still driving to.
+    expect(dispatchDriver(s, w, driver)).toBe(0);
+    const last = Math.max(...s.deliveries.map((d) => d.arriveAt));
+    s.now = last;
+    arriveDeliveries(s, last);
+    for (const m of s.machines) {
+      expect(m.slots.reduce((a, x) => a + x.qty, 0)).toBeGreaterThan(m.slots.length);
+      expect(m.cashBoxCents).toBe(0);
+      // No fresh-stock bonus: that is for the owner's own visits.
+      expect(m.freshUntil ?? 0).toBeLessThan(s.now);
+    }
   });
 });

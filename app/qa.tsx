@@ -6,7 +6,16 @@ import type { CityId } from '@/config/cities';
 import { CONTRACT, RIVAL } from '@/config/economy';
 import { SURPRISES } from '@/config/surprises';
 import { REQUESTS } from '@/config/requests';
-import { orderRestock, placeMachine, restockMachine, rollRequest, suggestRestock } from '@/sim';
+import {
+  assignRoute,
+  buyVan,
+  hireDriver,
+  orderRestock,
+  placeMachine,
+  restockMachine,
+  rollRequest,
+  suggestRestock,
+} from '@/sim';
 import { offsetPoint } from '@/sim/geo';
 import { cityInfoFor, useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
@@ -37,6 +46,8 @@ export default function Qa() {
     rivalCard,
     requests,
     van,
+    low,
+    driver,
   } = useLocalSearchParams<{
     city?: string;
     to?: string;
@@ -49,7 +60,7 @@ export default function Qa() {
     sales?: string;
     /** Machine id for the test sales (default: the first active machine). */
     saleAt?: string;
-    /** After landing, open this machine (flies the map in), `focusAfter` ms later (preview videos). */
+    /** After landing, open this machine (`first`, `driver` = first on the driver's route, or an id), `focusAfter` ms later. */
     focusAt?: string;
     focusAfter?: string;
     /** Stock only the Nth placed machine (1-based), so only it sells (preview videos). */
@@ -66,6 +77,10 @@ export default function Qa() {
     requests?: string;
     /** Order the first machine's restock as a van delivery instead of filling it at once. */
     van?: string;
+    /** `1`: every machine starts at a quarter full (the map's "Restock low" key shows). */
+    low?: string;
+    /** `1`: hire a driver for the second half of the machines; their van runs right away. */
+    driver?: string;
   }>();
   const [note, setNote] = useState('Seeding…');
 
@@ -108,6 +123,25 @@ export default function Qa() {
                 capacity: 10_000,
               });
             placed++;
+          }
+        }
+        if (low)
+          for (const m of d.machines) for (const sl of m.slots) sl.qty = Math.floor(sl.qty / 4);
+        if (driver && placed >= 2) {
+          d.chapter = Math.max(d.chapter, 3);
+          d.cashCents += 5_000_000;
+          if (d.vanLevel < 1) buyVan(d);
+          const h = hireDriver(d);
+          if (h.ok) {
+            const route = d.machines
+              .filter((m) => m.status === 'active')
+              .slice(Math.ceil(placed / 2));
+            assignRoute(
+              d,
+              d.drivers[0].id,
+              route.map((m) => m.id),
+            );
+            d.drivers[0].nextRunAt = d.now + 4_000;
           }
         }
         if (cash) d.cashCents = Math.round(Number(cash) * 100);
@@ -169,7 +203,9 @@ export default function Qa() {
         const id =
           focusAt === 'first'
             ? useGame.getState().game?.machines.find((m) => m.status === 'active')?.id
-            : focusAt;
+            : focusAt === 'driver'
+              ? useGame.getState().game?.drivers[0]?.machineIds[0]
+              : focusAt;
         setTimeout(() => router.setParams({ focus: id }), Number(focusAfter) || 3000);
       }
       const n = Math.max(0, Math.min(10, Number(sales) || 0));
@@ -202,6 +238,8 @@ export default function Qa() {
     rivalCard,
     requests,
     van,
+    low,
+    driver,
   ]);
 
   if (!__DEV__) return <Redirect href="/" />;

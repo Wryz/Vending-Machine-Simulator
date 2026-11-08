@@ -13,6 +13,15 @@ export default {
   /** Pin label where a delivery van loads (no name in the map data). */
   warehouse: 'Almacén',
   wholesale: 'Mayorista',
+  restockLow: 'Reponer máquinas bajas',
+  lowRun: {
+    title: { one: 'Reponer {n} máquina baja', other: 'Reponer {n} máquinas bajas' },
+    /** {items} units, {cost} money, {time} like "1:10". */
+    detail: '{items} artículos · {cost} · unos {time}',
+    send: 'Enviar furgoneta',
+    cancel: 'Ahora no',
+    vansOut: 'Todas tus furgonetas están fuera',
+  },
   backTo: 'Volver a {city}',
   a11y: {
     van: 'Furgoneta de reparto hacia {venue}',

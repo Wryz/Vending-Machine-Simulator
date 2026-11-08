@@ -20,7 +20,7 @@ export function clockDuration(ms: number): string {
  * The restock van on its way to this machine: where it loads, a road bar and
  * the time left. Ticks on its own so the bar moves smoothly between sim ticks.
  */
-export function VanCard({ delivery }: { delivery: Delivery }) {
+export function VanCard({ delivery, driverName }: { delivery: Delivery; driverName?: string }) {
   const t = useT();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -28,6 +28,8 @@ export function VanCard({ delivery }: { delivery: Delivery }) {
     return () => clearInterval(id);
   }, []);
   const loading = now < delivery.departAt;
+  // A later stop of a multi-stop run waits while the van serves the stops before it.
+  const elsewhere = loading && (delivery.leg ?? 0) > 0;
   const left = clockDuration(delivery.arriveAt - now);
   const store = delivery.from.name ? venueName(delivery.from.name) : '';
   return (
@@ -38,19 +40,23 @@ export function VanCard({ delivery }: { delivery: Delivery }) {
       accessibilityLabel={t('machinePanel.van.a11y', { n: delivery.units, time: left })}
     >
       <View style={styles.top}>
-        <View style={styles.badge}>
+        <View style={[styles.badge, driverName ? { backgroundColor: SKIN.driverVan } : null]}>
           <Icon name="van" size={26} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <T size={17} weight="bold" color={SKIN.keyInk}>
-            {t('machinePanel.van.title')}
+            {driverName
+              ? t('machinePanel.van.driverTitle', { name: driverName })
+              : t('machinePanel.van.title')}
           </T>
           <T size={14} color="#4A4F6A" numberOfLines={1}>
-            {loading
-              ? t('machinePanel.van.loading')
-              : store
-                ? t('machinePanel.van.from', { store })
-                : t('machinePanel.van.fromDepot')}
+            {elsewhere
+              ? t('machinePanel.van.otherStops')
+              : loading
+                ? t('machinePanel.van.loading')
+                : store
+                  ? t('machinePanel.van.from', { store })
+                  : t('machinePanel.van.fromDepot')}
           </T>
         </View>
         <Mono size={15} weight="bold" color={SKIN.keyInk}>

@@ -7,6 +7,7 @@ export default {
     vanOnItsWay: 'Une camionnette est déjà en route.',
     vansOut: 'Toutes tes camionnettes sont sorties.',
     pickRestock: 'Choisis quelque chose à remplir.',
+    nothingLow: 'Rien ne manque.',
     pickMachine: 'Choisis un distributeur.',
     pickTerm: 'Choisis une durée de contrat.',
     typeLocked: '{type} est verrouillé.',
@@ -116,6 +117,10 @@ export default {
     trophy: 'Trophée : {title}',
     restocked: '{n} articles réapprovisionnés',
     vanOut: 'Camionnette en route avec {n} articles',
+    vanOutRun: 'Camionnette en route avec {n} articles pour {machines} distributeurs',
+    driverVanOut:
+      'La camionnette de {name} est partie avec {n} articles pour {machines} distributeurs',
+    driverRestockedOne: 'Le chauffeur a réapprovisionné {n} articles',
     instantRestock: 'Réappro instantané (récompense)',
     freePull: 'Tirage gratuit trouvé dans la caisse',
     collected: 'Recette encaissée',

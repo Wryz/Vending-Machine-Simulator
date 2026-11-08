@@ -11,6 +11,15 @@ export default {
   /** Pin label where a delivery van loads (no name in the map data). */
   warehouse: 'Warehouse',
   wholesale: 'Wholesaler',
+  restockLow: 'Restock low machines',
+  lowRun: {
+    title: { one: 'Restock {n} low machine', other: 'Restock {n} low machines' },
+    /** {items} units, {cost} money, {time} like "1:10". */
+    detail: '{items} items · {cost} · about {time}',
+    send: 'Send van',
+    cancel: 'Not now',
+    vansOut: 'All your vans are out',
+  },
   backTo: 'Back to {city}',
   a11y: {
     van: 'Delivery van to {venue}',

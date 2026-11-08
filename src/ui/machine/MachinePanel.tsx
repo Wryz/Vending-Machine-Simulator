@@ -397,7 +397,16 @@ export function MachinePanel({
         />
       ) : null}
 
-      {onTheWay ? <VanCard delivery={onTheWay} /> : null}
+      {onTheWay ? (
+        <VanCard
+          delivery={onTheWay}
+          driverName={
+            onTheWay.driverId
+              ? game.drivers.find((d) => d.id === onTheWay.driverId)?.name
+              : undefined
+          }
+        />
+      ) : null}
 
       {/* The two jobs: take the cash, refill the coils. */}
       <Row gap={SPACE.s}>

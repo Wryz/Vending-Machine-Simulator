@@ -12,6 +12,15 @@ export default {
   /** Pin label where a delivery van loads (no name in the map data). */
   warehouse: '仓库',
   wholesale: '批发商',
+  restockLow: '给快空的售货机补货',
+  lowRun: {
+    title: { one: '给 {n} 台快空的售货机补货', other: '给 {n} 台快空的售货机补货' },
+    /** {items} units, {cost} money, {time} like "1:10". */
+    detail: '{items} 件 · {cost} · 约 {time}',
+    send: '派出货车',
+    cancel: '以后再说',
+    vansOut: '货车都出去了',
+  },
   backTo: '返回{city}',
   a11y: {
     van: '开往{venue}的送货车',

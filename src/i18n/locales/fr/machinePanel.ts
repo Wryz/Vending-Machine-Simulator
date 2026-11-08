@@ -73,12 +73,18 @@ export default {
     fromDepot: 'Depuis l’entrepôt',
     eta: 'Arrive dans {time}',
     loading: 'Chargement à l’entrepôt',
+    driverTitle: 'La camionnette de {name} arrive',
+    otherStops: 'Un autre arrêt d’abord',
     a11y: 'Camionnette en route avec {n} articles, arrive dans {time}',
   },
   /** Moment when the van arrives. */
   delivered: {
     label: 'Stock livré',
     title: { one: '{n} article à {venue}', other: '{n} articles à {venue}' },
+    titleRun: {
+      one: '{n} distributeur réapprovisionné',
+      other: '{n} distributeurs réapprovisionnés',
+    },
     subtitle: 'Le stock frais se vend {pct} % mieux aujourd’hui',
   },
   toast: {

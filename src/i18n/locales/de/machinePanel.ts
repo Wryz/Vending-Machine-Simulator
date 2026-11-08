@@ -73,12 +73,15 @@ export default {
     fromDepot: 'Aus dem Lager',
     eta: 'Da in {time}',
     loading: 'Wird im Lager beladen',
+    driverTitle: 'Lieferwagen von {name} unterwegs',
+    otherStops: 'Hält vorher noch an einem Automaten',
     a11y: 'Lieferwagen mit {n} Artikeln unterwegs, da in {time}',
   },
   /** Moment when the van arrives. */
   delivered: {
     label: 'Ware geliefert',
     title: { one: '{n} Artikel bei {venue}', other: '{n} Artikel bei {venue}' },
+    titleRun: { one: '{n} Automat aufgefüllt', other: '{n} Automaten aufgefüllt' },
     subtitle: 'Frische Ware verkauft sich heute {pct} % besser',
   },
   toast: {
