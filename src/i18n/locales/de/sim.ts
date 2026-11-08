@@ -16,6 +16,8 @@ export default {
     spotTaken: 'Hier steht schon ein anderer Automat von dir.',
     rivalSpot: 'Brightvend hat an diesem Standort schon einen Automaten.',
     exclusiveHeld: 'Du hast hier schon einen Exklusivvertrag.',
+    labBusy: 'Dein Labor forscht gerade an etwas anderem.',
+    nothingToClaim: 'Nichts abzuholen.',
     notEnoughCash: 'Nicht genug Geld.',
     notInStorage: 'Dieser Automat ist nicht im Lager.',
     machineNotFound: 'Automat nicht gefunden.',
@@ -91,6 +93,7 @@ export default {
     trophies: 'Trophäen',
   },
   log: {
+    researchDone: 'Forschung im Labor abgeschlossen',
     cashFull: 'Kasse voll',
     technicianFixed: 'Techniker hat den Automaten repariert',
     repairedByHand: 'Von Hand repariert',

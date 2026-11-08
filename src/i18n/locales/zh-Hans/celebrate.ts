@@ -10,6 +10,13 @@ export default {
     streak: '订单全部完成',
     event: '附近即将开始',
     info: '提示',
+    research: '研究完成',
+  },
+  modal: {
+    title: '好消息',
+    claim: '领取 {amount}',
+    ok: '好',
+    waiting: '有奖励等你领取。',
   },
   a11y: '{label}：{title}。轻点关闭。',
   moment: {

@@ -10,6 +10,13 @@ export default {
     streak: '모든 주문 완료',
     event: '근처 이벤트 예정',
     info: '알림',
+    research: '연구 완료',
+  },
+  modal: {
+    title: '좋은 소식',
+    claim: '{amount} 받기',
+    ok: '확인',
+    waiting: '보상이 기다리고 있어요.',
   },
   a11y: '{label}: {title}. 탭해서 닫기.',
   moment: {

@@ -16,6 +16,8 @@ export default {
     spotTaken: '이미 내 자판기가 여기 있어요.',
     rivalSpot: '이 자리에는 이미 Brightvend 자판기가 있어요.',
     exclusiveHeld: '이미 여기서 독점 계약을 맺고 있어요.',
+    labBusy: '연구실이 다른 연구로 바빠요.',
+    nothingToClaim: '받을 보상이 없어요.',
     notEnoughCash: '현금이 부족해요.',
     notInStorage: '그 자판기는 보관 중이 아니에요.',
     machineNotFound: '자판기를 찾을 수 없어요.',
@@ -91,6 +93,7 @@ export default {
     trophies: '트로피',
   },
   log: {
+    researchDone: '연구실에서 연구 완료',
     cashFull: '돈통 가득 참',
     technicianFixed: '기술자가 자판기를 수리했어요',
     repairedByHand: '직접 수리했어요',

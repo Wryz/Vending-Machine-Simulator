@@ -75,4 +75,5 @@ export const orderLowRun = recorded('orderLowRun', DeliveriesRaw.orderLowRun);
 export const acceptDeal = recorded('acceptDeal', EventsRaw.acceptDeal);
 export const undercutRival = recorded('undercutRival', RivalRaw.undercutRival);
 export const claimGoal = recorded('claimGoal', GoalsRaw.claimGoal);
+export const claimRewards = recorded('claimRewards', GoalsRaw.claimRewards);
 export { recordAction, type LoggedAction } from './actionLog';

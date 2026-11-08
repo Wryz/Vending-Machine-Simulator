@@ -15,7 +15,7 @@ import type { LoggedAction } from './actionLog';
  * epoch ms (real time).
  */
 
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 export interface Slot {
   productId: string | null;
@@ -307,6 +307,10 @@ export interface GameState {
   actionLog: LoggedAction[];
   /** Entries dropped off the front of the log (it keeps ACTION_LOG.cap). */
   actionLogDropped: number;
+  /** The research in the lab, if any (schema v11): it applies at `doneAt`. */
+  lab: { id: ResearchId; key: MachineFamily | '*'; startedAt: number; doneAt: number } | null;
+  /** Trophy rewards waiting to be claimed from the moments modal (schema v11). */
+  unclaimed: { id: string; cents: number }[];
   log: LogEntry[];
   nextId: number;
 }

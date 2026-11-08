@@ -477,10 +477,23 @@ describe('automation: drivers, research, warehouse', () => {
     s.chapter = 3;
     s.cashCents = 10_000_000;
     expect(buyResearch(s, 'card-reader', 'snacks').ok).toBe(true);
-    expect(buyResearch(s, 'card-reader', 'snacks').ok).toBe(false);
-    expect(buyResearch(s, 'card-reader', 'drinks').ok).toBe(true);
-    expect(buyResearch(s, 'telemetry').ok).toBe(true);
-    expect(s.research.telemetry).toEqual(['*']);
+    // One research at a time: the lab is busy until it's done, and it applies then.
+    expect(buyResearch(s, 'card-reader', 'drinks').ok).toBe(false);
+    expect(s.research['card-reader']).toBeUndefined();
+    const lab = (st: typeof s) => {
+      const done = advance(st, world, st.lab!.doneAt + MIN);
+      expect(done.report.researchDone.length).toBe(1);
+      return done.state;
+    };
+    let t = lab(s);
+    expect(t.research['card-reader']).toEqual(['snacks']);
+    expect(buyResearch(t, 'card-reader', 'snacks').ok).toBe(false);
+    expect(buyResearch(t, 'card-reader', 'drinks').ok).toBe(true);
+    t = lab(t);
+    expect(buyResearch(t, 'telemetry').ok).toBe(true);
+    t = lab(t);
+    expect(t.research.telemetry).toEqual(['*']);
+    Object.assign(s, t);
     expect(buyResearch(s, 'smart-pricing', 'snacks').ok).toBe(false);
     expect(buyWarehouse(s).ok).toBe(true);
     expect(buyWarehouse(s).ok).toBe(false);

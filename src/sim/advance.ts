@@ -9,9 +9,9 @@ import {
   STAFF,
   TIME,
 } from '@/config/economy';
-import { CHAPTER_GOALS as CHAPTER_GOALS_REF } from '@/config/progression';
+import { CHAPTER_GOALS as CHAPTER_GOALS_REF, type ResearchId } from '@/config/progression';
 import { SURPRISES } from '@/config/surprises';
-import { getMachineType, type MachineType } from '@/config/machines';
+import { getMachineType, type MachineFamily, type MachineType } from '@/config/machines';
 import { getProduct, type Product } from '@/config/products';
 import type { CellData, WeatherHour } from '@/data/types';
 
@@ -95,6 +95,8 @@ export interface AdvanceReport {
   perMachine: Record<string, { units: number; cents: number }>;
   /** Trophies unlocked during this advance. */
   achievements: string[];
+  /** Research the lab finished (it now applies). */
+  researchDone: { id: ResearchId; key: MachineFamily | '*' }[];
   /** What the rival did (its taunt cards). */
   rival: RivalNews[];
   /** Customers who bought at the rival's next to yours (live play only; map moments). */
@@ -141,6 +143,7 @@ function newReport(from: number): AdvanceReport {
     events: [],
     perMachine: {},
     achievements: [],
+    researchDone: [],
     rival: [],
     stings: [],
     surprises: [],
@@ -840,6 +843,14 @@ export function beginAdvance(
 
     report.costsCents += costs;
     s.now = tEnd;
+    // The lab finishes its research: it applies from now on.
+    if (s.lab && s.lab.doneAt <= s.now) {
+      const { id, key } = s.lab;
+      s.research[id] = [...(s.research[id] ?? []), key];
+      s.lab = null;
+      report.researchDone.push({ id, key });
+      log(s, 'info', 'Research finished in the lab');
+    }
     checkChapters(s, s.now, report);
     for (const id of checkAchievements(s)) report.achievements.push(id);
     // Competition only changes when machines go: rebuild if this step lost a contract

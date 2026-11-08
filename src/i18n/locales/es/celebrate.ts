@@ -10,6 +10,13 @@ export default {
     streak: 'Pedidos listos',
     event: 'Pronto cerca',
     info: 'Nota',
+    research: 'Investigación lista',
+  },
+  modal: {
+    title: 'Buenas noticias',
+    claim: 'Cobrar {amount}',
+    ok: 'OK',
+    waiting: 'Tienes recompensas esperando.',
   },
   a11y: '{label}: {title}. Toca para cerrar.',
   moment: {

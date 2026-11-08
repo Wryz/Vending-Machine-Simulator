@@ -142,7 +142,17 @@ export function claimGoal(state: GameState, goalId: string): ClaimResult {
   return { ok: true, rewardCents: goal.rewardCents, streakBonusCents };
 }
 
-/** Trophies earned now (checked every advance). Grants rewards; returns new ids. */
+/** Claim every waiting trophy reward (the moments modal's Claim key). */
+export function claimRewards(state: GameState): { ok: true; cents: number } | { ok: false; error: string } {
+  if (!state.unclaimed.length) return { ok: false, error: 'Nothing to claim.' };
+  const cents = state.unclaimed.reduce((a, r) => a + r.cents, 0);
+  state.cashCents += cents;
+  addLedger(state, 'Trophies', cents);
+  state.unclaimed = [];
+  return { ok: true, cents };
+}
+
+/** Trophies earned now (checked every advance); rewards wait in `unclaimed`. Returns new ids. */
 export function checkAchievements(state: GameState): string[] {
   const got: string[] = [];
   const has = (id: string) => id in state.achievements;
@@ -170,10 +180,8 @@ export function checkAchievements(state: GameState): string[] {
   for (const a of ACHIEVEMENTS) {
     if (has(a.id) || !tests[a.id]) continue;
     state.achievements[a.id] = state.now;
-    if (a.rewardCents) {
-      state.cashCents += a.rewardCents;
-      addLedger(state, 'Trophies', a.rewardCents);
-    }
+    // The reward waits in the moments modal until claimed (claimRewards).
+    if (a.rewardCents) state.unclaimed.push({ id: a.id, cents: a.rewardCents });
     log(state, 'info', `Trophy: ${a.title}`, undefined, a.rewardCents || undefined);
     got.push(a.id);
   }

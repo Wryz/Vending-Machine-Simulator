@@ -148,7 +148,7 @@ Coinline is a single-player vending business game on a real map. No account or l
 - On first launch the player can "Use my location" (approximate location, asked once, rounded to about 1 km on the device, never stored on a server) to start near them, or spin the globe and pick any city in the list. Denying location simply starts the globe on the phone's time zone.
 - Ads are optional rewarded ads only (for example, "x2 earnings"). They are requested as non-personalized. The App Tracking Transparency prompt appears only if the player turns on "Personalized ads" in Settings.
 - In-app purchases are in Company tab › Shop, with a Restore purchases button. Double Profits (one-time) doubles in-game income from sales.
-- The Starter Pack appears after chapter 1 (about two hours of play, mostly idle: place the first machine, stock it, collect $1,000 in sales). To see it sooner, restock whenever it runs low; a full machine sells out in about an hour.
+- The Starter Pack appears after chapter 1 (about an hour and a half of play, mostly idle: place the first machine, stock it, collect $1,000 in sales). To see it sooner, restock whenever it runs low; a full machine sells out in about 40 minutes.
 - Map data © OpenStreetMap contributors (ODbL), credited in Settings › Credits and licenses.
 ```
 

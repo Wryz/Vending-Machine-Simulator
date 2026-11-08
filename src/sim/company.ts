@@ -24,6 +24,8 @@ export const COMPANY_FIELDS = [
   'ledger',
   'footprint',
   'chapterStartSalesCents',
+  'lab',
+  'unclaimed',
 ] as const satisfies readonly (keyof GameState)[];
 
 export type CompanyState = Pick<GameState, (typeof COMPANY_FIELDS)[number]>;

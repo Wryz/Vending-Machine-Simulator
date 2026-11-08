@@ -69,6 +69,8 @@ const MIGRATIONS: Record<number, Migration> = {
   },
   // v10: the action log (groundwork for shared customers online, docs/design/v2-online.md).
   9: (s) => ({ ...s, actionLog: [], actionLogDropped: 0, schemaVersion: 10 }),
+  // v11: research takes time in a lab; trophy rewards are claimed.
+  10: (s) => ({ ...s, lab: null, unclaimed: [], schemaVersion: 11 }),
 };
 
 export class SaveError extends Error {}

@@ -10,6 +10,13 @@ export default {
     streak: '全注文達成',
     event: '近くでもうすぐ',
     info: 'お知らせ',
+    research: '研究完了',
+  },
+  modal: {
+    title: 'いいお知らせ',
+    claim: '{amount}を受け取る',
+    ok: 'OK',
+    waiting: '報酬が届いています。',
   },
   a11y: '{label}：{title}。タップで閉じる。',
   moment: {

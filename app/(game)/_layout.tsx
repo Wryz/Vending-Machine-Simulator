@@ -15,6 +15,7 @@ import { applyStarterPack } from '@/sim';
 import { useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
 import { CatchUpOverlay } from '@/ui/CatchUpOverlay';
+import { MomentsModal } from '@/ui/MomentsModal';
 import { useTheme } from '@/ui/ThemeProvider';
 
 /** Live tick cadence. The sim itself runs 1-minute steps (SPEC §5.1). */
@@ -169,6 +170,7 @@ export default function GameLayout() {
         <Stack.Screen name="rankings" options={{ animation: 'slide_from_right' }} />
       </Stack>
       <CatchUpOverlay />
+      <MomentsModal />
     </>
   );
 }

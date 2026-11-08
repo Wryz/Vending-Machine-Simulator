@@ -10,6 +10,13 @@ export default {
     streak: 'Alle Aufträge erledigt',
     event: 'Bald in der Nähe',
     info: 'Hinweis',
+    research: 'Forschung fertig',
+  },
+  modal: {
+    title: 'Gute Nachrichten',
+    claim: '{amount} abholen',
+    ok: 'OK',
+    waiting: 'Belohnungen warten auf dich.',
   },
   a11y: '{label}: {title}. Tippen zum Schließen.',
   moment: {

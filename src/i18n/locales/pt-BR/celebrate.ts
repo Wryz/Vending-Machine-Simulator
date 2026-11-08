@@ -10,6 +10,13 @@ export default {
     streak: 'Todos os pedidos feitos',
     event: 'Em breve por perto',
     info: 'Aviso',
+    research: 'Pesquisa concluída',
+  },
+  modal: {
+    title: 'Boas notícias',
+    claim: 'Resgatar {amount}',
+    ok: 'OK',
+    waiting: 'Recompensas esperando por você.',
   },
   a11y: '{label}: {title}. Toque para fechar.',
   moment: {

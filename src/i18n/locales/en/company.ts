@@ -59,6 +59,14 @@ export default {
     granted: 'Liquor permit granted',
   },
   research: {
+    labIntro: 'Your lab works on one upgrade at a time. It starts when you pay and applies when it\'s done.',
+    labBusy: 'Your lab is busy. The next upgrade can start when this one is done.',
+    howGlobal: 'All your machines · takes about {time}',
+    howFamily: 'Pick a machine family below (each is researched separately) · takes about {time}',
+    inLab: 'In the lab · {time} left',
+    inLabFamily: 'In the lab for {family} · {time} left',
+    startedToast: '{name}: research started',
+    startedFamilyToast: '{name} for {family}: research started',
     section: 'Research',
     perFamily: '{cost}/family', // price per machine family
     unlocksIn: 'Unlocks in chapter {n}',

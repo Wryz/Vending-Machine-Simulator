@@ -100,6 +100,8 @@ export function newGame(opts: NewGameOptions): GameState {
     chapterStartSalesCents: 0,
     actionLog: [],
     actionLogDropped: 0,
+    lab: null,
+    unclaimed: [],
     tutorial: { step: 0, done: false },
     goals: emptyGoals(),
     achievements: {},

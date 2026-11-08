@@ -4,6 +4,7 @@ import {
   advance,
   checkAchievements,
   claimGoal,
+  claimRewards,
   collectCash,
   goalProgress,
   migrateSave,
@@ -100,12 +101,17 @@ describe('daily orders', () => {
 });
 
 describe('trophies', () => {
-  it('unlock once with a reward', () => {
+  it('unlock once; the reward waits until claimed', () => {
     const s = newGame({ cityId: 'new-york', now: NOON_NY, seed: 1 });
     s.ledger.lifetimeUnits = 150;
     const cash = s.cashCents;
     expect(checkAchievements(s).sort()).toEqual(['first-sale', 'units-100']);
+    expect(s.cashCents).toBe(cash);
+    expect(s.unclaimed.reduce((a, r) => a + r.cents, 0)).toBe(7_000);
+    expect(claimRewards(s)).toEqual({ ok: true, cents: 7_000 });
     expect(s.cashCents).toBe(cash + 7_000);
+    expect(s.unclaimed).toEqual([]);
+    expect(claimRewards(s).ok).toBe(false);
     expect(checkAchievements(s)).toEqual([]);
   });
   it('are reported by advance', () => {

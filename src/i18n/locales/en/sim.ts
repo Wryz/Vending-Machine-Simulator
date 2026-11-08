@@ -19,6 +19,8 @@ export default {
     spotTaken: 'Another of your machines is already here.',
     rivalSpot: 'Brightvend already has a machine on this spot.',
     exclusiveHeld: 'You already hold an exclusive contract here.',
+    labBusy: 'Your lab is busy with another research.',
+    nothingToClaim: 'Nothing to claim.',
     notEnoughCash: 'Not enough cash.',
     notInStorage: 'That machine is not in storage.',
     machineNotFound: 'Machine not found.',
@@ -97,6 +99,7 @@ export default {
   },
   // Activity log lines. {venue} is a real place name.
   log: {
+    researchDone: 'Research finished in the lab',
     cashFull: 'Cash box full',
     technicianFixed: 'Technician fixed the machine',
     repairedByHand: 'Repaired by hand',

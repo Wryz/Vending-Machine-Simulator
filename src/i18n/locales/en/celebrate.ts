@@ -8,6 +8,13 @@ export default {
     streak: 'All orders done',
     event: 'Coming up nearby',
     info: 'Note',
+    research: 'Research done',
+  },
+  modal: {
+    title: 'Good news',
+    claim: 'Claim {amount}',
+    ok: 'OK',
+    waiting: 'Rewards are waiting for you.',
   },
   a11y: '{label}: {title}. Tap to dismiss.',
   moment: {

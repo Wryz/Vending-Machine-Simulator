@@ -16,6 +16,8 @@ export default {
     spotTaken: 'Un de tes distributeurs est déjà ici.',
     rivalSpot: 'Brightvend a déjà un distributeur à cet emplacement.',
     exclusiveHeld: 'Tu as déjà un contrat exclusif ici.',
+    labBusy: 'Ton labo est occupé par une autre recherche.',
+    nothingToClaim: 'Rien à récupérer.',
     notEnoughCash: 'Pas assez d’argent.',
     notInStorage: 'Ce distributeur n’est pas en stock.',
     machineNotFound: 'Distributeur introuvable.',
@@ -91,6 +93,7 @@ export default {
     trophies: 'Trophées',
   },
   log: {
+    researchDone: 'Recherche terminée au labo',
     cashFull: 'Caisse pleine',
     technicianFixed: 'Le technicien a réparé le distributeur',
     repairedByHand: 'Réparé à la main',

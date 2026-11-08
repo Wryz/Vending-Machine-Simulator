@@ -16,6 +16,8 @@ export default {
     spotTaken: 'ここには既にあなたの自販機があります。',
     rivalSpot: 'このスポットには既にBrightvendの自販機があります。',
     exclusiveHeld: 'ここでは既に独占契約を結んでいます。',
+    labBusy: '研究室は別の研究中です。',
+    nothingToClaim: '受け取るものはありません。',
     notEnoughCash: 'お金が足りません。',
     notInStorage: 'その自販機は倉庫にありません。',
     machineNotFound: '自販機が見つかりません。',
@@ -91,6 +93,7 @@ export default {
     trophies: 'トロフィー',
   },
   log: {
+    researchDone: '研究室で研究が完了',
     cashFull: '金庫満杯',
     technicianFixed: '技術者が自販機を修理',
     repairedByHand: '手動で修理',

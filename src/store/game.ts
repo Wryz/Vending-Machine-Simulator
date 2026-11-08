@@ -15,7 +15,7 @@ import { fetchWeather } from '@/data/api';
 import { syntheticWeather, WeatherBook } from '@/data/weather';
 import type { RegionPack, RoadNet } from '@/data/types';
 import { readJson, writeJson } from '@/services/storage';
-import { ACHIEVEMENTS, BRANCHES, CHAPTERS } from '@/config/progression';
+import { ACHIEVEMENTS, BRANCHES, CHAPTERS, RESEARCH } from '@/config/progression';
 import { t } from '@/i18n';
 import { content } from '@/i18n/content';
 import { moneyShort } from '@/ui/format';
@@ -528,6 +528,7 @@ const EMPTY_REPORT: AdvanceReport = {
   events: [],
   perMachine: {},
   achievements: [],
+  researchDone: [],
   rival: [],
   stings: [],
   surprises: [],
@@ -573,6 +574,16 @@ function announceMoments(state: GameState, report: AdvanceReport): void {
         label: t('celebrate.moment.unlocked', { unlock: content.chapterUnlock(ch, i, u) }),
         value: '',
       })),
+    });
+  }
+  for (const done of report.researchDone) {
+    const r = RESEARCH.find((x) => x.id === done.id);
+    if (!r) continue;
+    const name = content.researchName(r.id, r.name);
+    push({
+      kind: 'research',
+      title: done.key === '*' ? name : `${name} · ${content.family(done.key)}`,
+      subtitle: content.researchDesc(r.id, r.description),
     });
   }
   for (const id of report.achievements) {

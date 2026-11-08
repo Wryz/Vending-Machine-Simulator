@@ -17,6 +17,7 @@ import { ledgerCategory, simError } from '@/i18n/sim';
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
 import {
+  businessDaysToMs,
   LIQUOR_PERMIT_CENTS,
   activeMachines,
   buyLiquorPermit,
@@ -34,7 +35,7 @@ import {
 } from '@/sim';
 import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
-import { money, moneyShort, pct } from '@/ui/format';
+import { duration, money, moneyShort, pct } from '@/ui/format';
 import { Button, Mono, Paper, ProgressBar, Row, Screen, Section, Spacer, T } from '@/ui/kit';
 import { GlobalRankingButton } from '@/ui/GameCenter';
 import { RankingCard } from '@/ui/RankingCard';
@@ -157,6 +158,36 @@ function pnlLines(lines: Record<string, number>): { lines: ReceiptLine[]; total:
     })),
     total: entries.reduce((a, [, v]) => a + v, 0),
   };
+}
+
+/** The research in the lab: a bar and the time left (it applies when done). */
+function LabProgress({
+  lab,
+  now,
+  family,
+}: {
+  lab: { startedAt: number; doneAt: number };
+  now: number;
+  family: string | null;
+}) {
+  const t = useT();
+  const theme = useTheme();
+  const share = Math.min(1, Math.max(0, (now - lab.startedAt) / (lab.doneAt - lab.startedAt)));
+  return (
+    <View style={{ gap: 4, marginTop: SPACE.xs }}>
+      <View style={{ height: 8, borderRadius: 4, backgroundColor: theme.line, overflow: 'hidden' }}>
+        <View style={{ width: `${share * 100}%`, height: 8, backgroundColor: theme.signal }} />
+      </View>
+      <T size={12} muted>
+        {family
+          ? t('company.research.inLabFamily', {
+              family,
+              time: duration(Math.max(0, lab.doneAt - now)),
+            })
+          : t('company.research.inLab', { time: duration(Math.max(0, lab.doneAt - now)) })}
+      </T>
+    </View>
+  );
 }
 
 /** A per-family research button with a 44 pt target. */
@@ -478,6 +509,9 @@ export default function Company() {
 
         {/* Research */}
         <Section title={t('company.research.section')}>
+          <T size={13} muted>
+            {game.lab ? t('company.research.labBusy') : t('company.research.labIntro')}
+          </T>
           {RESEARCH.map((r: Research) => {
             const locked = game.chapter < r.unlockChapter;
             const families =
@@ -492,8 +526,17 @@ export default function Company() {
                     <T weight="bold" accessibilityHint={desc}>
                       {name}
                     </T>
-                    <T size={13} muted numberOfLines={1}>
+                    <T size={13} muted>
                       {desc}
+                    </T>
+                    <T size={12} muted>
+                      {r.global
+                        ? t('company.research.howGlobal', {
+                            time: duration(businessDaysToMs(r.days)),
+                          })
+                        : t('company.research.howFamily', {
+                            time: duration(businessDaysToMs(r.days)),
+                          })}
                     </T>
                   </View>
                   <Mono size={13} muted={locked}>
@@ -502,7 +545,13 @@ export default function Company() {
                       : t('company.research.perFamily', { cost: money(r.costCents) })}
                   </Mono>
                 </Row>
-                {locked ? (
+                {game.lab?.id === r.id ? (
+                  <LabProgress
+                    lab={game.lab}
+                    now={game.now}
+                    family={game.lab.key === '*' ? null : familyLabel(game.lab.key)}
+                  />
+                ) : locked ? (
                   <StatChip
                     icon="lock"
                     label={t('company.research.unlocksIn', { n: r.unlockChapter })}
@@ -520,9 +569,12 @@ export default function Company() {
                     <Button
                       kind="secondary"
                       label={t('company.research.buy', { cost: money(r.costCents) })}
-                      disabled={game.cashCents < r.costCents}
+                      disabled={game.cashCents < r.costCents || !!game.lab}
                       onPress={() =>
-                        run((d) => buyResearch(d, r.id), t('company.research.doneToast', { name }))
+                        run(
+                          (d) => buyResearch(d, r.id),
+                          t('company.research.startedToast', { name }),
+                        )
                       }
                     />
                   )
@@ -536,11 +588,14 @@ export default function Company() {
                         label={familyLabel(f)}
                         color={theme.family[f]}
                         done={hasResearch(game, r.id, f)}
-                        disabled={game.cashCents < r.costCents}
+                        disabled={game.cashCents < r.costCents || !!game.lab}
                         onPress={() =>
                           run(
                             (d) => buyResearch(d, r.id, f),
-                            t('company.research.familyToast', { name, family: familyLabel(f) }),
+                            t('company.research.startedFamilyToast', {
+                              name,
+                              family: familyLabel(f),
+                            }),
                           )
                         }
                       />

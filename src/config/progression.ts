@@ -168,6 +168,8 @@ export interface Research {
   unlockChapter: number;
   /** If true, applies to all families at once. */
   global?: boolean;
+  /** Business days the lab needs (one research at a time; owner's call, 2026-11-08). */
+  days: number;
 }
 
 export const RESEARCH: readonly Research[] = [
@@ -177,6 +179,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'See stock and cash levels remotely.',
     costCents: 60_000,
     unlockChapter: 2,
+    days: 1,
     global: true,
   },
   {
@@ -185,6 +188,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Card sales deposit directly to your account.',
     costCents: 150_000,
     unlockChapter: 3,
+    days: 2,
   },
   {
     id: 'bigger-coil',
@@ -192,6 +196,7 @@ export const RESEARCH: readonly Research[] = [
     description: '+50% capacity per slot.',
     costCents: 120_000,
     unlockChapter: 2,
+    days: 1.5,
   },
   {
     id: 'cooler',
@@ -199,6 +204,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Fewer refrigeration failures; +5% sales of hot and cold items.',
     costCents: 100_000,
     unlockChapter: 2,
+    days: 1.5,
   },
   {
     id: 'security-cage',
@@ -206,6 +212,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Cuts theft risk by more than half.',
     costCents: 90_000,
     unlockChapter: 2,
+    days: 1,
   },
   {
     id: 'camera',
@@ -213,6 +220,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Cuts theft risk by a third.',
     costCents: 70_000,
     unlockChapter: 3,
+    days: 1,
   },
   {
     id: 'led-panel',
@@ -220,6 +228,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Machines stay visible at night (+12% visibility).',
     costCents: 80_000,
     unlockChapter: 2,
+    days: 1,
   },
   {
     id: 'technician',
@@ -227,6 +236,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Breakdowns are fixed automatically within a few hours.',
     costCents: 200_000,
     unlockChapter: 3,
+    days: 3,
     global: true,
   },
   {
@@ -235,6 +245,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Machines suggest and apply prices.',
     costCents: 300_000,
     unlockChapter: 4,
+    days: 3,
   },
   {
     id: 'id-check',
@@ -242,6 +253,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Reduces alcohol fines and incidents.',
     costCents: 150_000,
     unlockChapter: 5,
+    days: 2,
   },
   {
     id: 'auto-reorder',
@@ -249,6 +261,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Drivers restock to your par levels automatically.',
     costCents: 250_000,
     unlockChapter: 4,
+    days: 3,
     global: true,
   },
   {
@@ -257,6 +270,7 @@ export const RESEARCH: readonly Research[] = [
     description: 'Doubles cash box capacity.',
     costCents: 80_000,
     unlockChapter: 1,
+    days: 0.5,
   },
 ];
 

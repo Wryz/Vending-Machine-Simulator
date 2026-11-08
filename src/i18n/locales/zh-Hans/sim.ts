@@ -16,6 +16,8 @@ export default {
     spotTaken: '这里已经有你的另一台售货机了。',
     rivalSpot: 'Brightvend 已在这个位置放了售货机。',
     exclusiveHeld: '你在这里已有独家合同。',
+    labBusy: '实验室正在进行另一项研究。',
+    nothingToClaim: '没有可领取的奖励。',
     notEnoughCash: '现金不足。',
     notInStorage: '这台售货机不在库存中。',
     machineNotFound: '找不到售货机。',
@@ -91,6 +93,7 @@ export default {
     trophies: '奖杯',
   },
   log: {
+    researchDone: '实验室研究完成',
     cashFull: '钱箱已满',
     technicianFixed: '技师修好了售货机',
     repairedByHand: '亲手修好',

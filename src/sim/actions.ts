@@ -504,8 +504,10 @@ export function buyResearch(
   const key: MachineFamily | '*' = r.global ? '*' : (family ?? 'snacks');
   const list = state.research[id] ?? [];
   if (list.includes(key) || list.includes('*')) return fail('Already researched.');
+  if (state.lab) return fail('Your lab is busy with another research.');
   if (!spend(state, r.costCents, 'Research')) return fail('Not enough cash.');
-  state.research[id] = [...list, key];
+  // The lab works on it for a while (one at a time); it applies when done (advance.ts).
+  state.lab = { id, key, startedAt: state.now, doneAt: state.now + businessDaysToMs(r.days) };
   bump(state, 'research');
   return { ok: true };
 }

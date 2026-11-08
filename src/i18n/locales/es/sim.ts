@@ -16,6 +16,8 @@ export default {
     spotTaken: 'Ya tienes otra máquina aquí.',
     rivalSpot: 'Brightvend ya tiene una máquina en este sitio.',
     exclusiveHeld: 'Ya tienes un contrato exclusivo aquí.',
+    labBusy: 'Tu laboratorio está ocupado con otra investigación.',
+    nothingToClaim: 'No hay nada que cobrar.',
     notEnoughCash: 'No tienes dinero suficiente.',
     notInStorage: 'Esa máquina no está en el depósito.',
     machineNotFound: 'Máquina no encontrada.',
@@ -91,6 +93,7 @@ export default {
     trophies: 'Trofeos',
   },
   log: {
+    researchDone: 'Investigación terminada en el laboratorio',
     cashFull: 'Caja llena',
     technicianFixed: 'El técnico reparó la máquina',
     repairedByHand: 'Reparada a mano',

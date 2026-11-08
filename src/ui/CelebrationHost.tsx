@@ -25,6 +25,7 @@ const SHOW_MS: Record<Moment['kind'], number> = {
   info: 3000,
   rival: 5500,
   surprise: 5000,
+  research: 5000,
 };
 
 const ICON: Record<Moment['kind'], IconName> = {
@@ -36,6 +37,7 @@ const ICON: Record<Moment['kind'], IconName> = {
   info: 'locate',
   rival: 'people',
   surprise: 'star',
+  research: 'bolt',
 };
 
 /** Surprise icons and disc colors (VIP gold, jackpot amber, deal green). */
