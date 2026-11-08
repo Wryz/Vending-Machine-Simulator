@@ -15,7 +15,8 @@
     "sprites": "node scripts/sprites/build-sprites.mjs",
     "life-sprites": "node scripts/sprites/build-life-sprites.mjs",
     "spike:h3-hermes": "node scripts/spikes/h3-hermes.mjs",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "site:deploy": "npx --yes wrangler pages deploy docs/site --project-name coinline --branch main --commit-dirty=true"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "0.4.2",

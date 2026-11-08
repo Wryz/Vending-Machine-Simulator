@@ -1,6 +1,6 @@
 # App Store listing (ready to paste)
 
-> **Status (2026-11-06):** entered in App Store Connect (app 6831590229): everything below, plus the review contact and notes. Left for the account holder: accept the updated Paid Apps agreement (Business), publish App Privacy (an attestation), and add in-app purchase review screenshots from a build with the store live. AdMob payments are set to the United States; identity verification comes later, at the earnings threshold. GitHub Pages publishes from `main` /docs.
+> **Status (2026-11-06):** entered in App Store Connect (app 6831590229): everything below, plus the review contact and notes. Left for the account holder: accept the updated Paid Apps agreement (Business), publish App Privacy (an attestation), and add in-app purchase review screenshots from a build with the store live. AdMob payments are set to the United States; identity verification comes later, at the earnings threshold. The public site is Cloudflare Pages (`coinline.pages.dev`, from `docs/site`, deployed with `npm run site:deploy`); `app-ads.txt` is at its root for AdMob.
 
 Everything App Store Connect asks for, with Apple's limits checked. Prepared on 2026-11-06.
 
@@ -15,9 +15,9 @@ Everything App Store Connect asks for, with Apple's limits checked. Prepared on 
 | Primary category | Games › Simulation | |
 | Secondary category | Games › Strategy | |
 | Content rights | Uses third-party content: **Yes** | OpenStreetMap / OpenFreeMap map data (ODbL), credited in-app |
-| Privacy policy URL | https://wryz.github.io/Vending-Machine-Simulator/site/privacy.html | Live |
-| Support URL | https://wryz.github.io/Vending-Machine-Simulator/site/support.html | Live |
-| Marketing URL | https://wryz.github.io/Vending-Machine-Simulator/site/ | Optional |
+| Privacy policy URL | https://coinline.pages.dev/privacy | Live |
+| Support URL | https://coinline.pages.dev/support | Live |
+| Marketing URL | https://coinline.pages.dev/ | Optional |
 | Copyright | `2026 <your legal name or company>` | |
 | Price | Free | |
 | Availability | All countries, or start with the US, UK, Canada, Australia | The 9 data-rich cities include New York, LA, Chicago, London, Paris, Tokyo, Seoul, Singapore, Sydney |
