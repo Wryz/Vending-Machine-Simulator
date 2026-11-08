@@ -61,6 +61,7 @@ export default {
   privacy: {
     personalizedAds: '맞춤형 광고',
     personalizedAdsDetail: '기본값은 꺼짐. 추적 권한을 요청해요.',
+    adChoices: '광고 개인정보 선택',
     analytics: '익명 사용 통계',
     analyticsDetail: '이벤트 횟수만. 위치나 장소 이름은 없어요.',
     trackingDenied: '추적이 허용되지 않았어요. 광고는 맞춤형이 아니에요.',

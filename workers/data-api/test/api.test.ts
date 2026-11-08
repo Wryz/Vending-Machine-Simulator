@@ -242,6 +242,15 @@ describe('packs', () => {
     expect((await call(makeEnv(), `/cells/8f1234567890abc.bin`)).status).toBe(400);
   });
 
+  it('GET /cells/{res5}/roads.bin serves the region streets', async () => {
+    const roads = JSON.stringify({ schemaVersion: 1, lines: [], cls: [] });
+    const env = makeEnv(new FakeBucket().put(`cells/${res5}-roads.json.gz`, gz(roads)));
+    const res = await call(env, `/cells/${res5}/roads.bin`);
+    expect(res.status).toBe(200);
+    expect(gunzipSync(new Uint8Array(await res.arrayBuffer())).toString()).toBe(roads);
+    expect((await call(makeEnv(), `/cells/${res5}/roads.bin`)).status).toBe(404);
+  });
+
   it('GET /city/{cityId}/pack', async () => {
     const env = makeEnv(new FakeBucket().put('city/paris.json.gz', gz(packJson)));
     const res = await call(env, '/city/paris/pack');

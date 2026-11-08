@@ -426,8 +426,54 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, 'out');
 const ASSETS = join(HERE, '..', 'assets', 'cities');
 
-function extract(city: City, file: string): void {
-  const [w, s, e, n] = boxAround(city, HALF_SIZE_M + DEMAND_RADIUS_M + 200);
+/**
+ * What one build covers: a fallback city (a 6×6 km square) or a "your area"
+ * region (one H3 res-5 cell, about 250 km²).
+ */
+export interface AreaTarget {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  cityId?: string;
+  res5?: string;
+  /** Extract box [w, s, e, n], with the demand radius around the emitted cells. */
+  box: [number, number, number, number];
+  /** Res-9 cells to emit. */
+  emit: string[];
+  packFile: string;
+  roadsFile: string;
+  metaFile: string;
+  maxPackBytes: number;
+}
+
+export function cityTarget(city: City): AreaTarget {
+  const [w, s, e, n] = boxAround(city, HALF_SIZE_M);
+  return {
+    id: city.id,
+    name: city.name,
+    lat: city.lat,
+    lng: city.lng,
+    cityId: city.id,
+    box: boxAround(city, HALF_SIZE_M + DEMAND_RADIUS_M + 200),
+    emit: polygonToCells(
+      [
+        [s, w],
+        [s, e],
+        [n, e],
+        [n, w],
+      ],
+      H3_RES,
+    ),
+    packFile: join(ASSETS, `${city.id}.json.gz`),
+    roadsFile: join(ASSETS, `${city.id}-roads.json.gz`),
+    metaFile: join(OUT, `${city.id}.meta.json`),
+    maxPackBytes: MAX_PACK_BYTES,
+  };
+}
+
+function extract(city: AreaTarget, file: string): void {
+  const [w, s, e, n] = city.box;
   const bbox = `${w.toFixed(5)},${s.toFixed(5)},${e.toFixed(5)},${n.toFixed(5)}`;
   console.log(`[${city.id}] extract ${bbox} z${Z} from ${PLANET_URL}`);
   execFileSync(
@@ -457,9 +503,10 @@ export interface CityStats {
   packBytes: number;
 }
 
-async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
+export async function buildArea(city: AreaTarget, skipExtract: boolean): Promise<CityStats> {
   mkdirSync(join(OUT, 'extracts'), { recursive: true });
-  mkdirSync(ASSETS, { recursive: true });
+  mkdirSync(dirname(city.packFile), { recursive: true });
+  mkdirSync(dirname(city.metaFile), { recursive: true });
   const file = join(OUT, 'extracts', `${city.id}.pmtiles`);
   if (!skipExtract || !existsSync(file)) extract(city, file);
 
@@ -605,17 +652,8 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
     c.buildingM2 += b.m2;
   }
 
-  // --- Cells to emit: res-9 cells whose centers fall in the ±HALF_SIZE_M square.
-  const [w, s, e, n] = boxAround(city, HALF_SIZE_M);
-  const emit = polygonToCells(
-    [
-      [s, w],
-      [s, e],
-      [n, e],
-      [n, w],
-    ],
-    H3_RES,
-  );
+  // --- Cells to emit (a city's square, or every res-9 cell of a region).
+  const emit = city.emit;
 
   const buildCells = (cap: number): CellData[] => {
     const cells: CellData[] = [];
@@ -700,7 +738,8 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
     .slice(0, MAX_SUPPLIERS);
   const pack = (): RegionPack => ({
     schemaVersion: 1,
-    cityId: city.id,
+    ...(city.cityId ? { cityId: city.cityId } : {}),
+    ...(city.res5 ? { res5: city.res5 } : {}),
     name: city.name,
     center: { lat: city.lat, lng: city.lng },
     generatedAt: new Date().toISOString(),
@@ -712,15 +751,15 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
     suppliers: packSuppliers,
   });
   let gz = gzipSync(JSON.stringify(pack()), { level: 9 });
-  while (gz.byteLength > MAX_PACK_BYTES && cap > 1) {
+  while (gz.byteLength > city.maxPackBytes && cap > 1) {
     cap--;
     cells = buildCells(cap);
     gz = gzipSync(JSON.stringify(pack()), { level: 9 });
   }
-  writeFileSync(join(ASSETS, `${city.id}.json.gz`), gz);
+  writeFileSync(city.packFile, gz);
   const roadNet = roads.build();
   const roadsGz = gzipSync(JSON.stringify(roadNet), { level: 9 });
-  writeFileSync(join(ASSETS, `${city.id}-roads.json.gz`), roadsGz);
+  writeFileSync(city.roadsFile, roadsGz);
   console.log(
     `${city.id}: ${packSuppliers.length} suppliers, ${roadNet.lines.length} road segments, roads ${Math.round(roadsGz.byteLength / 1024)} KB`,
   );
@@ -749,13 +788,14 @@ async function buildCity(city: City, skipExtract: boolean): Promise<CityStats> {
   const pop = cells.reduce((t, c) => t + c.pop, 0);
   const meta: RegionMeta = {
     schemaVersion: 1,
-    cityId: city.id,
+    ...(city.cityId ? { cityId: city.cityId } : {}),
+    ...(city.res5 ? { res5: city.res5 } : {}),
     name: city.name,
     generatedAt: new Date().toISOString(),
     totals: { cells: cells.length, namedPlaces: namedTotal, categories, pop },
     cells: metaCells,
   };
-  writeFileSync(join(OUT, `${city.id}.meta.json`), JSON.stringify(meta));
+  writeFileSync(city.metaFile, JSON.stringify(meta));
 
   const landKm2 = cells.reduce((t, c) => t + cellArea(c.id, 'km2'), 0) || 1;
   const stats: CityStats = {
@@ -792,10 +832,10 @@ async function main(): Promise<void> {
   for (const id of ids) {
     const city = FALLBACK_CITIES.find((c) => c.id === id);
     if (!city) throw new Error(`Unknown city id: ${id}`);
-    stats.push(await buildCity(city, skipExtract));
+    stats.push(await buildArea(cityTarget(city), skipExtract));
   }
   writeFileSync(join(OUT, 'stats.json'), JSON.stringify(stats, null, 2));
   console.table(stats);
 }
 
-await main();
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();

@@ -4,7 +4,7 @@ import { gunzipSync, strFromU8 } from 'fflate';
 
 import { CITY_PACKS, CITY_ROADS } from '@assets/cities';
 
-import { fetchRegionPack } from './api';
+import { fetchRegionPack, fetchRegionRoads } from './api';
 import type { RegionPack, RoadNet } from './types';
 
 /** Parse a gzip'd RegionPack. Pure (used by tests too). */
@@ -60,6 +60,29 @@ export async function loadCityRoads(cityId: string): Promise<RoadNet | null> {
     const asset = Asset.fromModule(mod);
     await asset.downloadAsync();
     return decodeRoads(await new File(asset.localUri ?? asset.uri).bytes());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A "your area" region's streets, downloaded once and cached on device, or
+ * null (not built yet, offline): vans then drive a straight line.
+ */
+export async function loadRegionRoads(res5: string): Promise<RoadNet | null> {
+  const cached = new File(Paths.document, `region-${res5}-roads.json.gz`);
+  if (cached.exists) {
+    try {
+      return decodeRoads(await cached.bytes());
+    } catch {
+      cached.delete();
+    }
+  }
+  try {
+    const bytes = await fetchRegionRoads(res5);
+    const net = decodeRoads(bytes);
+    cached.writeSync(bytes);
+    return net;
   } catch {
     return null;
   }

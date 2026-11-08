@@ -2,7 +2,7 @@ import { getResolution, isValidCell } from 'h3-js';
 import { FALLBACK_CITIES } from '../../../src/config/cities';
 import { CACHE, REGION_RES } from './config';
 import type { Env } from './env';
-import { regionPackKey } from './area';
+import { regionPackKey, regionRoadsKey } from './area';
 import { badRequest, notFound } from './http';
 
 export const cityPackKey = (cityId: string) => `city/${cityId}.json.gz`;
@@ -37,6 +37,16 @@ async function servePack(request: Request, env: Env, key: string): Promise<Respo
 export function regionPack(request: Request, env: Env, res5: string): Promise<Response> | Response {
   if (!isValidCell(res5) || getResolution(res5) !== REGION_RES) return badRequest('bad_res5');
   return servePack(request, env, regionPackKey(res5));
+}
+
+/** GET /cells/{res5}/roads.bin: the region's streets (gzip RoadNet bytes, served like a pack). */
+export function regionRoads(
+  request: Request,
+  env: Env,
+  res5: string,
+): Promise<Response> | Response {
+  if (!isValidCell(res5) || getResolution(res5) !== REGION_RES) return badRequest('bad_res5');
+  return servePack(request, env, regionRoadsKey(res5));
 }
 
 /** GET /city/{cityId}/pack */

@@ -88,3 +88,17 @@ export async function fetchRegionPack(res5: string, timeoutMs = 30_000): Promise
     clearTimeout(timer);
   }
 }
+
+/** A "your area" region's streets for the delivery vans (gzip RoadNet bytes). */
+export async function fetchRegionRoads(res5: string, timeoutMs = 30_000): Promise<Uint8Array> {
+  if (!ENV.dataApiUrl) throw new Error('Data API is not configured.');
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${ENV.dataApiUrl}/cells/${res5}/roads.bin`, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return new Uint8Array(await res.arrayBuffer());
+  } finally {
+    clearTimeout(timer);
+  }
+}

@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { getCity, type CityId } from '@/config/cities';
 import { ROADS } from '@/config/deliveries';
 import { PURCHASES, SAVE, TIME } from '@/config/economy';
-import { loadCityPack, loadCityRoads, loadRegionPack } from '@/data/cityPack';
+import { loadCityPack, loadCityRoads, loadRegionPack, loadRegionRoads } from '@/data/cityPack';
 import { cellOf, neighbors } from '@/data/h3';
 import { fetchWeather } from '@/data/api';
 import { syntheticWeather, WeatherBook } from '@/data/weather';
@@ -129,7 +129,8 @@ export function buildWorld(
           const hit = routeCache.get(key);
           if (hit !== undefined) return hit;
           const r = routeOnRoads((graph ??= buildRoadGraph(roads)), a, b);
-          if (routeCache.size >= ROADS.routeCacheSize) routeCache.delete(routeCache.keys().next().value!);
+          if (routeCache.size >= ROADS.routeCacheSize)
+            routeCache.delete(routeCache.keys().next().value!);
           routeCache.set(key, r);
           return r;
         }
@@ -211,7 +212,7 @@ export const useGame = create<GameStore>((set, get) => {
       try {
         const [pack, roads] = await Promise.all([
           city.kind === 'fallback' ? loadCityPack(city.id) : loadRegionPack(city.res5 ?? ''),
-          city.kind === 'fallback' ? loadCityRoads(city.id) : Promise.resolve(null),
+          city.kind === 'fallback' ? loadCityRoads(city.id) : loadRegionRoads(city.res5 ?? ''),
         ]);
         // A newer openCity() started while we were loading: let it win.
         if (token !== loadToken) return;

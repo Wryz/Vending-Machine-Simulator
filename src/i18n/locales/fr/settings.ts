@@ -61,6 +61,7 @@ export default {
   privacy: {
     personalizedAds: 'Pubs personnalisées',
     personalizedAdsDetail: 'Désactivé par défaut. Demande l’autorisation de suivi.',
+    adChoices: 'Choix de confidentialité des pubs',
     analytics: 'Stats d’usage anonymes',
     analyticsDetail: 'Nombre d’événements uniquement. Ni position, ni noms de lieux.',
     trackingDenied: 'Suivi refusé. Les pubs restent non personnalisées.',

@@ -61,6 +61,7 @@ export default {
   privacy: {
     personalizedAds: 'Anuncios personalizados',
     personalizedAdsDetail: 'Desactivado por defecto. Pide permiso de rastreo.',
+    adChoices: 'Opciones de privacidad de anuncios',
     analytics: 'Estadísticas de uso anónimas',
     analyticsDetail: 'Solo conteo de eventos. Sin ubicación ni nombres de lugares.',
     trackingDenied: 'Rastreo no permitido. Los anuncios no serán personalizados.',

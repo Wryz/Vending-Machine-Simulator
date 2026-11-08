@@ -3,13 +3,14 @@ import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { VOLUME_STEPS } from '@/config/audio';
 import { LANGUAGES, LANGUAGE_NAMES, useLocale, useT, type Lang } from '@/i18n';
 import { content } from '@/i18n/content';
 import { simError } from '@/i18n/sim';
+import { privacyChoicesAvailable, showPrivacyChoices } from '@/services/ads';
 import { track } from '@/services/analytics';
 import { sound } from '@/services/audio';
 import { haptic } from '@/services/haptics';
@@ -355,6 +356,16 @@ export default function SettingsScreen() {
     }
   };
 
+  // Google's consent rules (EEA, UK, Switzerland): a way to change the ad consent answer.
+  const [privacyChoices, setPrivacyChoices] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void privacyChoicesAvailable().then((v) => live && setPrivacyChoices(v));
+    return () => {
+      live = false;
+    };
+  }, []);
+
   const togglePersonalizedAds = async (on: boolean) => {
     if (!on) {
       setSettings({ personalizedAds: false });
@@ -557,6 +568,16 @@ export default function SettingsScreen() {
               value={settings.personalizedAds}
               onChange={togglePersonalizedAds}
             />
+            {privacyChoices ? (
+              <>
+                <Divider />
+                <Button
+                  kind="secondary"
+                  label={t('settings.privacy.adChoices')}
+                  onPress={() => void showPrivacyChoices()}
+                />
+              </>
+            ) : null}
             <Divider />
             <Toggle
               label={t('settings.privacy.analytics')}

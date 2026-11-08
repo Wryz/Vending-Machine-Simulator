@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import MobileAds, {
   AdsConsent,
+  AdsConsentPrivacyOptionsRequirementStatus,
   AdEventType,
   MaxAdContentRating,
   RewardedAd,
@@ -56,6 +57,28 @@ export async function initAds(): Promise<void> {
     await MobileAds().initialize();
   } catch {
     // Ads are optional.
+  }
+}
+
+/** Players under the consent rules (EEA, UK, Switzerland) can change their answer in Settings. */
+export async function privacyChoicesAvailable(): Promise<boolean> {
+  try {
+    const info = await AdsConsent.getConsentInfo();
+    return (
+      info.privacyOptionsRequirementStatus === AdsConsentPrivacyOptionsRequirementStatus.REQUIRED
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Google's privacy choices form; ads follow the new answer. */
+export async function showPrivacyChoices(): Promise<void> {
+  try {
+    const info = await AdsConsent.showPrivacyOptionsForm();
+    consentAllowsAds = info.canRequestAds;
+  } catch {
+    // Nothing to show (not required here, or offline).
   }
 }
 

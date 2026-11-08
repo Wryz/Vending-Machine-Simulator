@@ -4,6 +4,7 @@
  *   GET /health
  *   GET /area/check?lat&lng                 → AreaCheckResponse
  *   GET /cells/{res5}.bin                   → gzip RegionPack bytes
+ *   GET /cells/{res5}/roads.bin             → gzip RoadNet bytes (delivery van streets)
  *   GET /city/{cityId}/pack                 → gzip RegionPack bytes
  *   GET /weather?cell={res5} | ?city={id}   → WeatherResponse (48 h, edge-cached 1 h)
  *   GET /tiles/{name}.json                  → TileJSON
@@ -16,7 +17,7 @@
 import { areaCheck } from './area';
 import type { Ctx, Env } from './env';
 import { CORS_HEADERS, json, notFound, withCors } from './http';
-import { cityPack, regionPack } from './packs';
+import { cityPack, regionPack, regionRoads } from './packs';
 import { rawArchive, tile, tileJson } from './tiles';
 import { weather } from './weather';
 
@@ -36,6 +37,8 @@ async function route(request: Request, env: Env, ctx: Ctx): Promise<Response> {
   if (p === '/weather') return weather(url, env, ctx);
   if ((m = /^\/cells\/([0-9a-f]{15})\.bin$/i.exec(p)))
     return regionPack(request, env, m[1].toLowerCase());
+  if ((m = /^\/cells\/([0-9a-f]{15})\/roads\.bin$/i.exec(p)))
+    return regionRoads(request, env, m[1].toLowerCase());
   if ((m = /^\/city\/([a-z-]+)\/pack$/.exec(p))) return cityPack(request, env, m[1]);
   if ((m = /^\/tiles\/([^/]+)\/(\d+)\/(\d+)\/(\d+)\.(?:mvt|pbf)$/.exec(p)))
     return tile(env, m[1], m[2], m[3], m[4]);

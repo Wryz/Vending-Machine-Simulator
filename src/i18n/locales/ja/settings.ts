@@ -61,6 +61,7 @@ export default {
   privacy: {
     personalizedAds: 'パーソナライズ広告',
     personalizedAdsDetail: '初期設定はオフ。トラッキングの許可を求めます。',
+    adChoices: '広告のプライバシー設定',
     analytics: '匿名の利用統計',
     analyticsDetail: 'イベント数のみ。位置情報や地名は含みません。',
     trackingDenied: 'トラッキングは許可されていません。広告はパーソナライズされません。',

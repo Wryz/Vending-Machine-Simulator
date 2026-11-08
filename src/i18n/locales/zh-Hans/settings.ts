@@ -61,6 +61,7 @@ export default {
   privacy: {
     personalizedAds: '个性化广告',
     personalizedAdsDetail: '默认关闭。开启时会请求跟踪权限。',
+    adChoices: '广告隐私选项',
     analytics: '匿名使用统计',
     analyticsDetail: '仅统计事件次数。不含位置，不含地点名称。',
     trackingDenied: '未允许跟踪。广告保持非个性化。',
