@@ -38,6 +38,8 @@ export default {
     population: 'OpenStreetMapの建物から推定。',
     met: 'ノルウェー気象研究所（api.met.no）のリアルタイム天気。ゲーム内の状態への対応付け以外は変更していません。オフライン時は平年値を使います。',
     metLicense: 'CC BY 4.0 および NLOD 2.0',
+    naturalEarth: '都市選択の国旗に使う国の情報。',
+    timeZones: '各都市のタイムゾーン（実際の現地時刻のため）。',
   },
   software: {
     nunito: '書体。',

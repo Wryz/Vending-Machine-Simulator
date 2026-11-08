@@ -38,6 +38,8 @@ export default {
     population: 'Geschätzt aus OpenStreetMap-Gebäuden.',
     met: 'Live-Wetter vom Norwegischen Meteorologischen Institut (api.met.no), ohne Änderungen außer der Umrechnung in Spielbedingungen. Offline nutzt das Spiel Klimamittelwerte.',
     metLicense: 'CC BY 4.0 und NLOD 2.0',
+    naturalEarth: 'Länder für die Flaggen der Städteauswahl.',
+    timeZones: 'Die Zeitzone jeder Stadt, für ihre echte Ortszeit.',
   },
   software: {
     nunito: 'Schriftart.',

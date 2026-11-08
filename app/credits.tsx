@@ -46,6 +46,18 @@ const DATA = (t: TFn): Credit[] => [
     url: 'https://www.openstreetmap.org/copyright',
   },
   {
+    name: 'Natural Earth',
+    detail: t('credits.data.naturalEarth'),
+    license: 'Public domain',
+    url: 'https://www.naturalearthdata.com',
+  },
+  {
+    name: 'timezone-boundary-builder',
+    detail: t('credits.data.timeZones'),
+    license: 'ODbL',
+    url: 'https://github.com/evansiroky/timezone-boundary-builder',
+  },
+  {
     name: 'MET Norway',
     detail: t('credits.data.met'),
     license: t('credits.data.metLicense'),

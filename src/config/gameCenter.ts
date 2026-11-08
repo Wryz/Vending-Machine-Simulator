@@ -2,17 +2,24 @@
  * Apple Game Center ids and timings. The ids must match App Store Connect
  * exactly (docs/app-store/game-center.md lists the full setup).
  *
- * - One recurring weekly leaderboard per fallback city: this week's sales.
+ * - One recurring weekly leaderboard for the whole world: this week's sales in
+ *   your city (per-city, state and country boards come with our own server).
  * - One classic all-time leaderboard: lifetime sales.
  * - One achievement per in-game trophy (src/config/progression.ts ACHIEVEMENTS).
  */
-import { FALLBACK_CITIES, type CityId } from './cities';
 import { ACHIEVEMENTS } from './progression';
 
 export const GAME_CENTER = {
   /** Prefix shared by every id, so they read clearly in App Store Connect. */
   prefix: 'coinline',
   allTimeLeaderboardId: 'coinline.alltime',
+  weeklyLeaderboardId: 'coinline.weekly.world',
+  /**
+   * The weekly board's period in App Store Connect: starts Monday 12:00 UTC,
+   * lasts a week. Every city's in-game week (local Monday 00:00, src/sim/rankings.ts)
+   * has begun by then, so no city carries last week's total into a new period.
+   */
+  weeklyStartUtc: 'Monday 12:00',
   /** At most one score submission per this long while playing. */
   scoreMinIntervalMs: 5 * 60_000,
 } as const;
@@ -25,42 +32,16 @@ function gcSafe(id: string): string {
   return id.replace(/[^A-Za-z0-9._]/g, '_');
 }
 
-/**
- * Start of each city's recurring weekly leaderboard in App Store Connect, as
- * UTC "weekday HH:MM": the city's local Monday 00:00 in STANDARD time. The
- * in-game week (src/sim/rankings.ts) starts at local Monday midnight; daylight
- * time only moves that earlier in UTC, so a fresh week never carries last
- * week's total into Game Center's new period. Duration: 1 week.
- */
-export const WEEKLY_START_UTC: Record<CityId, string> = {
-  'new-york': 'Monday 05:00',
-  'los-angeles': 'Monday 08:00',
-  chicago: 'Monday 06:00',
-  london: 'Monday 00:00',
-  paris: 'Sunday 23:00',
-  tokyo: 'Sunday 15:00',
-  seoul: 'Sunday 15:00',
-  singapore: 'Sunday 16:00',
-  sydney: 'Sunday 14:00',
-};
-
-export function weeklyLeaderboardId(cityId: CityId): string {
-  return `${GAME_CENTER.prefix}.weekly.${gcSafe(cityId)}`;
-}
-
-/** Weekly leaderboard for a city id, or null when it isn't a fallback city. */
-export function weeklyLeaderboardFor(cityId: string): string | null {
-  const city = FALLBACK_CITIES.find((c) => c.id === cityId);
-  return city ? weeklyLeaderboardId(city.id) : null;
+/** This week's board: one for every city. */
+export function weeklyLeaderboardFor(_cityId: string): string {
+  return GAME_CENTER.weeklyLeaderboardId;
 }
 
 export function achievementGcId(achievementId: string): string {
   return `${GAME_CENTER.prefix}.ach.${gcSafe(achievementId)}`;
 }
 
-export const WEEKLY_LEADERBOARD_IDS: readonly string[] = FALLBACK_CITIES.map((c) =>
-  weeklyLeaderboardId(c.id),
-);
+export const WEEKLY_LEADERBOARD_IDS: readonly string[] = [GAME_CENTER.weeklyLeaderboardId];
 
 /**
  * Game Center points per trophy (App Store Connect total must stay ≤ 1000).

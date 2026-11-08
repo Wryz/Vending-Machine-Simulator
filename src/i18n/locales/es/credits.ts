@@ -39,6 +39,8 @@ export default {
     population: 'Estimada a partir de los edificios de OpenStreetMap.',
     met: 'Clima en vivo del Instituto Meteorológico de Noruega (api.met.no), sin más cambios que adaptarlo a las condiciones del juego. Sin conexión, el juego usa promedios climáticos.',
     metLicense: 'CC BY 4.0 y NLOD 2.0',
+    naturalEarth: 'Países para las banderas del selector de ciudades.',
+    timeZones: 'La zona horaria de cada ciudad, para su hora local real.',
   },
   software: {
     nunito: 'Tipografía.',

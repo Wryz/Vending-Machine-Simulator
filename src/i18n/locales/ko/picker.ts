@@ -1,0 +1,41 @@
+// Machine-drafted ko translation. Needs a native-speaker review before launch.
+import type { Shape } from '../../core';
+import type en from '../en/picker';
+
+export default {
+  title: '어디로 갈까요?',
+  subtitle: '지구본을 돌리거나 도시를 고르세요',
+  locate: '내 위치 사용',
+  locateHint: '대략적인 위치, 한 번만 묻고 저장하지 않아요',
+  here: '여기',
+  km: '{n}km',
+  nearYou: '가까운 곳',
+  bigCities: '대도시',
+  saved: '저장됨',
+  playing: '플레이 중',
+  start: '{city}에서 시작',
+  go: '{city}(으)로 이동',
+  sell: '팔고 {city}에서 새로 시작',
+  youreHere: '지금 여기서 플레이 중',
+  none: '여기에는 아직 도시가 없어요',
+  nearest: '가장 가까운 곳: {city}, {km}',
+  flyNearest: '{city} 보기',
+  opening: '{city} 여는 중…',
+  offline: '{city}을(를) 받으려면 한 번 인터넷에 연결하세요.',
+  failed: '{city}을(를) 열 수 없어요. 다시 시도하세요.',
+  district: '{city} · {dir}',
+  dir: {
+    n: '북부',
+    ne: '북동부',
+    e: '동부',
+    se: '남동부',
+    s: '남부',
+    sw: '남서부',
+    w: '서부',
+    nw: '북서부',
+  },
+  a11y: {
+    card: '{city}, {km}',
+    globe: '지구본. 끌어서 돌리고 두 손가락으로 확대하세요.',
+  },
+} satisfies Shape<typeof en>;

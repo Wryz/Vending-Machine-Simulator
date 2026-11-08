@@ -27,6 +27,7 @@ import notify from './notify';
 import objects from './objects';
 import onboarding from './onboarding';
 import orders from './orders';
+import picker from './picker';
 import place from './place';
 import rankings from './rankings';
 import report from './report';
@@ -67,6 +68,7 @@ const en = {
   objects,
   onboarding,
   orders,
+  picker,
   place,
   rankings,
   report,

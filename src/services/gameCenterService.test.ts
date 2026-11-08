@@ -90,7 +90,7 @@ describe('gameCenter service', () => {
     await flush();
     expect(svc.useGameCenter.getState()).toMatchObject({ authenticated: true, displayName: 'P1' });
     expect(native.submitScore).toHaveBeenCalledWith(90_000, ['coinline.alltime']);
-    expect(native.submitScore).toHaveBeenCalledWith(50_000, ['coinline.weekly.london']);
+    expect(native.submitScore).toHaveBeenCalledWith(50_000, ['coinline.weekly.world']);
     expect(native.reportAchievements).toHaveBeenCalledWith(
       ['coinline.ach.first_sale', 'coinline.ach.units_100'],
       [100, 100],
@@ -105,6 +105,6 @@ describe('gameCenter service', () => {
     expect(native.reportAchievements).not.toHaveBeenCalled(); // already reported
 
     await svc.showLeaderboards('london');
-    expect(native.showDashboard).toHaveBeenCalledWith('coinline.weekly.london');
+    expect(native.showDashboard).toHaveBeenCalledWith('coinline.weekly.world');
   });
 });

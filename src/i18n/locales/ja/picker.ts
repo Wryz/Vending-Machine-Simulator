@@ -1,0 +1,41 @@
+// Machine-drafted ja translation. Needs a native-speaker review before launch.
+import type { Shape } from '../../core';
+import type en from '../en/picker';
+
+export default {
+  title: 'どこへ？',
+  subtitle: '地球儀を回すか都市を選ぼう',
+  locate: '現在地を使う',
+  locateHint: 'おおよその位置。1回だけ、保存しません',
+  here: 'ここ',
+  km: '{n} km',
+  nearYou: '近く',
+  bigCities: '大都市',
+  saved: '保存済み',
+  playing: 'プレイ中',
+  start: '{city}で始める',
+  go: '{city}へ',
+  sell: '売却して{city}で再スタート',
+  youreHere: 'ここでプレイ中',
+  none: 'ここにはまだ都市がありません',
+  nearest: '最寄り：{city}（{km}）',
+  flyNearest: '{city}を見る',
+  opening: '{city}を開いています…',
+  offline: '{city}をダウンロードするため、一度インターネットに接続してください。',
+  failed: '{city}を開けませんでした。もう一度お試しください。',
+  district: '{city}・{dir}',
+  dir: {
+    n: '北',
+    ne: '北東',
+    e: '東',
+    se: '南東',
+    s: '南',
+    sw: '南西',
+    w: '西',
+    nw: '北西',
+  },
+  a11y: {
+    card: '{city}、{km}',
+    globe: '地球儀。ドラッグで回転、ピンチで拡大。',
+  },
+} satisfies Shape<typeof en>;

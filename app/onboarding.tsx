@@ -1,34 +1,25 @@
-import * as Location from 'expo-location';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Image, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { musicMoodFor } from '@/audio/soundscape';
-import {
-  FALLBACK_CITIES,
-  LOCATION_TIMEOUT_MS,
-  NEAR_CITY_KM,
-  type City,
-  type CityId,
-} from '@/config/cities';
 import { START } from '@/config/economy';
 import { getMachineType } from '@/config/machines';
-import { areaCheck } from '@/data/api';
-import { ENV } from '@/data/env';
+import type { PickerCity } from '@/data/cityIndex';
 import { useT, type TKey } from '@/i18n';
-import { content } from '@/i18n/content';
 import { getTimeOfDay } from '@/map/timeOfDay';
-import { distanceM } from '@/sim';
 import { track } from '@/services/analytics';
 import { music, sound } from '@/services/audio';
-import { cityInfoFor, hasSave, useGame } from '@/store/game';
-import { useProfile, type CityInfo } from '@/store/profile';
+import { useCityIndex } from '@/store/cityIndex';
+import { useGame } from '@/store/game';
+import { useProfile } from '@/store/profile';
 import { currencyForCountry } from '@/ui/currency';
 import { clock, moneyWhole } from '@/ui/format';
-import { StatChip } from '@/ui/hud';
 import { Icon, type IconName } from '@/ui/icons';
-import { Button, Paper, Row, Screen, T } from '@/ui/kit';
+import { Button, Row, T } from '@/ui/kit';
+import { CityPicker, useCityLabel } from '@/ui/picker/CityPicker';
+import { cityInfoFromPick, guessOrigin, useYou } from '@/ui/picker/where';
 import { PRODUCT_IMAGES } from '@/ui/productImages';
 import { Cabinet, Glass, Led, Marquee, SKIN } from '@/ui/skin';
 import { SPACE } from '@/ui/theme';
@@ -36,81 +27,44 @@ import { SPACE } from '@/ui/theme';
 /** The used starter machine's price, for the cold open's tagline. */
 const USED_MACHINE_CENTS = getMachineType(START.starterMachineType).purchaseCents;
 
-type Step = 'cold-open' | 'intro' | 'location' | 'checking' | 'picker';
-
-/** What "Use my location" found. */
-type Found =
-  | { kind: 'near'; city: City; km: number }
-  | { kind: 'far'; city: City; km: number }
-  | { kind: 'off' };
-
-/** Guess the player's region from the device's time zone for the cold open. */
-function guessCity(): CityId {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return FALLBACK_CITIES.find((c) => c.timeZone === tz)?.id ?? 'new-york';
-}
-
-function deviceCountry(): string {
-  const locale = Intl.DateTimeFormat().resolvedOptions().locale;
-  const m = /-([A-Z]{2})\b/.exec(locale);
-  return m ? m[1] : 'US';
-}
-
-/** The closest of the 9 cities to a point, and how far it is. */
-function nearestCity(lat: number, lng: number): { city: City; km: number } {
-  let best = FALLBACK_CITIES[0];
-  let bestKm = Infinity;
-  for (const c of FALLBACK_CITIES) {
-    const km = distanceM({ lat, lng }, c) / 1000;
-    if (km < bestKm) {
-      best = c;
-      bestKm = km;
-    }
-  }
-  return { city: best, km: bestKm };
-}
-
-/** A city's display name in the UI language. */
-function cityName(c: City): string {
-  return content.city(c.id, c.name);
-}
-
-/** A city's short description in the UI language. */
-function cityNotes(t: ReturnType<typeof useT>, c: City): string {
-  return t.or(`content.cityNotes.${c.id}`, c.notes);
-}
-
-/** A promise that rejects after `ms`. */
-function timeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    p,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
-  ]);
-}
+type Step = 'cold-open' | 'intro' | 'pick';
 
 /**
- * Onboarding (SPEC §6.1, §8): cold open of a lone machine glowing on a street
- * at the real local time -> why we ask for location -> approximate location
- * (once) -> area check -> start there, or pick one of the 9 cities.
+ * Onboarding (SPEC §6.1, §8): cold open of a lone machine glowing at the
+ * player's local time -> how it works -> the globe city picker, centered on
+ * your phone's region (or on you, once you share an approximate location).
  */
 export default function Onboarding() {
   const t = useT();
+  const label = useCityLabel();
   const insets = useSafeAreaInsets();
-  // Dev QA only: open a given step, e.g. /onboarding?step=picker&city=tokyo or ?found=near.
-  const qa = useLocalSearchParams<{ step?: Step; city?: CityId; found?: Found['kind'] }>();
-  const qaOn = typeof __DEV__ !== 'undefined' && __DEV__;
-  const [step, setStep] = useState<Step>((qaOn && qa.step) || 'cold-open');
-  const [note, setNote] = useState<string | null>(null);
+  const index = useCityIndex((s) => s.entries);
+  const [step, setStep] = useState<Step>('cold-open');
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { you, locate } = useYou();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
+  const guess = useMemo(() => guessOrigin(index), [index]);
+  // The cold open shows the biggest city in your time zone, at its real local time.
   const preview = useMemo(() => {
-    const c = FALLBACK_CITIES.find((x) => x.id === guessCity())!;
-    return { c, tod: getTimeOfDay(new Date(), c.lat, c.lng) };
-  }, []);
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const home = index
+      .filter((e) => e.z === tz && !e.d)
+      .sort((a, b) => b.p - a.p)[0];
+    const name = home ? label(home) : '';
+    return {
+      name,
+      tz: home?.z ?? tz,
+      cc: home?.c ?? '',
+      tod: getTimeOfDay(new Date(), guess.lat, guess.lng),
+    };
+    // Names are fixed for the session; recomputing with the label fn adds nothing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, guess]);
 
   // Audio: the music fades in gently on the cold open; a soft whoosh between steps.
   useEffect(() => {
@@ -119,95 +73,29 @@ export default function Onboarding() {
   const lastStep = useRef<Step>(step);
   useEffect(() => {
     if (lastStep.current === step) return;
-    if (!(lastStep.current === 'location' && step === 'checking')) sound.play('whoosh');
+    sound.play('whoosh');
     lastStep.current = step;
   }, [step]);
 
-  const start = async (city: CityInfo) => {
+  const start = async (c: PickerCity) => {
     setBusy(true);
-    await useGame.getState().openCity(city);
+    setError(null);
+    await useGame.getState().openCity(cityInfoFromPick(c, label(c)));
     if (useGame.getState().status === 'ready') {
       useProfile.getState().update((p) => {
         p.onboarded = true;
       });
-      track('onboarding_done', { city: city.kind === 'fallback' ? city.id : 'area' });
+      track('onboarding_done', { city: 'area', near: you ? Math.round(c.km) : -1 });
       router.replace('/map');
     } else {
-      setNote(useGame.getState().error ?? t('onboarding.location.loadFailed'));
+      setError(t('picker.offline', { city: label(c) }));
       setBusy(false);
-    }
-  };
-
-  const [found, setFound] = useState<Found | null>(() => {
-    if (!qaOn || !qa.found) return null;
-    if (qa.found === 'off') return { kind: 'off' };
-    return { kind: qa.found, city: FALLBACK_CITIES[3], km: qa.found === 'near' ? 4 : 1840 };
-  });
-  /** The city being previewed in the picker (null = the list). */
-  const [picked, setPicked] = useState<City | null>(
-    () => (qaOn && FALLBACK_CITIES.find((c) => c.id === qa.city)) || null,
-  );
-
-  /**
-   * Approximate location, once. With the data service, check whether the
-   * player's own area is playable; otherwise (or if it isn't), start in the
-   * closest of the 9 cities when one is near, or suggest it.
-   */
-  const useMyLocation = async () => {
-    setStep('checking');
-    setNote(null);
-    try {
-      let perm = await Location.getForegroundPermissionsAsync();
-      if (!perm.granted && perm.canAskAgain)
-        perm = await Location.requestForegroundPermissionsAsync();
-      if (!perm.granted) {
-        // Denied now or earlier: iOS won't ask again, only Settings can turn it on.
-        setFound({ kind: 'off' });
-        setStep('location');
-        return;
-      }
-      const pos =
-        (await Location.getLastKnownPositionAsync({ maxAge: 30 * 60_000 })) ??
-        (await timeout(
-          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest }),
-          LOCATION_TIMEOUT_MS,
-        ));
-      const { latitude: lat, longitude: lng } = pos.coords;
-      if (ENV.dataApiUrl) {
-        try {
-          const res = await areaCheck(lat, lng);
-          if (res.playable && res.cityId && FALLBACK_CITIES.some((c) => c.id === res.cityId)) {
-            await start(cityInfoFor(res.cityId as CityId));
-            return;
-          }
-          if (res.playable && res.res5 && res.centroid) {
-            await start({
-              id: `area-${res.res5}`,
-              name: res.cityName ?? t('onboarding.location.yourArea'),
-              lat: res.centroid.lat,
-              lng: res.centroid.lng,
-              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-              countryCode: deviceCountry(),
-              kind: 'area',
-              res5: res.res5,
-            });
-            return;
-          }
-        } catch {
-          // Fall through to the closest city.
-        }
-      }
-      const near = nearestCity(lat, lng);
-      setFound({ kind: near.km <= NEAR_CITY_KM ? 'near' : 'far', ...near });
-      setStep('location');
-    } catch {
-      setNote(t('onboarding.location.notFound'));
-      setStep('picker');
     }
   };
 
   if (step === 'cold-open') {
     // The front of a Coinline machine: marquee, products behind the glass, LED, coin key.
+    const time = clock(now, preview.tz);
     return (
       <Cabinet style={{ flex: 1 }}>
         <View
@@ -233,17 +121,18 @@ export default function Onboarding() {
           <Row style={{ justifyContent: 'center' }}>
             <Led
               size={16}
-              accessibilityLabel={t('onboarding.coldOpen.clockA11y', {
-                city: cityName(preview.c),
-                time: clock(now, preview.c.timeZone),
-              })}
+              accessibilityLabel={
+                preview.name
+                  ? t('onboarding.coldOpen.clockA11y', { city: preview.name, time })
+                  : time
+              }
             >
-              {`${cityName(preview.c).toUpperCase()}  ${clock(now, preview.c.timeZone)}`}
+              {preview.name ? `${preview.name.toUpperCase()}  ${time}` : time}
             </Led>
           </Row>
           <T size={22} weight="bold" color="#FFFFFF" center accessibilityRole="header">
             {t('onboarding.coldOpen.tagline', {
-              amount: moneyWhole(USED_MACHINE_CENTS, currencyForCountry(preview.c.countryCode)),
+              amount: moneyWhole(USED_MACHINE_CENTS, currencyForCountry(preview.cc || 'US')),
             })}
           </T>
           <Button
@@ -257,216 +146,22 @@ export default function Onboarding() {
     );
   }
 
-  if (step === 'intro') return <Intro onDone={() => setStep('location')} />;
-
-  if (step === 'location' || step === 'checking') {
-    const checking = step === 'checking';
-    return (
-      <Screen title={t('onboarding.location.title')} back={false} scroll={false}>
-        <View style={{ flex: 1, padding: SPACE.xl, justifyContent: 'space-between' }}>
-          <View style={{ alignItems: 'center', gap: SPACE.l, marginTop: SPACE.xl }}>
-            <View style={styles.bigIcon}>
-              <Icon
-                name={found?.kind === 'near' ? 'pin' : 'locate'}
-                size={56}
-                color={SKIN.brandFace}
-              />
-            </View>
-            {found?.kind === 'near' ? (
-              <>
-                <T size={22} weight="bold" center>
-                  {t('onboarding.location.nearTitle', { city: cityName(found.city) })}
-                </T>
-                <T center muted>
-                  {t('onboarding.location.nearBody')}
-                </T>
-              </>
-            ) : found?.kind === 'far' ? (
-              <>
-                <T size={22} weight="bold" center>
-                  {t('onboarding.location.farTitle')}
-                </T>
-                <T center muted>
-                  {t('onboarding.location.farBody', {
-                    city: cityName(found.city),
-                    km: Math.round(found.km).toLocaleString(t.lang),
-                  })}
-                </T>
-              </>
-            ) : found?.kind === 'off' ? (
-              <>
-                <T size={22} weight="bold" center>
-                  {t('onboarding.location.offTitle')}
-                </T>
-                <T center muted>
-                  {t('onboarding.location.offBody')}
-                </T>
-              </>
-            ) : (
-              <>
-                <T size={22} weight="bold" center>
-                  {t('onboarding.location.startTitle')}
-                </T>
-                <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <StatChip
-                    icon="locate"
-                    label={t('onboarding.location.approxLabel')}
-                    value={t('onboarding.location.approxValue')}
-                  />
-                  <StatChip
-                    icon="lock"
-                    label={t('onboarding.location.notStoredLabel')}
-                    value={t('onboarding.location.notStoredValue')}
-                  />
-                  <StatChip
-                    icon="clock"
-                    label={t('onboarding.location.onceLabel')}
-                    value={t('onboarding.location.onceValue')}
-                  />
-                </Row>
-              </>
-            )}
-          </View>
-          <View style={{ gap: SPACE.m }}>
-            {found?.kind === 'near' || found?.kind === 'far' ? (
-              <Button
-                label={t('onboarding.location.startIn', { city: cityName(found.city) })}
-                icon={<Icon name="play" size={20} color="#FFFFFF" />}
-                onPress={() => start(cityInfoFor(found.city.id))}
-                busy={busy}
-              />
-            ) : found?.kind === 'off' ? (
-              <Button
-                label={t('onboarding.location.openSettings')}
-                icon={<Icon name="gear" size={20} color="#FFFFFF" />}
-                onPress={() => {
-                  setFound(null);
-                  void Linking.openSettings();
-                }}
-              />
-            ) : (
-              <Button
-                label={t('onboarding.location.useMyLocation')}
-                icon={<Icon name="locate" size={20} color="#FFFFFF" />}
-                onPress={useMyLocation}
-                busy={checking || busy}
-                accessibilityHint={t('onboarding.location.useMyLocationHint')}
-              />
-            )}
-            <Button
-              label={t('onboarding.location.exploreCities')}
-              icon={<Icon name="globe" size={20} color={SKIN.keyInk} />}
-              kind="secondary"
-              onPress={() => setStep('picker')}
-              disabled={checking || busy}
-            />
-          </View>
-        </View>
-      </Screen>
-    );
-  }
-
-  if (picked) {
-    const info = cityInfoFor(picked.id);
-    const tod = getTimeOfDay(new Date(now), picked.lat, picked.lng);
-    const night = tod.weights.night > 0.5;
-    return (
-      <Screen
-        title={cityName(picked)}
-        subtitle={t('onboarding.preview.subtitle')}
-        onBack={() => setPicked(null)}
-      >
-        <View style={[styles.previewSky, { backgroundColor: tod.palette.sky }]}>
-          <Icon
-            name={night ? 'moon' : tod.dominant === 'day' ? 'sun' : 'twilight'}
-            size={64}
-            color={night ? '#FFFFFF' : SKIN.ledAmber}
-          />
-          <Led size={22}>{clock(now, picked.timeZone)}</Led>
-        </View>
-        <T size={16} center>
-          {cityNotes(t, picked)}
-        </T>
-        <Row style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-          <StatChip icon="clock" label={t('onboarding.preview.localTime')} value={clock(now, picked.timeZone)} />
-          <StatChip
-            icon="star"
-            label={
-              hasSave(info) ? t('onboarding.preview.hasBusiness') : t('onboarding.preview.freshStart')
-            }
-            value={hasSave(info) ? t('onboarding.preview.saved') : t('onboarding.preview.new')}
-          />
-        </Row>
-        <T size={13} muted center>
-          {t('onboarding.preview.switchNote')}
-        </T>
-        <Button
-          label={
-            hasSave(info)
-              ? t('onboarding.preview.continueIn', { city: cityName(picked) })
-              : t('onboarding.preview.startIn', { city: cityName(picked) })
-          }
-          icon={<Icon name="play" size={20} color="#FFFFFF" />}
-          onPress={() => start(info)}
-          busy={busy}
-        />
-        <Button
-          label={t('onboarding.preview.back')}
-          kind="secondary"
-          onPress={() => setPicked(null)}
-          disabled={busy}
-        />
-      </Screen>
-    );
-  }
+  if (step === 'intro') return <Intro onDone={() => setStep('pick')} />;
 
   return (
-    <Screen
-      title={t('onboarding.picker.title')}
-      subtitle={note ?? t('onboarding.picker.subtitle')}
-      onBack={() => {
-        setNote(null);
-        setStep('location');
+    <CityPicker
+      mode="start"
+      origin={you ?? guess}
+      you={you}
+      status={{}}
+      busy={busy}
+      error={error}
+      onLocate={async () => {
+        const r = await locate();
+        if (r !== 'ok') setError(t('onboarding.location.offBody'));
       }}
-    >
-      {FALLBACK_CITIES.map((c) => {
-        const info = cityInfoFor(c.id);
-        const tod = getTimeOfDay(new Date(now), c.lat, c.lng);
-        const night = tod.weights.night > 0.5;
-        return (
-          <Pressable
-            key={c.id}
-            accessibilityRole="button"
-            accessibilityLabel={t(
-              hasSave(info) ? 'onboarding.picker.rowA11ySaved' : 'onboarding.picker.rowA11y',
-              { city: cityName(c), time: clock(now, c.timeZone) },
-            )}
-            accessibilityHint={t('onboarding.picker.rowHint')}
-            disabled={busy}
-            onPress={() => setPicked(c)}
-            style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.98 : 1 }] })}
-          >
-            <Paper tone="surface" style={styles.city}>
-              <View style={[styles.sky, { backgroundColor: tod.palette.sky }]}>
-                <Icon
-                  name={night ? 'moon' : tod.dominant === 'day' ? 'sun' : 'twilight'}
-                  size={22}
-                  color={night ? '#FFFFFF' : SKIN.ledAmber}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <T weight="bold">{cityName(c)}</T>
-                <T size={12} muted numberOfLines={1}>
-                  {hasSave(info) ? t('onboarding.picker.saved') : cityNotes(t, c)}
-                </T>
-              </View>
-              <Led size={14}>{clock(now, c.timeZone)}</Led>
-              <Icon name="chevron" size={18} color={SKIN.chromeDark} />
-            </Paper>
-          </Pressable>
-        );
-      })}
-    </Screen>
+      onPick={start}
+    />
   );
 }
 

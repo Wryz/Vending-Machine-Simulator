@@ -4,12 +4,9 @@ import {
   GAME_CENTER,
   HIDDEN_ACHIEVEMENTS,
   WEEKLY_LEADERBOARD_IDS,
-  WEEKLY_START_UTC,
   achievementGcId,
   weeklyLeaderboardFor,
-  weeklyLeaderboardId,
 } from '@/config/gameCenter';
-import { FALLBACK_CITIES } from '@/config/cities';
 import { ACHIEVEMENTS } from '@/config/progression';
 import type { GameState } from '@/sim';
 
@@ -27,19 +24,13 @@ function fakeState(cityId: string, lifetime: number, weekStart: number): GameSta
 }
 
 describe('Game Center ids', () => {
-  it('maps every fallback city to a valid weekly leaderboard id', () => {
-    expect(weeklyLeaderboardId('london')).toBe('coinline.weekly.london');
-    expect(weeklyLeaderboardId('new-york')).toBe('coinline.weekly.new_york');
-    expect(WEEKLY_LEADERBOARD_IDS).toHaveLength(FALLBACK_CITIES.length);
-    expect(new Set(WEEKLY_LEADERBOARD_IDS).size).toBe(FALLBACK_CITIES.length);
+  it('has one worldwide weekly board and one all-time board, every city on them', () => {
+    expect(WEEKLY_LEADERBOARD_IDS).toEqual(['coinline.weekly.world']);
     for (const id of [...WEEKLY_LEADERBOARD_IDS, GAME_CENTER.allTimeLeaderboardId])
       expect(id).toMatch(GC_ID);
-    for (const c of FALLBACK_CITIES) expect(WEEKLY_START_UTC[c.id]).toBeTruthy();
-  });
-
-  it('has no weekly board outside the fallback cities', () => {
-    expect(weeklyLeaderboardFor('tokyo')).toBe('coinline.weekly.tokyo');
-    expect(weeklyLeaderboardFor('here-52.1_4.3')).toBeNull();
+    expect(weeklyLeaderboardFor('tokyo')).toBe('coinline.weekly.world');
+    expect(weeklyLeaderboardFor('area-8541422bfffffff')).toBe('coinline.weekly.world');
+    expect(GAME_CENTER.weeklyStartUtc).toBe('Monday 12:00');
   });
 
   it('mirrors every trophy with a valid id, points and a ≤1000 total', () => {
@@ -69,15 +60,17 @@ describe('score selection', () => {
   it("uses this week's sales and lifetime sales", () => {
     const s = scoresFor(fakeState('paris', 1_234_500, 1_000_000));
     expect(s).toEqual({
-      weeklyId: 'coinline.weekly.paris',
+      weeklyId: 'coinline.weekly.world',
       weeklyCents: 234_500,
       allTimeId: 'coinline.alltime',
       allTimeCents: 1_234_500,
     });
   });
 
-  it('has only the all-time board in a non-fallback city', () => {
-    expect(scoresFor(fakeState('custom-1', 500, 0)).weeklyId).toBeNull();
+  it('puts every city on the worldwide weekly board', () => {
+    expect(scoresFor(fakeState('area-8541422bfffffff', 500, 0)).weeklyId).toBe(
+      'coinline.weekly.world',
+    );
   });
 });
 

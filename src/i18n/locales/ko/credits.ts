@@ -38,6 +38,8 @@ export default {
     population: 'OpenStreetMap 건물 데이터로 추정.',
     met: '노르웨이 기상청(api.met.no)의 실시간 날씨. 게임 날씨로 변환하는 것 외에는 수정하지 않아요. 오프라인일 때는 평년 기후를 써요.',
     metLicense: 'CC BY 4.0 및 NLOD 2.0',
+    naturalEarth: '도시 선택 화면의 국기에 쓰는 국가 정보.',
+    timeZones: '각 도시의 시간대(실제 현지 시각용).',
   },
   software: {
     nunito: '서체.',

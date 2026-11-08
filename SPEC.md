@@ -299,14 +299,17 @@ purchase_prob(product, price) = fit(product.tags, place mix, hour)
 
 ---
 
-## 6. Location, data & the 9-city fallback
+## 6. Location, data & cities
 
 ### 6.1 Starting flow
-1. Intro: a short cold open of a lone machine glowing on a real street at the city's current time.
-2. Ask for **approximate location** (When In Use, once), explaining why: "to build your city."
-3. Call the data API `GET /area/check?lat=&lng=`. It returns `{ playable: boolean, cityName, reason, centroid }`.
-4. If playable, start there. If not (or permission is denied), show the **9-city picker**: "Your area doesn't have enough map data yet. Pick a city to start your business."
-5. The player can always switch to a fallback city later (a separate save slot per city).
+1. Intro: a short cold open of a lone machine glowing at the player's local time.
+2. **The globe city picker** *(2026-11-08, owner-approved; `src/ui/picker/`)*, the one place a city is ever chosen (onboarding, Cities, selling the company):
+   - A flat-shaded low-poly globe, lit for daytime, centered on the player: their approximate location once shared ("Use my location": When In Use, asked only on tap, rounded to ~1 km on the device, never stored), else the biggest city in the phone's time zone.
+   - A horizontal strip of flag-and-name cards along the bottom: **everything within 300 km first** (cities and outer districts, any size, nearest first), **then only cities of 1M+ people**, still by distance; capped at 160 cards (`src/config/picker.ts`). Tapping a card flies the globe there; badges show the city you're playing and cities with a save.
+   - Drag and pinch the globe to aim the crosshair anywhere: it snaps to the closest city or outer district within 25 km, or says "No city here yet · nearest: …" and offers to show it.
+   - One key: Start in / Go to / Sell and restart in {city}.
+3. Every city is a region downloaded from the data API once and cached, so it plays offline afterwards. First launch needs a connection; without one the picker says "Connect to the internet once to download {city}."
+4. A player can switch cities any time (a separate save slot per city).
 
 ### 6.2 "Enough data" rule (tunable)
 An area is playable if, within 2 km of the start point:
@@ -314,9 +317,12 @@ An area is playable if, within 2 km of the start point:
 - at least 20,000 residents (from population raster);
 - and the region's cell data has been computed (see 6.4).
 
-### 6.3 Fallback cities (pre-computed and bundled or cached)
+### 6.3 Cities *(2026-11-08: no built-in cities)*
+Every playable place is an H3 res-5 region (~250 km²) built by the pipeline (`pipeline/list-regions.ts`, `build-region.ts`): the region around every city of 300k+ people (OSM population), plus the ring of 6 outer-district regions around every city of 1M+ ("Hanoi · North"). Each region opens **downtown** (the city's OSM point, or an outer district's busiest spot) and carries its country (Natural Earth, for flags and currency) and IANA time zone (timezone-boundary-builder via tz-lookup, for the real local clock). The picker's city list (`assets/cities/regions-index.json`, refreshed from `GET /regions/index.json`) holds only regions that pass §6.2 as a whole.
 
-| City | Center (lat, lng) | Notes |
+The former 9 fallback cities below are regions like any other now; saves started in them before 2026-11-08 keep loading their original packs from the data API (`/city/{id}/pack`, `/city/{id}/roads.bin`), and the area check still sends players to them while their new regions are being built.
+
+| City (legacy saves) | Center (lat, lng) | Notes |
 |---|---|---|
 | New York | 40.7128, −74.0060 | Dense, 24-hour; subway stations |
 | Los Angeles | 34.0522, −118.2437 | Car-heavy; beaches; studios |
@@ -330,7 +336,7 @@ An area is playable if, within 2 km of the start point:
 
 - City-specific flavor: local holidays and per-country alcohol rules.
 - **Money in the local currency** *(2026-11-06)*: in-game money shows in the city's currency (country → currency in `src/config/currency.ts`; US dollars where unknown), formatted for the UI language (¥ and ₩ without decimals; compact "¥180k", "₩1.6M"). The sim and saves stay in integer US cents; the UI converts at the edge with **fixed, rounded game rates** (not live exchange rates; e.g. ¥150, ₩1,350, £0.79, €0.92 per $1), so balance is identical everywhere. Price steppers move by a nice local step (¥10, ₩100, 5p, 5c) mapped back to the sim's 5-cent grid without drift; shown prices round to that step. Real-money store prices (Shop) and Game Center scores (US cents) are unaffected.
-- The 9 cities ship as downloadable data packs from the data API, with the first chosen city cached locally.
+- Leaderboards: one worldwide weekly Game Center board (period from Monday 12:00 UTC, after every city's local week has begun) plus the all-time board. District, city, state and country boards and real players replacing the AI rival are v2 (our own server; offline play stays).
 
 ### 6.4 Data sources & licensing (verify before shipping)
 - **Basemap:** OpenStreetMap via Protomaps (PMTiles) on Cloudflare R2. Attribution "© OpenStreetMap contributors" is always visible (ODbL).

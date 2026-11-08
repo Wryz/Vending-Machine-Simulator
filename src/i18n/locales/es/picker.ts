@@ -1,0 +1,41 @@
+// Machine-drafted es translation. Needs a native-speaker review before launch.
+import type { Shape } from '../../core';
+import type en from '../en/picker';
+
+export default {
+  title: '¿Adónde?',
+  subtitle: 'Gira el globo o elige una ciudad',
+  locate: 'Usar mi ubicación',
+  locateHint: 'Aproximada, se pide una vez, nunca se guarda',
+  here: 'Aquí',
+  km: '{n} km',
+  nearYou: 'Cerca de ti',
+  bigCities: 'Grandes ciudades',
+  saved: 'Guardada',
+  playing: 'Jugando',
+  start: 'Empezar en {city}',
+  go: 'Ir a {city}',
+  sell: 'Vender y empezar en {city}',
+  youreHere: 'Estás jugando aquí',
+  none: 'Aún no hay ciudad aquí',
+  nearest: 'Más cercana: {city}, {km}',
+  flyNearest: 'Ver {city}',
+  opening: 'Abriendo {city}…',
+  offline: 'Conéctate a internet una vez para descargar {city}.',
+  failed: 'No se pudo abrir {city}. Inténtalo de nuevo.',
+  district: '{city} · {dir}',
+  dir: {
+    n: 'Norte',
+    ne: 'Noreste',
+    e: 'Este',
+    se: 'Sureste',
+    s: 'Sur',
+    sw: 'Suroeste',
+    w: 'Oeste',
+    nw: 'Noroeste',
+  },
+  a11y: {
+    card: '{city}, {km}',
+    globe: 'Globo. Arrastra para girar, pellizca para acercar.',
+  },
+} satisfies Shape<typeof en>;

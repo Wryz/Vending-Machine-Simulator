@@ -40,6 +40,8 @@ export default {
     population: 'Estimated from OpenStreetMap buildings.',
     met: 'Live weather from the Norwegian Meteorological Institute (api.met.no), with no changes beyond mapping to game conditions. Offline, the game uses climate normals.',
     metLicense: 'CC BY 4.0 and NLOD 2.0',
+    naturalEarth: "Countries for the city picker's flags.",
+    timeZones: "Each city's time zone, for its real local time.",
   },
   software: {
     nunito: 'Typeface.',

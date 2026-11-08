@@ -144,7 +144,7 @@ function flushAchievements(game: GameState): void {
     });
 }
 
-/** This week's sales in a fallback city (cents). No-op outside the 9 cities. */
+/** This week's sales in your city (cents), on the worldwide weekly board. */
 export async function submitWeeklyScore(cityId: string, cents: number): Promise<void> {
   const id = weeklyLeaderboardFor(cityId);
   if (!signedIn() || !id) return;
@@ -164,7 +164,7 @@ export async function reportAchievement(id: string): Promise<void> {
   reported.add(id);
 }
 
-/** Apple's Game Center screen: a city's weekly board, or all leaderboards. */
+/** Apple's Game Center screen: the weekly board, or all leaderboards. */
 export async function showLeaderboards(cityId?: string): Promise<boolean> {
   if (!signedIn()) return false;
   const id = cityId ? weeklyLeaderboardFor(cityId) : null;

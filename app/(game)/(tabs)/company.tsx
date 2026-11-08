@@ -1,9 +1,7 @@
 import { FAMILY_LABEL } from '@/config/machines';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import { FALLBACK_CITIES, type CityId } from '@/config/cities';
 import { RIVAL, STAFF } from '@/config/economy';
 import { ALCOHOL_ALLOWED_COUNTRIES, MACHINE_TYPES, type MachineFamily } from '@/config/machines';
 import {
@@ -18,8 +16,6 @@ import { content } from '@/i18n/content';
 import { ledgerCategory, simError } from '@/i18n/sim';
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
-import { track } from '@/services/analytics';
-import { removeKey, writeJson } from '@/services/storage';
 import {
   LIQUOR_PERMIT_CENTS,
   activeMachines,
@@ -32,13 +28,11 @@ import {
   hasResearch,
   playerShare,
   reputationFor,
-  sellCompany,
   type ActionResult,
   type GameState,
   type World,
 } from '@/sim';
-import { cityInfoFor, hasSave, useGame } from '@/store/game';
-import { cityKey, useProfile } from '@/store/profile';
+import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
 import { money, moneyShort, pct } from '@/ui/format';
 import { Button, Mono, Paper, ProgressBar, Row, Screen, Section, Spacer, T } from '@/ui/kit';
@@ -191,10 +185,7 @@ export default function Company() {
   const theme = useTheme();
   const game = useGame((s) => s.game);
   const world = useGame((s) => s.world);
-  const city = useGame((s) => s.city);
   const { flash, show } = useFlash();
-  const [picking, setPicking] = useState(false);
-  const [selling, setSelling] = useState(false);
 
   const run = (fn: (d: GameState, w: World) => ActionResult, success: string) => {
     const r = useGame.getState().act(fn);
@@ -229,51 +220,6 @@ export default function Company() {
   const valuation = companyValuationCents(game);
   const reputation = reputationFor(game);
   const share = playerShare(game);
-
-  const sellTo = (id: CityId) => {
-    const target = cityInfoFor(id);
-    const replacing = hasSave(target) && city && cityKey(city) !== cityKey(target);
-    const targetName = content.city(id, target.name);
-    Alert.alert(
-      t('company.sell.title'),
-      t(replacing ? 'company.sell.bodyReplacing' : 'company.sell.body', {
-        rep: reputation,
-        target: targetName,
-        city: world.city.name,
-      }),
-      [
-        { text: t('company.sell.cancel'), style: 'cancel' },
-        {
-          text: t('company.sell.confirm'),
-          style: 'destructive',
-          onPress: async () => {
-            const current = useGame.getState().game;
-            if (!current) return;
-            const res = sellCompany(current, id, Date.now(), Math.floor(Math.random() * 2 ** 31));
-            if ('error' in res) {
-              show(simError(res.error), 'error');
-              return;
-            }
-            setSelling(true);
-            track('prestige', { city: id, count: res.state.prestige.sales });
-            haptic.success();
-            const soldKey = city ? cityKey(city) : null;
-            useGame.getState().close();
-            // The sold business is gone; its slot is freed unless we restart in the same city.
-            if (soldKey && soldKey !== cityKey(target)) {
-              removeKey(`save-${soldKey}`);
-              useProfile.getState().update((p) => {
-                delete p.cities[soldKey];
-              });
-            }
-            writeJson(`save-${cityKey(target)}`, res.state);
-            await useGame.getState().openCity(target);
-            if (useGame.getState().status === 'ready') router.replace('/map');
-          },
-        },
-      ],
-    );
-  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -639,40 +585,10 @@ export default function Company() {
             {canSellCompany(game) ? (
               <>
                 <Button
-                  kind={picking ? 'secondary' : 'danger'}
-                  label={picking ? t('company.prestige.keep') : t('company.prestige.sell')}
-                  busy={selling}
-                  onPress={() => setPicking((p) => !p)}
+                  kind="danger"
+                  label={t('company.prestige.sell')}
+                  onPress={() => router.push({ pathname: '/cities', params: { mode: 'sell' } })}
                 />
-                {picking ? (
-                  <View style={{ marginTop: SPACE.s }}>
-                    {FALLBACK_CITIES.map((c) => (
-                      <Pressable
-                        key={c.id}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('company.prestige.restartIn', {
-                          city: content.city(c.id, c.name),
-                        })}
-                        onPress={() => sellTo(c.id)}
-                        disabled={selling}
-                        style={({ pressed }) => ({
-                          minHeight: TOUCH,
-                          justifyContent: 'center',
-                          borderBottomWidth: 1,
-                          borderColor: theme.line,
-                          opacity: pressed ? 0.6 : 1,
-                        })}
-                      >
-                        <Row style={{ justifyContent: 'space-between' }}>
-                          <T weight="medium">{content.city(c.id, c.name)}</T>
-                          <T size={13} muted>
-                            {t.or(`content.cityNotes.${c.id}`, c.notes)}
-                          </T>
-                        </Row>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
               </>
             ) : (
               <LockedCard icon="handshake" title={t('company.prestige.sell')} chapter={5} />

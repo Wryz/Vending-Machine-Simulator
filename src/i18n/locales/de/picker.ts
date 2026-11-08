@@ -1,0 +1,41 @@
+// Machine-drafted de translation. Needs a native-speaker review before launch.
+import type { Shape } from '../../core';
+import type en from '../en/picker';
+
+export default {
+  title: 'Wohin?',
+  subtitle: 'Dreh den Globus oder wähle eine Stadt',
+  locate: 'Meinen Standort nutzen',
+  locateHint: 'Ungefähr, einmal gefragt, nie gespeichert',
+  here: 'Hier',
+  km: '{n} km',
+  nearYou: 'In deiner Nähe',
+  bigCities: 'Großstädte',
+  saved: 'Gespeichert',
+  playing: 'Aktiv',
+  start: 'In {city} starten',
+  go: 'Nach {city}',
+  sell: 'Verkaufen und in {city} neu starten',
+  youreHere: 'Hier spielst du gerade',
+  none: 'Hier gibt es noch keine Stadt',
+  nearest: 'Nächste: {city}, {km}',
+  flyNearest: '{city} zeigen',
+  opening: '{city} wird geöffnet …',
+  offline: 'Verbinde dich einmal mit dem Internet, um {city} zu laden.',
+  failed: '{city} konnte nicht geöffnet werden. Versuch es noch einmal.',
+  district: '{city} · {dir}',
+  dir: {
+    n: 'Nord',
+    ne: 'Nordost',
+    e: 'Ost',
+    se: 'Südost',
+    s: 'Süd',
+    sw: 'Südwest',
+    w: 'West',
+    nw: 'Nordwest',
+  },
+  a11y: {
+    card: '{city}, {km}',
+    globe: 'Globus. Ziehen zum Drehen, zwei Finger zum Zoomen.',
+  },
+} satisfies Shape<typeof en>;

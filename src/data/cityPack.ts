@@ -1,11 +1,14 @@
-import { Asset } from 'expo-asset';
 import { File, Paths } from 'expo-file-system';
 import { gunzipSync, strFromU8 } from 'fflate';
 
-import { CITY_PACKS, CITY_ROADS } from '@assets/cities';
-
-import { fetchRegionPack, fetchRegionRoads } from './api';
+import { fetchCityPack, fetchCityRoads, fetchRegionPack, fetchRegionRoads } from './api';
 import type { RegionPack, RoadNet } from './types';
+
+/**
+ * City data on device. Nothing is bundled: every city (a region, or one of
+ * the former built-in nine for older saves) is downloaded once from the data
+ * API and cached, so a city keeps working offline after its first visit.
+ */
 
 /** Parse a gzip'd RegionPack. Pure (used by tests too). */
 export function decodePack(bytes: Uint8Array): RegionPack {
@@ -13,34 +16,6 @@ export function decodePack(bytes: Uint8Array): RegionPack {
   const pack = JSON.parse(json) as RegionPack;
   if (pack.schemaVersion !== 1 || !Array.isArray(pack.cells))
     throw new Error('Unsupported region pack.');
-  return pack;
-}
-
-/** Load a bundled fallback city pack (offline, ships with the app). */
-export async function loadCityPack(cityId: string): Promise<RegionPack> {
-  const mod = CITY_PACKS[cityId];
-  if (mod === undefined) throw new Error(`No bundled pack for ${cityId}`);
-  const asset = Asset.fromModule(mod);
-  await asset.downloadAsync();
-  const uri = asset.localUri ?? asset.uri;
-  const bytes = await new File(uri).bytes();
-  return decodePack(bytes);
-}
-
-/** Download a "your area" region pack once and cache it on device. */
-export async function loadRegionPack(res5: string): Promise<RegionPack> {
-  const cached = new File(Paths.document, `region-${res5}.json.gz`);
-  if (cached.exists) {
-    try {
-      return decodePack(await cached.bytes());
-    } catch {
-      // Truncated or from an old schema: drop it and download it again.
-      cached.delete();
-    }
-  }
-  const bytes = await fetchRegionPack(res5);
-  const pack = decodePack(bytes);
-  cached.writeSync(bytes);
   return pack;
 }
 
@@ -52,37 +27,50 @@ export function decodeRoads(bytes: Uint8Array): RoadNet {
   return net;
 }
 
-/** A bundled city's streets for the delivery vans, or null (no file, or unreadable). */
-export async function loadCityRoads(cityId: string): Promise<RoadNet | null> {
-  const mod = CITY_ROADS[cityId];
-  if (mod === undefined) return null;
+/** Read `name` from the cache, or download it once (`decode` checks it before caching). */
+async function cached<T>(
+  name: string,
+  download: () => Promise<Uint8Array>,
+  decode: (b: Uint8Array) => T,
+): Promise<T> {
+  const file = new File(Paths.document, name);
+  if (file.exists) {
+    try {
+      return decode(await file.bytes());
+    } catch {
+      // Truncated or from an old schema: drop it and download it again.
+      file.delete();
+    }
+  }
+  const bytes = await download();
+  const value = decode(bytes);
+  file.writeSync(bytes);
+  return value;
+}
+
+/** A region's pack (any city or outer district). */
+export function loadRegionPack(res5: string): Promise<RegionPack> {
+  return cached(`region-${res5}.json.gz`, () => fetchRegionPack(res5), decodePack);
+}
+
+/** A former built-in city's pack, for saves started there before regions. */
+export function loadCityPack(cityId: string): Promise<RegionPack> {
+  return cached(`city-${cityId}.json.gz`, () => fetchCityPack(cityId), decodePack);
+}
+
+/** A region's streets for the vans, or null (offline on first visit): vans then drive straight. */
+export async function loadRegionRoads(res5: string): Promise<RoadNet | null> {
   try {
-    const asset = Asset.fromModule(mod);
-    await asset.downloadAsync();
-    return decodeRoads(await new File(asset.localUri ?? asset.uri).bytes());
+    return await cached(`region-${res5}-roads.json.gz`, () => fetchRegionRoads(res5), decodeRoads);
   } catch {
     return null;
   }
 }
 
-/**
- * A "your area" region's streets, downloaded once and cached on device, or
- * null (not built yet, offline): vans then drive a straight line.
- */
-export async function loadRegionRoads(res5: string): Promise<RoadNet | null> {
-  const cached = new File(Paths.document, `region-${res5}-roads.json.gz`);
-  if (cached.exists) {
-    try {
-      return decodeRoads(await cached.bytes());
-    } catch {
-      cached.delete();
-    }
-  }
+/** A former built-in city's streets, or null. */
+export async function loadCityRoads(cityId: string): Promise<RoadNet | null> {
   try {
-    const bytes = await fetchRegionRoads(res5);
-    const net = decodeRoads(bytes);
-    cached.writeSync(bytes);
-    return net;
+    return await cached(`city-${cityId}-roads.json.gz`, () => fetchCityRoads(cityId), decodeRoads);
   } catch {
     return null;
   }

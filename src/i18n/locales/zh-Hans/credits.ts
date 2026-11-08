@@ -37,6 +37,8 @@ export default {
     population: '根据 OpenStreetMap 建筑估算。',
     met: '实时天气来自挪威气象研究所（api.met.no），除映射为游戏天气外未作修改。离线时，游戏使用气候常年值。',
     metLicense: 'CC BY 4.0 和 NLOD 2.0',
+    naturalEarth: '城市选择器中旗帜对应的国家。',
+    timeZones: '每座城市的时区，用于真实的当地时间。',
   },
   software: {
     nunito: '字体。',

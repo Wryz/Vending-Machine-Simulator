@@ -2,7 +2,7 @@ import { ENV } from './env';
 import { readJson, writeJson } from '@/services/storage';
 
 import { METNO, metnoUrl, parseMetno, type MetnoCompact } from './metno';
-import type { AreaCheckResponse, WeatherResponse } from './types';
+import type { AreaCheckResponse, CityIndexEntry, WeatherResponse } from './types';
 
 /** Round to ~1 km before anything leaves the device (SPEC §6.6, §11). */
 export function coarse(n: number): number {
@@ -75,13 +75,14 @@ export async function fetchWeather(city: {
   }
 }
 
-export async function fetchRegionPack(res5: string, timeoutMs = 30_000): Promise<Uint8Array> {
+/** Raw bytes from the data API (packs and streets are served as gzip bytes). */
+async function fetchBytes(path: string, timeoutMs = 30_000): Promise<Uint8Array> {
   if (!ENV.dataApiUrl) throw new Error('Data API is not configured.');
   // A stalled download must fail (and show retry), not leave the city loading forever.
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(`${ENV.dataApiUrl}/cells/${res5}.bin`, { signal: ctrl.signal });
+    const res = await fetch(`${ENV.dataApiUrl}${path}`, { signal: ctrl.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return new Uint8Array(await res.arrayBuffer());
   } finally {
@@ -89,16 +90,17 @@ export async function fetchRegionPack(res5: string, timeoutMs = 30_000): Promise
   }
 }
 
-/** A "your area" region's streets for the delivery vans (gzip RoadNet bytes). */
-export async function fetchRegionRoads(res5: string, timeoutMs = 30_000): Promise<Uint8Array> {
-  if (!ENV.dataApiUrl) throw new Error('Data API is not configured.');
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(`${ENV.dataApiUrl}/cells/${res5}/roads.bin`, { signal: ctrl.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return new Uint8Array(await res.arrayBuffer());
-  } finally {
-    clearTimeout(timer);
-  }
+/** A region's pack (gzip RegionPack bytes). */
+export const fetchRegionPack = (res5: string) => fetchBytes(`/cells/${res5}.bin`);
+/** A region's streets for the delivery vans (gzip RoadNet bytes). */
+export const fetchRegionRoads = (res5: string) => fetchBytes(`/cells/${res5}/roads.bin`);
+/** A former built-in city's pack and streets (saves from before regions). */
+export const fetchCityPack = (cityId: string) =>
+  fetchBytes(`/city/${encodeURIComponent(cityId)}/pack`);
+export const fetchCityRoads = (cityId: string) =>
+  fetchBytes(`/city/${encodeURIComponent(cityId)}/roads.bin`);
+
+/** The picker's city list (newest from the server; the app also bundles one). */
+export function fetchCityIndex(): Promise<CityIndexEntry[]> {
+  return getJson<CityIndexEntry[]>('/regions/index.json', 15_000);
 }
