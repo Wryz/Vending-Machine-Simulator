@@ -1,23 +1,4 @@
-import { isLand, latLngToXYZ, subsolarPoint, xyzToLatLng, yawToFace } from './geo';
-
-describe('globe land mask', () => {
-  it('knows the continents from the oceans', () => {
-    expect(isLand(48.86, 2.35)).toBe(true); // Paris
-    expect(isLand(-1.29, 36.82)).toBe(true); // Nairobi
-    expect(isLand(39.74, -104.99)).toBe(true); // Denver
-    expect(isLand(-23.7, 133.88)).toBe(true); // Alice Springs
-    expect(isLand(-80, 0)).toBe(true); // Antarctica
-    expect(isLand(0, -140)).toBe(false); // Pacific
-    expect(isLand(30, -40)).toBe(false); // Atlantic
-    expect(isLand(-30, 80)).toBe(false); // Indian Ocean
-    expect(isLand(89, 0)).toBe(false); // Arctic Ocean
-  });
-
-  it('wraps longitudes', () => {
-    expect(isLand(48.86, 2.35 + 360)).toBe(isLand(48.86, 2.35));
-    expect(isLand(0, 180)).toBe(isLand(0, -180));
-  });
-});
+import { latLngToXYZ, subsolarPoint, xyzToLatLng, yawToFace } from './geo';
 
 describe('globe coordinates', () => {
   it('round-trips lat/lng through the unit sphere', () => {

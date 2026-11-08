@@ -1,40 +1,7 @@
-import { GLOBE_LAND } from '@/data/globeLand';
-
 /**
- * Pure globe math (no three.js): land lookup from the baked 2° mask,
- * lat/lng ↔ unit sphere, and the subsolar point for real-time lighting.
+ * Pure globe math (no three.js): lat/lng ↔ unit sphere, and the subsolar
+ * point for real-time lighting.
  */
-
-let landBits: Uint8Array | null = null;
-
-function decodeBase64(b64: string): Uint8Array {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  const clean = b64.replace(/=+$/, '');
-  const out = new Uint8Array(Math.floor((clean.length * 3) / 4));
-  let buf = 0;
-  let bits = 0;
-  let o = 0;
-  for (const ch of clean) {
-    buf = (buf << 6) | alphabet.indexOf(ch);
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      out[o++] = (buf >> bits) & 0xff;
-    }
-  }
-  return out;
-}
-
-/** True when the 2° cell containing (lat, lng) is land. */
-export function isLand(lat: number, lng: number): boolean {
-  landBits ??= decodeBase64(GLOBE_LAND.bits);
-  const { stepDeg, rows, cols } = GLOBE_LAND;
-  const r = Math.min(rows - 1, Math.max(0, Math.floor((90 - lat) / stepDeg)));
-  const wrapped = ((((lng + 180) % 360) + 360) % 360) - 180;
-  const c = Math.min(cols - 1, Math.max(0, Math.floor((wrapped + 180) / stepDeg)));
-  const i = r * cols + c;
-  return ((landBits[i >> 3] >> (i & 7)) & 1) === 1;
-}
 
 /**
  * Unit-sphere position of (lat, lng) in three.js axes: +Y is north, lng 0 faces

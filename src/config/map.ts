@@ -97,16 +97,12 @@ export const MACHINE_PIN = {
 } as const;
 
 /**
- * Zoomed-out globe (SPEC §3.5 "Views"). MapLibre Native has no globe
- * projection yet, so pinching out past `handoffZoom` crossfades into a
- * three.js globe; pinching in (or tapping a pin) flies back to the map.
+ * Zoomed-out world view (SPEC §3.5 "Views"). MapLibre Native has no globe
+ * projection, so pinching the map out past `handoffZoom` crossfades into the
+ * same GPU globe as the city picker (src/ui/picker/PickerGlobe); pinching back
+ * in past `enterZoom`, tapping your city's pin or "Back" flies back to the map.
  */
 export const GLOBE = {
-  /**
-   * MapLibre Native has no globe projection yet, so pinching out past
-   * `handoffZoom` crossfades into a flat-shaded SVG globe (src/ui/GlobeView);
-   * pinching in, tapping your city's pin or "Back" flies back to the map.
-   */
   enabled: true,
   /** The map can zoom out this far before the globe takes over. */
   mapMinZoom: 4,
@@ -115,20 +111,11 @@ export const GLOBE = {
   /** Map zoom when coming back from the globe to a city. */
   returnZoom: 13,
   crossfadeMs: 450,
-  /** Pinch-in past this scale (relative to the start) returns to the map. */
-  enterScale: 1.35,
-  /** Drag: degrees of spin per point dragged. */
+  /** Globe zoom the world view opens at, and the zoom a pinch-in must pass to go back down. */
+  openZoom: 1,
+  enterZoom: 2.2,
+  /** Drag: degrees of spin per point dragged (also the picker globe). */
   degPerPt: 0.35,
-  /** Slow idle spin (degrees per second) after a few seconds untouched. */
-  idleSpinDegPerS: 4,
-  idleAfterMs: 3000,
-  /** Edge splits (20·n² faces; 12 ≈ 2,900), land relief in radii. */
-  flatDetail: 16,
-  landHeight: 0.022,
-  /** Flat light steps from night to full sun. */
-  shadeSteps: 5,
-  /** Redraw rate while spinning (frames per second). */
-  fps: 30,
   colors: {
     ocean: '#5BB8EE',
     oceanDeep: '#4AA6E0',

@@ -52,6 +52,7 @@ export function PickerGlobe({
   flyTo,
   onCenter,
   onDot,
+  onZoom,
 }: {
   width: number;
   height: number;
@@ -62,6 +63,8 @@ export function PickerGlobe({
   flyTo: { lat: number; lng: number; zoom?: number; key: number };
   onCenter: (p: { lat: number; lng: number }, settled: boolean) => void;
   onDot: (id: string) => void;
+  /** The zoom after a gesture ends (the world view drops back to the map when pinched in). */
+  onZoom?: (zoom: number) => void;
 }) {
   const t = useT();
   const [initial] = useState<PickerView>(() => ({
@@ -93,13 +96,15 @@ export function PickerGlobe({
   const onCenterRef = useRef(onCenter);
   const onDotRef = useRef(onDot);
   const dotsRef = useRef(dots);
+  const onZoomRef = useRef(onZoom);
   useEffect(() => {
     onCenterRef.current = onCenter;
     onDotRef.current = onDot;
     dotsRef.current = dots;
+    onZoomRef.current = onZoom;
     layout.current = { width, height, cy };
     invalidate.current?.();
-  }, [onCenter, onDot, dots, width, height, cy]);
+  }, [onCenter, onDot, onZoom, dots, width, height, cy]);
 
   // Show a view: the GL redraw and the labels follow on their next frame.
   const show = useRef((v: PickerView) => {
@@ -127,7 +132,10 @@ export function PickerGlobe({
     });
   });
   // A gesture ended: report the final view as settled.
-  const settle = useRef(() => apply.current(view.current, true));
+  const settle = useRef(() => {
+    apply.current(view.current, true);
+    onZoomRef.current?.(view.current.zoom);
+  });
   useEffect(() => {
     const l = live.current;
     return () => {

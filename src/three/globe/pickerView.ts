@@ -1,6 +1,6 @@
 /**
  * Pure view math for the picker's GPU globe (src/ui/picker/PickerGlobe.tsx).
- * Same conventions as flatGlobe's `rotate`: yaw turns the globe about +Y
+ * Conventions: yaw turns the globe about +Y
  * (yaw = -lng faces that longitude), then pitch tilts it about +X; the
  * camera looks down -Z with +Y up. Screen: +x right, +y down. Orthographic,
  * so a globe of `radius` points centered at (cx, cy) maps 1 unit = 1 pt.

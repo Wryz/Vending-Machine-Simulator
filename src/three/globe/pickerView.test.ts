@@ -1,4 +1,3 @@
-import { rotate } from './flatGlobe';
 import { latLngToXYZ, yawToFace } from './geo';
 import {
   clampPitch,
@@ -20,7 +19,7 @@ describe('pickerView', () => {
     { yaw: -75, pitch: -60, zoom: 2 },
   ];
 
-  it('rotates like the flat globe', () => {
+  it('rotates yaw about +Y, then pitch about +X', () => {
     for (const v of views) {
       for (const [lat, lng] of [
         [0, 0],
@@ -29,7 +28,17 @@ describe('pickerView', () => {
         [64, -150],
       ]) {
         const a = rotateLatLng(lat, lng, v.yaw, v.pitch);
-        const b = rotate(latLngToXYZ(lat, lng), v);
+        // Reference: yaw about +Y, then pitch about +X (the old flat globe's convention).
+        const p0 = latLngToXYZ(lat, lng);
+        const y = (v.yaw * Math.PI) / 180;
+        const pt = (v.pitch * Math.PI) / 180;
+        const x1 = p0[0] * Math.cos(y) + p0[2] * Math.sin(y);
+        const z1 = -p0[0] * Math.sin(y) + p0[2] * Math.cos(y);
+        const b = [
+          x1,
+          p0[1] * Math.cos(pt) - z1 * Math.sin(pt),
+          p0[1] * Math.sin(pt) + z1 * Math.cos(pt),
+        ];
         a.forEach((c, i) => expect(c).toBeCloseTo(b[i], 9));
       }
     }
