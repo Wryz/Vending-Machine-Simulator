@@ -85,6 +85,7 @@ export default {
     readFailed: 'No se pudo leer ese archivo.',
   },
   about: {
+    update: 'Actualizar a v{version}',
     credits: 'Créditos y licencias',
     app: 'Coinline · Simulador de máquinas expendedoras',
     version: 'v{version}',

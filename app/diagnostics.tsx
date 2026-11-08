@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
@@ -51,15 +51,19 @@ async function benchState(): Promise<{ game: GameState; world: World }> {
 /** This session's auto-run log (see `log`). */
 const autoLog: string[] = [];
 
-export default function Diagnostics() {
+/** Development builds only: release (TestFlight and the App Store) has no diagnostics screen. */
+export default function DiagnosticsRoute() {
+  if (!__DEV__) return <Redirect href="/" />;
+  return <Diagnostics />;
+}
+
+function Diagnostics() {
   const [lines, setLines] = useState<string[]>([]);
   const [fps, setFps] = useState<number[]>([]);
   const [show3d, setShow3d] = useState(false);
   const [busy, setBusy] = useState(true);
   const [stats, setStats] = useState<SceneStats | null>(null);
-  const params = useLocalSearchParams<{ run?: string }>();
-  // Unattended runs only in development: a web link must not start a benchmark on a player's phone.
-  const run = __DEV__ ? params.run : undefined;
+  const { run } = useLocalSearchParams<{ run?: string }>();
   const auto = useRef<'idle' | 'fps' | 'done'>('idle');
   const log = (s: string) => {
     console.log(`[diag] ${s}`);

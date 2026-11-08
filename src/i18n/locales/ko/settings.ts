@@ -85,6 +85,7 @@ export default {
     readFailed: '그 파일을 읽을 수 없어요.',
   },
   about: {
+    update: 'v{version}(으)로 업데이트',
     credits: '크레딧과 라이선스',
     app: 'Coinline · 자판기 시뮬레이터',
     version: 'v{version}',

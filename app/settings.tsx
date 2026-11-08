@@ -18,6 +18,7 @@ import { haptic } from '@/services/haptics';
 import { requestNotificationPermission, rescheduleNotifications } from '@/services/notifications';
 import { readUri, writeShareFile } from '@/services/storage';
 import { SaveError, exportSave, importSave } from '@/sim';
+import { useAppUpdate } from '@/store/appUpdate';
 import { useGame } from '@/store/game';
 import { useProfile, type Settings } from '@/store/profile';
 import { GameCenterSettings } from '@/ui/GameCenter';
@@ -442,6 +443,10 @@ export default function SettingsScreen() {
   };
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
+  const update = useAppUpdate();
+  useEffect(() => {
+    void useAppUpdate.getState().check();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -619,6 +624,12 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title={t('settings.sections.about')}>
+          {update.latest ? (
+            <Button
+              label={t('settings.about.update', { version: update.latest })}
+              onPress={() => void Linking.openURL(update.url).catch(() => undefined)}
+            />
+          ) : null}
           <Row gap={SPACE.s}>
             <Button
               style={{ flex: 1 }}
@@ -643,8 +654,8 @@ export default function SettingsScreen() {
             <Mono
               muted
               suppressHighlighting
-              accessibilityHint={t('settings.about.diagnosticsHint')}
-              onLongPress={() => router.push('/diagnostics')}
+              accessibilityHint={__DEV__ ? t('settings.about.diagnosticsHint') : undefined}
+              onLongPress={__DEV__ ? () => router.push('/diagnostics') : undefined}
             >
               {t('settings.about.version', { version })}
             </Mono>

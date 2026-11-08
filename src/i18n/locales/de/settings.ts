@@ -85,6 +85,7 @@ export default {
     readFailed: 'Diese Datei ließ sich nicht lesen.',
   },
   about: {
+    update: 'Auf v{version} aktualisieren',
     credits: 'Credits und Lizenzen',
     app: 'Coinline · Vending Machine Simulator',
     version: 'v{version}',

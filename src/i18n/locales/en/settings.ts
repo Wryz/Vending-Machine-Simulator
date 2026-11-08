@@ -88,6 +88,7 @@ export default {
     readFailed: 'Could not read that file.',
   },
   about: {
+    update: 'Update to v{version}', // key in About when a newer version is on the App Store
     credits: 'Credits and licenses',
     app: 'Coinline · Vending Machine Simulator',
     version: 'v{version}',

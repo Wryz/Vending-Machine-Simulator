@@ -17,8 +17,8 @@ export const ENV = {
   /** AdMob rewarded unit ids; empty = Google's test ids in dev, ads disabled in release. */
   admobRewardedIos: process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS ?? '',
   admobRewardedAndroid: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID ?? '',
+  /** PostHog project "Coinline" (org Coinline): the public client key; empty = analytics off. */
   posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY ?? '',
-  /** Sentry crash reports; empty = off (src/services/crashes.ts). */
   posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com',
   /**
    * Dev builds only: a route to open at launch, for unattended QA runs, e.g.

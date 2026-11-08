@@ -85,6 +85,7 @@ export default {
     readFailed: '无法读取该文件。',
   },
   about: {
+    update: '更新到 v{version}',
     credits: '致谢和许可',
     app: 'Coinline · 自动售货机模拟器',
     version: 'v{version}',

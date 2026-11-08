@@ -85,6 +85,7 @@ export default {
     readFailed: 'そのファイルを読み込めませんでした。',
   },
   about: {
+    update: 'v{version} にアップデート',
     credits: 'クレジットとライセンス',
     app: 'Coinline · 自販機シミュレーター',
     version: 'v{version}',
