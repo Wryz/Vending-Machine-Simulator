@@ -17,8 +17,10 @@ import {
   activeMachines,
   alcoholBlocked,
   commissionAsk,
+  districtChapter,
   districtOf,
   districtUnlocked,
+  hoodAt,
   machineTypeUnlocked,
   nearbyPlaces,
   resolveVenue,
@@ -54,6 +56,10 @@ export interface SpotReport {
   rating: number;
   district: number;
   districtLocked: boolean;
+  /** The chapter that opens this spot's district. */
+  districtChapter: number;
+  /** The real neighbourhood the spot is in, when the city has named ones. */
+  hood: string | null;
   blocked: string | null;
   theftRisk: 'low' | 'medium' | 'high';
 }
@@ -250,6 +256,8 @@ export function evaluateSpot(
     rating,
     district,
     districtLocked: !districtUnlocked(state, district),
+    districtChapter: districtChapter(district),
+    hood: hoodAt(world, p)?.name ?? null,
     blocked,
     theftRisk,
   };

@@ -144,6 +144,16 @@ export const GLOBE = {
     halo: '#FFFFFF',
     pin: '#FF6B2C',
     pinOther: '#FFFFFF',
+    /** Ocean texture (picker): faint lighter and darker coarse facets over the ocean disc. */
+    oceanLight: '#FFFFFF',
+    oceanLightOpacity: 0.09,
+    oceanDark: '#2D7FC0',
+    oceanDarkOpacity: 0.12,
+    /** Map labels (picker): continents on land, oceans on water; low contrast so pins lead. */
+    labelLand: '#2F5E33',
+    labelLandOpacity: 0.55,
+    labelOcean: '#FFFFFF',
+    labelOceanOpacity: 0.7,
   },
 } as const;
 

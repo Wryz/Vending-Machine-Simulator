@@ -15,6 +15,7 @@ export * from './rankings';
 export * from './requests';
 export * from './deliveries';
 export * from './roads';
+export * from './hoods';
 export {
   playerShare,
   rivalMatchup,

@@ -277,6 +277,16 @@ describe('packs', () => {
     expect((await call(makeEnv(), `/cells/${res5}/roads.bin`)).status).toBe(404);
   });
 
+  it('GET /cells/{res5}/hoods.bin serves the named neighbourhoods', async () => {
+    const hoods = JSON.stringify({ v: 1, hoods: [{ n: 'Mitte', a: 52.52, o: 13.4, k: 'n' }] });
+    const env = makeEnv(new FakeBucket().put(`cells/${res5}-hoods.json.gz`, gz(hoods)));
+    const res = await call(env, `/cells/${res5}/hoods.bin`);
+    expect(res.status).toBe(200);
+    expect(gunzipSync(new Uint8Array(await res.arrayBuffer())).toString()).toBe(hoods);
+    expect((await call(makeEnv(), `/cells/${res5}/hoods.bin`)).status).toBe(404);
+    expect((await call(makeEnv(), `/cells/zzz/hoods.bin`)).status).toBe(404);
+  });
+
   it('GET /regions/index.json and /city/{id}/roads.bin', async () => {
     const index = JSON.stringify([
       { r: res5, n: 'Berlin', c: 'DE', z: 'Europe/Berlin', a: 52.5, o: 13.4, p: 3e6 },

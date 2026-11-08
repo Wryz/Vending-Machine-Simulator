@@ -17,6 +17,7 @@ import {
   YOUTH_CATEGORIES,
 } from '@/config/places';
 import { COLLECTIONS, DISTRICTS, PRESTIGE_PERKS } from '@/config/progression';
+import type { Hood } from './hoods';
 import { PRODUCTS, getProduct, type Product } from '@/config/products';
 import type { NamedPlace } from '@/data/types';
 
@@ -90,7 +91,22 @@ export function overheadCentsPerDay(machineCount: number): number {
   );
 }
 
+/** The named neighbourhood a point is in, when the city has them. */
+export function hoodAt(world: World, p: LatLng): Hood | null {
+  if (!world.hoods) return null;
+  const i = world.hoods.cellHood.get(world.cellOf(p.lat, p.lng));
+  return i === undefined ? null : world.hoods.hoods[i];
+}
+
+/** The chapter that opens a district. */
+export function districtChapter(districtId: number): number {
+  return DISTRICTS.find((x) => x.id === districtId)?.unlockChapter ?? 1;
+}
+
 export function districtOf(world: World, p: LatLng): number {
+  // Real neighbourhoods when known: the whole neighbourhood opens together.
+  const hood = hoodAt(world, p);
+  if (hood) return hood.district;
   const d = distanceM(world.city, p) / 1000;
   for (const dist of DISTRICTS) if (d <= dist.radiusKm) return dist.id;
   return DISTRICTS[DISTRICTS.length - 1].id;

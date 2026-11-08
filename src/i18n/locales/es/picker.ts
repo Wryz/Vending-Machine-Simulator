@@ -39,6 +39,24 @@ export default {
     w: 'Oeste',
     nw: 'Noroeste',
   },
+  globe: {
+    continents: {
+      africa: 'África',
+      antarctica: 'Antártida',
+      asia: 'Asia',
+      europe: 'Europa',
+      northAmerica: 'América del Norte',
+      oceania: 'Oceanía',
+      southAmerica: 'América del Sur',
+    },
+    oceans: {
+      pacific: 'Océano Pacífico',
+      atlantic: 'Océano Atlántico',
+      indian: 'Océano Índico',
+      arctic: 'Océano Ártico',
+      southern: 'Océano Austral',
+    },
+  },
   a11y: {
     card: '{city}, {km}',
     globe: 'Globo. Arrastra para girar, pellizca para acercar.',

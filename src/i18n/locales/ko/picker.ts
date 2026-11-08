@@ -39,6 +39,24 @@ export default {
     w: '서부',
     nw: '북서부',
   },
+  globe: {
+    continents: {
+      africa: '아프리카',
+      antarctica: '남극',
+      asia: '아시아',
+      europe: '유럽',
+      northAmerica: '북아메리카',
+      oceania: '오세아니아',
+      southAmerica: '남아메리카',
+    },
+    oceans: {
+      pacific: '태평양',
+      atlantic: '대서양',
+      indian: '인도양',
+      arctic: '북극해',
+      southern: '남극해',
+    },
+  },
   a11y: {
     card: '{city}, {km}',
     globe: '지구본. 끌어서 돌리고 두 손가락으로 확대하세요.',

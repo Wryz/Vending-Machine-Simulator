@@ -65,6 +65,20 @@ export const CHAPTER_GOALS = {
   5: { share: 0.5, minRivalMachines: 1 },
 } as const;
 
+/**
+ * Districts follow real neighbourhoods when the region has named ones
+ * (pipeline/build-hoods.ts → src/sim/hoods.ts): each map cell joins its nearest
+ * neighbourhood name, and a whole neighbourhood opens in the chapter of the
+ * ring its name sits in. The neighbourhood you start in is always open.
+ * Regions without names fall back to the plain rings below.
+ */
+export const HOODS = {
+  /** A cell further than this from every name keeps the ring rule (km). */
+  maxKm: 2.5,
+  /** With at least this many fine neighbourhoods, quarters and villages are ignored (they overlap them). */
+  minFine: 6,
+} as const;
+
 /** Districts: rings around the city center, unlocked by chapter. Radius in km. */
 export const DISTRICTS = [
   { id: 1, name: 'Downtown', radiusKm: 1.2, unlockChapter: 1 },

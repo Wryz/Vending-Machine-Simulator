@@ -6,6 +6,7 @@ import type { CellData, PlaceCategory, Supplier, WeatherHour } from '@/data/type
 
 import type { GoalsState } from './goals';
 import type { RankingsState } from './rankings';
+import type { HoodMap } from './hoods';
 
 /**
  * Game state. Plain JSON (no classes, Maps or Dates) so it can be saved,
@@ -318,6 +319,8 @@ export interface World {
   neighbors(cellId: string, k: number): string[];
   /** Hourly weather, or null when unknown (neutral). */
   weatherAt(t: number): WeatherHour | null;
+  /** Real neighbourhoods the districts follow (absent: plain rings around the start point). */
+  hoods?: HoodMap;
   /** Warehouses delivery vans load at (none: vans leave from a depot at the city center). */
   suppliers?: readonly Supplier[];
   /** The fastest street route between two points (injected; absent = straight line). */

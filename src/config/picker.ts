@@ -50,8 +50,49 @@ export const PICKER = {
   flyMs: 700,
   /** Pins drawn on the globe (nearest first): the strip's cities, capped. */
   maxPins: 120,
-  /** Globe mesh detail (edge splits; 20·n² faces). 24 ≈ 11.5k faces, still smooth to drag. */
+  /**
+   * Globe mesh detail (edge splits; 20·n² faces). 24 ≈ 11.5k faces, but only
+   * land and snow (~3.3k) are drawn; the ocean is a single shaded disc.
+   */
   meshDetail: 24,
+  /** Ocean texture: a coarse icosphere (edge splits) and the share of its facets tinted. */
+  oceanFacetDetail: 7,
+  oceanFacetShare: 0.3,
+  /**
+   * Continent and ocean names on the globe (anchors in degrees). A label
+   * fades in between `labelHideZ` and `labelFullZ` (how squarely it faces you:
+   * 0 at the limb, 1 dead center), and each kind hides when zoomed in past its
+   * max zoom (fading over the last `labelFadeZoom`).
+   */
+  labels: {
+    continents: [
+      { id: 'africa', lat: 6, lng: 20 },
+      { id: 'antarctica', lat: -80, lng: 30 },
+      { id: 'asia', lat: 50, lng: 92 },
+      { id: 'europe', lat: 53, lng: 18 },
+      { id: 'northAmerica', lat: 45, lng: -102 },
+      { id: 'oceania', lat: -25, lng: 134 },
+      { id: 'southAmerica', lat: -14, lng: -60 },
+    ],
+    oceans: [
+      { id: 'pacific', lat: -12, lng: -135 },
+      { id: 'pacific', lat: 22, lng: 172 },
+      { id: 'atlantic', lat: 12, lng: -38 },
+      { id: 'indian', lat: -22, lng: 78 },
+      { id: 'arctic', lat: 84, lng: 60 },
+      { id: 'southern', lat: -62, lng: 100 },
+    ],
+    labelHideZ: 0.35,
+    labelFullZ: 0.7,
+    continentMaxZoom: 2.6,
+    oceanMaxZoom: 2,
+    labelFadeZoom: 0.4,
+    /** Font size (pt) at zoom 1; grows gently with zoom up to `maxScale`. */
+    continentSize: 11,
+    oceanSize: 10,
+    maxScale: 1.4,
+    letterSpacing: 2,
+  },
   /** Zooming to a city: map fit animation, and how far (map zoom levels) a pinch out returns to the globe. */
   mapFitMs: 900,
   mapZoomOutBy: 2,

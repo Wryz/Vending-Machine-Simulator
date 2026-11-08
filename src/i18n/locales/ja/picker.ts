@@ -39,6 +39,24 @@ export default {
     w: '西',
     nw: '北西',
   },
+  globe: {
+    continents: {
+      africa: 'アフリカ',
+      antarctica: '南極',
+      asia: 'アジア',
+      europe: 'ヨーロッパ',
+      northAmerica: '北アメリカ',
+      oceania: 'オセアニア',
+      southAmerica: '南アメリカ',
+    },
+    oceans: {
+      pacific: '太平洋',
+      atlantic: '大西洋',
+      indian: 'インド洋',
+      arctic: '北極海',
+      southern: '南極海',
+    },
+  },
   a11y: {
     card: '{city}、{km}',
     globe: '地球儀。ドラッグで回転、ピンチで拡大。',

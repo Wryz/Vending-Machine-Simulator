@@ -5,6 +5,7 @@
  *   GET /area/check?lat&lng                 → AreaCheckResponse
  *   GET /cells/{res5}.bin                   → gzip RegionPack bytes
  *   GET /cells/{res5}/roads.bin             → gzip RoadNet bytes (delivery van streets)
+ *   GET /cells/{res5}/hoods.bin             → gzip JSON of named neighbourhoods (district unlocks)
  *   GET /city/{cityId}/pack                 → gzip RegionPack bytes
  *   GET /city/{cityId}/roads.bin            → gzip RoadNet bytes (former built-in cities)
  *   GET /regions/index.json                 → the picker's city list
@@ -19,7 +20,7 @@
 import { areaCheck } from './area';
 import type { Ctx, Env } from './env';
 import { CORS_HEADERS, json, notFound, withCors } from './http';
-import { cityPack, cityRoads, regionIndex, regionPack, regionRoads } from './packs';
+import { cityPack, cityRoads, regionHoods, regionIndex, regionPack, regionRoads } from './packs';
 import { rawArchive, tile, tileJson } from './tiles';
 import { weather } from './weather';
 
@@ -41,6 +42,8 @@ async function route(request: Request, env: Env, ctx: Ctx): Promise<Response> {
     return regionPack(request, env, m[1].toLowerCase());
   if ((m = /^\/cells\/([0-9a-f]{15})\/roads\.bin$/i.exec(p)))
     return regionRoads(request, env, m[1].toLowerCase());
+  if ((m = /^\/cells\/([0-9a-f]{15})\/hoods\.bin$/i.exec(p)))
+    return regionHoods(request, env, m[1].toLowerCase());
   if ((m = /^\/city\/([a-z-]+)\/pack$/.exec(p))) return cityPack(request, env, m[1]);
   if ((m = /^\/city\/([a-z-]+)\/roads\.bin$/.exec(p))) return cityRoads(request, env, m[1]);
   if (p === '/regions/index.json') return regionIndex(request, env);

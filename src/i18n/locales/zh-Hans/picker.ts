@@ -39,6 +39,24 @@ export default {
     w: '西部',
     nw: '西北部',
   },
+  globe: {
+    continents: {
+      africa: '非洲',
+      antarctica: '南极洲',
+      asia: '亚洲',
+      europe: '欧洲',
+      northAmerica: '北美洲',
+      oceania: '大洋洲',
+      southAmerica: '南美洲',
+    },
+    oceans: {
+      pacific: '太平洋',
+      atlantic: '大西洋',
+      indian: '印度洋',
+      arctic: '北冰洋',
+      southern: '南大洋',
+    },
+  },
   a11y: {
     card: '{city}，{km}',
     globe: '地球仪。拖动旋转，双指缩放。',

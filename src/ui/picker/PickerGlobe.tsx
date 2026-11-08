@@ -1,12 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Path, RadialGradient, Rect, Stop, Text } from 'react-native-svg';
 
 import { GLOBE } from '@/config/map';
 import { PICKER } from '@/config/picker';
-import { buildGlobeMesh, projectGlobe, projectPoint } from '@/three/globe/flatGlobe';
+import { useT } from '@/i18n';
+import {
+  buildGlobeMesh,
+  buildOceanFacets,
+  oceanGradient,
+  projectGlobe,
+  projectLabel,
+  projectOceanFacets,
+  projectPoint,
+  type GlobeMesh,
+  type OceanFacets,
+} from '@/three/globe/flatGlobe';
 import { latLngToXYZ, yawToFace } from '@/three/globe/geo';
+
+import { FONTS } from '../theme';
 
 export interface GlobeDot {
   id: string;
@@ -25,6 +38,21 @@ interface View3 {
 }
 
 const PITCH_MAX = 75;
+
+// Built once per app run (the same Earth every time the picker opens).
+let meshes: { land: GlobeMesh; facets: OceanFacets } | null = null;
+function globeMeshes() {
+  meshes ??= {
+    land: buildGlobeMesh(PICKER.meshDetail),
+    facets: buildOceanFacets(PICKER.oceanFacetDetail, PICKER.oceanFacetShare),
+  };
+  return meshes;
+}
+
+/** 0..1: how much of a label kind to show at this zoom (fades out over the last stretch). */
+function zoomFade(zoom: number, maxZoom: number): number {
+  return Math.max(0, Math.min(1, (maxZoom - zoom) / PICKER.labels.labelFadeZoom));
+}
 const wrapLng = (lng: number) => ((((lng + 180) % 360) + 360) % 360) - 180;
 /** The point under the middle of the globe (the crosshair). */
 export function viewCenter(v: { yaw: number; pitch: number }): { lat: number; lng: number } {
@@ -57,23 +85,62 @@ export function PickerGlobe({
   onCenter: (p: { lat: number; lng: number }, settled: boolean) => void;
   onDot: (id: string) => void;
 }) {
-  const mesh = useMemo(() => buildGlobeMesh(PICKER.meshDetail), []);
+  const t = useT();
+  const { land: mesh, facets } = globeMeshes();
   const [view, setView] = useState<View3>(() => ({
     yaw: yawToFace(flyTo.lng),
     pitch: Math.max(-PITCH_MAX, Math.min(PITCH_MAX, flyTo.lat)),
     zoom: flyTo.zoom ?? 1,
   }));
   // Mutable state for gestures and the fly-to animation (read only in callbacks).
-  const live = useRef({ ...view, startYaw: 0, startPitch: 0, startZoom: 1, anim: 0 });
+  const live = useRef({
+    ...view,
+    startYaw: 0,
+    startPitch: 0,
+    startZoom: 1,
+    anim: 0,
+    /** The pending coalesced redraw (requestAnimationFrame id), 0 when none. */
+    frame: 0,
+  });
   const onCenterRef = useRef(onCenter);
   useEffect(() => {
     onCenterRef.current = onCenter;
   }, [onCenter]);
   const apply = useRef((v: View3, settled: boolean) => {
-    Object.assign(live.current, v);
+    const l = live.current;
+    Object.assign(l, v);
+    if (l.frame) {
+      cancelAnimationFrame(l.frame);
+      l.frame = 0;
+    }
     setView({ ...v });
     onCenterRef.current(viewCenter(v), settled);
   });
+  // Touch events can outpace the screen: gestures store the latest view and
+  // redraw at most once per animation frame.
+  const schedule = useRef((v: View3) => {
+    const l = live.current;
+    Object.assign(l, v);
+    if (l.frame) return;
+    l.frame = requestAnimationFrame(() => {
+      l.frame = 0;
+      const now = { yaw: l.yaw, pitch: l.pitch, zoom: l.zoom };
+      setView(now);
+      onCenterRef.current(viewCenter(now), false);
+    });
+  });
+  // A gesture ended: draw the final view now and report it as settled.
+  const settle = useRef(() => {
+    const l = live.current;
+    apply.current({ yaw: l.yaw, pitch: l.pitch, zoom: l.zoom }, true);
+  });
+  useEffect(() => {
+    const l = live.current;
+    return () => {
+      if (l.frame) cancelAnimationFrame(l.frame);
+      l.frame = 0;
+    };
+  }, []);
 
   // Fly to a city: ease yaw (the short way round), pitch and zoom together.
   useEffect(() => {
@@ -86,11 +153,14 @@ export function PickerGlobe({
       pitch: Math.max(-PITCH_MAX, Math.min(PITCH_MAX, flyTo.lat)),
       zoom: flyTo.zoom ?? from.zoom,
     };
-    const start = Date.now();
+    // The clock starts on the first frame.
+    let start = -1;
     const anim = ++l.anim;
     const step = () => {
       if (anim !== live.current.anim) return;
-      const k = Math.min(1, (Date.now() - start) / PICKER.flyMs);
+      const now = Date.now();
+      if (start < 0) start = now;
+      const k = Math.min(1, (now - start) / PICKER.flyMs);
       const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;
       apply.current(
         {
@@ -128,16 +198,13 @@ export function PickerGlobe({
         const l = live.current;
         // Turn slower when zoomed in, so the spot under your finger stays put.
         const k = GLOBE.degPerPt / l.zoom;
-        apply.current(
-          {
-            yaw: l.startYaw + e.translationX * k,
-            pitch: Math.max(-PITCH_MAX, Math.min(PITCH_MAX, l.startPitch + e.translationY * k)),
-            zoom: l.zoom,
-          },
-          false,
-        );
+        schedule.current({
+          yaw: l.startYaw + e.translationX * k,
+          pitch: Math.max(-PITCH_MAX, Math.min(PITCH_MAX, l.startPitch + e.translationY * k)),
+          zoom: l.zoom,
+        });
       })
-      .onEnd(() => onCenterRef.current(viewCenter(live.current), true));
+      .onEnd(() => settle.current());
     const pinch = Gesture.Pinch()
       .runOnJS(true)
       .onStart(() => {
@@ -147,16 +214,13 @@ export function PickerGlobe({
       })
       .onUpdate((e) => {
         const l = live.current;
-        apply.current(
-          {
-            yaw: l.yaw,
-            pitch: l.pitch,
-            zoom: Math.max(PICKER.minZoom, Math.min(PICKER.maxZoom, l.startZoom * e.scale)),
-          },
-          false,
-        );
+        schedule.current({
+          yaw: l.yaw,
+          pitch: l.pitch,
+          zoom: Math.max(PICKER.minZoom, Math.min(PICKER.maxZoom, l.startZoom * e.scale)),
+        });
       })
-      .onEnd(() => onCenterRef.current(viewCenter(live.current), true));
+      .onEnd(() => settle.current());
     return Gesture.Simultaneous(pan, pinch);
   }, []);
   /* eslint-enable react-hooks/refs */
@@ -164,11 +228,57 @@ export function PickerGlobe({
   const cx = width / 2;
   const radius = Math.min(width, height) * 0.36 * view.zoom;
   // Choosing a city happens in daylight: lit from the upper left of whatever faces you.
+  // Only land is projected; the ocean is one disc with the same light steps as rings.
   const globe = useMemo(() => {
     const c = viewCenter(view);
     const sun = latLngToXYZ(Math.min(85, c.lat + 28), c.lng - 32);
-    return projectGlobe(mesh, view, sun, cx, cy, radius);
-  }, [mesh, view, cx, cy, radius]);
+    return {
+      land: projectGlobe(mesh, view, sun, cx, cy, radius, GLOBE.shadeSteps, { landOnly: true }),
+      ocean: oceanGradient(view, sun, cx, cy, radius),
+      facets: projectOceanFacets(facets, view, cx, cy, radius),
+    };
+  }, [mesh, facets, view, cx, cy, radius]);
+  const labels = useMemo(() => {
+    const L = PICKER.labels;
+    const scale = Math.min(L.maxScale, Math.sqrt(view.zoom));
+    const out: {
+      key: string;
+      text: string;
+      x: number;
+      y: number;
+      alpha: number;
+      size: number;
+      ocean: boolean;
+    }[] = [];
+    const add = (
+      list: readonly { id: string; lat: number; lng: number }[],
+      ocean: boolean,
+      fade: number,
+      name: (id: string) => string,
+    ) => {
+      if (fade <= 0) return;
+      list.forEach((a, i) => {
+        const at = projectLabel(a.lat, a.lng, view, cx, cy, radius, L.labelHideZ, L.labelFullZ);
+        if (!at) return;
+        out.push({
+          key: `${ocean ? 'o' : 'c'}${i}`,
+          text: name(a.id).toUpperCase(),
+          x: at.x,
+          y: at.y,
+          alpha: at.alpha * fade,
+          size: (ocean ? L.oceanSize : L.continentSize) * scale,
+          ocean,
+        });
+      });
+    };
+    add(L.oceans, true, zoomFade(view.zoom, L.oceanMaxZoom), (id) =>
+      t(`picker.globe.oceans.${id as (typeof L.oceans)[number]['id']}`),
+    );
+    add(L.continents, false, zoomFade(view.zoom, L.continentMaxZoom), (id) =>
+      t(`picker.globe.continents.${id as (typeof L.continents)[number]['id']}`),
+    );
+    return out;
+  }, [view, cx, cy, radius, t]);
   const c = GLOBE.colors;
   const placed = dots
     .map((d) => ({ d, at: projectPoint(d.lat, d.lng, view, cx, cy, radius) }))
@@ -191,12 +301,48 @@ export function PickerGlobe({
               <Stop offset="0.72" stopColor={c.halo} stopOpacity={0.85} />
               <Stop offset="1" stopColor={c.halo} stopOpacity={0} />
             </RadialGradient>
+            <RadialGradient
+              id="pickerOcean"
+              cx={globe.ocean.cx}
+              cy={globe.ocean.cy}
+              r={globe.ocean.r}
+              gradientUnits="userSpaceOnUse"
+            >
+              {globe.ocean.stops.map((s, i) => (
+                <Stop key={i} offset={s.offset} stopColor={s.color} />
+              ))}
+            </RadialGradient>
           </Defs>
           <Rect width={width} height={height} fill={c.sky} />
           <Circle cx={cx} cy={cy} r={radius * 1.3} fill="url(#pickerHalo)" />
-          {globe.paths.map((p, i) => (
+          <Circle cx={cx} cy={cy} r={radius} fill="url(#pickerOcean)" />
+          {globe.facets.light ? (
+            <Path d={globe.facets.light} fill={c.oceanLight} opacity={c.oceanLightOpacity} />
+          ) : null}
+          {globe.facets.dark ? (
+            <Path d={globe.facets.dark} fill={c.oceanDark} opacity={c.oceanDarkOpacity} />
+          ) : null}
+          {globe.land.paths.map((p, i) => (
             <Path key={i} d={p.d} fill={p.fill} stroke={p.fill} strokeWidth={0.6} />
           ))}
+          {/* Names under the pins, and never touchable. */}
+          <G pointerEvents="none">
+            {labels.map((l) => (
+              <Text
+                key={l.key}
+                x={l.x}
+                y={l.y + l.size * 0.35}
+                textAnchor="middle"
+                fontFamily={FONTS.uiBold}
+                fontSize={l.size}
+                letterSpacing={PICKER.labels.letterSpacing}
+                fill={l.ocean ? c.labelOcean : c.labelLand}
+                opacity={l.alpha * (l.ocean ? c.labelOceanOpacity : c.labelLandOpacity)}
+              >
+                {l.text}
+              </Text>
+            ))}
+          </G>
           {placed.map(({ d, at }) => (
             <Circle
               key={d.id}

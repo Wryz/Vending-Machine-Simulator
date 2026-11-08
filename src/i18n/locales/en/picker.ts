@@ -36,6 +36,24 @@ export default {
     w: 'West',
     nw: 'Northwest',
   },
+  globe: {
+    continents: {
+      africa: 'Africa',
+      antarctica: 'Antarctica',
+      asia: 'Asia',
+      europe: 'Europe',
+      northAmerica: 'North America',
+      oceania: 'Oceania',
+      southAmerica: 'South America',
+    },
+    oceans: {
+      pacific: 'Pacific Ocean',
+      atlantic: 'Atlantic Ocean',
+      indian: 'Indian Ocean',
+      arctic: 'Arctic Ocean',
+      southern: 'Southern Ocean',
+    },
+  },
   a11y: {
     card: '{city}, {km}',
     globe: 'Globe. Drag to turn, pinch to zoom.',

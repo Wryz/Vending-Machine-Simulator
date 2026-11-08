@@ -20,6 +20,7 @@ import { isRegionMeta, type RegionMeta } from './meta';
 export const regionPackKey = (res5: string) => `cells/${res5}.json.gz`;
 /** The region's drivable streets for delivery vans (RoadNet, gzip). */
 export const regionRoadsKey = (res5: string) => `cells/${res5}-roads.json.gz`;
+export const regionHoodsKey = (res5: string) => `cells/${res5}-hoods.json.gz`;
 export const regionMetaKey = (res5: string) => `cells/${res5}.meta.json`;
 
 /** Average distance between neighbouring res-9 centers is ~300 m; k=8 covers 2 km. */
