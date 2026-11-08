@@ -255,7 +255,7 @@ Each machine has:
 | Prestige | "Sell the company" | Prestige currency ("Reputation") for permanent perks; restart in a new city with a head start |
 
 - New cities can be the player's other real nearby city (if data is sufficient) or any of the 9 fallback cities.
-- The economy is tuned so chapter 1 takes about 20–30 minutes and chapter 3 is reached around day 2–3 of casual play. Prestige becomes attractive around week 2–4.
+- The economy is tuned so chapter 1 takes about two hours (mostly idle, a few check-ins) and chapter 3 is reached in roughly a week of casual play. The business clock runs 12× real time (owner's call, 2026-11-08: 60× sold a full machine in 10 minutes; now about an hour). Prestige becomes attractive around week 2–4.
 - **City ranking board** ("Top operators in <City>", unlocks with Company after the first collect): the player, Brightvend (its real simulated sales) and 7 fictional AI operators with city-flavored names, ranked by this week's sales. It updates nightly at the city's local midnight; weeks start on the local Monday. AI sales are seeded per city, week and day (`src/sim/rankings.ts`, tunables in `src/config/rankings.ts`) and scale with the chapter and the player's last week (~0.3× to ~3×, the top tiers softening in later chapters), so there is always someone to pass. Passing an operator overnight is a moment ("You passed Night Owl Snacks! #4 in London"); a rank chip on the money panel opens the board. `weeklyScore(state)` is the same number a Game Center weekly leaderboard submits.
 
 ---
@@ -264,7 +264,7 @@ Each machine has:
 
 ### 5.1 Principles
 - Deterministic, pure TypeScript module (`src/sim/`), with no React or rendering dependencies and full unit tests.
-- Time-based: the simulation advances in fixed ticks (1 game-minute = 1 real minute by default). On resume, it fast-forwards the elapsed time in coarse steps (15-minute buckets), capped at 72 hours of offline progress (extended by upgrades).
+- Time-based: the simulation advances in fixed ticks (the business clock runs `TIME.salesTimeScale`× real time, 12× since 2026-11-08; world time, light and weather stay real). On resume, it fast-forwards the elapsed time in coarse steps (15-minute buckets), capped at 72 hours of offline progress (extended by upgrades).
 - All numbers live in config (`src/config/economy.ts`, `products.ts`, `machines.ts`, `places.ts`) for tuning without code changes.
 
 ### 5.2 Demand model (per machine, per hour)

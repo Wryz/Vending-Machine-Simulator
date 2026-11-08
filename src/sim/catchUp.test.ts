@@ -1,4 +1,4 @@
-import { BUSINESS_DAY_REAL_MS, DEMAND_SCALE, RIVAL, SERVICE, TIME } from '@/config/economy';
+import { BUSINESS_DAY_REAL_MS, DEMAND_SCALE, RIVAL, SERVICE, STAFF, TIME } from '@/config/economy';
 
 import {
   advance,
@@ -6,6 +6,7 @@ import {
   assignRoute,
   buyVan,
   businessDaysToMs,
+  businessHoursToMs,
   dispatchDriver,
   evaluateSpot,
   fillSlots,
@@ -228,8 +229,10 @@ describe('offline catch-up with a driver', () => {
     expect(away.report.contractsLost).toEqual([]);
     expect(away.state.machines[0].status).toBe('active');
     expect(away.state.machines[0].mood).toBeGreaterThan(0.5);
-    // Driver runs at about the live cadence (every 6 business hours = 6 real minutes).
-    expect(away.report.driverRuns).toBeGreaterThan(span / (6 * MIN) / 2);
+    // Driver runs at about the live cadence (every route interval of business hours).
+    expect(away.report.driverRuns).toBeGreaterThan(
+      span / businessHoursToMs(STAFF.routeIntervalHours) / 2,
+    );
 
     // The same day played live (short advances: 1-minute ticks).
     let live = s;

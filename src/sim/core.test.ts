@@ -1,3 +1,4 @@
+import { TIME } from '@/config/economy';
 import { CURVE_KEYS_FOR_TEST } from './__fixtures__/curveKeys';
 import { HOURLY_CURVES } from '@/config/curves';
 import { RARITY_ODDS, COLLECTIONS } from '@/config/progression';
@@ -151,9 +152,9 @@ describe('time', () => {
     expect(localToUtc('2026-01-10', 9, 'Asia/Tokyo', 'JP')).toBe(Date.UTC(2026, 0, 10, 0));
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
   });
-  it('runs the business clock 60× faster', () => {
-    expect(businessDays(24 * 60_000)).toBeCloseTo(1);
-    expect(businessHoursToMs(1)).toBe(60_000);
+  it('runs the business clock salesTimeScale× faster', () => {
+    expect(businessDays((24 * 3_600_000) / TIME.salesTimeScale)).toBeCloseTo(1);
+    expect(businessHoursToMs(1)).toBe(3_600_000 / TIME.salesTimeScale);
   });
 });
 

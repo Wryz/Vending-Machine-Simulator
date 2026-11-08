@@ -6,14 +6,15 @@
  * city's real local time. The *business clock* runs faster: one real minute
  * simulates `salesTimeScale` business minutes of trade. Every "per day" value
  * below (power, wages, contract terms, breakdown rates) is per business day,
- * i.e. 24 h / salesTimeScale of real time (24 real minutes at 60×).
+ * i.e. 24 h / salesTimeScale of real time (2 real hours at 12×).
  *
- * Why: SPEC §4.8 wants chapter 1 (earn $1,000 with the used machine) in
- * 20–30 minutes and chapter 3 around day 2–3, which a 1:1 clock can't deliver.
- * This one knob keeps the pacing targets; see docs/spikes/M1-REPORT.md.
+ * Why: a 1:1 clock makes chapter 1 take weeks. 60× (until 2026-11-08) sold a
+ * full machine in ~10 minutes and felt like money printing; at 12× it lasts
+ * about an hour and chapter 1 takes about two (owner's call). This one knob
+ * sets the pace; see SPEC §4.8 and docs/spikes/M1-REPORT.md.
  */
 export const TIME = {
-  salesTimeScale: 60,
+  salesTimeScale: 12,
   /** Live tick length (real ms). */
   liveTickMs: 60_000,
   /** Offline catch-up step (real minutes) — SPEC §5.1: 15-minute buckets. */
@@ -190,7 +191,7 @@ export const CONTRACT = {
   renegotiateMinMood: 0.6,
   /**
    * Venue mood (0..1) moves in REAL hours, not business days. Venues judge
-   * service on a human clock: on the 60× business clock an unattended machine
+   * service on a human clock: on the (then 60×) business clock an unattended machine
    * lost its contract within an hour of selling out, so every chapter-1
    * player lost their machines overnight. Now an empty machine survives a
    * night away; a contract ends after roughly two days of neglect.
@@ -208,7 +209,7 @@ export const RISK = {
   /**
    * Breakdowns, theft and alcohol incidents roll on REAL time: each real day
    * counts as this many "risk days" for the per-day rates (machine
-   * `breakdownPerDay`, `theftBasePerDay`, `alcoholIncidentPerDay`). On the 60×
+   * `breakdownPerDay`, `theftBasePerDay`, `alcoholIncidentPerDay`). On the (then 60×)
    * business clock a starter machine left for a night broke down 56% of the
    * time and was robbed 68% of the time; now a night away is a small risk.
    */

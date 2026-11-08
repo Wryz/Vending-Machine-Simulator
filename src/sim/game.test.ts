@@ -45,6 +45,7 @@ import {
   applyStarterPack,
 } from './index';
 import { decentSpot, deadSpot, NOON_NY, testWorld } from './__fixtures__/world';
+import { businessHoursToMs } from './time';
 import { offsetPoint } from './geo';
 
 const MIN = 60_000;
@@ -309,12 +310,12 @@ describe('sales loop', () => {
   });
 });
 
-describe('pacing (SPEC §4.8: chapter 1 in ~20–30 minutes of play)', () => {
-  it('a player who restocks when empty finishes chapter 1 in 15–40 minutes in a decent spot', () => {
+describe('pacing (SPEC §4.8: chapter 1 in about two hours at 12×)', () => {
+  it('a player who restocks when empty finishes chapter 1 in 60–150 minutes in a decent spot', () => {
     const world = testWorld();
     let s = startWithPlacedMachine(world);
     let minutes = 0;
-    while (s.chapter === 1 && minutes < 120) {
+    while (s.chapter === 1 && minutes < 300) {
       s = advance(s, world, s.now + MIN).state;
       minutes++;
       const m = s.machines[0];
@@ -329,8 +330,8 @@ describe('pacing (SPEC §4.8: chapter 1 in ~20–30 minutes of play)', () => {
     }
     console.log(`chapter 1 completed in ${minutes} minutes`);
     expect(s.chapter).toBe(2);
-    expect(minutes).toBeGreaterThanOrEqual(15);
-    expect(minutes).toBeLessThanOrEqual(40);
+    expect(minutes).toBeGreaterThanOrEqual(60);
+    expect(minutes).toBeLessThanOrEqual(150);
   });
 });
 
@@ -447,7 +448,7 @@ describe('service, risks and contracts', () => {
       qty: 5,
       priceCents: 99_999,
       par: 5,
-      stockedAt: s.now - 49 * 60_000,
+      stockedAt: s.now - businessHoursToMs(49),
     };
     const { report } = advance(s, world, s.now + MIN);
     expect(report.spoiledUnits).toBeGreaterThanOrEqual(5);
