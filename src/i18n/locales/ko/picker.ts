@@ -3,6 +3,9 @@ import type { Shape } from '../../core';
 import type en from '../en/picker';
 
 export default {
+  openBranch: '{city}에 지점 열기',
+  opensIn: '{city}은(는) {n}장에서 열려요',
+  lockedCard: '🔒 {n}장',
   title: '어디로 갈까요?',
   subtitle: '지구본을 돌리거나 도시를 고르세요',
   locate: '내 위치 사용',

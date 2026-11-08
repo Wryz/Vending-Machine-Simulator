@@ -80,6 +80,20 @@ export default function Cities() {
     }
   };
 
+  // The expansion ladder on the picker: out-of-reach cities dim with their chapter.
+  const chapter = game?.chapter ?? 1;
+  const home = useMemo(
+    () => (city ? (readCompany()?.home ?? whereaboutsOf(city)) : null),
+    [city],
+  );
+  const reach = (c: PickerCity) => {
+    if (!home || !branchesUnlocked(chapter)) return { branch: false, opensIn: null };
+    const there = { cc: c.c, state: c.s };
+    return canBranchTo(chapter, home, there)
+      ? { branch: true, opensIn: null }
+      : { branch: false, opensIn: chapterFor(home, there) };
+  };
+
   const travel = (c: PickerCity, spot: Spot) => {
     const target = targetFor(c, spot);
     const isNew = !status[c.r];
@@ -219,6 +233,7 @@ export default function Cities() {
         error={error}
         onLocate={() => void locate()}
         onPick={mode === 'sell' ? sell : travel}
+        reach={reach}
         onBack={() => router.back()}
       />
     </View>

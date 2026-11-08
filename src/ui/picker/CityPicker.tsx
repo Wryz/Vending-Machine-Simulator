@@ -48,6 +48,7 @@ export function CityPicker({
   onLocate,
   onPick,
   onBack,
+  reach,
 }: {
   mode: PickerMode;
   /** Where the globe starts and distances count from: you, or the city you're in. */
@@ -62,6 +63,11 @@ export function CityPicker({
   /** The picked city (or one of its outer districts), and where in it you chose to start (else downtown). */
   onPick: (city: PickerCity, spot: { lat: number; lng: number } | null) => void;
   onBack?: () => void;
+  /**
+   * The expansion ladder (cities screen only): for a city without a save, whether
+   * picking it opens a branch, or the chapter it opens in when it's out of reach.
+   */
+  reach?: (city: PickerCity) => { branch: boolean; opensIn: number | null };
 }) {
   const t = useT();
   const label = useCityLabel();
@@ -169,12 +175,20 @@ export function CityPicker({
   const km = (c: PickerCity) =>
     c.km < 1 ? t('picker.here') : t('picker.km', { n: Math.round(c.km).toLocaleString() });
   const here = selected ? status[selected.r] : undefined;
+  const target = selected ? (spot ? spot.region : selected) : null;
+  const reachOf = (c: PickerCity) => (status[c.r] || !reach ? null : reach(c));
+  const selReach = target && mode !== 'sell' ? reachOf(target) : null;
+  const locked = selReach?.opensIn ?? null;
   // Selling can restart in the city you're in (SPEC §4.8); travelling there is a no-op.
   const atHome = here === 'playing' && mode !== 'sell';
   const keyLabel = selected
     ? atHome
       ? t('picker.youreHere')
-      : spot && here !== 'saved'
+      : locked !== null
+        ? t('picker.opensIn', { city: label(target!), n: locked })
+        : selReach?.branch
+          ? t('picker.openBranch', { city: label(target!) })
+          : spot && here !== 'saved'
         ? t('picker.startSpot', { city: label(spot.region) })
         : t(mode === 'sell' ? 'picker.sell' : here === 'saved' ? 'picker.go' : 'picker.start', {
             city: label(selected),
@@ -398,6 +412,7 @@ export function CityPicker({
               name={label(item)}
               distance={km(item)}
               badge={status[item.r] ? t(`picker.${status[item.r]}`) : null}
+              opensIn={mode === 'sell' ? null : (reachOf(item)?.opensIn ?? null)}
               section={
                 i === 0 ? t('picker.nearYou') : i === firstWorld ? t('picker.bigCities') : null
               }
@@ -415,7 +430,7 @@ export function CityPicker({
         <Key
           tone="brand"
           onPress={onKey}
-          disabled={busy || (!selected && !nearest) || atHome}
+          disabled={busy || (!selected && !nearest) || atHome || locked !== null}
           accessibilityLabel={keyLabel}
           style={{ marginHorizontal: SPACE.l, marginTop: SPACE.s }}
           faceStyle={styles.keyFace}
@@ -439,6 +454,7 @@ function CityCard({
   name,
   distance,
   badge,
+  opensIn,
   section,
   selected,
   onPress,
@@ -448,12 +464,15 @@ function CityCard({
   name: string;
   distance: string;
   badge: string | null;
+  /** Out of the company's reach: the chapter it opens in (the card dims). */
+  opensIn: number | null;
   section: string | null;
   selected: boolean;
   onPress: () => void;
   a11y: string;
 }) {
   const flag = flagOf(city.c);
+  const t = useT();
   return (
     <Pressable
       onPress={onPress}
@@ -463,6 +482,7 @@ function CityCard({
       style={({ pressed }) => [
         styles.card,
         selected && styles.cardSelected,
+        opensIn !== null && styles.cardLocked,
         { transform: [{ translateY: pressed ? 2 : 0 }] },
       ]}
     >
@@ -489,7 +509,7 @@ function CityCard({
         {name}
       </T>
       <T size={12} color="#5B6080" numberOfLines={1}>
-        {distance}
+        {opensIn !== null ? t('picker.lockedCard', { n: opensIn }) : distance}
       </T>
     </Pressable>
   );
@@ -584,6 +604,7 @@ const styles = StyleSheet.create({
     borderBottomColor: SKIN.cabinetEdge,
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  cardLocked: { opacity: 0.55 },
   badge: {
     paddingHorizontal: 6,
     paddingVertical: 2,

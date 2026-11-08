@@ -1,5 +1,8 @@
 /** The globe city picker (onboarding, Cities, selling the company). */
 export default {
+  openBranch: 'Open a branch in {city}',
+  opensIn: '{city} opens in chapter {n}',
+  lockedCard: '🔒 Chapter {n}',
   title: 'Where to?',
   subtitle: 'Spin the globe or pick a city',
   locate: 'Use my location',

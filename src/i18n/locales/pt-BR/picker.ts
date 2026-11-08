@@ -3,6 +3,9 @@ import type { Shape } from '../../core';
 import type en from '../en/picker';
 
 export default {
+  openBranch: 'Abrir filial em {city}',
+  opensIn: '{city} abre no capítulo {n}',
+  lockedCard: '🔒 Capítulo {n}',
   title: 'Para onde?',
   subtitle: 'Gire o globo ou escolha uma cidade',
   locate: 'Usar minha localização',
