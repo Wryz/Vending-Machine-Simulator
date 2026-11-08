@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import MobileAds, {
+  AdsConsent,
   AdEventType,
   MaxAdContentRating,
   RewardedAd,
@@ -19,6 +20,12 @@ import { track } from './analytics';
  * adult; content rating MA (SPEC §11).
  */
 let initialized = false;
+/**
+ * Google's consent tool (UMP): in the EEA, UK and Switzerland ads need the
+ * player's answer first. Elsewhere, or until a message is published in the
+ * AdMob console, it shows nothing and ads may be requested.
+ */
+let consentAllowsAds = true;
 
 function unitId(): string | null {
   const id = Platform.OS === 'ios' ? ENV.admobRewardedIos : ENV.admobRewardedAndroid;
@@ -29,6 +36,18 @@ function unitId(): string | null {
 export async function initAds(): Promise<void> {
   if (initialized) return;
   initialized = true;
+  try {
+    const info = await AdsConsent.gatherConsent();
+    consentAllowsAds = info.canRequestAds;
+  } catch {
+    // No consent message set up, or offline: keep the earlier answer.
+    try {
+      consentAllowsAds = (await AdsConsent.getConsentInfo()).canRequestAds;
+    } catch {
+      consentAllowsAds = true;
+    }
+  }
+  if (!consentAllowsAds) return;
   try {
     await MobileAds().setRequestConfiguration({
       maxAdContentRating: MaxAdContentRating.MA,
@@ -41,7 +60,7 @@ export async function initAds(): Promise<void> {
 }
 
 export function adsAvailable(): boolean {
-  return unitId() !== null;
+  return consentAllowsAds && unitId() !== null;
 }
 
 /**
@@ -50,7 +69,7 @@ export function adsAvailable(): boolean {
  */
 export function showRewarded(placement: string): Promise<boolean> {
   const id = unitId();
-  if (!id) return Promise.resolve(false);
+  if (!id || !consentAllowsAds) return Promise.resolve(false);
   const personalized = useProfile.getState().settings.personalizedAds;
   return new Promise((resolve) => {
     let earned = false;

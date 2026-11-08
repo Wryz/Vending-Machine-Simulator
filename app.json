@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "app.coinline.vending",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "supportsTablet": false,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Coinline uses your approximate location once, to start your business in the closest city. It is never stored.",
