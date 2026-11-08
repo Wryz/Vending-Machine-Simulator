@@ -17,7 +17,9 @@ import {
   suggestRestock,
 } from '@/sim';
 import { offsetPoint } from '@/sim/geo';
+import { useCityIndex } from '@/store/cityIndex';
 import { cityInfoFor, useGame } from '@/store/game';
+import { cityInfoFromPick } from '@/ui/picker/where';
 import { useProfile } from '@/store/profile';
 import { announceSurprises } from '@/store/rivalMoments';
 import { Mono } from '@/ui/kit';
@@ -31,6 +33,7 @@ import { Mono } from '@/ui/kit';
 export default function Qa() {
   const {
     city = 'new-york',
+    region,
     to = '/map',
     machines = '1',
     cash,
@@ -50,6 +53,8 @@ export default function Qa() {
     driver,
   } = useLocalSearchParams<{
     city?: string;
+    /** A region res5 from the city index (overrides `city`). */
+    region?: string;
     to?: string;
     /** Machines to place and stock (the starter, plus bought ones). */
     machines?: string;
@@ -89,7 +94,9 @@ export default function Qa() {
     // Captures for the store: no dev log toasts (RevenueCat logs a missing paywall offering).
     LogBox.ignoreLogs(['[RevenueCat]']);
     (async () => {
-      const info = cityInfoFor(city as CityId);
+      // `region=<res5>` opens a built region (neighbourhoods, real index entry) instead of a legacy city.
+      const entry = region ? useCityIndex.getState().entries.find((e) => e.r === region) : null;
+      const info = entry ? cityInfoFromPick(entry, entry.n) : cityInfoFor(city as CityId);
       await useGame.getState().openCity(info, { fresh: true, seed: 7 });
       if (!useGame.getState().world) return setNote(`Could not open ${city}.`);
       const want = Math.max(1, Math.min(12, Number(machines) || 1));
