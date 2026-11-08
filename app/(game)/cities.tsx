@@ -9,6 +9,7 @@ import { simError } from '@/i18n/sim';
 import { BRANCHES } from '@/config/progression';
 import { branchesUnlocked, canBranchTo, chapterFor, reputationFor, sellCompany } from '@/sim';
 import { track } from '@/services/analytics';
+import { trustedNow } from '@/services/clock';
 import { haptic } from '@/services/haptics';
 import { removeKey, writeJson } from '@/services/storage';
 import { useCityIndex } from '@/store/cityIndex';
@@ -173,7 +174,7 @@ export default function Cities() {
             const res = sellCompany(
               current,
               target.id,
-              Date.now(),
+              trustedNow(),
               Math.floor(Math.random() * 2 ** 31),
             );
             if ('error' in res) {

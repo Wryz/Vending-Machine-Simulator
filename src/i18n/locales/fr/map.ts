@@ -27,6 +27,10 @@ export default {
     hood: '{name}\nOuvre au chapitre {n}',
     ring: 'Ouvre au chapitre {n}',
   },
+  clockAhead: {
+    title: 'L\'horloge de ton téléphone avançait',
+    body: 'Ta ville attend que l\'heure réelle la rattrape, environ {time}. Ensuite les machines revendent.',
+  },
   a11y: {
     van: 'Camionnette de livraison vers {venue}',
     store: '{store}, où ta camionnette charge',

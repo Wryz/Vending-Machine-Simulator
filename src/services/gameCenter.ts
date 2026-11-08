@@ -5,6 +5,7 @@ import { create } from 'zustand';
 import { GAME_CENTER, achievementGcId, weeklyLeaderboardFor } from '@/config/gameCenter';
 import { ACHIEVEMENTS } from '@/config/progression';
 import type { GameState } from '@/sim';
+import { aheadBy, clockVerified } from './clock';
 import { useGame } from '@/store/game';
 
 import {
@@ -98,6 +99,8 @@ function sync(force: boolean): void {
   const game = useGame.getState().game;
   if (!game || !signedIn()) return;
   flushAchievements(game);
+  // Scores only from a verified clock: a phone clock set forward mustn't top the board.
+  if (!clockVerified() || aheadBy(game.now) > 0) return;
   const next = scoresFor(game);
   const now = Date.now();
   if (submitting || now - submitFailedAt < RETRY_MS) return;

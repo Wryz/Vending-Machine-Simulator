@@ -27,6 +27,10 @@ export default {
     hood: '{name}\nSe abre en el capítulo {n}',
     ring: 'Se abre en el capítulo {n}',
   },
+  clockAhead: {
+    title: 'El reloj de tu móvil iba adelantado',
+    body: 'Tu ciudad espera a que la hora real la alcance, unos {time}. Después las máquinas vuelven a vender.',
+  },
   a11y: {
     van: 'Furgoneta de reparto hacia {venue}',
     store: '{store}, donde carga tu furgoneta',

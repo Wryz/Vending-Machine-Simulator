@@ -6,7 +6,11 @@ import { musicMoodFor } from '@/audio/soundscape';
 import { getTimeOfDay } from '@/map/timeOfDay';
 import { flush, track } from '@/services/analytics';
 import { music, sound } from '@/services/audio';
+import { aheadBy, dropClockAnchor, syncClock } from '@/services/clock';
 import { rescheduleNotifications } from '@/services/notifications';
+import { useCelebrations } from '@/store/celebrations';
+import { duration } from '@/ui/format';
+import { t } from '@/i18n';
 import { applyStarterPack } from '@/sim';
 import { useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
@@ -23,6 +27,24 @@ const MOOD_CHECK_MS = 60_000;
  * background), reschedules local notifications when backgrounded, and shows
  * the "While you were away" receipt on return.
  */
+/**
+ * The save ran ahead of real time (the phone's clock was set forward): the city
+ * waits for real time to catch up. Say so once per session, so it doesn't look stuck.
+ */
+let clockNoticeShown = false;
+function noteClockAhead(): void {
+  const game = useGame.getState().game;
+  if (!game || clockNoticeShown) return;
+  const ahead = aheadBy(game.now);
+  if (ahead <= 0) return;
+  clockNoticeShown = true;
+  useCelebrations.getState().push({
+    kind: 'info',
+    title: t('map.clockAhead.title'),
+    subtitle: t('map.clockAhead.body', { time: duration(ahead) }),
+  });
+}
+
 export default function GameLayout() {
   const theme = useTheme();
   const status = useGame((s) => s.status);
@@ -38,16 +60,22 @@ export default function GameLayout() {
       if (!useGame.getState().catchingUp) useGame.getState().tick();
     }, TICK_MS);
     track('session_start');
+    noteClockAhead();
     const sub = AppState.addEventListener('change', (next) => {
-      const { game, world, resume, save } = useGame.getState();
+      const { game, world, save } = useGame.getState();
       if (next === 'active') {
-        resume();
+        // Re-check the clock first (the anchor was dropped in the background), then catch up.
+        void syncClock().finally(() => {
+          useGame.getState().resume();
+          noteClockAhead();
+        });
         sound.resume();
         // Daily players and retention (no properties beyond the install id).
         track('session_start');
         void useGame.getState().syncBranches();
       } else if (next === 'background' || next === 'inactive') {
         save();
+        dropClockAnchor();
         // iOS sends both on every backgrounding: schedule once.
         if (next === 'background') rescheduleNotifications(game, world).catch(() => undefined);
         flush();

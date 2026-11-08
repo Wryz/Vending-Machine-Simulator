@@ -32,6 +32,17 @@ export const TIME = {
   catchUpSliceMs: 12,
 } as const;
 
+/**
+ * Trusted time (src/services/clock.ts): the game runs on the data API's clock,
+ * so changing the phone's clock doesn't speed machines up (owner's call, 2026-11-08).
+ */
+export const CLOCK = {
+  /** A save this far ahead of real time counts as "clock was ahead" (the city waits). */
+  toleranceMs: 5 * 60_000,
+  /** Clock check request timeout. */
+  timeoutMs: 5000,
+} as const;
+
 export const BUSINESS_DAY_REAL_MS = (24 * 60 * 60_000) / TIME.salesTimeScale;
 
 export const START = {

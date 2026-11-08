@@ -22,6 +22,7 @@ import { initPurchases } from '@/services/purchases';
 import { SPLASH } from '@/config/splash';
 import { useProfile } from '@/store/profile';
 import { useAppUpdate } from '@/store/appUpdate';
+import { syncClock } from '@/services/clock';
 import { BrandSplash } from '@/ui/BrandSplash';
 import { CelebrationHost } from '@/ui/CelebrationHost';
 import { ThemeProvider, useTheme } from '@/ui/ThemeProvider';
@@ -68,6 +69,8 @@ function RootLayout() {
 
   useEffect(() => {
     if (!loaded) return;
+    // The game runs on the server's clock (src/services/clock.ts).
+    void syncClock();
     // Is a newer version on the App Store? (Settings shows an update key; nothing pops up.)
     void useAppUpdate.getState().check();
     // Silent: signs in only if the player already uses Game Center; never prompts.

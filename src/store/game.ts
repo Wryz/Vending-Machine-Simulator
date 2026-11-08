@@ -63,6 +63,7 @@ import {
 import { cityKey, useProfile, type CityInfo } from './profile';
 
 import { readCompany, whereaboutsOf, writeCompany } from './company';
+import { clockVerified, syncClock, trustedNow } from '@/services/clock';
 
 export interface TickerEntry {
   at: number;
@@ -178,6 +179,8 @@ let loadToken = 0;
 let lastWeatherFetch = 0;
 const WEATHER_REFRESH_MS = 30 * 60_000;
 const OFFLINE_REPORT_MIN_MS = 5 * 60_000;
+/** How long opening a city waits for the clock check before using the last known difference. */
+const CLOCK_WAIT_MS = 1500;
 
 function saveKey(city: CityInfo) {
   return `save-${cityKey(city)}`;
@@ -255,6 +258,9 @@ export const useGame = create<GameStore>((set, get) => {
     async openCity(city, opts = {}) {
       const token = ++loadToken;
       set({ status: 'loading', error: null });
+      // Catch up on the server's clock when it answers quickly (offline: the last known difference).
+      if (!clockVerified())
+        await Promise.race([syncClock(), new Promise((r) => setTimeout(r, CLOCK_WAIT_MS))]);
       try {
         const [pack, roads, hoods] = await Promise.all([
           city.kind === 'fallback' ? loadCityPack(city.id) : loadRegionPack(city.res5 ?? ''),
@@ -271,7 +277,7 @@ export const useGame = create<GameStore>((set, get) => {
         fetchWeather(city)
           .then((w) => book.load(w.hours))
           .catch(() => undefined);
-        const now = Date.now();
+        const now = trustedNow();
         let game: GameState | null = null;
         let hadSave = false;
         if (!opts.fresh) {
@@ -338,7 +344,7 @@ export const useGame = create<GameStore>((set, get) => {
       }
     },
 
-    tick(now = Date.now()) {
+    tick(now = trustedNow()) {
       const { game, world, city } = get();
       if (!game || !world || now <= game.now) return null;
       // Keep live weather fresh (cached; MET's Expires is respected in fetchWeather).
@@ -355,7 +361,7 @@ export const useGame = create<GameStore>((set, get) => {
     resume() {
       const { game, world, catchingUp } = get();
       if (!game || !world || catchingUp) return;
-      const now = Date.now();
+      const now = trustedNow();
       if (now - game.now < OFFLINE_REPORT_MIN_MS) {
         get().tick(now);
         return;
@@ -396,8 +402,9 @@ export const useGame = create<GameStore>((set, get) => {
       // Bring the sim up to date first so actions happen "now".
       let current: GameState;
       let caught: { state: GameState; report: AdvanceReport } | null = null;
-      if (Date.now() > game.now) {
-        caught = advance(game, world, Date.now(), simOptions());
+      const nowT = trustedNow();
+      if (nowT > game.now) {
+        caught = advance(game, world, nowT, simOptions());
         current = caught.state;
       } else current = cloneState(game);
       const result = fn(current, world);
@@ -443,7 +450,7 @@ export const useGame = create<GameStore>((set, get) => {
             ]);
             const w = buildWorld(info, pack, new WeatherBook(), roads, hoods);
             let st = migrateSave(raw);
-            const now = Date.now();
+            const now = trustedNow();
             if (now > st.now) st = advance(st, w, now, simOptions()).state;
             const d = branchDelta(st, mark);
             total.cashCents += d.cashCents;

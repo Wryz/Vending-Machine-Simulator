@@ -26,6 +26,10 @@ export default {
     hood: '{name}\n第 {n} 章开放',
     ring: '第 {n} 章开放',
   },
+  clockAhead: {
+    title: '手机时钟走快了',
+    body: '城市会等真实时间追上来,大约 {time}。之后售货机会恢复销售。',
+  },
   a11y: {
     van: '开往{venue}的送货车',
     store: '{store}，你的货车在这里装货',

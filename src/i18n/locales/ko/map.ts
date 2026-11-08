@@ -26,6 +26,10 @@ export default {
     hood: '{name}\n{n}장에서 열림',
     ring: '{n}장에서 열림',
   },
+  clockAhead: {
+    title: '휴대폰 시계가 앞서 있었어요',
+    body: '실제 시간이 따라잡을 때까지 도시가 기다려요(약 {time}). 그다음 자판기가 다시 팔기 시작해요.',
+  },
   a11y: {
     van: '{venue}(으)로 가는 배송 밴',
     store: '{store}, 밴이 짐을 싣는 곳',

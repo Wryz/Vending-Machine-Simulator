@@ -26,6 +26,10 @@ export default {
     hood: '{name}\n第{n}章で開放',
     ring: '第{n}章で開放',
   },
+  clockAhead: {
+    title: '端末の時計が進んでいました',
+    body: '実際の時刻が追いつくまで街は待機します(約{time})。その後、自販機は再び売れ始めます。',
+  },
   a11y: {
     van: '{venue}への配送バン',
     store: '{store}（バンの積み込み先）',

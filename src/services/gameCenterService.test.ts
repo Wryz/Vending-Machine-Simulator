@@ -28,8 +28,9 @@ function mockNativeModule(authenticated: boolean) {
   };
 }
 
-function load(native: ReturnType<typeof mockNativeModule> | null) {
+function load(native: ReturnType<typeof mockNativeModule> | null, clockOk = true) {
   jest.resetModules();
+  jest.doMock('./clock', () => ({ clockVerified: () => clockOk, aheadBy: () => 0 }));
   jest.doMock('react-native', () => ({
     Platform: { OS: 'ios' },
     AppState: { addEventListener: jest.fn() },
@@ -106,5 +107,15 @@ describe('gameCenter service', () => {
 
     await svc.showLeaderboards('london');
     expect(native.showDashboard).toHaveBeenCalledWith('coinline.weekly.world');
+  });
+
+  it('waits for a verified clock before sending scores (trophies still go)', async () => {
+    const native = mockNativeModule(true);
+    const { svc, useGame } = load(native, false);
+    useGame.setState({ game });
+    svc.initGameCenter();
+    await flush();
+    expect(native.submitScore).not.toHaveBeenCalled();
+    expect(native.reportAchievements).toHaveBeenCalled();
   });
 });
