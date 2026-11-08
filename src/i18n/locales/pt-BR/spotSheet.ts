@@ -19,7 +19,18 @@ export default {
   use: 'Usar',
   report: 'Denunciar',
   attribution: 'Locais de dados abertos de mapas. Sem afiliação ou endosso.',
+  about: 'Sobre esta área',
+  passing: 'passam / h',
+  residents: 'moradores',
+  vending: 'Vending perto: {yours} suas · {rival} rival · {stores} lojas',
+  night: {
+    low: 'Movimentada à noite: segura para máquinas',
+    medium: 'Calma à noite',
+    high: 'Deserta à noite: mais vandalismo',
+  },
   a11y: {
+    passing: '{n} pessoas passam por hora',
+    residents: '{n} moradores',
     customers: '{n} clientes por hora',
     sales: '{amount} em vendas por dia',
   },

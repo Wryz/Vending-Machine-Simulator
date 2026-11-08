@@ -38,8 +38,8 @@ function placedAndStocked() {
 }
 
 describe('feature unlocks', () => {
-  it('a new game shows only the map basics', () => {
-    expect(unlockedFeatures(fresh())).toEqual([]);
+  it('a new game shows only the map basics (and the top-down view)', () => {
+    expect(unlockedFeatures(fresh())).toEqual(['topDown']);
   });
 
   it('opens features as milestones are reached', () => {

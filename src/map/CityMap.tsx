@@ -21,7 +21,7 @@ import {
 
 import { SOUNDSCAPE } from '@/config/audio';
 import { RIVAL } from '@/config/economy';
-import { AREA_NAME, MACHINE_PIN, MACHINE_SPRITE } from '@/config/map';
+import { AREA_NAME, MACHINE_PIN, MACHINE_SPRITE, MAP_POIS } from '@/config/map';
 import { MAP_LIFE } from '@/config/mapLife';
 import { getMachineType } from '@/config/machines';
 import { DISTRICTS } from '@/config/progression';
@@ -155,6 +155,8 @@ interface Props {
   onMachinePress(id: string): void;
   /** A rival machine was tapped. */
   onRivalPress?(id: string): void;
+  /** A named map place (shop, school, station…) was tapped. */
+  onPlacePress?(place: { id: string; lat: number; lng: number }): void;
   /** A venue-deal badge was tapped (accept the offer). */
   onDealPress?(dealId: string): void;
   /** A customer request bubble was tapped (open that machine). */
@@ -417,6 +419,25 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
     return { type: 'FeatureCollection' as const, features };
   }, [game, theme]);
 
+  // Every named place in the city, tappable at street zoom (the Spot Card opens on it).
+  const hidden = game.hiddenPlaces;
+  const poiData = useMemo(() => {
+    const features: GeoJSON.Feature<GeoJSON.Point>[] = [];
+    const seen = new Set<string>(hidden);
+    for (const cell of world.cells.values()) {
+      for (const pl of cell.places) {
+        if (seen.has(pl.id)) continue;
+        seen.add(pl.id);
+        features.push({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [pl.lng, pl.lat] },
+          properties: { id: pl.id, label: pl.name, lat: pl.lat, lng: pl.lng },
+        });
+      }
+    }
+    return { type: 'FeatureCollection' as const, features };
+  }, [world, hidden]);
+
   const heatData = useMemo(() => {
     if (!heat) return null;
     const features: GeoJSON.Feature<GeoJSON.Polygon>[] = [];
@@ -652,6 +673,76 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
               />
             </GeoJSONSource>
           ) : null}
+
+          <GeoJSONSource
+            id="pois"
+            data={poiData}
+            onPress={(e) => {
+              // Press features may come without geometry: the place's point rides in its properties.
+              const f = e.nativeEvent.features.find((x) => x.properties?.id);
+              if (!f) return;
+              const pr = f.properties as { id: string; lat: number; lng: number };
+              props.onPlacePress?.({ id: String(pr.id), lat: Number(pr.lat), lng: Number(pr.lng) });
+            }}
+          >
+            <Layer
+              id="poi-dots"
+              type="circle"
+              minzoom={MAP_POIS.minZoom}
+              paint={{
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], MAP_POIS.minZoom, 2, 18, 6],
+                'circle-color': theme.paper,
+                'circle-stroke-color': theme.ink,
+                'circle-stroke-width': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  MAP_POIS.minZoom,
+                  0.8,
+                  18,
+                  1.5,
+                ],
+                // Faint at the home view, clear once you lean in.
+                'circle-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  MAP_POIS.minZoom,
+                  0.35,
+                  17.5,
+                  0.95,
+                ],
+                'circle-stroke-opacity': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  MAP_POIS.minZoom,
+                  0.35,
+                  17.5,
+                  0.95,
+                ],
+              }}
+            />
+            <Layer
+              id="poi-labels"
+              type="symbol"
+              minzoom={MAP_POIS.labelZoom}
+              layout={{
+                'text-field': ['get', 'label'],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': 11,
+                'text-offset': [0, 0.9],
+                'text-anchor': 'top',
+                'text-max-width': 9,
+                'text-optional': true,
+              }}
+              paint={{
+                'text-color': tod.palette.label,
+                'text-halo-color': tod.palette.labelHalo,
+                'text-halo-width': 1.2,
+              }}
+            />
+          </GeoJSONSource>
 
           {selectedData ? (
             <GeoJSONSource id="selected" data={selectedData}>

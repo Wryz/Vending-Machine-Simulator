@@ -281,6 +281,11 @@ describe('sales loop', () => {
     expect(good.nearby.map((n) => n.name)).toContain('Lakeview Fitness');
     expect(good.hourly).toHaveLength(24);
     expect(good.bestFamilies.length).toBeGreaterThan(0);
+    // Foot traffic (everyone passing) is the pool the machine's customers come from.
+    expect(good.footfall).toHaveLength(24);
+    good.footfall.forEach((f, h) => expect(f).toBeGreaterThanOrEqual(good.hourly[h]));
+    expect(good.area.residents).toBeGreaterThan(0);
+    expect(Object.values(good.area.places).some((n) => (n ?? 0) > 0)).toBe(true);
   });
   it('heat makes cold drinks sell more (visible weather effect)', () => {
     const hot = testWorld({

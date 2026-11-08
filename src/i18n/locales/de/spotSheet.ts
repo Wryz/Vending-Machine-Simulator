@@ -19,7 +19,18 @@ export default {
   use: 'Wählen',
   report: 'Melden',
   attribution: 'Orte aus offenen Kartendaten. Keine Verbindung oder Empfehlung.',
+  about: 'Über diese Gegend',
+  passing: 'Passanten / Std.',
+  residents: 'Anwohner',
+  vending: 'Automaten in der Nähe: {yours} deine · {rival} Rivale · {stores} Läden',
+  night: {
+    low: 'Nachts belebt: sicher für Automaten',
+    medium: 'Nachts ruhig',
+    high: 'Nachts verlassen: mehr Vandalismus',
+  },
   a11y: {
+    passing: '{n} Passanten pro Stunde',
+    residents: '{n} Anwohner',
     customers: '{n} Kunden pro Stunde',
     sales: '{amount} Umsatz pro Tag',
   },

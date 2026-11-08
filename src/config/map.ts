@@ -224,3 +224,11 @@ export const AREA_NAME = {
   /** Wait after the camera settles before looking, ms. */
   debounceMs: 400,
 } as const;
+
+/** Named places drawn on the city map (tap one for its Spot Card). */
+export const MAP_POIS = {
+  /** Dots appear from this zoom (street level). */
+  minZoom: 15.5,
+  /** Names appear from this zoom. */
+  labelZoom: 17.5,
+} as const;

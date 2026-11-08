@@ -266,6 +266,19 @@ export default function MapScreen() {
     frameMachine(id, framePadding);
   };
 
+  // A named place: its Spot Card, with the place as host when it can be one.
+  const onPlacePress = (p: { id: string; lat: number; lng: number }) => {
+    // The same tap may have hit a machine drawn over the place: the machine wins.
+    if (Date.now() - lastMachinePress.current < MAP_TAP.machineGuardMs) return;
+    lastMachinePress.current = Date.now();
+    cancelMapPress();
+    reopenSheet.current = null;
+    machineSheetRef.current?.close();
+    rivalSheetRef.current?.close();
+    setSpot({ lat: p.lat, lng: p.lng, placeId: p.id });
+    spotRef.current?.open();
+  };
+
   // A rival machine: Rex's card (prices, a taunt, the counter-moves).
   const onRivalPress = (id: string) => {
     lastMachinePress.current = Date.now();
@@ -513,6 +526,7 @@ export default function MapScreen() {
         initial={initial}
         minZoom={GLOBE.mapMinZoom}
         onMapPress={onMapPress}
+        onPlacePress={onPlacePress}
         onMachinePress={onMachinePress}
         onRivalPress={onRivalPress}
         onDealPress={(id) => takeDeal(id)}

@@ -675,5 +675,5 @@ export const FEATURE_UNLOCKS: Record<Feature, FeatureRule> = {
   rankings: { chapter: 2, collected: true },
   keys: { chapter: 2, machines: 2 },
   routes: { chapter: 2 },
-  topDown: { chapter: 2 },
+  topDown: { chapter: 1 },
 };

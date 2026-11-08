@@ -16,7 +16,18 @@ export default {
   use: 'Use', // chip: make this place the host, ~6 chars
   report: 'Report', // chip: report/hide a map place
   attribution: 'Places from open map data. No affiliation or endorsement.',
+  about: 'About this area', // plate heading: facts about the block
+  passing: 'passing / hr', // caption under an LED: everyone walking past per hour, ~14 chars
+  residents: 'residents', // caption under an LED: people living here
+  vending: 'Vending nearby: {yours} yours · {rival} rival · {stores} shops',
+  night: {
+    low: 'Lively at night: safe for machines',
+    medium: 'Calm at night',
+    high: 'Deserted at night: machines get vandalised more',
+  },
   a11y: {
+    passing: '{n} people passing per hour',
+    residents: '{n} residents',
     customers: '{n} customers per hour',
     sales: '{amount} sales per day',
   },

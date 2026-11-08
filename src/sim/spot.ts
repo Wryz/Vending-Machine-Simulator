@@ -23,6 +23,7 @@ import {
   nearbyPlaces,
   resolveVenue,
 } from './rules';
+import type { CategoryNumbers } from '@/data/types';
 import type { GameState, Venue, World } from './state';
 import { localTime } from './time';
 
@@ -33,6 +34,10 @@ export interface SpotReport {
   nearby: { id: string; name: string; category: PlaceCategory; label: string; distanceM: number }[];
   /** Expected customers per business hour at each real local hour (0..23), today's day type. */
   hourly: number[];
+  /** People passing by per business hour at each local hour (all foot traffic, not just buyers). */
+  footfall: number[];
+  /** The area's open data: residents, places by category (in this ~0.1 km² cell) and night quiet (0 busy … 1 isolated). */
+  area: { residents: number; places: CategoryNumbers; isolation: number };
   /** Customers over one business day (sum of the hourly curve). */
   dailyCustomers: number;
   /** Expected sales per business day with a typical full machine at suggested prices. */
@@ -98,8 +103,10 @@ export function evaluateSpot(
   const compFactor = 1 - competitionShare(effective);
 
   const hourly: number[] = [];
+  const footfall: number[] = [];
   for (let h = 0; h < 24; h++) {
     const traffic = baseTraffic(cell, h + 0.5, local.restDay);
+    footfall.push(traffic.total);
     hourly.push(
       traffic.total * visibility(probe, type, state, h + 0.5) * type.captureRate * compFactor,
     );
@@ -219,6 +226,8 @@ export function evaluateSpot(
     venue,
     nearby,
     hourly,
+    footfall,
+    area: { residents: cell.pop, places: { ...cell.counts }, isolation: cell.isolation },
     dailyCustomers,
     dailySalesCents,
     nowCustomers,

@@ -19,7 +19,18 @@ export default {
   use: '선택',
   report: '신고',
   attribution: '장소는 오픈 지도 데이터 기반. 제휴나 보증과는 무관해요.',
+  about: '이 지역 정보',
+  passing: '통행/시간',
+  residents: '주민',
+  vending: '근처 자판기: 내 것 {yours} · 라이벌 {rival} · 가게 {stores}',
+  night: {
+    low: '밤에도 활기참: 자판기에 안전',
+    medium: '밤에는 조용함',
+    high: '밤에는 한적함: 파손이 잦아요',
+  },
   a11y: {
+    passing: '시간당 {n}명 통행',
+    residents: '주민 {n}명',
     customers: '시간당 손님 {n}명',
     sales: '하루 매출 {amount}',
   },

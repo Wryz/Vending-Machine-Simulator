@@ -16,6 +16,7 @@ import {
   hidePlace,
   localTime,
   type GameState,
+  type SpotReport,
   type World,
 } from '@/sim';
 import { useGame } from '@/store/game';
@@ -33,6 +34,8 @@ import { GameSheet, SheetScroll, type GameSheetHandle } from './GameSheet';
 export interface SpotPoint {
   lat: number;
   lng: number;
+  /** A map place that was tapped: the card opens on it (and hosts there when it can). */
+  placeId?: string;
 }
 
 /**
@@ -55,7 +58,7 @@ export const SpotSheet = forwardRef<
       {point ? (
         <SpotBody
           // A new tap is a new spot: remount so picks from the last spot don't carry over.
-          key={`${point.lat},${point.lng}`}
+          key={`${point.lat},${point.lng},${point.placeId ?? ''}`}
           game={game}
           world={world}
           point={point}
@@ -91,12 +94,14 @@ function SpotBody({
   const [typeId, setTypeId] = useState<MachineTypeId>(
     stored?.typeId ?? types[0]?.id ?? 'used-snack',
   );
-  const [placeId, setPlaceId] = useState<string | undefined>(undefined);
+  const [placeId, setPlaceId] = useState<string | undefined>(point.placeId);
 
   const spot = useMemo(
     () => evaluateSpot(game, world, point, typeId, game.now, placeId),
     [game, world, point, typeId, placeId],
   );
+  /** The place you tapped on the map, if any. */
+  const focus = point.placeId ? spot.nearby.find((p) => p.id === point.placeId) : undefined;
   const hourNow = Math.floor(localTime(game.now, world.city.timeZone, world.city.countryCode).hour);
   const rating = Math.round(spot.rating);
   const canPlace = !spot.districtLocked && !spot.blocked;
@@ -136,14 +141,22 @@ function SpotBody({
     >
       <View style={{ gap: SPACE.s }}>
         <Marquee
-          title={spot.venue.category === 'street' ? t('spotSheet.streetCorner') : spot.venue.name}
+          title={
+            focus
+              ? focus.name
+              : spot.venue.category === 'street'
+                ? t('spotSheet.streetCorner')
+                : spot.venue.name
+          }
           subtitle={
-            spot.venue.category === 'street'
-              ? t('spotSheet.district', { n: spot.district })
-              : t('spotSheet.venueLine', {
-                  category: categoryLabel(spot.venue.category as PlaceCategory),
-                  distance: meters(spot.venue.distanceM),
-                })
+            focus
+              ? categoryLabel(focus.category)
+              : spot.venue.category === 'street'
+                ? t('spotSheet.district', { n: spot.district })
+                : t('spotSheet.venueLine', {
+                    category: categoryLabel(spot.venue.category as PlaceCategory),
+                    distance: meters(spot.venue.distanceM),
+                  })
           }
         />
         <Row style={{ justifyContent: 'center' }} gap={4}>
@@ -257,6 +270,8 @@ function SpotBody({
         />
       </Pulse>
 
+      <AreaFacts spot={spot} hourNow={hourNow} categoryLabel={categoryLabel} />
+
       <View style={{ gap: SPACE.s }}>
         <Plate>{t('spotSheet.nearby')}</Plate>
         {spot.nearby.length === 0 ? <T color="#FFFFFF">{t('spotSheet.noNearby')}</T> : null}
@@ -292,7 +307,111 @@ function SpotBody({
   );
 }
 
+/**
+ * What the open data says about this block: everyone walking past (not only
+ * buyers), who lives here, what's here, the vending around, and the night.
+ */
+function AreaFacts({
+  spot,
+  hourNow,
+  categoryLabel,
+}: {
+  spot: SpotReport;
+  hourNow: number;
+  categoryLabel: (c: PlaceCategory) => string;
+}) {
+  const t = useT();
+  const passing = Math.round(spot.footfall[hourNow] ?? 0);
+  const places = (Object.entries(spot.area.places) as [PlaceCategory, number | undefined][])
+    .filter(([, n]) => (n ?? 0) > 0)
+    .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
+    .slice(0, 8);
+  const vending = spot.competitors;
+  return (
+    <View style={{ gap: SPACE.s }}>
+      <Plate>{t('spotSheet.about')}</Plate>
+      <Row gap={SPACE.s}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Led size={20} accessibilityLabel={t('spotSheet.a11y.passing', { n: passing })}>
+            {compact(passing)}
+          </Led>
+          <Row gap={4} style={{ justifyContent: 'center' }}>
+            <Icon name="people" size={14} color="#FFFFFF" />
+            <T size={12} weight="bold" color="#FFFFFF">
+              {t('spotSheet.passing')}
+            </T>
+          </Row>
+        </View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Led
+            size={20}
+            accessibilityLabel={t('spotSheet.a11y.residents', { n: spot.area.residents })}
+          >
+            {compact(spot.area.residents)}
+          </Led>
+          <Row gap={4} style={{ justifyContent: 'center' }}>
+            <Glyph category="residential" size={14} color="#FFFFFF" />
+            <T size={12} weight="bold" color="#FFFFFF">
+              {t('spotSheet.residents')}
+            </T>
+          </Row>
+        </View>
+      </Row>
+      <Glass padding={SPACE.m}>
+        <Sparkline values={spot.footfall} highlight={hourNow} height={36} />
+        <View style={{ gap: 8, marginTop: SPACE.m }}>
+          {places.length ? (
+            <Row style={{ flexWrap: 'wrap' }} gap={6}>
+              {places.map(([c, n]) => (
+                <Row key={c} gap={4} style={styles.fact}>
+                  <Glyph category={c} size={16} />
+                  <T size={12} weight="bold">
+                    {Math.round(n ?? 0)}
+                  </T>
+                  <T size={12} muted>
+                    {categoryLabel(c)}
+                  </T>
+                </Row>
+              ))}
+            </Row>
+          ) : null}
+          <Row gap={SPACE.s}>
+            <Icon name="shop" size={16} />
+            <T size={13} style={{ flex: 1 }}>
+              {t('spotSheet.vending', {
+                yours: vending.yours,
+                rival: vending.rival,
+                stores: vending.stores,
+              })}
+            </T>
+          </Row>
+          <Row gap={SPACE.s}>
+            <Icon name="moon" size={16} />
+            <T size={13} style={{ flex: 1 }}>
+              {t(`spotSheet.night.${spot.theftRisk}`)}
+            </T>
+          </Row>
+        </View>
+      </Glass>
+    </View>
+  );
+}
+
+/** 1234 → 1.2k: LED numbers stay short. */
+function compact(n: number): string {
+  const v = Math.round(n);
+  if (v < 1000) return String(v);
+  if (v < 100_000) return `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+  return `${Math.round(v / 1000)}k`;
+}
+
 const styles = StyleSheet.create({
+  fact: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: RADIUS.s,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   place: {
     minHeight: 48,
     backgroundColor: '#FFFFFF',

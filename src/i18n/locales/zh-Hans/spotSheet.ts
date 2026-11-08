@@ -19,7 +19,18 @@ export default {
   use: '选用',
   report: '举报',
   attribution: '地点来自开放地图数据。与这些地点无任何关联或背书。',
+  about: '关于这片区域',
+  passing: '路人/小时',
+  residents: '居民',
+  vending: '附近售货：你的 {yours} · 对手 {rival} · 商店 {stores}',
+  night: {
+    low: '夜间热闹：机器安全',
+    medium: '夜间安静',
+    high: '夜间冷清：更易遭破坏',
+  },
   a11y: {
+    passing: '每小时 {n} 人经过',
+    residents: '{n} 位居民',
     customers: '每小时 {n} 位顾客',
     sales: '每天销售额 {amount}',
   },

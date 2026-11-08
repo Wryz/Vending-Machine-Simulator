@@ -20,7 +20,18 @@ export default {
   report: 'Signaler',
   attribution:
     'Lieux issus de données cartographiques ouvertes. Aucune affiliation ni approbation.',
+  about: 'À propos du quartier',
+  passing: 'passants / h',
+  residents: 'habitants',
+  vending: 'Distributeurs proches : {yours} à vous · {rival} rival · {stores} boutiques',
+  night: {
+    low: 'Animé la nuit : sûr pour les machines',
+    medium: 'Calme la nuit',
+    high: 'Désert la nuit : plus de vandalisme',
+  },
   a11y: {
+    passing: '{n} passants par heure',
+    residents: '{n} habitants',
     customers: '{n} clients par heure',
     sales: '{amount} de ventes par jour',
   },

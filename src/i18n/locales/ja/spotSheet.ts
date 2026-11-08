@@ -19,7 +19,18 @@ export default {
   use: '選ぶ',
   report: '報告',
   attribution: '場所はオープンな地図データより。提携や推奨の関係はありません。',
+  about: 'このエリアについて',
+  passing: '通行人/時',
+  residents: '住民',
+  vending: '近くの自販機：自分 {yours}・ライバル {rival}・店 {stores}',
+  night: {
+    low: '夜もにぎやか：自販機は安全',
+    medium: '夜は静か',
+    high: '夜は人けがない：いたずらが増えます',
+  },
   a11y: {
+    passing: '1時間に{n}人が通行',
+    residents: '住民{n}人',
     customers: '1時間あたり{n}人',
     sales: '1日あたりの売上 {amount}',
   },
