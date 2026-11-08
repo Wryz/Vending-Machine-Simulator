@@ -3,11 +3,11 @@
  *
  *   npx tsx build-globe.ts        -> ../src/data/globeLand.ts
  *
- * Reads the `water` layer of the OpenFreeMap planet tiles at z2 (OpenStreetMap
+ * Reads the `water` layer of the OpenFreeMap planet tiles at z4 (OpenStreetMap
  * data via OpenMapTiles: the same basemap the app already uses and credits,
- * ODbL) and samples a 2° grid: a cell is land when its center is not inside
+ * ODbL) and samples a 0.5° grid: a cell is land when its center is not inside
  * any water polygon. Beyond Web Mercator's ±85.05°, the south is Antarctica
- * and the north is the Arctic Ocean. Output is a ~2 KB base64 bitmask.
+ * and the north is the Arctic Ocean. Output is a ~40 KB base64 bitmask.
  */
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -16,8 +16,8 @@ import { fileURLToPath } from 'node:url';
 import { VectorTile } from '@mapbox/vector-tile';
 import { PbfReader } from 'pbf';
 
-const Z = 2;
-const STEP = 2;
+const Z = 4;
+const STEP = 0.5;
 const ROWS = 180 / STEP;
 const COLS = 360 / STEP;
 const MERC_MAX = 85.05112878;

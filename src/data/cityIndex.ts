@@ -28,18 +28,28 @@ export function kmBetween(
 const at = (e: CityIndexEntry) => ({ lat: e.a, lng: e.o });
 
 /**
- * The bottom strip: everything near you first (cities and outer districts,
- * any size), then only the big cities further away; nearest first throughout.
+ * The bottom strip, at most PICKER.maxCards: what's near you first (cities and
+ * outer districts of any size), then the rest of your country, then only the
+ * very big cities abroad; nearest first within each. Your country is the
+ * nearest city's.
  */
 export function stripCities(
   index: readonly CityIndexEntry[],
   origin: { lat: number; lng: number },
 ): PickerCity[] {
   const withKm = index.map((e) => ({ ...e, km: kmBetween(origin, at(e)) }));
-  const local = withKm.filter((e) => e.km <= PICKER.localKm);
-  const far = withKm.filter((e) => e.km > PICKER.localKm && !e.d && e.p >= PICKER.majorPopulation);
   const byKm = (a: PickerCity, b: PickerCity) => a.km - b.km || a.r.localeCompare(b.r);
-  return [...local.sort(byKm), ...far.sort(byKm)].slice(0, PICKER.maxCards);
+  withKm.sort(byKm);
+  const home = withKm.find((e) => e.c)?.c ?? '';
+  const local = withKm.filter((e) => e.km <= PICKER.localKm).slice(0, PICKER.maxLocal);
+  const taken = new Set(local.map((e) => e.r));
+  const country = withKm.filter(
+    (e) => !taken.has(e.r) && !e.d && e.c === home && e.p >= PICKER.homePopulation,
+  );
+  const abroad = withKm.filter(
+    (e) => !taken.has(e.r) && !e.d && e.c !== home && e.p >= PICKER.foreignPopulation,
+  );
+  return [...local, ...country, ...abroad].slice(0, PICKER.maxCards);
 }
 
 /** The city or district the crosshair would start, if one is close enough. */

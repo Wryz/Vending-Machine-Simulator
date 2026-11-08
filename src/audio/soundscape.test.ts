@@ -1,4 +1,4 @@
-import { AUDIO_MIX } from '@/config/audio';
+import { AUDIO_MIX, SOUNDSCAPE } from '@/config/audio';
 
 import {
   LAYER_NAMES,
@@ -41,6 +41,33 @@ function seeded(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+// The crowd, rain and wind beds are off in the shipping mix (SOUNDSCAPE.noiseBeds);
+// the mixing rules below are tested with them on.
+const mutable = SOUNDSCAPE as { noiseBeds: boolean };
+beforeAll(() => {
+  mutable.noiseBeds = true;
+});
+afterAll(() => {
+  mutable.noiseBeds = false;
+});
+
+describe('noise beds', () => {
+  it('are silent in the shipping mix (they read as static on phone speakers)', () => {
+    mutable.noiseBeds = false;
+    const m = soundscapeMix({
+      scene: 'map',
+      zoom: 17,
+      tod: { night: 0, dawn: 0, day: 1, dusk: 0 },
+      busy: 1,
+      weather: { condition: 'storm', tempC: 20 },
+    } as Parameters<typeof soundscapeMix>[0]);
+    expect(m.layers.crowd).toBe(0);
+    expect(m.layers.rain).toBe(0);
+    expect(m.layers.wind).toBe(0);
+    mutable.noiseBeds = true;
+  });
+});
 
 describe('soundscapeMix', () => {
   it('keeps every value in range, even for odd input', () => {

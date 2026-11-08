@@ -43,7 +43,8 @@ export function useYou(): {
   const locate = useCallback(async () => {
     try {
       let perm = await Location.getForegroundPermissionsAsync();
-      if (!perm.granted && perm.canAskAgain) perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted && perm.canAskAgain)
+        perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted) return 'denied' as const;
       await read();
       return 'ok' as const;
@@ -75,13 +76,20 @@ export function deviceCountry(): string {
   return m ? m[1] : 'US';
 }
 
-/** The game's city record for a picked city or outer district. */
-export function cityInfoFromPick(c: PickerCity | CityIndexEntry, name: string): CityInfo {
+/**
+ * The game's city record for a picked city or outer district. The map opens
+ * on `spot` when you chose one inside the area, else downtown.
+ */
+export function cityInfoFromPick(
+  c: PickerCity | CityIndexEntry,
+  name: string,
+  spot: { lat: number; lng: number } | null = null,
+): CityInfo {
   return {
     id: `area-${c.r}`,
     name,
-    lat: c.a,
-    lng: c.o,
+    lat: spot?.lat ?? c.a,
+    lng: spot?.lng ?? c.o,
     timeZone: c.z || Intl.DateTimeFormat().resolvedOptions().timeZone,
     countryCode: c.c || deviceCountry(),
     kind: 'area',

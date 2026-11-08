@@ -19,26 +19,33 @@ const INDEX: CityIndexEntry[] = [
   city('namdinh', 'Nam Dinh', 20.43, 106.17, 350_000),
   city('hcmc', 'Ho Chi Minh City', 10.776, 106.7, 9_000_000),
   city('danang', 'Da Nang', 16.05, 108.2, 800_000),
-  city('tokyo', 'Tokyo', 35.69, 139.7, 14_000_000),
+  { ...city('tokyo', 'Tokyo', 35.69, 139.7, 14_000_000), c: 'JP' },
 ];
 
 describe('city picker list', () => {
   const hanoi = { lat: 21.03, lng: 105.85 };
 
-  it('lists everything nearby first, then only big cities, nearest first', () => {
+  it('lists what is near you, then your country, then only very big cities abroad', () => {
     const ids = stripCities(INDEX, hanoi).map((c) => c.r);
-    // Local (≤ 300 km): every city and district, by distance.
+    // Local (≤ 300 km): cities and districts of any size, by distance.
     expect(ids.slice(0, 4)).toEqual(['hanoi', 'hanoi-n', 'namdinh', 'haiphong']);
-    // Far: only 1M+ cities; Da Nang (800k, ~630 km) is left out.
-    expect(ids.slice(4)).toEqual(['hcmc', 'tokyo']);
-    expect(ids).not.toContain('danang');
+    // Then the rest of Vietnam (Da Nang 800k is in), then Tokyo (14M) abroad.
+    expect(ids.slice(4)).toEqual(['danang', 'hcmc', 'tokyo']);
   });
 
-  it('keeps the strip light', () => {
-    const many = Array.from({ length: 400 }, (_, i) =>
-      city(`c${i}`, `City ${i}`, 21 + i * 0.001, 105.85, 2_000_000),
+  it('leaves out smaller cities abroad and keeps the strip to 30', () => {
+    const abroad = city('osaka', 'Osaka', 34.69, 135.5, 2_700_000);
+    expect(stripCities([...INDEX, { ...abroad, c: 'JP' }], hanoi).map((c) => c.r)).not.toContain(
+      'osaka',
     );
-    expect(stripCities(many, hanoi)).toHaveLength(PICKER.maxCards);
+    const many = Array.from({ length: 400 }, (_, i) =>
+      city(`c${i}`, `City ${i}`, 21 + i * 0.01, 105.85, 2_000_000),
+    );
+    const strip = stripCities(many, hanoi);
+    expect(strip).toHaveLength(PICKER.maxCards);
+    expect(strip.filter((c) => c.km <= PICKER.localKm).length).toBeLessThanOrEqual(
+      PICKER.maxLocal + 20,
+    );
   });
 
   it('snaps the crosshair to a close city or district', () => {

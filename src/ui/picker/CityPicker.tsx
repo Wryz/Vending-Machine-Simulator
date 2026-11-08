@@ -16,6 +16,9 @@ import { T } from '../kit';
 import { Key, Marquee, SKIN } from '../skin';
 import { RADIUS, SPACE } from '../theme';
 import { PickerGlobe, type GlobeDot } from './PickerGlobe';
+import { RegionMap } from './RegionMap';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export type PickerMode = 'start' | 'switch' | 'sell';
 
@@ -56,7 +59,8 @@ export function CityPicker({
   busy: boolean;
   error: string | null;
   onLocate?: () => void;
-  onPick: (city: PickerCity) => void;
+  /** The picked city (or one of its outer districts), and where in it you chose to start (else downtown). */
+  onPick: (city: PickerCity, spot: { lat: number; lng: number } | null) => void;
   onBack?: () => void;
 }) {
   const t = useT();
@@ -69,12 +73,36 @@ export function CityPicker({
   }, []);
 
   const cards = useMemo(() => stripCities(index, origin), [index, origin]);
-  // Where "near you" ends and "big cities" begin.
-  const firstFar = cards.findIndex((c) => c.km > PICKER.localKm);
+  // Section labels: near you, then your country, then big cities abroad.
+  const home = cards[0]?.c ?? '';
+  const firstHome = cards.findIndex((c) => c.km > PICKER.localKm && c.c === home);
+  const firstAbroad = cards.findIndex((c) => c.km > PICKER.localKm && c.c !== home);
   const [selected, setSelected] = useState<PickerCity | null>(() => cards[0] ?? null);
   const [aim, setAim] = useState<{ lat: number; lng: number } | null>(null);
   const [fly, setFly] = useState(() => ({ ...origin, zoom: 1.6, key: 0 }));
   const list = useRef<FlatList<PickerCity>>(null);
+  // Diving in: the real map of the selected city's area replaces the globe.
+  const [zoomed, setZoomed] = useState(false);
+  // A spot you tapped inside the city's area to start from (and the region it's in).
+  const [spot, setSpot] = useState<{ lat: number; lng: number; region: PickerCity } | null>(null);
+  const [outside, setOutside] = useState(false);
+  const dive = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** The player is scrolling the strip (finger down, then its momentum); our own scrolls never count. */
+  const userScroll = useRef(false);
+  const STEP = CARD_W + CARD_GAP;
+  const sidePad = (width - CARD_W) / 2;
+  const scheduleDive = () => {
+    if (dive.current) clearTimeout(dive.current);
+    dive.current = setTimeout(() => {
+      if (!userScroll.current) setZoomed(true);
+    }, PICKER.flyMs + PICKER.diveDelayMs);
+  };
+  useEffect(
+    () => () => {
+      if (dive.current) clearTimeout(dive.current);
+    },
+    [],
+  );
 
   // The globe follows you once you share where you are.
   const lastOrigin = useRef(origin);
@@ -85,14 +113,33 @@ export function CityPicker({
     list.current?.scrollToOffset({ offset: 0, animated: true });
   }, [origin]);
 
-  const choose = (c: PickerCity, from: 'card' | 'globe') => {
+  /**
+   * Select a city. From a card or the strip, the globe turns to it and, once
+   * you stop on it, the camera dives into its area; from the globe it stays put.
+   */
+  const choose = (c: PickerCity, from: 'card' | 'strip' | 'globe') => {
+    if (c.r !== selected?.r) haptic.select();
     setSelected(c);
+    setSpot(null);
+    setOutside(false);
     setAim(null);
-    haptic.select();
-    if (from === 'card')
+    setZoomed(false);
+    if (from !== 'globe') {
       setFly((f) => ({ lat: c.a, lng: c.o, zoom: PICKER.cardZoom, key: f.key + 1 }));
-    const i = cards.findIndex((x) => x.r === c.r);
-    if (i >= 0) list.current?.scrollToIndex({ index: i, animated: true, viewPosition: 0.5 });
+      scheduleDive();
+    }
+    if (from !== 'strip') {
+      const i = cards.findIndex((x) => x.r === c.r);
+      if (i >= 0) list.current?.scrollToOffset({ offset: i * STEP, animated: true });
+    }
+  };
+  // The card in the middle of the strip is the one you're looking at.
+  const centered = (x: number) =>
+    cards[Math.max(0, Math.min(cards.length - 1, Math.round(x / STEP)))];
+  const onStripScroll = (x: number) => {
+    if (!userScroll.current) return;
+    const c = centered(x);
+    if (c && c.r !== selected?.r) choose(c, 'strip');
   };
 
   // The crosshair: when the globe comes to rest, pick what's under it.
@@ -127,20 +174,39 @@ export function CityPicker({
   const keyLabel = selected
     ? here === 'playing'
       ? t('picker.youreHere')
-      : t(mode === 'sell' ? 'picker.sell' : here === 'saved' ? 'picker.go' : 'picker.start', {
-          city: label(selected),
-        })
+      : spot && here !== 'saved'
+        ? t('picker.startSpot', { city: label(spot.region) })
+        : t(mode === 'sell' ? 'picker.sell' : here === 'saved' ? 'picker.go' : 'picker.start', {
+            city: label(selected),
+          })
     : nearest
       ? t('picker.flyNearest', { city: label(nearest) })
       : t('picker.none');
 
   const onKey = () => {
     if (selected) {
-      if (here !== 'playing') onPick(selected);
+      if (here !== 'playing')
+        onPick(spot ? spot.region : selected, spot ? { lat: spot.lat, lng: spot.lng } : null);
       return;
     }
     if (nearest) choose({ ...nearest, km: distanceFrom(nearest) }, 'card');
   };
+
+  // Outer districts of the selected city, outlined on its map.
+  const districts = useMemo(
+    () =>
+      selected && !selected.d
+        ? index.filter(
+            (e) =>
+              e.d &&
+              e.n === selected.n &&
+              e.c === selected.c &&
+              Math.abs(e.a - selected.a) < 0.6 &&
+              Math.abs(e.o - selected.o) < 0.6,
+          )
+        : [],
+    [index, selected],
+  );
 
   // Layout: the globe fills the space above the strip.
   const top = insets.top + SPACE.s;
@@ -165,41 +231,74 @@ export function CityPicker({
         />
       </View>
 
-      {/* Crosshair and what it's on. */}
-      <View
-        pointerEvents="none"
-        style={[styles.crossWrap, { top: globeCy - 14, left: width / 2 - 14 }]}
-      >
-        <View style={styles.cross} />
-      </View>
-      <View pointerEvents="none" style={[styles.bubbleWrap, { top: globeCy - 74 }]}>
+      {zoomed && selected ? (
         <Animated.View
-          key={selected?.r ?? (nearest ? `n-${nearest.r}` : 'none')}
-          entering={FadeIn.duration(180)}
-          exiting={FadeOut.duration(120)}
-          style={styles.bubble}
+          entering={FadeIn.duration(350)}
+          exiting={FadeOut.duration(250)}
+          style={StyleSheet.absoluteFill}
         >
-          {selected ? (
-            <T size={15} weight="bold" color={SKIN.keyInk} numberOfLines={1}>
-              {`${flagOf(selected.c)} ${label(selected)}`.trim()}
-            </T>
-          ) : (
-            <>
-              <T size={14} weight="bold" color={SKIN.keyInk} numberOfLines={1}>
-                {t('picker.none')}
-              </T>
-              {nearest ? (
-                <T size={12} color="#4A4F6A" numberOfLines={1}>
-                  {t('picker.nearest', {
-                    city: label(nearest),
-                    km: t('picker.km', { n: Math.round(nearest.km).toLocaleString() }),
-                  })}
-                </T>
-              ) : null}
-            </>
-          )}
+          <RegionMap
+            city={selected}
+            districts={districts}
+            padding={{ top: top + 120, bottom: bottomBlock }}
+            spot={spot}
+            onSpot={(p, region) => {
+              if (!region) {
+                haptic.error();
+                setOutside(true);
+                return;
+              }
+              haptic.select();
+              setOutside(false);
+              setSpot({ ...p, region: { ...region, km: selected.km } });
+            }}
+            onZoomOut={() => setZoomed(false)}
+          />
         </Animated.View>
-      </View>
+      ) : null}
+
+      {/* Crosshair and what it's on (the globe only). */}
+      {!zoomed ? (
+        <>
+          <View
+            pointerEvents="none"
+            style={[styles.crossWrap, { top: globeCy - 14, left: width / 2 - 14 }]}
+          >
+            <View style={styles.cross} />
+          </View>
+          <View pointerEvents="box-none" style={[styles.bubbleWrap, { top: globeCy - 74 }]}>
+            <AnimatedPressable
+              onPress={() => (selected ? setZoomed(true) : undefined)}
+              accessibilityRole={selected ? 'button' : undefined}
+              accessibilityLabel={selected ? label(selected) : t('picker.none')}
+              key={selected?.r ?? (nearest ? `n-${nearest.r}` : 'none')}
+              entering={FadeIn.duration(180)}
+              exiting={FadeOut.duration(120)}
+              style={styles.bubble}
+            >
+              {selected ? (
+                <T size={15} weight="bold" color={SKIN.keyInk} numberOfLines={1}>
+                  {`${flagOf(selected.c)} ${label(selected)}`.trim()}
+                </T>
+              ) : (
+                <>
+                  <T size={14} weight="bold" color={SKIN.keyInk} numberOfLines={1}>
+                    {t('picker.none')}
+                  </T>
+                  {nearest ? (
+                    <T size={12} color="#4A4F6A" numberOfLines={1}>
+                      {t('picker.nearest', {
+                        city: label(nearest),
+                        km: t('picker.km', { n: Math.round(nearest.km).toLocaleString() }),
+                      })}
+                    </T>
+                  ) : null}
+                </>
+              )}
+            </AnimatedPressable>
+          </View>
+        </>
+      ) : null}
 
       {/* Header. */}
       <View style={[styles.header, { top }]} pointerEvents="box-none">
@@ -209,13 +308,33 @@ export function CityPicker({
           <View style={{ width: 50 }} />
         )}
         <Marquee title={t('picker.title')} subtitle={t('picker.subtitle')} style={{ flex: 1 }} />
-        {onLocate ? (
+        {zoomed ? (
+          <RoundButton
+            icon="globe"
+            label={t('picker.backToGlobe')}
+            onPress={() => setZoomed(false)}
+          />
+        ) : onLocate ? (
           <RoundButton icon="locate" label={t('picker.locate')} onPress={onLocate} active={!you} />
         ) : (
           <View style={{ width: 50 }} />
         )}
       </View>
-      {onLocate && !you ? (
+      {zoomed && selected && here !== 'saved' ? (
+        <View pointerEvents="none" style={[styles.hintWrap, { top: top + 112 }]}>
+          <View style={[styles.hint, outside && { backgroundColor: SKIN.redFace }]}>
+            <Icon name="pin" size={16} color="#FFFFFF" />
+            <T size={13} weight="bold" color="#FFFFFF">
+              {outside
+                ? t('picker.outside')
+                : spot
+                  ? t('picker.spotChosen')
+                  : t('picker.tapToPlace')}
+            </T>
+          </View>
+        </View>
+      ) : null}
+      {onLocate && !you && !zoomed ? (
         <Pressable
           onPress={onLocate}
           accessibilityRole="button"
@@ -243,13 +362,35 @@ export function CityPicker({
           data={cards}
           keyExtractor={(c) => c.r}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: SPACE.l, gap: CARD_GAP }}
+          // A carousel: cards snap to the middle, and the globe follows the middle card.
+          contentContainerStyle={{ paddingHorizontal: sidePad, gap: CARD_GAP }}
+          snapToInterval={STEP}
+          decelerationRate="fast"
+          scrollEventThrottle={64}
+          onScrollBeginDrag={() => {
+            userScroll.current = true;
+            setZoomed(false);
+          }}
+          onScroll={(e) => onStripScroll(e.nativeEvent.contentOffset.x)}
+          onScrollEndDrag={(e) => {
+            // No momentum (a slow drag): it stops here.
+            if (Math.abs(e.nativeEvent.velocity?.x ?? 0) < 0.05) {
+              onStripScroll(e.nativeEvent.contentOffset.x);
+              userScroll.current = false;
+              scheduleDive();
+            }
+          }}
+          onMomentumScrollEnd={(e) => {
+            if (!userScroll.current) return;
+            onStripScroll(e.nativeEvent.contentOffset.x);
+            userScroll.current = false;
+            scheduleDive();
+          }}
           getItemLayout={(_, i) => ({
-            length: CARD_W + CARD_GAP,
-            offset: SPACE.l + (CARD_W + CARD_GAP) * i,
+            length: STEP,
+            offset: sidePad + STEP * i,
             index: i,
           })}
-          onScrollToIndexFailed={() => undefined}
           style={{ height: stripH, flexGrow: 0 }}
           renderItem={({ item, index: i }) => (
             <CityCard
@@ -258,7 +399,13 @@ export function CityPicker({
               distance={km(item)}
               badge={status[item.r] ? t(`picker.${status[item.r]}`) : null}
               section={
-                i === 0 ? t('picker.nearYou') : i === firstFar ? t('picker.bigCities') : null
+                i === 0
+                  ? t('picker.nearYou')
+                  : i === firstHome
+                    ? t('picker.yourCountry')
+                    : i === firstAbroad
+                      ? t('picker.bigCities')
+                      : null
               }
               selected={item.r === selected?.r}
               onPress={() => choose(item, 'card')}
@@ -376,6 +523,16 @@ const styles = StyleSheet.create({
     borderBottomColor: SKIN.cabinetEdge,
   },
   crossWrap: { position: 'absolute', width: 28, height: 28 },
+  hintWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  hint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACE.s,
+    paddingVertical: 6,
+    paddingHorizontal: SPACE.m,
+    borderRadius: RADIUS.pill,
+    backgroundColor: SKIN.keyInk,
+  },
   cross: {
     flex: 1,
     borderRadius: 14,

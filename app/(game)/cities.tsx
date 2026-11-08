@@ -55,8 +55,10 @@ export default function Cities() {
   }, [cities, legacy, city]);
 
   const origin = you ?? (city ? { lat: city.lat, lng: city.lng } : guessOrigin(index));
-  const targetFor = (c: PickerCity): CityInfo =>
-    legacy[c.r] ?? cities[`area-${c.r}`] ?? cityInfoFromPick(c, label(c));
+  type Spot = { lat: number; lng: number } | null;
+  // A saved city reopens where it was; a new one starts at your chosen spot (or downtown).
+  const targetFor = (c: PickerCity, spot: Spot = null): CityInfo =>
+    legacy[c.r] ?? cities[`area-${c.r}`] ?? cityInfoFromPick(c, label(c), spot);
 
   const open = async (target: CityInfo) => {
     setBusy(true);
@@ -70,8 +72,8 @@ export default function Cities() {
     }
   };
 
-  const travel = (c: PickerCity) => {
-    const target = targetFor(c);
+  const travel = (c: PickerCity, spot: Spot) => {
+    const target = targetFor(c, spot);
     const isNew = !status[c.r];
     const name = cityName(target);
     const current = city ? cityName(city) : t('cities.confirm.thisCity');
@@ -92,9 +94,9 @@ export default function Cities() {
   };
 
   // Prestige (SPEC §4.8): sell this business and restart in the picked city with your perks.
-  const sell = (c: PickerCity) => {
+  const sell = (c: PickerCity, spot: Spot) => {
     if (!game || !city) return;
-    const target = targetFor(c);
+    const target = targetFor(c, spot);
     const replacing = hasSave(target) && cityKey(city) !== cityKey(target);
     const targetName = cityName(target);
     Alert.alert(

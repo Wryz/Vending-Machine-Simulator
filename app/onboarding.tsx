@@ -52,9 +52,7 @@ export default function Onboarding() {
   // The cold open shows the biggest city in your time zone, at its real local time.
   const preview = useMemo(() => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const home = index
-      .filter((e) => e.z === tz && !e.d)
-      .sort((a, b) => b.p - a.p)[0];
+    const home = index.filter((e) => e.z === tz && !e.d).sort((a, b) => b.p - a.p)[0];
     const name = home ? label(home) : '';
     return {
       name,
@@ -77,10 +75,10 @@ export default function Onboarding() {
     lastStep.current = step;
   }, [step]);
 
-  const start = async (c: PickerCity) => {
+  const start = async (c: PickerCity, spot: { lat: number; lng: number } | null) => {
     setBusy(true);
     setError(null);
-    await useGame.getState().openCity(cityInfoFromPick(c, label(c)));
+    await useGame.getState().openCity(cityInfoFromPick(c, label(c), spot));
     if (useGame.getState().status === 'ready') {
       useProfile.getState().update((p) => {
         p.onboarded = true;
@@ -181,7 +179,13 @@ function Intro({ onDone }: { onDone: () => void }) {
   const last = page === INTRO.length - 1;
   return (
     <Cabinet style={{ flex: 1 }}>
-      <View style={{ flex: 1, paddingTop: insets.top + SPACE.m, paddingBottom: insets.bottom + SPACE.l }}>
+      <View
+        style={{
+          flex: 1,
+          paddingTop: insets.top + SPACE.m,
+          paddingBottom: insets.bottom + SPACE.l,
+        }}
+      >
         <View style={{ paddingHorizontal: SPACE.l }}>
           <Marquee title={t('onboarding.intro.title')} />
         </View>
@@ -233,7 +237,9 @@ function Intro({ onDone }: { onDone: () => void }) {
               }
             }}
           />
-          {!last ? <Button label={t('onboarding.intro.skip')} kind="quiet" onPress={onDone} /> : null}
+          {!last ? (
+            <Button label={t('onboarding.intro.skip')} kind="quiet" onPress={onDone} />
+          ) : null}
         </View>
       </View>
     </Cabinet>

@@ -123,7 +123,7 @@ export const GLOBE = {
   idleSpinDegPerS: 4,
   idleAfterMs: 3000,
   /** Edge splits (20·n² faces; 12 ≈ 2,900), land relief in radii. */
-  flatDetail: 12,
+  flatDetail: 16,
   landHeight: 0.022,
   /** Flat light steps from night to full sun. */
   shadeSteps: 5,

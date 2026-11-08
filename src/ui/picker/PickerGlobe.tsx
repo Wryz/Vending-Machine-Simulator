@@ -57,7 +57,7 @@ export function PickerGlobe({
   onCenter: (p: { lat: number; lng: number }, settled: boolean) => void;
   onDot: (id: string) => void;
 }) {
-  const mesh = useMemo(() => buildGlobeMesh(), []);
+  const mesh = useMemo(() => buildGlobeMesh(PICKER.meshDetail), []);
   const [view, setView] = useState<View3>(() => ({
     yaw: yawToFace(flyTo.lng),
     pitch: Math.max(-PITCH_MAX, Math.min(PITCH_MAX, flyTo.lat)),

@@ -187,6 +187,12 @@ export function soundscapeMix(input: SoundscapeInput): SoundscapeMix {
   // Wind (only in windy weather) is a bit stronger high above the city.
   layers.wind = wind * (0.55 + 0.45 * (1 - near));
 
+  if (!S.noiseBeds) {
+    layers.crowd = 0;
+    layers.rain = 0;
+    layers.wind = 0;
+  }
+
   if (closeup) {
     layers.crowd *= S.closeup.crowd;
     layers.birds *= S.closeup.birds;

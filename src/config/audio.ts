@@ -45,6 +45,12 @@ export const SOUNDSCAPE = {
   closeup: { crowd: 0.55, birds: 0.7, crickets: 0.8, spice: 0.5, footsteps: 2 },
   /** How much rain (0..1) suppresses birds and the crowd. */
   rainSuppress: { birds: 0.75, crowd: 0.35 },
+  /**
+   * The crowd, rain and wind beds are synthesized filtered noise and read as
+   * loud static on phone speakers (owner, 2026-11-08): off. Weather still
+   * quiets the birds and crickets.
+   */
+  noiseBeds: false,
   rainByCondition: { clear: 0, cloudy: 0, fog: 0, rain: 0.7, storm: 1, snow: 0 },
   /** Wind only when it is actually windy (no constant breeze far out). */
   windByCondition: { clear: 0, cloudy: 0, fog: 0, rain: 0.2, storm: 0.85, snow: 0.4 },
