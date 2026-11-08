@@ -863,6 +863,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             onLifeStats={props.onLifeStats}
             sales={lifeSales}
             onSalesShown={salesShown}
+            machines={popPoints}
             initialView={lastRegion.current}
           />
 

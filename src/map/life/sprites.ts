@@ -1,4 +1,4 @@
-import { LIFE_PEOPLE_MODELS } from '@/config/mapLife';
+import { LIFE_BUBBLES, LIFE_PEOPLE_MODELS } from '@/config/mapLife';
 import { MACHINE_SPRITES } from '@/config/map';
 
 /**
@@ -8,6 +8,8 @@ import { MACHINE_SPRITES } from '@/config/map';
  * viewer's left; p = the camera pitch the sprite was rendered at.
  *
  *   ped-{model}-f{frame}-h{0..7}-p{30|60}-{day|night}
+ *   bub-{dots|can|coin}-p{30|60}-{day|night}   (thought bubbles, drawn at
+ *     the customer's ground point, the bubble floating above their head)
  *
  * Unlike machines (static, so the bearing offset is injected into the layer
  * expression), people move every frame, so the full image name is computed
@@ -34,14 +36,25 @@ export function personSpriteName(
   return `ped-${model}-f${frame}-h${h}-p${pitch}-${light}`;
 }
 
+/** Thought-bubble sprite (no heading: it always faces the viewer). */
+export function bubbleSpriteName(
+  kind: (typeof LIFE_BUBBLES)[number],
+  pitch: LifePitch,
+  light: LifeLight,
+) {
+  return `bub-${kind}-p${pitch}-${light}`;
+}
+
 /** Every sprite name the life layer can ask for (for completeness checks). */
 export function allLifeSpriteNames(frames: number): string[] {
   const names: string[] = [];
   for (const light of LIFE_LIGHTS)
-    for (const pitch of LIFE_PITCHES)
+    for (const pitch of LIFE_PITCHES) {
       for (let h = 0; h < LIFE_HEADINGS; h++)
         for (const m of LIFE_PEOPLE_MODELS)
           for (let f = 0; f < frames; f++) names.push(personSpriteName(m, f, h, pitch, light));
+      for (const b of LIFE_BUBBLES) names.push(bubbleSpriteName(b, pitch, light));
+    }
   return names;
 }
 

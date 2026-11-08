@@ -35,12 +35,18 @@ import {
   lifeViewRadiusM,
   StreetLife,
   type LifeConditions,
+  type LifeMachine,
   type LifeView,
   type LifeWeather,
 } from './index';
 
 /**
  * Pedestrians and customers on the map at close zoom (RN side of src/map/life).
+ *
+ * - Customers: each new sale sends someone to its machine. They walk up,
+ *   look, think (thought bubble), bend down to the tray, which is when the
+ *   sale is reported to `onSalesShown`, then walk off and fade. Window
+ *   shoppers visit machines in view without buying.
  *
  * - Roads: queried from the rendered road, path and water layers when the
  *   camera settles (debounced), so the sim always matches what is drawn:
@@ -82,6 +88,11 @@ interface Props {
    */
   sales?: readonly LifeSale[];
   onSalesShown?: (ids: string[]) => void;
+  /**
+   * Machines on the map: now and then a window shopper walks up to one in
+   * view, looks, thinks and leaves (no sale). Pass a stable array.
+   */
+  machines?: readonly LifeMachine[];
   /** The map's last settled view: a remount (style reload) picks up from it. */
   initialView?: ViewStateChangeEvent | null;
 }
@@ -96,6 +107,7 @@ export interface LifeSale {
 }
 
 const EMPTY = '{"type":"FeatureCollection","features":[]}';
+const NO_MACHINES: readonly LifeMachine[] = [];
 /** Marks the extra customers of a multi-item sale (they don't release it). */
 const COMPANION = '#';
 const LIFE_WEATHER: readonly LifeWeather[] = ['clear', 'cloudy', 'rain', 'snow', 'storm', 'fog'];
@@ -239,6 +251,9 @@ export const StreetLifeLayer = memo(
     const light = lifeLightFor(tod.weights);
     const running = focused && appActive && !paused && zoomedIn && hasRoads;
     runningRef.current = running;
+
+    const machines = props.machines ?? NO_MACHINES;
+    useEffect(() => simRef.current!.setMachines(machines), [machines]);
 
     // New sales: a customer walks up (only the first of a group carries the sale).
     useEffect(() => {

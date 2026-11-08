@@ -1,8 +1,14 @@
 import { LIFE_PEOPLE_MODELS } from '@/config/mapLife';
 
 import type { StreetLife } from './sim';
-import type { Person } from './types';
-import { lifeHeadingBucket, lifePitchBucket, personSpriteName, type LifeLight } from './sprites';
+import type { Customer, Person } from './types';
+import {
+  bubbleSpriteName,
+  lifeHeadingBucket,
+  lifePitchBucket,
+  personSpriteName,
+  type LifeLight,
+} from './sprites';
 
 /**
  * StreetLife -> GeoJSON text for the map's `life` source. Built as one string
@@ -31,7 +37,10 @@ export function lifeGeoJSON(life: StreetLife, o: LifeRenderOptions): string {
   parts.length = 0;
   const pitch = lifePitchBucket(o.pitch);
   for (const p of life.people) pushPerson(p, o, pitch);
-  for (const p of life.customers) pushPerson(p, o, pitch);
+  for (const c of life.customers) {
+    pushPerson(c, o, pitch);
+    pushBubble(c, o, pitch);
+  }
   return `{"type":"FeatureCollection","features":[${parts.join(',')}]}`;
 }
 
@@ -40,4 +49,13 @@ function pushPerson(p: Person, o: LifeRenderOptions, pitch: ReturnType<typeof li
   const h = lifeHeadingBucket(p.heading, o.bearing);
   const name = personSpriteName(LIFE_PEOPLE_MODELS[p.model], p.frame, h, pitch, o.light);
   parts.push(point(p.lng, p.lat, `"i":"${name}","o":${p.alpha.toFixed(2)}`));
+}
+
+/** A customer's thought bubble: same ground point, the sprite floats it over their head. */
+function pushBubble(c: Customer, o: LifeRenderOptions, pitch: ReturnType<typeof lifePitchBucket>) {
+  if (!c.bubble) return;
+  const a = c.alpha * c.bubbleAlpha;
+  if (a <= 0.01) return;
+  const name = bubbleSpriteName(c.bubble, pitch, o.light);
+  parts.push(point(c.lng, c.lat, `"i":"${name}","o":${a.toFixed(2)}`));
 }

@@ -70,7 +70,8 @@ export const MAP_LIFE = {
 
   /**
    * Customers: for each sale while you watch (zoom >= minZoom), someone walks
-   * up to the machine, stands at it, and the sale pops when they buy.
+   * up to the machine, looks, thinks (a thought bubble), bends down to the
+   * tray (the sale pops then), stands up, and walks off fading out.
    */
   customers: {
     /** Where they come from / go to, meters along the nearest sidewalk. */
@@ -81,14 +82,44 @@ export const MAP_LIFE = {
     /** Standing spot in front of the machine, meters from its center. */
     standM: 1.3,
     speedKmh: 5.6,
-    /** Time at the machine before the sale lands, seconds. */
-    buySeconds: 1.3,
+    /**
+     * The visit at the machine, seconds. look: they stop facing it and lean in
+     * and back (every `swaySeconds`); think: a thought bubble ("…", then a can
+     * or coin glyph after `dotsShare` of it); bend: crouched at the tray (the
+     * sale is shown as they bend); stand: back up before turning to go.
+     */
+    visit: {
+      lookSeconds: [0.8, 1.4] as const,
+      swaySeconds: 0.55,
+      thinkSeconds: [1.1, 1.7] as const,
+      dotsShare: 0.5,
+      /** Thought bubbles fade in over this long. */
+      bubbleFadeSeconds: 0.15,
+      bendSeconds: 0.9,
+      standSeconds: 0.35,
+      /** Leaving: they walk this long, then fade out (`fadeSeconds`) as they go. */
+      leaveWalkSeconds: 2.2,
+    },
     /** Give up walking after this long (a sale is never held back for more). */
     maxWalkSeconds: 9,
     /** More waiting customers than this: the rest pop straight away. */
     max: 10,
     /** Customers per sale at most (a sale of several items brings a small group). */
     perSale: 2,
+  },
+
+  /**
+   * Window shoppers: now and then someone walks up to a machine in view,
+   * looks and thinks ("…" only), and leaves without buying. Purely visual
+   * (no sale). Rate per machine in view, scaled by the street's people
+   * activity (foot traffic, hour, weather; see peopleActivity).
+   */
+  browsers: {
+    perMachinePerMinute: 0.6,
+    /** Most window shoppers at once (they never block a real sale's customer). */
+    max: 3,
+    lookSeconds: [1.1, 2] as const,
+    thinkSeconds: [1, 1.6] as const,
   },
 
   /**
@@ -150,3 +181,15 @@ export const LIFE_PEOPLE_MODELS = ['coral', 'sky', 'mint', 'sun'] as const;
 
 /** Walk-cycle frames rendered per pedestrian (0 = passing pose, 1/2 = left/right stride). */
 export const LIFE_WALK_FRAMES = 3;
+
+/**
+ * Poses after the walk cycle (sprite frame numbers): crouch = bent down at
+ * the machine's tray, ponder = hand to chin, lean = leaning in to look.
+ */
+export const LIFE_POSES = { stand: 0, crouch: 3, ponder: 4, lean: 5 } as const;
+
+/** Every frame rendered per pedestrian (walk cycle + poses). */
+export const LIFE_FRAMES = 6;
+
+/** Thought-bubble sprites over customers: "…", a drink can, a coin (no brands). */
+export const LIFE_BUBBLES = ['dots', 'can', 'coin'] as const;

@@ -51,13 +51,42 @@ export const PICKER = {
   /** Pins drawn on the globe (nearest first): the strip's cities, capped. */
   maxPins: 120,
   /**
-   * Globe mesh detail (edge splits; 20·n² faces). 24 ≈ 11.5k faces, but only
-   * land and snow (~3.3k) are drawn; the ocean is a single shaded disc.
+   * The GPU globe (three.js, src/ui/picker/PickerGlobe.tsx): a textured
+   * sphere (assets/globe/earth.jpg, made by pipeline/gen-globe-texture.ts)
+   * seen straight on, rotated by the player; the camera never moves.
    */
-  meshDetail: 24,
-  /** Ocean texture: a coarse icosphere (edge splits) and the share of its facets tinted. */
-  oceanFacetDetail: 7,
-  oceanFacetShare: 0.3,
+  globe: {
+    /** Globe radius at zoom 1, as a share of the screen's short side. */
+    scale: 0.36,
+    /** Sphere segments around and pole to pole (smooth at max zoom). */
+    widthSegments: 128,
+    heightSegments: 64,
+    /** Day light from the upper left of whatever faces you (degrees above / left of the view axis). */
+    lightUpDeg: 28,
+    lightLeftDeg: 32,
+    /** Texture brightness: ambient + diffuse·cos(light angle). */
+    ambient: 0.8,
+    diffuse: 0.32,
+    /** Atmosphere tint toward the halo color at the limb (0..1) and its falloff power. */
+    rim: 0.45,
+    rimPower: 3,
+    /** Soft halo around the globe: outer radius (globe radii), where it starts fading, peak opacity. */
+    haloScale: 1.3,
+    haloInner: 0.72,
+    haloOpacity: 0.85,
+    /** Pins sit this far above the surface (radii), and fade out near the limb (facing 0..1). */
+    pinLift: 0.003,
+    pinHideFacing: 0.03,
+    pinFullFacing: 0.12,
+    /** A tap this close (points) to a pin picks it. */
+    pinHitPt: 22,
+    /** Pin sizes (points): radius and white/orange ring width; other cities are a touch see-through. */
+    pins: {
+      selected: { r: 9, stroke: 3, alpha: 1 },
+      you: { r: 7, stroke: 1.5, alpha: 1 },
+      other: { r: 3.5, stroke: 1.5, alpha: 0.9 },
+    },
+  },
   /**
    * Continent and ocean names on the globe (anchors in degrees). A label
    * fades in between `labelHideZ` and `labelFullZ` (how squarely it faces you:

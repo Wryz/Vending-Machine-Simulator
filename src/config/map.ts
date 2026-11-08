@@ -144,11 +144,14 @@ export const GLOBE = {
     halo: '#FFFFFF',
     pin: '#FF6B2C',
     pinOther: '#FFFFFF',
-    /** Ocean texture (picker): faint lighter and darker coarse facets over the ocean disc. */
-    oceanLight: '#FFFFFF',
-    oceanLightOpacity: 0.09,
-    oceanDark: '#2D7FC0',
-    oceanDarkOpacity: 0.12,
+    /** "You" (your approximate location) on the picker globe. */
+    you: '#3D7BE0',
+    pinRing: '#FFFFFF',
+    /**
+     * The picker's globe texture (assets/globe/earth.jpg) is baked from
+     * `ocean`, `oceanDeep`, `land` and `snow` by pipeline/gen-globe-texture.ts:
+     * re-run it after changing them.
+     */
     /** Map labels (picker): continents on land, oceans on water; low contrast so pins lead. */
     labelLand: '#2F5E33',
     labelLandOpacity: 0.55,

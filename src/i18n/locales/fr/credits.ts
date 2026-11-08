@@ -40,7 +40,7 @@ export default {
     population: 'Estimée à partir des bâtiments OpenStreetMap.',
     met: 'Météo en direct de l’Institut météorologique norvégien (api.met.no), sans autre modification que la conversion en conditions de jeu. Hors ligne, le jeu utilise les normales climatiques.',
     metLicense: 'CC BY 4.0 et NLOD 2.0',
-    naturalEarth: 'Pays pour les drapeaux du choix de ville.',
+    naturalEarth: 'Globe du choix de ville (terres, frontières, relief) et pays pour les drapeaux.',
     timeZones: 'Le fuseau horaire de chaque ville, pour son heure locale réelle.',
   },
   software: {

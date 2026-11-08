@@ -1,18 +1,20 @@
-import { LIFE_PEOPLE_MODELS, MAP_LIFE } from '@/config/mapLife';
+import { LIFE_PEOPLE_MODELS, LIFE_POSES, MAP_LIFE } from '@/config/mapLife';
 import { nextRandom, type RngState } from '@/sim/rng';
 
-import { peopleTarget } from './density';
+import { peopleActivity, peopleTarget } from './density';
 import { RoadNetwork, type RoadHit } from './network';
 import { Surface } from './surface';
 import type {
   AsphaltInput,
   Customer,
   LifeConditions,
+  LifeMachine,
   LifeSurfaceInput,
   LifeView,
   Person,
   RoadInput,
   RoadKind,
+  VisitStage,
 } from './types';
 
 /**
@@ -30,6 +32,8 @@ import type {
 
 const P = MAP_LIFE.people;
 const CU = MAP_LIFE.customers;
+const VI = CU.visit;
+const BR = MAP_LIFE.browsers;
 const kmh = (v: number) => v / 3.6;
 const DEG = Math.PI / 180;
 /** Walk cycle over 4 steps: left stride, passing, right stride, passing. */
@@ -47,6 +51,13 @@ const midOffset = (kind: RoadKind) => {
 };
 
 interface Vec {
+  x: number;
+  y: number;
+}
+
+/** A machine in network-local meters (for window shoppers). */
+interface LocalMachine {
+  m: LifeMachine;
   x: number;
   y: number;
 }
@@ -90,8 +101,14 @@ export class StreetLife {
   private readonly hits: RoadHit[] = [];
   private readonly proj: RoadHit = { road: 0, s: 0, d: 0 };
   private readonly cands: Candidate[] = [];
-  /** Sales whose customer reached the machine since the last takeArrivals(). */
+  /** Sales whose customer bent to the tray since the last takeArrivals(). */
   private arrivals: string[] = [];
+  /** Machines window shoppers may visit (see setMachines). */
+  private machines: readonly LifeMachine[] = [];
+  private local: LocalMachine[] = [];
+  /** Window-shopper spawn budget and the (random) amount the next one costs. */
+  private browseBudget = 0;
+  private browseNext = 1;
 
   constructor(seed = 1) {
     this.rng = { rng: seed | 0 };
@@ -136,7 +153,11 @@ export class StreetLife {
     this.lines.clear();
     this.setView(view);
     this.pedCum = this.weights(net);
-    if (old) for (const p of this.people) this.reattachPerson(p, net);
+    if (old) {
+      for (const p of this.people) this.reattachPerson(p, net);
+      for (const c of this.customers) this.remapCustomer(c, old, net);
+    }
+    this.localizeMachines();
     // First fill: populate the view at once (each person fades in).
     if (!this.people.length) for (let i = 0; i < this.targetPeople; i++) this.spawnPerson(false);
   }
@@ -146,6 +167,7 @@ export class StreetLife {
     this.people.length = 0;
     this.customers.length = 0;
     this.arrivals.length = 0;
+    this.local.length = 0;
     this.net = null;
     this.surface = null;
     this.lines.clear();
@@ -389,18 +411,62 @@ export class StreetLife {
 
   /**
    * Send a customer to a machine for a sale: they appear on the nearest
-   * sidewalk a few meters away, walk to the front of the machine, buy, and
-   * walk on. Returns false when there's no road data yet or too many are
-   * already on their way (the caller shows that sale at once).
+   * sidewalk a few meters away, walk to the front of the machine, look,
+   * think, bend down to the tray (the sale is released, see takeArrivals),
+   * stand, and walk on. Returns false when there's no road data yet or too
+   * many are already on their way (the caller shows that sale at once).
    */
   addCustomer(saleId: string, lng: number, lat: number, headingDeg: number): boolean {
+    if (!this.net) return false;
+    let buyers = 0;
+    for (const c of this.customers) if (c.saleId !== null) buyers++;
+    if (buyers >= CU.max) return false;
+    return this.visit(saleId, lng, lat, headingDeg);
+  }
+
+  /**
+   * Machines window shoppers may visit (only those in view get any). Cheap to
+   * call with the same list; positions follow the road network.
+   */
+  setMachines(machines: readonly LifeMachine[]): void {
+    if (machines === this.machines) return;
+    this.machines = machines;
+    this.localizeMachines();
+  }
+
+  private localizeMachines() {
     const net = this.net;
-    if (!net || this.customers.length >= CU.max) return false;
+    this.local.length = 0;
+    if (!net) return;
+    for (const m of this.machines) {
+      const [x, y] = net.toLocal(m.lng, m.lat);
+      this.local.push({ m, x, y });
+    }
+  }
+
+  /** New network origin: keep visitors where they are on the ground. */
+  private remapCustomer(c: Customer, old: RoadNetwork, net: RoadNetwork) {
+    const ll = { lng: 0, lat: 0 };
+    const move = (x: number, y: number): [number, number] => {
+      old.toLngLatInto(x, y, ll);
+      return net.toLocal(ll.lng, ll.lat);
+    };
+    [c.x, c.y] = move(c.x, c.y);
+    [c.mx, c.my] = move(c.mx, c.my);
+    [c.standX, c.standY] = move(c.standX, c.standY);
+    [c.exitX, c.exitY] = move(c.exitX, c.exitY);
+  }
+
+  /** A visit to a machine: a sale's customer, or a window shopper (saleId null). */
+  private visit(saleId: string | null, lng: number, lat: number, headingDeg: number): boolean {
+    const net = this.net;
+    if (!net) return false;
     const [mx, my] = net.toLocal(lng, lat);
     const fx = Math.sin(headingDeg * DEG);
     const fy = Math.cos(headingDeg * DEG);
     // A couple of people at one machine stand side by side.
-    const queued = this.customers.filter((c) => c.mx === mx && c.my === my).length;
+    let queued = 0;
+    for (const c of this.customers) if (c.mx === mx && c.my === my && !c.dying) queued++;
     const side = queued % 2 === 0 ? 1 : -1;
     const spread = Math.ceil(queued / 2) * 0.7 * side;
     const standX = mx + fx * CU.standM + fy * spread;
@@ -494,8 +560,13 @@ export class StreetLife {
       heading: 0,
       frame: 0,
       saleId,
+      released: false,
       stage: 'approach',
       t: 0,
+      stageS: CU.maxWalkSeconds,
+      glyph: this.rand() < 0.5 ? 'can' : 'coin',
+      bubble: null,
+      bubbleAlpha: 0,
       mx,
       my,
       standX,
@@ -508,7 +579,7 @@ export class StreetLife {
     return true;
   }
 
-  /** Sales whose customer reached the machine since the last call. */
+  /** Sales whose customer bent to the tray since the last call. */
   takeArrivals(): string[] {
     const out = this.arrivals;
     this.arrivals = [];
@@ -516,14 +587,61 @@ export class StreetLife {
   }
 
   /**
-   * Street life stops (zoomed out, screen left): every sale still walking is
-   * released now, and the customers go.
+   * Street life stops (zoomed out, screen left): every sale not yet taken
+   * from the tray is released now, and everyone at the machines goes.
    */
   flushCustomers(): string[] {
     const out = this.takeArrivals();
-    for (const c of this.customers) if (c.stage === 'approach') out.push(c.saleId);
+    for (const c of this.customers) if (c.saleId !== null && !c.released) out.push(c.saleId);
     this.customers.length = 0;
     return out;
+  }
+
+  private enter(c: Customer, stage: VisitStage) {
+    c.stage = stage;
+    c.t = 0;
+    const browsing = c.saleId === null;
+    switch (stage) {
+      case 'look':
+        c.stageS = browsing
+          ? this.uniform(BR.lookSeconds[0], BR.lookSeconds[1])
+          : this.uniform(VI.lookSeconds[0], VI.lookSeconds[1]);
+        break;
+      case 'think':
+        c.stageS = browsing
+          ? this.uniform(BR.thinkSeconds[0], BR.thinkSeconds[1])
+          : this.uniform(VI.thinkSeconds[0], VI.thinkSeconds[1]);
+        break;
+      case 'bend':
+        c.stageS = VI.bendSeconds;
+        // The item is taken now: the sale shows (receipt, coins).
+        if (c.saleId !== null && !c.released) {
+          c.released = true;
+          this.arrivals.push(c.saleId);
+        }
+        break;
+      case 'stand':
+        c.stageS = VI.standSeconds;
+        break;
+      case 'leave':
+        c.stageS = VI.leaveWalkSeconds;
+        break;
+      default:
+        c.stageS = CU.maxWalkSeconds;
+    }
+    // The pose shows from this step on (the stage's own step sets it after).
+    c.frame =
+      stage === 'think'
+        ? LIFE_POSES.ponder
+        : stage === 'bend'
+          ? LIFE_POSES.crouch
+          : stage === 'leave'
+            ? c.frame
+            : LIFE_POSES.stand;
+    if (stage !== 'think') {
+      c.bubble = null;
+      c.bubbleAlpha = 0;
+    }
   }
 
   private stepCustomers(dt: number) {
@@ -534,39 +652,89 @@ export class StreetLife {
       c.t += dt;
       if (c.dying) c.alpha = Math.max(0, c.alpha - fade);
       else c.alpha = Math.min(1, c.alpha + fade);
-      if (c.stage === 'approach') {
-        const arrived = this.walkTo(c, c.standX, c.standY, dt);
-        if (arrived || c.t > CU.maxWalkSeconds) {
-          if (!arrived) {
-            // Took too long (a stall): step to the machine.
-            c.x = c.standX;
-            c.y = c.standY;
+      switch (c.stage) {
+        case 'approach': {
+          const arrived = this.walkTo(c, c.standX, c.standY, dt);
+          if (arrived || c.t > c.stageS) {
+            if (!arrived) {
+              // Took too long (a stall): step to the machine.
+              c.x = c.standX;
+              c.y = c.standY;
+            }
+            // Stop and face the machine.
+            const dx = c.mx - c.x;
+            const dy = c.my - c.y;
+            const d = Math.hypot(dx, dy) || 1;
+            c.hx = dx / d;
+            c.hy = dy / d;
+            this.enter(c, 'look');
           }
-          c.stage = 'buy';
-          c.t = 0;
-          c.frame = 0;
-          // Face the machine.
-          const dx = c.mx - c.x;
-          const dy = c.my - c.y;
-          const d = Math.hypot(dx, dy) || 1;
-          c.hx = dx / d;
-          c.hy = dy / d;
-          this.arrivals.push(c.saleId);
+          break;
         }
-      } else if (c.stage === 'buy') {
-        c.frame = 0;
-        if (c.t >= CU.buySeconds) {
-          c.stage = 'leave';
-          c.t = 0;
+        case 'look':
+          // Lean in to the glass and back.
+          c.frame = Math.floor(c.t / VI.swaySeconds) % 2 === 1 ? LIFE_POSES.lean : LIFE_POSES.stand;
+          if (c.t >= c.stageS) this.enter(c, 'think');
+          break;
+        case 'think': {
+          c.frame = LIFE_POSES.ponder;
+          const decided = c.saleId !== null && c.t >= c.stageS * VI.dotsShare;
+          c.bubble = decided ? c.glyph : 'dots';
+          c.bubbleAlpha = Math.min(1, c.t / VI.bubbleFadeSeconds);
+          if (c.t >= c.stageS) this.enter(c, c.saleId === null ? 'leave' : 'bend');
+          break;
         }
-      } else if (this.walkTo(c, c.exitX, c.exitY, dt) || c.t > CU.maxWalkSeconds) {
-        c.dying = true;
+        case 'bend':
+          c.frame = LIFE_POSES.crouch;
+          if (c.t >= c.stageS) this.enter(c, 'stand');
+          break;
+        case 'stand':
+          c.frame = LIFE_POSES.stand;
+          if (c.t >= c.stageS) this.enter(c, 'leave');
+          break;
+        default: {
+          // Turn and walk off; fade out after a few steps.
+          const there = this.walkTo(c, c.exitX, c.exitY, dt);
+          if (there) c.frame = LIFE_POSES.stand;
+          if (there || c.t > c.stageS) c.dying = true;
+        }
       }
       this.finishPose(c);
       if (c.dying && c.alpha <= 0) continue;
       this.customers[w++] = c;
     }
     this.customers.length = w;
+  }
+
+  /** Now and then a window shopper walks up to a machine in view. */
+  private stepBrowsers(dt: number) {
+    const ms = this.local;
+    if (!ms.length) return;
+    let browsing = 0;
+    for (const c of this.customers) if (c.saleId === null) browsing++;
+    if (browsing >= BR.max) return;
+    let seen = 0;
+    for (const m of ms) if (this.inView(m.x, m.y)) seen++;
+    if (!seen) return;
+    this.browseBudget +=
+      ((dt * BR.perMachinePerMinute) / 60) * seen * peopleActivity(this.conditions);
+    if (this.browseBudget < this.browseNext) return;
+    this.browseBudget -= this.browseNext;
+    // Exponential-ish spacing: the next one costs 0.3..1.7 visits.
+    this.browseNext = this.uniform(0.3, 1.7);
+    for (let tries = 0; tries < 6; tries++) {
+      const lm = ms[Math.floor(this.rand() * ms.length)];
+      if (!this.inView(lm.x, lm.y) || this.busyMachine(lm.x, lm.y)) continue;
+      this.visit(null, lm.m.lng, lm.m.lat, lm.m.heading);
+      return;
+    }
+  }
+
+  /** Someone already at (or walking to) the machine at local (x, y)? */
+  private busyMachine(x: number, y: number): boolean {
+    for (const c of this.customers)
+      if (!c.dying && Math.abs(c.mx - x) < 0.5 && Math.abs(c.my - y) < 0.5) return true;
+    return false;
   }
 
   /** Walk straight toward (x, y); true once there. */
@@ -720,6 +888,7 @@ export class StreetLife {
     if (dt <= 0) return;
     this.stepPeople(dt);
     this.stepCustomers(dt);
+    this.stepBrowsers(dt);
     this.cull(this.people);
     this.balance(dt);
   }

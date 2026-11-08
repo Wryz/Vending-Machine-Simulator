@@ -3,7 +3,7 @@
  * sim (src/map/life) on the roads MapLibre GL JS rendered, and draws it with
  * the same layer specs as the app (life sprites loaded one by one).
  */
-import { LIFE_WALK_FRAMES, MAP_LIFE } from '@/config/mapLife';
+import { LIFE_FRAMES, MAP_LIFE } from '@/config/mapLife';
 import {
   allLifeSpriteNames,
   busyLevel,
@@ -75,7 +75,7 @@ export async function addLife(
   for (let t = 0; t < opts.seconds; t += dt) life.step(dt);
 
   const pitch = lifePitchBucket(map.getPitch());
-  const wanted = allLifeSpriteNames(LIFE_WALK_FRAMES).filter(
+  const wanted = allLifeSpriteNames(LIFE_FRAMES).filter(
     (n) => n.endsWith(`-p${pitch}-${light}`) && !map.hasImage(n),
   );
   await Promise.all(

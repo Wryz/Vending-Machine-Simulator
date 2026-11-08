@@ -1,5 +1,8 @@
 import { MAP_STYLE } from '@/config/map';
-import { LIFE_WALK_FRAMES, MAP_LIFE } from '@/config/mapLife';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+
+import { LIFE_FRAMES, LIFE_POSES, LIFE_WALK_FRAMES, MAP_LIFE } from '@/config/mapLife';
 
 import { metersPerPoint } from '../cameraMatch';
 import { roadWidth } from '../style';
@@ -20,8 +23,10 @@ import {
   roadsFromFeatures,
   StreetLife,
   WaterIndex,
+  type Customer,
   type LifeConditions,
   type LifeView,
+  type VisitStage,
   type RoadInput,
   type WaterInput,
 } from './index';
@@ -255,7 +260,7 @@ describe('street life: sprites and output', () => {
 
   it('writes valid GeoJSON with known sprite names', () => {
     const life = run(4, 5);
-    const names = new Set(allLifeSpriteNames(LIFE_WALK_FRAMES));
+    const names = new Set(allLifeSpriteNames(LIFE_FRAMES));
     for (const light of ['day', 'night'] as const) {
       const fc = JSON.parse(
         lifeGeoJSON(life, { bearing: -20, pitch: 55, light }),
@@ -501,7 +506,7 @@ describe('street life: customers', () => {
     return life;
   }
 
-  it('walks up to the machine, buys, then leaves', () => {
+  it('walks up to the machine, looks, thinks, bends to buy, then leaves', () => {
     const life = withCustomer();
     const c = life.customers[0];
     const start = Math.hypot(c.x - c.mx, c.y - c.my);
@@ -514,12 +519,16 @@ describe('street life: customers', () => {
       life.step(dt);
       if (life.takeArrivals().includes('sale-1')) arrivedAt = t;
     }
-    expect(arrivedAt).toBeGreaterThan(1);
-    expect(arrivedAt).toBeLessThanOrEqual(MAP_LIFE.customers.maxWalkSeconds + 0.2);
-    // At the machine: in front of it, facing it, standing still.
+    const V = MAP_LIFE.customers.visit;
+    expect(arrivedAt).toBeGreaterThan(1 + V.lookSeconds[0] + V.thinkSeconds[0]);
+    expect(arrivedAt).toBeLessThanOrEqual(
+      MAP_LIFE.customers.maxWalkSeconds + V.lookSeconds[1] + V.thinkSeconds[1] + 0.3,
+    );
+    // At the machine: in front of it, facing it, bent down to the tray.
     expect(Math.hypot(c.x - c.mx, c.y - c.my)).toBeCloseTo(MAP_LIFE.customers.standM, 1);
     expect(c.hx * (c.mx - c.x) + c.hy * (c.my - c.y)).toBeGreaterThan(0);
-    expect(c.frame).toBe(0);
+    expect(c.stage).toBe('bend');
+    expect(c.frame).toBe(LIFE_POSES.crouch);
 
     // Then they walk off and fade out; each sale is released once.
     for (let t = 0; t < 30; t += dt) life.step(dt);
@@ -551,5 +560,228 @@ describe('street life: customers', () => {
     const visible = [...life.people, ...life.customers].filter((p) => p.alpha > 0.01).length;
     expect(life.customers[0].alpha).toBeGreaterThan(0.01);
     expect(fc.features.length).toBe(visible);
+  });
+});
+
+describe('street life: machine visits', () => {
+  const machine = ll(-9, 20);
+  const dt = 1 / 14;
+  const V = MAP_LIFE.customers.visit;
+  const B = MAP_LIFE.browsers;
+
+  interface Trace {
+    stages: VisitStage[];
+    /** Seconds spent in each stage (in order). */
+    spans: number[];
+    released: { stage: VisitStage; frame: number; t: number }[];
+    bubbles: (string | null)[];
+    gone: number;
+  }
+
+  /** Step until `c` is gone, recording its stages, bubbles and releases. */
+  function trace(life: StreetLife, c: Customer, seconds = 40): Trace {
+    const out: Trace = { stages: [c.stage], spans: [0], released: [], bubbles: [], gone: -1 };
+    for (let t = 0; t < seconds; t += dt) {
+      life.step(dt);
+      for (const id of life.takeArrivals())
+        if (id === c.saleId) out.released.push({ stage: c.stage, frame: c.frame, t });
+      if (!life.customers.includes(c)) {
+        out.gone = t;
+        break;
+      }
+      if (c.stage !== out.stages[out.stages.length - 1]) {
+        out.stages.push(c.stage);
+        out.spans.push(0);
+      }
+      out.spans[out.spans.length - 1] += dt;
+      if (out.bubbles[out.bubbles.length - 1] !== c.bubble) out.bubbles.push(c.bubble);
+    }
+    return out;
+  }
+
+  it('goes approach, look, think, bend, stand, leave, with configured timings', () => {
+    const life = run(5, 1);
+    life.addCustomer('sale-1', machine[0], machine[1], 270);
+    const c = life.customers[0];
+    const tr = trace(life, c);
+    expect(tr.stages).toEqual(['approach', 'look', 'think', 'bend', 'stand', 'leave']);
+    const [, look, think, bend, stand] = tr.spans;
+    expect(look).toBeGreaterThanOrEqual(V.lookSeconds[0] - dt);
+    expect(look).toBeLessThanOrEqual(V.lookSeconds[1] + dt);
+    expect(think).toBeGreaterThanOrEqual(V.thinkSeconds[0] - dt);
+    expect(think).toBeLessThanOrEqual(V.thinkSeconds[1] + dt);
+    expect(bend).toBeCloseTo(V.bendSeconds, 0);
+    expect(Math.abs(bend - V.bendSeconds)).toBeLessThanOrEqual(dt * 1.5);
+    expect(Math.abs(stand - V.standSeconds)).toBeLessThanOrEqual(dt * 1.5);
+    // The thought: "…" first, then what they buy; no bubble before or after.
+    expect(tr.bubbles).toEqual([null, 'dots', c.glyph, null]);
+    expect(tr.gone).toBeGreaterThan(0);
+  });
+
+  it('releases the sale exactly once, as they bend to the tray', () => {
+    const life = run(6, 1);
+    life.addCustomer('sale-1', machine[0], machine[1], 270);
+    const c = life.customers[0];
+    const tr = trace(life, c);
+    expect(tr.released).toHaveLength(1);
+    expect(tr.released[0].stage).toBe('bend');
+    expect(tr.released[0].frame).toBe(LIFE_POSES.crouch);
+  });
+
+  it('looks with a lean-in sway and thinks with a hand to the chin', () => {
+    const life = run(7, 1);
+    life.addCustomer('sale-1', machine[0], machine[1], 270);
+    const c = life.customers[0];
+    const frames = new Map<VisitStage, Set<number>>();
+    for (let t = 0; t < 20 && life.customers.includes(c); t += dt) {
+      life.step(dt);
+      if (!frames.has(c.stage)) frames.set(c.stage, new Set());
+      frames.get(c.stage)!.add(c.frame);
+    }
+    expect([...frames.get('look')!].sort()).toEqual([LIFE_POSES.stand, LIFE_POSES.lean].sort());
+    expect([...frames.get('think')!]).toEqual([LIFE_POSES.ponder]);
+    expect([...frames.get('bend')!]).toEqual([LIFE_POSES.crouch]);
+  });
+
+  it('leaves a short way, fades out and is removed', () => {
+    const life = run(5, 1);
+    life.addCustomer('sale-1', machine[0], machine[1], 270);
+    const c = life.customers[0];
+    let leftAt: { x: number; y: number } | null = null;
+    let prevAlpha = 1;
+    let faded = false;
+    for (let t = 0; t < 40 && life.customers.includes(c); t += dt) {
+      life.step(dt);
+      if (c.stage === 'leave' && !leftAt) leftAt = { x: c.x, y: c.y };
+      if (c.dying) {
+        expect(c.alpha).toBeLessThanOrEqual(prevAlpha);
+        faded = true;
+      }
+      prevAlpha = c.alpha;
+    }
+    expect(faded).toBe(true);
+    expect(life.customers).not.toContain(c);
+    // They walked off before vanishing, but not far.
+    expect(leftAt).not.toBeNull();
+    const walked = Math.hypot(c.x - leftAt!.x, c.y - leftAt!.y);
+    expect(walked).toBeGreaterThan(1);
+    expect(walked).toBeLessThanOrEqual(MAP_LIFE.customers.exitM[1] + MAP_LIFE.customers.standM + 1);
+  });
+
+  it('a multi-item sale brings companions who each visit; each id is released once', () => {
+    const life = run(5, 1);
+    life.addCustomer('sale-2', machine[0], machine[1], 270);
+    life.addCustomer('sale-2#1', machine[0], machine[1], 270);
+    const [a, b] = life.customers;
+    // Side by side at the machine.
+    expect(Math.hypot(a.standX - b.standX, a.standY - b.standY)).toBeGreaterThan(0.5);
+    const got: string[] = [];
+    for (let t = 0; t < 40 && life.customers.length; t += dt) {
+      life.step(dt);
+      got.push(...life.takeArrivals());
+    }
+    expect(got.sort()).toEqual(['sale-2', 'sale-2#1']);
+  });
+
+  it('flush releases sales not yet taken (only those)', () => {
+    const life = run(5, 1);
+    life.addCustomer('early', machine[0], machine[1], 270);
+    const c = life.customers[0];
+    // Through the bend: the sale is out already.
+    for (let t = 0; t < 30 && c.stage !== 'stand'; t += dt) life.step(dt);
+    expect(life.takeArrivals()).toEqual(['early']);
+    life.addCustomer('late', machine[0], machine[1], 270);
+    life.step(dt);
+    expect(life.flushCustomers()).toEqual(['late']);
+  });
+
+  it('draws a thought bubble over a thinking customer', () => {
+    const life = run(5, 1);
+    life.addCustomer('sale-1', machine[0], machine[1], 270);
+    const c = life.customers[0];
+    for (let t = 0; t < 30 && !(c.stage === 'think' && c.bubbleAlpha >= 1); t += dt) life.step(dt);
+    const fc = JSON.parse(
+      lifeGeoJSON(life, { bearing: 0, pitch: 55, light: 'night' }),
+    ) as GeoJSON.FeatureCollection;
+    const bubble = fc.features.filter((f) => String(f.properties!.i).startsWith('bub-'));
+    expect(bubble).toHaveLength(1);
+    expect(bubble[0].properties!.i).toBe('bub-dots-p60-night');
+    expect(allLifeSpriteNames(LIFE_FRAMES)).toContain(bubble[0].properties!.i);
+  });
+
+  describe('window shoppers', () => {
+    const near = { id: 'm1', lng: machine[0], lat: machine[1], heading: 270 };
+    const far = { id: 'm2', lng: ll(5000, 0)[0], lat: ll(5000, 0)[1], heading: 0 };
+
+    it('visit machines in view, look and think, and leave without a sale', () => {
+      const life = run(11, 1);
+      life.setMachines([near, far]);
+      let shopper: Customer | undefined;
+      for (let t = 0; t < 600 && !shopper; t += dt) {
+        life.step(dt);
+        shopper = life.customers.find((c) => c.saleId === null);
+      }
+      expect(shopper).toBeDefined();
+      const [nx, ny] = life.net!.toLocal(near.lng, near.lat);
+      expect(Math.hypot(shopper!.mx - nx, shopper!.my - ny)).toBeLessThan(0.01);
+      expect(Math.hypot(shopper!.standX - nx, shopper!.standY - ny)).toBeCloseTo(
+        MAP_LIFE.customers.standM,
+        1,
+      );
+      const tr = trace(life, shopper!);
+      expect(tr.stages).toEqual(['approach', 'look', 'think', 'leave']);
+      expect(tr.bubbles).toEqual([null, 'dots', null]);
+      expect(tr.gone).toBeGreaterThan(0);
+      expect(life.takeArrivals()).toEqual([]);
+      const [, look, think] = tr.spans;
+      expect(look).toBeGreaterThanOrEqual(B.lookSeconds[0] - dt);
+      expect(look).toBeLessThanOrEqual(B.lookSeconds[1] + dt);
+      expect(think).toBeLessThanOrEqual(B.thinkSeconds[1] + dt);
+    });
+
+    it('are modest: rate per machine, capped, never at machines out of view', () => {
+      const life = run(12, 1);
+      life.setMachines([far]);
+      for (let t = 0; t < 120; t += dt) life.step(dt);
+      expect(life.customers).toHaveLength(0);
+
+      const many = Array.from({ length: 30 }, (_, i) => ({
+        id: `m${i}`,
+        lng: ll(-9, -200 + i * 14)[0],
+        lat: ll(-9, -200 + i * 14)[1],
+        heading: 270,
+      }));
+      const busy = run(13, 1);
+      busy.setMachines(many);
+      let visits = 0;
+      const seen = new Set<number>();
+      for (let t = 0; t < 120; t += dt) {
+        busy.step(dt);
+        const shoppers = busy.customers.filter((c) => c.saleId === null);
+        expect(shoppers.length).toBeLessThanOrEqual(B.max);
+        for (const c of shoppers) if (!seen.has(c.id)) seen.add(c.id) && visits++;
+      }
+      // Never more than the configured rate allows (30 machines, 2 minutes).
+      expect(visits).toBeGreaterThan(0);
+      expect(visits).toBeLessThanOrEqual(Math.ceil(B.perMachinePerMinute * 30 * 2 * 1.5));
+    });
+
+    it("don't take a sale's place: sales still get customers", () => {
+      const life = run(14, 1);
+      life.setMachines([near]);
+      for (let t = 0; t < 600 && !life.customers.length; t += dt) life.step(dt);
+      for (let i = 0; i < MAP_LIFE.customers.max; i++)
+        expect(life.addCustomer(`s${i}`, machine[0], machine[1], 270)).toBe(true);
+    });
+  });
+});
+
+describe('street life: sprite files', () => {
+  it('every sprite the layer can ask for was generated', () => {
+    const dir = path.join(__dirname, '../../../assets/sprites/life');
+    const missing = allLifeSpriteNames(LIFE_FRAMES).filter(
+      (n) => !existsSync(path.join(dir, `${n}.png`)),
+    );
+    expect(missing).toEqual([]);
   });
 });

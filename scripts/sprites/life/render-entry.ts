@@ -1,16 +1,24 @@
 /**
  * Browser entry for `npm run life-sprites`: procedural low-poly pedestrians
- * -> orthographic sprite renders (8 viewer-relative headings ×
- * the 2 map pitches × day/night), with the machine sprites' conventions
- * (src/map/life/sprites.ts) and lighting rig.
+ * (walk cycle + machine-visit poses) -> orthographic sprite renders (8
+ * viewer-relative headings × the 2 map pitches × day/night), with the
+ * machine sprites' conventions (src/map/life/sprites.ts) and lighting rig;
+ * plus flat thought bubbles drawn in 2D (one per kind, pitch and light).
  *
  * Every sprite is cropped symmetrically around the person's ground center, so
  * the map layer can use `icon-anchor: 'center'` with no per-image offset.
  */
-import { LIFE_PEOPLE_MODELS, LIFE_WALK_FRAMES } from '@/config/mapLife';
+import { LIFE_BUBBLES, LIFE_FRAMES, LIFE_PEOPLE_MODELS } from '@/config/mapLife';
 import { PRESETS, type PresetName } from '@/config/timeOfDay';
 import { headingToRotationY } from '@/map/cameraMatch';
-import { LIFE_HEADINGS, LIFE_PITCHES, personSpriteName, type LifeLight } from '@/map/life/sprites';
+import {
+  bubbleSpriteName,
+  LIFE_HEADINGS,
+  LIFE_PITCHES,
+  LIFE_LIGHTS,
+  personSpriteName,
+  type LifeLight,
+} from '@/map/life/sprites';
 import type { SunState } from '@/map/sun';
 import { sceneLighting } from '@/three/lightingRig';
 
@@ -59,7 +67,7 @@ export function jobs(): { model: string; frame: number }[] {
 function allJobs(): Job[] {
   const out: Job[] = [];
   for (const m of LIFE_PEOPLE_MODELS)
-    for (let f = 0; f < LIFE_WALK_FRAMES; f++)
+    for (let f = 0; f < LIFE_FRAMES; f++)
       out.push({ model: m, frame: f, build: () => createPerson(m, f), extentM: 4 });
   return out;
 }
@@ -139,4 +147,100 @@ export function renderJob(index: number, cfg: LifeSpriteConfig) {
   renderer.dispose();
   renderer.forceContextLoss();
   return { sprites: out, triangles: model.triangles };
+}
+
+// ------------------------------------------------------------ thought bubbles
+
+/** Flat bubble colors (no outlines): a soft drop shape under a light fill. */
+const BUBBLE_FILL: Record<LifeLight, string> = { day: '#FFFFFF', night: '#ECE8F7' };
+const BUBBLE_SHADOW = 'rgba(38, 42, 72, 0.2)';
+const INK = '#4A4F63';
+
+/**
+ * Bubble geometry in meters on the sprite plane (x right, y up from the
+ * person's ground center): it floats above-right of the head, whose center
+ * projects to HEAD_Y·sin(pitch) under the map's tilted orthographic camera.
+ */
+const HEAD_Y = 1.6;
+const BUBBLE = { w: 1.0, h: 0.66, dx: 0.32, gap: 0.62 };
+
+function bubbleGlyph(g: CanvasRenderingContext2D, kind: string, cx: number, cy: number) {
+  const circle = (x: number, y: number, r: number, color: string) => {
+    g.fillStyle = color;
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fill();
+  };
+  // Canvas y grows downward: cy is the glyph center in canvas meters.
+  if (kind === 'dots') {
+    for (const k of [-1, 0, 1]) circle(cx + k * 0.22, cy, 0.065, INK);
+  } else if (kind === 'coin') {
+    circle(cx, cy, 0.22, '#E0A22E');
+    circle(cx, cy - 0.015, 0.2, '#F4BE4A');
+    circle(cx, cy - 0.015, 0.12, '#E9AE35');
+    circle(cx - 0.07, cy - 0.09, 0.035, '#FBE3A0');
+  } else {
+    // A plain drink can: lid, colored body, a light band (no brand).
+    const w = 0.26;
+    const h = 0.42;
+    const x0 = cx - w / 2;
+    const y0 = cy - h / 2;
+    g.fillStyle = '#E85A50';
+    g.beginPath();
+    g.roundRect(x0, y0, w, h, 0.05);
+    g.fill();
+    g.fillStyle = '#C9CED8';
+    g.beginPath();
+    g.roundRect(x0, y0, w, 0.07, [0.05, 0.05, 0, 0]);
+    g.fill();
+    g.fillStyle = '#F6E7D0';
+    g.fillRect(x0, cy - 0.02, w, 0.09);
+    g.fillStyle = 'rgba(255,255,255,0.35)';
+    g.fillRect(x0 + 0.04, y0 + 0.1, 0.04, h - 0.16);
+  }
+}
+
+/** Every thought-bubble sprite, cropped symmetric around the ground center. */
+export function renderBubbles(cfg: LifeSpriteConfig) {
+  const out: { name: string; width: number; height: number; rgba: string }[] = [];
+  const ppm = cfg.pxPerMeter * cfg.supersample;
+  for (const light of LIFE_LIGHTS)
+    for (const pitch of LIFE_PITCHES) {
+      const headY = HEAD_Y * Math.sin((pitch * Math.PI) / 180);
+      const base = headY + BUBBLE.gap;
+      const top = base + BUBBLE.h + 0.06;
+      const halfW = BUBBLE.dx + BUBBLE.w / 2 + 0.06;
+      for (const kind of LIFE_BUBBLES) {
+        const c = document.createElement('canvas');
+        c.width = Math.ceil(2 * halfW * ppm);
+        c.height = Math.ceil(2 * top * ppm);
+        const g = c.getContext('2d')!;
+        // Meters, origin at the ground center, y down (canvas convention).
+        g.setTransform(ppm, 0, 0, ppm, c.width / 2, c.height / 2);
+        const cx = BUBBLE.dx;
+        const cy = -(base + BUBBLE.h / 2);
+        const shape = (dy: number) => {
+          g.beginPath();
+          g.roundRect(cx - BUBBLE.w / 2, cy - BUBBLE.h / 2 + dy, BUBBLE.w, BUBBLE.h, BUBBLE.h / 2);
+          // Cloud bumps on top, and the trail of little puffs down to the head.
+          g.moveTo(cx - 0.18 + 0.2, cy - BUBBLE.h / 2 + 0.06 + dy);
+          g.arc(cx - 0.18, cy - BUBBLE.h / 2 + 0.06 + dy, 0.2, 0, Math.PI * 2);
+          g.moveTo(cx + 0.16 + 0.17, cy - BUBBLE.h / 2 + 0.07 + dy);
+          g.arc(cx + 0.16, cy - BUBBLE.h / 2 + 0.07 + dy, 0.17, 0, Math.PI * 2);
+          g.moveTo(0.1 + 0.075, -(headY + 0.46) + dy);
+          g.arc(0.1, -(headY + 0.46) + dy, 0.075, 0, Math.PI * 2);
+          g.moveTo(0.02 + 0.045, -(headY + 0.33) + dy);
+          g.arc(0.02, -(headY + 0.33) + dy, 0.045, 0, Math.PI * 2);
+          g.fill('nonzero');
+        };
+        g.fillStyle = BUBBLE_SHADOW;
+        shape(0.04);
+        g.fillStyle = BUBBLE_FILL[light];
+        shape(0);
+        bubbleGlyph(g, kind, cx, cy + 0.02);
+        const small = downsample(c, cfg.supersample);
+        out.push({ name: bubbleSpriteName(kind, pitch, light), ...cropCentered(small) });
+      }
+    }
+  return { sprites: out };
 }

@@ -92,17 +92,43 @@ export interface Person {
   lng: number;
   lat: number;
   heading: number;
-  /** Walk-cycle frame 0..LIFE_WALK_FRAMES-1 (0 = standing / passing pose). */
+  /**
+   * Sprite frame: walk cycle 0..LIFE_WALK_FRAMES-1 (0 = standing / passing
+   * pose), or a visit pose (LIFE_POSES).
+   */
   frame: number;
 }
 
-/** Someone walking up to a machine to buy (one per sale while you watch). */
+/** Thought bubble over a customer (sprite kind, see LIFE_BUBBLES). */
+export type LifeBubble = 'dots' | 'can' | 'coin';
+
+/**
+ * A visit to a machine, in order: approach (walk to its front), look (stop
+ * facing it, leaning in and back), think (thought bubble), bend (crouched at
+ * the tray: the sale is released), stand, leave (walk off and fade out).
+ * Window shoppers skip bend and stand.
+ */
+export type VisitStage = 'approach' | 'look' | 'think' | 'bend' | 'stand' | 'leave';
+
+/** Someone visiting a machine: one per sale while you watch, or a window shopper. */
 export interface Customer extends Person {
-  /** The sale this customer brings (released when they reach the machine). */
-  saleId: string;
-  stage: 'approach' | 'buy' | 'leave';
+  /**
+   * The sale this customer brings (released when they bend to the tray);
+   * null for a window shopper who only looks.
+   */
+  saleId: string | null;
+  /** Their sale has been released (takeArrivals / flushCustomers). */
+  released: boolean;
+  stage: VisitStage;
   /** Seconds in the current stage. */
   t: number;
+  /** Length of the current stage, seconds (walking stages: the give-up time). */
+  stageS: number;
+  /** What they end up thinking of (buyers; shown after the "…"). */
+  glyph: LifeBubble;
+  /** Thought bubble now (null: none) and its opacity 0..1. */
+  bubble: LifeBubble | null;
+  bubbleAlpha: number;
   /** Machine, standing spot and exit, local meters. */
   mx: number;
   my: number;
@@ -110,4 +136,13 @@ export interface Customer extends Person {
   standY: number;
   exitX: number;
   exitY: number;
+}
+
+/** A machine on the map (customers stand in front of it, facing it). */
+export interface LifeMachine {
+  id: string;
+  lng: number;
+  lat: number;
+  /** Compass heading its front faces, degrees. */
+  heading: number;
 }
