@@ -785,3 +785,15 @@ describe('street life: sprite files', () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe('machine visitors stay in proportion to the machine', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { visitorScale, visitorIconSizeStops, lifeIconSizeStops } = require('./layout') as typeof import('./layout');
+  it('match the machine enlargement when zoomed out, true scale up close', () => {
+    expect(visitorScale(16, 40.7)).toBeGreaterThan(1.5);
+    expect(visitorScale(21, 40.7)).toBe(1);
+    const v = visitorIconSizeStops(40.7, 12);
+    const p = lifeIconSizeStops(40.7, 12);
+    for (let i = 1; i < v.length; i += 2) expect(v[i]).toBeGreaterThanOrEqual(p[i]);
+  });
+});

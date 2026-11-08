@@ -294,7 +294,14 @@ export const StreetLifeLayer = memo(
         const arrived = sim.takeArrivals().filter((id) => !id.includes(COMPANION));
         if (arrived.length) shownCb.current?.(arrived);
         const cam = cameraRef.current;
-        setJson(lifeGeoJSON(sim, { bearing: cam?.bearing ?? 0, pitch: cam?.pitch ?? 0, light }));
+        setJson(
+          lifeGeoJSON(sim, {
+            bearing: cam?.bearing ?? 0,
+            pitch: cam?.pitch ?? 0,
+            light,
+            zoom: cam?.zoom,
+          }),
+        );
         emitStats(false);
       }, 1000 / MAP_LIFE.fps);
       return () => clearInterval(id);
@@ -307,6 +314,16 @@ export const StreetLifeLayer = memo(
           minZoom: MAP_LIFE.minZoom,
           fadeInEndZoom: MAP_LIFE.fadeInEndZoom,
         }),
+      [lat],
+    );
+    const visitorSprites = useMemo(
+      () =>
+        lifeSymbolLayer(
+          lat,
+          LIFE_SPRITE_PTS_PER_METER,
+          { minZoom: MAP_LIFE.minZoom, fadeInEndZoom: MAP_LIFE.fadeInEndZoom },
+          true,
+        ),
       [lat],
     );
 
@@ -335,8 +352,18 @@ export const StreetLifeLayer = memo(
             type="symbol"
             beforeId={beforeId}
             minzoom={MAP_LIFE.minZoom}
+            filter={['!=', ['get', 'v'], 1]}
             layout={sprites.layout as never}
             paint={sprites.paint as never}
+          />
+          {/* Machine visitors: over the buildings like machines, at the machine's scale. */}
+          <Layer
+            id="life-visitors"
+            type="symbol"
+            minzoom={MAP_LIFE.minZoom}
+            filter={['==', ['get', 'v'], 1]}
+            layout={visitorSprites.layout as never}
+            paint={visitorSprites.paint as never}
           />
         </GeoJSONSource>
       </>
