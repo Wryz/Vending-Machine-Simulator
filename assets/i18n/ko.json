@@ -1,5 +1,7 @@
 {
-  "CFBundleDisplayName": "Coinline",
-  "NSLocationWhenInUseUsageDescription": "Coinline은 가장 가까운 도시에서 사업을 시작하기 위해 대략적인 위치를 한 번만 사용합니다. 위치는 저장되지 않습니다.",
-  "NSUserTrackingUsageDescription": "설정에서 맞춤형 광고를 켠 경우에만: 광고 파트너가 회원님에게 맞는 광고를 보여줄 수 있습니다. 어느 쪽이든 Coinline은 똑같이 작동합니다."
+  "ios": {
+    "CFBundleDisplayName": "Coinline",
+    "NSLocationWhenInUseUsageDescription": "Coinline은 가장 가까운 도시에서 사업을 시작하기 위해 대략적인 위치를 한 번만 사용합니다. 위치는 저장되지 않습니다.",
+    "NSUserTrackingUsageDescription": "설정에서 맞춤형 광고를 켠 경우에만: 광고 파트너가 회원님에게 맞는 광고를 보여줄 수 있습니다. 어느 쪽이든 Coinline은 똑같이 작동합니다."
+  }
 }

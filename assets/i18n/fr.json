@@ -1,5 +1,7 @@
 {
-  "CFBundleDisplayName": "Coinline",
-  "NSLocationWhenInUseUsageDescription": "Coinline utilise votre position approximative une seule fois, pour lancer votre entreprise dans la ville la plus proche. Elle n’est jamais enregistrée.",
-  "NSUserTrackingUsageDescription": "Uniquement si vous activez les publicités personnalisées dans les Réglages : permet aux partenaires publicitaires d’afficher des publicités adaptées. Coinline fonctionne de la même façon dans tous les cas."
+  "ios": {
+    "CFBundleDisplayName": "Coinline",
+    "NSLocationWhenInUseUsageDescription": "Coinline utilise votre position approximative une seule fois, pour lancer votre entreprise dans la ville la plus proche. Elle n’est jamais enregistrée.",
+    "NSUserTrackingUsageDescription": "Uniquement si vous activez les publicités personnalisées dans les Réglages : permet aux partenaires publicitaires d’afficher des publicités adaptées. Coinline fonctionne de la même façon dans tous les cas."
+  }
 }

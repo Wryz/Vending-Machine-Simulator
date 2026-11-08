@@ -1,5 +1,7 @@
 {
-  "CFBundleDisplayName": "Coinline",
-  "NSLocationWhenInUseUsageDescription": "O Coinline usa sua localização aproximada uma única vez, para começar seu negócio na cidade mais próxima. Ela nunca é armazenada.",
-  "NSUserTrackingUsageDescription": "Somente se você ativar anúncios personalizados nos Ajustes: permite que parceiros de anúncios mostrem anúncios do seu interesse. O Coinline funciona da mesma forma em ambos os casos."
+  "ios": {
+    "CFBundleDisplayName": "Coinline",
+    "NSLocationWhenInUseUsageDescription": "O Coinline usa sua localização aproximada uma única vez, para começar seu negócio na cidade mais próxima. Ela nunca é armazenada.",
+    "NSUserTrackingUsageDescription": "Somente se você ativar anúncios personalizados nos Ajustes: permite que parceiros de anúncios mostrem anúncios do seu interesse. O Coinline funciona da mesma forma em ambos os casos."
+  }
 }
