@@ -30,6 +30,7 @@ export default {
         u1: 'Kapseln & Sammelfiguren',
         u2: 'Lager',
         u3: 'Brightvend kommt',
+        u4: 'Filialen in bis zu 3 Städten',
       },
     },
     c4: {
@@ -40,6 +41,7 @@ export default {
         u1: 'Technik & Bedarf',
         u2: 'Warmes Essen',
         u3: 'Event-Tafel',
+        u4: 'Bis zu 5 Städte',
       },
     },
     c5: {
@@ -47,7 +49,7 @@ export default {
       goal: 'Werde Top-Betreiber der Stadt (schlag Brightvends Anteil)',
       unlocks: {
         u0: 'Alle Automatentypen',
-        u1: 'Neue Stadt',
+        u1: 'Filialen in jeder Stadt',
         u2: 'Alkohollizenz',
       },
     },

@@ -34,8 +34,16 @@ export default {
     cancel: 'Abbrechen',
     start: 'Starten',
     go: 'Los',
+    branchTitle: 'Filiale in {name} eröffnen?',
+    branchBody: 'Geld, Kapitel und Forschung deiner Firma kommen mit, und {current} handelt weiter, während du weg bist.',
+    branch: 'Filiale eröffnen',
+    lockedTitle: 'Filialen ab Kapitel {n}',
+    lockedBody: 'Ab Kapitel {n} ist jede Stadt eine Filiale derselben Firma. Bis dahin wäre {name} ein eigenes Geschäft mit eigenem Geld.',
+    separate: 'Getrennt starten',
+    fullTitle: '{count} Städte sind vorerst das Limit',
+    fullBody: 'Deine Firma kann {count} Städte führen. Das nächste Kapitel erlaubt mehr.',
   },
   footer:
-    'Beim Wechsel wird dieses Geschäft zuerst gespeichert. Schließ Kapitel 5 ab, um die Firma zu verkaufen und überall mit Vorsprung neu zu starten.',
+    'Beim Wechsel wird diese Stadt zuerst gespeichert. Ab Kapitel 3 sind deine Städte Filialen einer Firma mit gemeinsamem Geld und Fortschritt.',
   opening: 'Stadt wird geöffnet …',
 } satisfies Shape<typeof en>;

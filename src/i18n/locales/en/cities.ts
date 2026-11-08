@@ -30,8 +30,16 @@ export default {
     cancel: 'Cancel',
     start: 'Start', // button: start a new save
     go: 'Go', // button: travel to a saved city
+    branchTitle: 'Open a branch in {name}?',
+    branchBody: 'Your company\'s cash, chapter and research come with you, and {current} keeps trading while you\'re away.',
+    branch: 'Open branch',
+    lockedTitle: 'Branches open in chapter {n}',
+    lockedBody: 'From chapter {n}, every city you open is a branch of one company. Until then, {name} would be a separate business with its own cash.',
+    separate: 'Start separately',
+    fullTitle: '{count} cities is the limit for now',
+    fullBody: 'Your company can run {count} cities. The next chapter allows more.',
   },
   footer:
-    'Switching saves this business first. Finish chapter 5 to sell the company and restart anywhere with a head start.',
+    'Switching saves this city first. From chapter 3 your cities are branches of one company, sharing cash and progress.',
   opening: 'Opening city…',
 } as const;

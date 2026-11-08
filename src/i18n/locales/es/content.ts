@@ -30,6 +30,7 @@ export default {
         u1: 'Cápsulas y coleccionables',
         u2: 'Almacén',
         u3: 'Llega Brightvend',
+        u4: 'Sucursales en hasta 3 ciudades',
       },
     },
     c4: {
@@ -40,6 +41,7 @@ export default {
         u1: 'Tecnología y básicos',
         u2: 'Comida caliente',
         u3: 'Tablón de eventos',
+        u4: 'Hasta 5 ciudades',
       },
     },
     c5: {
@@ -47,7 +49,7 @@ export default {
       goal: 'Sé el operador líder de la ciudad (supera la cuota de Brightvend)',
       unlocks: {
         u0: 'Todos los tipos de máquina',
-        u1: 'Nueva ciudad',
+        u1: 'Sucursales en todas las ciudades',
         u2: 'Permiso de alcohol',
       },
     },

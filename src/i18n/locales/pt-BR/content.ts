@@ -30,6 +30,7 @@ export default {
         u1: 'Cápsulas e colecionáveis',
         u2: 'Depósito',
         u3: 'Chegada da Brightvend',
+        u4: 'Filiais em até 3 cidades',
       },
     },
     c4: {
@@ -40,6 +41,7 @@ export default {
         u1: 'Tecnologia e essenciais',
         u2: 'Comida quente',
         u3: 'Quadro de eventos',
+        u4: 'Até 5 cidades',
       },
     },
     c5: {
@@ -47,7 +49,7 @@ export default {
       goal: 'Seja o maior operador da cidade (supere a fatia da Brightvend)',
       unlocks: {
         u0: 'Todos os tipos de máquina',
-        u1: 'Nova cidade',
+        u1: 'Filiais em todas as cidades',
         u2: 'Licença de bebidas',
       },
     },

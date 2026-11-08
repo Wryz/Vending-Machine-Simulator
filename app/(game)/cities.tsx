@@ -6,11 +6,13 @@ import type { PickerCity } from '@/data/cityIndex';
 import { useT } from '@/i18n';
 import { content } from '@/i18n/content';
 import { simError } from '@/i18n/sim';
-import { reputationFor, sellCompany } from '@/sim';
+import { BRANCHES } from '@/config/progression';
+import { branchesUnlocked, maxCities, reputationFor, sellCompany } from '@/sim';
 import { track } from '@/services/analytics';
 import { haptic } from '@/services/haptics';
 import { removeKey, writeJson } from '@/services/storage';
 import { useCityIndex } from '@/store/cityIndex';
+import { readCompany } from '@/store/company';
 import { hasSave, prefetchCity, useGame } from '@/store/game';
 import { cityKey, useProfile, type CityInfo } from '@/store/profile';
 import { CityPicker, useCityLabel } from '@/ui/picker/CityPicker';
@@ -83,19 +85,48 @@ export default function Cities() {
     const isNew = !status[c.r];
     const name = cityName(target);
     const current = city ? cityName(city) : t('cities.confirm.thisCity');
+    const go = (branch: boolean) => {
+      track('city_switch', {
+        city: target.kind === 'fallback' ? target.id : 'area',
+        kind: branch ? 'branch' : isNew ? 'new' : 'saved',
+      });
+      void open(target);
+    };
+    const cancel = { text: t('cities.confirm.cancel'), style: 'cancel' as const };
+    if (!isNew) {
+      Alert.alert(t('cities.confirm.goTitle', { name }), t('cities.confirm.goBody', { current }), [
+        cancel,
+        { text: t('cities.confirm.go'), onPress: () => go(false) },
+      ]);
+      return;
+    }
+    const chapter = game?.chapter ?? 1;
+    // One company, many cities (BRANCHES): from the unlock chapter, a new city is a branch.
+    if (game && branchesUnlocked(chapter)) {
+      const company = readCompany();
+      const count = new Set([
+        ...Object.keys(company?.branches ?? {}),
+        ...(city ? [cityKey(city)] : []),
+      ]).size;
+      const max = maxCities(chapter);
+      if (count >= max) {
+        Alert.alert(
+          t('cities.confirm.fullTitle', { count: max }),
+          t('cities.confirm.fullBody', { count: max }),
+        );
+        return;
+      }
+      Alert.alert(
+        t('cities.confirm.branchTitle', { name }),
+        t('cities.confirm.branchBody', { current }),
+        [cancel, { text: t('cities.confirm.branch'), onPress: () => go(true) }],
+      );
+      return;
+    }
     Alert.alert(
-      isNew ? t('cities.confirm.startTitle', { name }) : t('cities.confirm.goTitle', { name }),
-      isNew ? t('cities.confirm.startBody', { current }) : t('cities.confirm.goBody', { current }),
-      [
-        { text: t('cities.confirm.cancel'), style: 'cancel' },
-        {
-          text: isNew ? t('cities.confirm.start') : t('cities.confirm.go'),
-          onPress: () => {
-            track('city_switch', { city: target.kind === 'fallback' ? target.id : 'area' });
-            void open(target);
-          },
-        },
-      ],
+      t('cities.confirm.lockedTitle', { n: BRANCHES.unlockChapter }),
+      t('cities.confirm.lockedBody', { n: BRANCHES.unlockChapter, name }),
+      [cancel, { text: t('cities.confirm.separate'), onPress: () => go(false) }],
     );
   };
 
@@ -145,8 +176,21 @@ export default function Cities() {
             });
             haptic.success();
             const soldKey = cityKey(city);
-            writeJson(`save-${cityKey(target)}`, res.state);
+            // Close first: closing saves the old business (and its company file), which
+            // must not land on top of the fresh save or the cleared company below.
             useGame.getState().close();
+            // Selling the company sells every branch: their saves and the company file go,
+            // so the restart doesn't rejoin the old company's cash.
+            const company = readCompany();
+            for (const key of Object.keys(company?.branches ?? {})) {
+              if (key === soldKey || key === cityKey(target)) continue;
+              removeKey(`save-${key}`);
+              useProfile.getState().update((p) => {
+                delete p.cities[key];
+              });
+            }
+            removeKey('company');
+            writeJson(`save-${cityKey(target)}`, res.state);
             await useGame.getState().openCity(target);
             // The sold business is gone; its slot is freed unless we restarted in the same city.
             // Only now: openCity has made the new city the last one, so launch never finds no city.

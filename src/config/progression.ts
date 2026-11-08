@@ -34,19 +34,25 @@ export const CHAPTERS: readonly Chapter[] = [
     n: 3,
     title: 'LLC',
     goal: 'Run 15 machines and hire a driver',
-    unlocks: ['Card readers', 'Capsules & collectibles', 'Warehouse', 'Brightvend arrives'],
+    unlocks: [
+      'Card readers',
+      'Capsules & collectibles',
+      'Warehouse',
+      'Brightvend arrives',
+      'Branches in up to 3 cities',
+    ],
   },
   {
     n: 4,
     title: 'Operator',
     goal: 'Run 40 machines with 3 drivers',
-    unlocks: ['Smart machines', 'Tech & essentials', 'Hot food', 'Events board'],
+    unlocks: ['Smart machines', 'Tech & essentials', 'Hot food', 'Events board', 'Up to 5 cities'],
   },
   {
     n: 5,
     title: 'Empire',
     goal: "Become the city's top operator (beat Brightvend's share)",
-    unlocks: ['All machine types', 'New city', 'Liquor permit'],
+    unlocks: ['All machine types', 'Branches in every city', 'Liquor permit'],
   },
   {
     n: 6,
@@ -77,6 +83,21 @@ export const HOODS = {
   maxKm: 2.5,
   /** With at least this many fine neighbourhoods, quarters and villages are ignored (they overlap them). */
   minFine: 6,
+} as const;
+
+/**
+ * One company, many cities (owner's call, 2026-11-08). From `unlockChapter`
+ * the player can open branches in any city: cash, chapter, research,
+ * collections, perks, goals and trophies are the company's; machines, vans,
+ * drivers, the rival and rankings stay with each city. Branches you aren't
+ * looking at keep trading and pay into the company. How many cities a chapter
+ * allows (the city you started in counts).
+ */
+export const BRANCHES = {
+  unlockChapter: 3,
+  maxCities: { 3: 3, 4: 5, 5: Infinity } as Record<number, number>,
+  /** Catch up other branches at most this often (real minutes) while playing. */
+  syncEveryMinutes: 10,
 } as const;
 
 /** Districts: rings around the city center, unlocked by chapter. Radius in km. */

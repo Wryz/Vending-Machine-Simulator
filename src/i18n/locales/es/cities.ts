@@ -33,8 +33,16 @@ export default {
     cancel: 'Cancelar',
     start: 'Empezar',
     go: 'Ir',
+    branchTitle: '¿Abrir una sucursal en {name}?',
+    branchBody: 'El dinero, el capítulo y la investigación de tu empresa vienen contigo, y {current} sigue vendiendo mientras no estás.',
+    branch: 'Abrir sucursal',
+    lockedTitle: 'Las sucursales se abren en el capítulo {n}',
+    lockedBody: 'Desde el capítulo {n}, cada ciudad que abras es una sucursal de una sola empresa. Hasta entonces, {name} sería un negocio aparte con su propio dinero.',
+    separate: 'Empezar aparte',
+    fullTitle: '{count} ciudades es el límite por ahora',
+    fullBody: 'Tu empresa puede llevar {count} ciudades. El siguiente capítulo permite más.',
   },
   footer:
-    'Al cambiar, primero se guarda este negocio. Termina el capítulo 5 para vender la empresa y empezar de nuevo donde quieras con ventaja.',
+    'Al cambiar se guarda primero esta ciudad. Desde el capítulo 3 tus ciudades son sucursales de una empresa, con dinero y progreso compartidos.',
   opening: 'Abriendo ciudad…',
 } satisfies Shape<typeof en>;

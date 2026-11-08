@@ -15,11 +15,18 @@ import { fetchWeather } from '@/data/api';
 import { syntheticWeather, WeatherBook } from '@/data/weather';
 import type { RegionPack, RoadNet } from '@/data/types';
 import { readJson, writeJson } from '@/services/storage';
-import { ACHIEVEMENTS, CHAPTERS } from '@/config/progression';
+import { ACHIEVEMENTS, BRANCHES, CHAPTERS } from '@/config/progression';
 import { t } from '@/i18n';
 import { content } from '@/i18n/content';
 import { moneyShort } from '@/ui/format';
 import {
+  addToCompany,
+  branchDelta,
+  branchMark,
+  branchesUnlocked,
+  companyOf,
+  joinCompany,
+  type BranchMark,
   assignHoods,
   type HoodPoint,
   advance,
@@ -52,6 +59,8 @@ import {
   announceSurprises,
 } from './rivalMoments';
 import { cityKey, useProfile, type CityInfo } from './profile';
+
+import { readCompany, writeCompany } from './company';
 
 export interface TickerEntry {
   at: number;
@@ -87,6 +96,8 @@ interface GameStore {
   /** Run a sim action on a draft; commits and saves when it succeeds. */
   act<R extends { ok: boolean }>(fn: (draft: GameState, world: World) => R): R;
   replaceGame(next: GameState): void;
+  /** Catch up the company's other branches and pay what they earned into the cash (throttled). */
+  syncBranches(force?: boolean): Promise<void>;
   save(): void;
   dismissOfflineReport(): void;
   close(): void;
@@ -159,6 +170,8 @@ export function buildWorld(
 
 /** Live weather for the open city (a new book per city, so one city's hours never leak into another). */
 let weatherBook = new WeatherBook();
+/** A branch catch-up is running (one at a time). */
+let syncing = false;
 let loadToken = 0;
 let lastWeatherFetch = 0;
 const WEATHER_REFRESH_MS = 30 * 60_000;
@@ -258,11 +271,13 @@ export const useGame = create<GameStore>((set, get) => {
           .catch(() => undefined);
         const now = Date.now();
         let game: GameState | null = null;
+        let hadSave = false;
         if (!opts.fresh) {
           const raw = readJson<unknown>(saveKey(city));
           if (raw) {
             try {
               game = migrateSave(raw);
+              hadSave = true;
             } catch {
               // Unreadable here (e.g. written by a newer build): keep a copy before
               // the fresh game below takes this save slot, so progress isn't lost.
@@ -283,6 +298,16 @@ export const useGame = create<GameStore>((set, get) => {
           if (now - game.now >= OFFLINE_REPORT_MIN_MS) offlineReport = report;
           game = state;
         }
+        // One company, many cities: this city takes the company's cash and progress,
+        // plus whatever it earned since you left it.
+        const company = readCompany();
+        if (company && branchesUnlocked(company.state.chapter)) {
+          const mark =
+            company.branches[cityKey(city)] ??
+            // A new branch starts level; a city saved before branches brings all its cash.
+            (hadSave ? { cashCents: 0, salesCents: 0, netCents: 0, units: 0 } : branchMark(game));
+          game = joinCompany(game, company.state, mark).state;
+        }
         useProfile.getState().update((p) => {
           p.cities[cityKey(city)] = city;
           p.lastCityKey = cityKey(city);
@@ -299,6 +324,8 @@ export const useGame = create<GameStore>((set, get) => {
           version: get().version + 1,
         });
         get().save();
+        // Other cities of the company catch up and pay in (after the map is up).
+        setTimeout(() => void get().syncBranches(true), 1500);
       } catch (e) {
         if (token === loadToken)
           set({ status: 'error', error: loadError(e instanceof Error ? e.message : String(e)) });
@@ -386,10 +413,71 @@ export const useGame = create<GameStore>((set, get) => {
       get().save();
     },
 
+    async syncBranches(force = false) {
+      const { game, city } = get();
+      if (!game || !city || !branchesUnlocked(game.chapter) || syncing) return;
+      const company = readCompany();
+      if (!company) return;
+      if (!force && Date.now() - company.syncedAt < BRANCHES.syncEveryMinutes * 60_000) return;
+      syncing = true;
+      try {
+        const here = cityKey(city);
+        const cities = useProfile.getState().cities;
+        const total: BranchMark = { cashCents: 0, salesCents: 0, netCents: 0, units: 0 };
+        for (const [key, mark] of Object.entries(company.branches) as [string, BranchMark][]) {
+          if (key === here || !cities[key]) continue;
+          const info = cities[key];
+          const raw = readJson<unknown>(saveKey(info));
+          if (!raw) continue;
+          try {
+            const [pack, roads, hoods] = await Promise.all([
+              info.kind === 'fallback' ? loadCityPack(info.id) : loadRegionPack(info.res5 ?? ''),
+              info.kind === 'fallback' ? loadCityRoads(info.id) : loadRegionRoads(info.res5 ?? ''),
+              info.kind === 'fallback' ? Promise.resolve(null) : loadRegionHoods(info.res5 ?? ''),
+            ]);
+            const w = buildWorld(info, pack, new WeatherBook(), roads, hoods);
+            let st = migrateSave(raw);
+            const now = Date.now();
+            if (now > st.now) st = advance(st, w, now, simOptions()).state;
+            const d = branchDelta(st, mark);
+            total.cashCents += d.cashCents;
+            total.salesCents += d.salesCents;
+            total.netCents += d.netCents;
+            total.units += d.units;
+            writeJson(saveKey(info), st);
+            company.branches[key] = branchMark(st);
+          } catch {
+            // Offline with no cached data for that city: it catches up next time.
+          }
+          // Let a frame through between branches.
+          await new Promise((r) => setTimeout(r, 0));
+        }
+        company.syncedAt = Date.now();
+        writeCompany(company);
+        // Still the same city: pay the branches' earnings into the company cash.
+        if (get().city && cityKey(get().city!) === here && get().game) {
+          const next = structuredClone(get().game!);
+          addToCompany(next, total);
+          set({ game: next, version: get().version + 1 });
+          get().save();
+        }
+      } finally {
+        syncing = false;
+      }
+    },
+
     save() {
       const { game, city } = get();
       if (!game || !city) return;
       writeJson(saveKey(city), game);
+      if (branchesUnlocked(game.chapter)) {
+        const prev = readCompany();
+        writeCompany({
+          state: companyOf(game),
+          branches: { ...prev?.branches, [cityKey(city)]: branchMark(game) },
+          syncedAt: prev?.syncedAt ?? 0,
+        });
+      }
       set({ lastSavedAt: Date.now() });
     },
 

@@ -33,8 +33,16 @@ export default {
     cancel: '취소',
     start: '시작',
     go: '이동',
+    branchTitle: '{name}에 지점을 낼까요?',
+    branchBody: '회사의 돈, 챕터, 연구가 그대로 따라가고, {current}은(는) 자리를 비운 동안에도 계속 장사해요.',
+    branch: '지점 열기',
+    lockedTitle: '지점은 {n}장부터',
+    lockedBody: '{n}장부터는 여는 모든 도시가 한 회사의 지점이 돼요. 그 전에는 {name}은(는) 돈도 따로인 별도 사업이에요.',
+    separate: '따로 시작',
+    fullTitle: '지금은 {count}개 도시가 한도예요',
+    fullBody: '회사는 {count}개 도시를 운영할 수 있어요. 다음 챕터에서 더 늘어나요.',
   },
   footer:
-    '전환하면 이 사업을 먼저 저장해요. 챕터 5를 마치면 회사를 매각하고 어디서든 유리하게 다시 시작할 수 있어요.',
+    '전환하면 이 도시가 먼저 저장돼요. 3장부터 도시들은 돈과 진행을 공유하는 한 회사의 지점이에요.',
   opening: '도시 여는 중…',
 } satisfies Shape<typeof en>;

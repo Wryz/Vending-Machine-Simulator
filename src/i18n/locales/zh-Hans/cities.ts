@@ -33,7 +33,16 @@ export default {
     cancel: '取消',
     start: '开始',
     go: '前往',
+    branchTitle: '在{name}开分店?',
+    branchBody: '公司的资金、章节和研究都会带过去,你不在时{current}照常营业。',
+    branch: '开分店',
+    lockedTitle: '第 {n} 章开放分店',
+    lockedBody: '从第 {n} 章起,你开的每座城市都是同一家公司的分店。在此之前,{name}会是资金独立的另一门生意。',
+    separate: '单独开始',
+    fullTitle: '目前最多 {count} 座城市',
+    fullBody: '你的公司可经营 {count} 座城市。下一章可开更多。',
   },
-  footer: '切换前会先保存当前生意。完成第 5 章即可出售公司，并带着优势在任意城市重新开始。',
+  footer:
+    '切换时会先保存这座城市。从第 3 章起,你的城市都是同一家公司的分店,共享资金和进度。',
   opening: '正在打开城市……',
 } satisfies Shape<typeof en>;

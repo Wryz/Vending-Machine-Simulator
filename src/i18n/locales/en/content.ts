@@ -34,6 +34,7 @@ export default {
         u1: 'Capsules & collectibles',
         u2: 'Warehouse',
         u3: 'Brightvend arrives',
+        u4: 'Branches in up to 3 cities',
       },
     },
     c4: {
@@ -44,6 +45,7 @@ export default {
         u1: 'Tech & essentials',
         u2: 'Hot food',
         u3: 'Events board',
+        u4: 'Up to 5 cities',
       },
     },
     c5: {
@@ -51,7 +53,7 @@ export default {
       goal: "Become the city's top operator (beat Brightvend's share)",
       unlocks: {
         u0: 'All machine types',
-        u1: 'New city',
+        u1: 'Branches in every city',
         u2: 'Liquor permit',
       },
     },
