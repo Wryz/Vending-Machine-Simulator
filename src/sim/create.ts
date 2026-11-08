@@ -5,7 +5,7 @@ import { emptySurprises } from './events';
 import { emptyGoals } from './goals';
 import { emptyRankings } from './rankings';
 import { emptyRequests } from './requests';
-import { perkLevel } from './rules';
+import { perkLevel, prestigePerk } from './rules';
 import { SCHEMA_VERSION, type GameState, type Machine } from './state';
 
 export function emptyLedgerDay(dateKey: string) {
@@ -113,7 +113,7 @@ export function newGame(opts: NewGameOptions): GameState {
     log: [],
     nextId: 1,
   };
-  state.cashCents += 200_000 * perkLevel(state, 'head-start');
+  state.cashCents += (prestigePerk('head-start')?.amountCents ?? 0) * perkLevel(state, 'head-start');
   if (perkLevel(state, 'old-van') > 0) state.vanLevel = Math.max(state.vanLevel, 1);
   state.machines.push(storedMachine(nextId(state, 'm'), START.starterMachineType, opts.now));
   return state;

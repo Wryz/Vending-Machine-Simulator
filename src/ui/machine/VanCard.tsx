@@ -36,7 +36,6 @@ export function VanCard({ delivery, driverName }: { delivery: Delivery; driverNa
     <View
       style={styles.card}
       accessible
-      accessibilityLiveRegion="polite"
       accessibilityLabel={t('machinePanel.van.a11y', { n: delivery.units, time: left })}
     >
       <View style={styles.top}>

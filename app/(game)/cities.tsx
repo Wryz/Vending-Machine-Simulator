@@ -11,7 +11,7 @@ import { track } from '@/services/analytics';
 import { haptic } from '@/services/haptics';
 import { removeKey, writeJson } from '@/services/storage';
 import { useCityIndex } from '@/store/cityIndex';
-import { hasSave, useGame } from '@/store/game';
+import { hasSave, prefetchCity, useGame } from '@/store/game';
 import { cityKey, useProfile, type CityInfo } from '@/store/profile';
 import { CityPicker, useCityLabel } from '@/ui/picker/CityPicker';
 import { cityInfoFromPick, guessOrigin, legacySavesByRegion, useYou } from '@/ui/picker/where';
@@ -63,6 +63,12 @@ export default function Cities() {
   const open = async (target: CityInfo) => {
     setBusy(true);
     setError(null);
+    // Download first: offline, the player stays in this city and sees why.
+    if (!(await prefetchCity(target))) {
+      setBusy(false);
+      setError(t('picker.offline', { city: cityName(target) }));
+      return;
+    }
     useGame.getState().close();
     await useGame.getState().openCity(target);
     if (useGame.getState().status === 'ready') router.replace('/map');
@@ -114,6 +120,14 @@ export default function Cities() {
           onPress: async () => {
             const current = useGame.getState().game;
             if (!current) return;
+            // Nothing is sold until the new city is on the device.
+            setBusy(true);
+            setError(null);
+            if (!(await prefetchCity(target))) {
+              setBusy(false);
+              setError(t('picker.offline', { city: targetName }));
+              return;
+            }
             const res = sellCompany(
               current,
               target.id,
@@ -121,26 +135,27 @@ export default function Cities() {
               Math.floor(Math.random() * 2 ** 31),
             );
             if ('error' in res) {
+              setBusy(false);
               setError(simError(res.error));
               return;
             }
-            setBusy(true);
             track('prestige', {
               city: target.kind === 'fallback' ? target.id : 'area',
               count: res.state.prestige.sales,
             });
             haptic.success();
             const soldKey = cityKey(city);
+            writeJson(`save-${cityKey(target)}`, res.state);
             useGame.getState().close();
-            // The sold business is gone; its slot is freed unless we restart in the same city.
-            if (soldKey !== cityKey(target)) {
+            await useGame.getState().openCity(target);
+            // The sold business is gone; its slot is freed unless we restarted in the same city.
+            // Only now: openCity has made the new city the last one, so launch never finds no city.
+            if (soldKey !== cityKey(target) && useGame.getState().status === 'ready') {
               removeKey(`save-${soldKey}`);
               useProfile.getState().update((p) => {
                 delete p.cities[soldKey];
               });
             }
-            writeJson(`save-${cityKey(target)}`, res.state);
-            await useGame.getState().openCity(target);
             if (useGame.getState().status === 'ready') router.replace('/map');
             else {
               setBusy(false);

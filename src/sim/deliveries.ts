@@ -241,6 +241,7 @@ function dispatch(state: GameState, plan: RunPlan, driverId?: string): Delivery[
       fuelCents: i === 0 ? plan.fuelCents : 0,
       run,
       leg: i,
+      to: { lat: leg.machine.lat, lng: leg.machine.lng, placedAt: leg.machine.placedAt },
     };
     if (driverId) d.driverId = driverId;
     return d;
@@ -307,28 +308,61 @@ export function lowMachines(state: GameState): Machine[] {
  * usual products while the van has room and the cash lasts.
  */
 export function planLowRun(state: GameState, world: World): RunPlan | null {
-  let room = vanCapacity(state);
-  let cash = state.cashCents;
   const low = lowMachines(state).slice(0, RESTOCK_RUN.maxStops);
+  let stops = lowStops(state, low, state.cashCents);
+  if (!stops.length) {
+    // Nothing affordable: still plan the full run, so the caller says "not enough cash".
+    const full = lowStops(state, low, Infinity);
+    return full.length ? planRun(state, world, full) : null;
+  }
+  let plan = planRun(state, world, stops);
+  // The fuel is paid too: trim the stock to what is left after it (fewer stops, less fuel).
+  for (let i = 0; i < 3 && plan.wholesaleCents + plan.fuelCents > state.cashCents; i++) {
+    const trimmed = lowStops(state, low, state.cashCents - plan.fuelCents);
+    if (!trimmed.length) break;
+    stops = trimmed;
+    plan = planRun(state, world, stops);
+  }
+  return plan;
+}
+
+/** The "Restock low" stops: each low machine gets its share of the van, within `budget` (cents). */
+function lowStops(state: GameState, low: readonly Machine[], budget: number): RunStop[] {
+  let room = vanCapacity(state);
+  let cash = budget;
   const stops: RunStop[] = [];
   low.forEach((m, i) => {
     // Share the van fairly: each stop gets its part of what room is left.
     const share = Math.floor(room / (low.length - i));
     if (share <= 0) return;
-    let lines = suggestRestock(state, m.id, share);
     // Keep the trip affordable: trim the stop to what the cash still covers.
-    while (lines.length && restockCostCents(state, lines) > cash) {
-      const last = lines[lines.length - 1];
-      lines =
-        last.qty > 1 ? [...lines.slice(0, -1), { ...last, qty: last.qty - 1 }] : lines.slice(0, -1);
-    }
+    const lines = trimToBudget(state, suggestRestock(state, m.id, share), cash);
     const units = lines.reduce((a, l) => a + l.qty, 0);
     if (units <= 0) return;
     stops.push({ machine: m, lines });
     room -= units;
     cash -= restockCostCents(state, lines);
   });
-  return stops.length ? planRun(state, world, stops) : null;
+  return stops;
+}
+
+/** The lines (in order) that `budget` cents of wholesale covers; the last one may be cut short. */
+function trimToBudget(
+  state: GameState,
+  lines: readonly RestockLine[],
+  budget: number,
+): RestockLine[] {
+  const out: RestockLine[] = [];
+  let left = budget;
+  for (const l of lines) {
+    const unit = wholesaleCents(state, getProduct(l.productId));
+    const qty = unit > 0 ? Math.min(l.qty, Math.max(0, Math.floor(left / unit))) : l.qty;
+    if (qty <= 0) break;
+    out.push(qty === l.qty ? l : { ...l, qty });
+    left -= unit * qty;
+    if (qty < l.qty) break;
+  }
+  return out;
 }
 
 /** Send one van to every machine running low. */
@@ -360,8 +394,39 @@ export function orderLowRun(
  * Returns what the run cost (stock plus fuel).
  */
 export function dispatchDriver(state: GameState, world: World, driver: Driver): number {
+  let stops = driverStops(state, driver, Infinity);
+  if (!stops.length) return 0;
+  let plan = planRun(state, world, stops);
+  if (plan.wholesaleCents + plan.fuelCents > state.cashCents) {
+    // Short of cash: buy only the stock the cash covers after fuel. Cash-box
+    // stops still go (the run is what brings the money in).
+    for (let i = 0; i < 3; i++) {
+      stops = driverStops(state, driver, Math.max(0, state.cashCents - plan.fuelCents));
+      if (!stops.length) return 0;
+      plan = planRun(state, world, stops);
+      if (plan.wholesaleCents + plan.fuelCents <= Math.max(0, state.cashCents)) break;
+    }
+    // Fuel may be paid out of the cash boxes the van empties on this run.
+    const boxes = stops.reduce(
+      (a, x) => a + x.machine.cashBoxCents * (1 - x.machine.contract.commission),
+      0,
+    );
+    if (plan.wholesaleCents + plan.fuelCents > Math.max(0, state.cashCents) + boxes) return 0;
+  }
+  const out = dispatch(state, plan, driver.id);
+  const units = out.reduce((a, d) => a + d.units, 0);
+  log(state, 'driver', `${driver.name}'s van left with ${units} items for ${out.length} machines`);
+  return plan.wholesaleCents + plan.fuelCents;
+}
+
+/**
+ * A driver's stops: each machine on the route without a van on the way, topped
+ * up (to par with auto-reorder) while the van has room and `budget` (cents of
+ * wholesale) lasts. A machine with cash in its box is a stop even with no stock.
+ */
+function driverStops(state: GameState, driver: Driver, budget: number): RunStop[] {
   let capacity = driverCapacity(state);
-  let cash = state.cashCents;
+  let cash = budget;
   const stops: RunStop[] = [];
   for (const id of driver.machineIds) {
     const m = state.machines.find((x) => x.id === id);
@@ -373,27 +438,31 @@ export function dispatchDriver(state: GameState, world: World, driver: Driver): 
     m.slots.forEach((s, i) => {
       if (!s.productId || capacity <= 0) return;
       const target = autoReorder && s.par > 0 ? Math.min(cap, s.par) : cap;
-      const need = Math.min(capacity, Math.max(0, target - s.qty));
+      const unit = wholesaleCents(state, getProduct(s.productId));
+      const want = Math.min(capacity, Math.max(0, target - s.qty));
+      const need = unit > 0 ? Math.min(want, Math.max(0, Math.floor(cash / unit))) : want;
       if (need <= 0) return;
-      const cost = wholesaleCents(state, getProduct(s.productId)) * need;
-      if (cost > cash) return;
-      cash -= cost;
+      cash -= unit * need;
       capacity -= need;
       lines.push({ slot: i, productId: s.productId, qty: need });
     });
     // A stop for the cash box alone is still worth it.
     if (lines.length || m.cashBoxCents > 0) stops.push({ machine: m, lines });
   }
-  if (!stops.length) return 0;
-  const plan = planRun(state, world, stops);
-  if (plan.wholesaleCents + plan.fuelCents > state.cashCents) return 0;
-  const out = dispatch(state, plan, driver.id);
-  const units = out.reduce((a, d) => a + d.units, 0);
-  log(state, 'driver', `${driver.name}'s van left with ${units} items for ${out.length} machines`);
-  return plan.wholesaleCents + plan.fuelCents;
+  return stops;
 }
 
-/** Vans that reach their machine by `t` fill it. Runs every sim step, live and offline. */
+/** Same placement as when the van left (old saves' deliveries don't say: assume so). */
+function samePlacement(d: Delivery, m: Machine): boolean {
+  if (!d.to) return true;
+  return m.placedAt === d.to.placedAt && distanceM(m, d.to) < 1;
+}
+
+/**
+ * Vans that reach their machine by `t` fill it. Runs every sim step, live and
+ * offline. Each arrival (stock age, fresh bonus, log, cash collected) is
+ * stamped with the van's arrival time, not the step's.
+ */
 export function arriveDeliveries(state: GameState, t: number): DeliveryNews[] {
   if (!state.deliveries.length) return [];
   const news: DeliveryNews[] = [];
@@ -403,13 +472,25 @@ export function arriveDeliveries(state: GameState, t: number): DeliveryNews[] {
   if (!due.length) return news;
   const gone = new Set(due.map((d) => d.id));
   state.deliveries = state.deliveries.filter((d) => !gone.has(d.id));
-  for (const d of due) {
+  const now = state.now;
+  try {
+    for (const d of due) arriveOne(state, d, now, news);
+  } finally {
+    state.now = now;
+  }
+  return news;
+}
+
+function arriveOne(state: GameState, d: Delivery, now: number, news: DeliveryNews[]): void {
+  state.now = Math.max(now, d.arriveAt);
+  {
     const m = state.machines.find((x) => x.id === d.machineId);
-    if (!m || m.status !== 'active') {
+    // Gone, sold, in storage, or picked up and placed somewhere else meanwhile.
+    if (!m || m.status !== 'active' || !samePlacement(d, m)) {
       state.cashCents += d.wholesaleCents;
       if (d.wholesaleCents) addLedger(state, 'Wholesale', d.wholesaleCents);
       news.push({ kind: 'returned', delivery: d });
-      continue;
+      return;
     }
     // Checked when ordered; fillSlots still never goes past a coil's capacity.
     const units = d.lines.length ? fillSlots(state, m, d.lines) : 0;
@@ -423,7 +504,6 @@ export function arriveDeliveries(state: GameState, t: number): DeliveryNews[] {
     }
     news.push({ kind: 'arrived', delivery: d, units });
   }
-  return news;
 }
 
 /** The stop each van is driving to now: per run, the first one not reached yet. */

@@ -4,9 +4,10 @@ import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { VOLUME_STEPS } from '@/config/audio';
+import { LINKS } from '@/config/links';
 import { LANGUAGES, LANGUAGE_NAMES, useLocale, useT, type Lang } from '@/i18n';
 import { content } from '@/i18n/content';
 import { simError } from '@/i18n/sim';
@@ -618,6 +619,20 @@ export default function SettingsScreen() {
         </Section>
 
         <Section title={t('settings.sections.about')}>
+          <Row gap={SPACE.s}>
+            <Button
+              style={{ flex: 1 }}
+              kind="secondary"
+              label={t('credits.privacy.name')}
+              onPress={() => void Linking.openURL(LINKS.privacy).catch(() => undefined)}
+            />
+            <Button
+              style={{ flex: 1 }}
+              kind="secondary"
+              label={t('credits.support.name')}
+              onPress={() => void Linking.openURL(LINKS.support).catch(() => undefined)}
+            />
+          </Row>
           <Button
             kind="secondary"
             label={t('settings.about.credits')}

@@ -489,7 +489,12 @@ export default function MapScreen() {
   const [lowRun, setLowRun] = useState<RunPlan | null>(null);
   const openLowRun = () => {
     const plan = planLowRun(game, world);
-    if (!plan) return;
+    if (!plan) {
+      // Machines are low but no stop fits the cash on hand: say so instead of doing nothing.
+      haptic.error();
+      setPlaceNote(simError('Not enough cash for this stock.'));
+      return;
+    }
     haptic.tick();
     setLowRun(plan);
   };

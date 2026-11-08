@@ -69,7 +69,10 @@
       ],
       "@maplibre/maplibre-react-native",
       "expo-asset",
-      "expo-audio",
+      [
+        "expo-audio",
+        { "microphonePermission": false, "recordAudioAndroid": false, "enableBackgroundPlayback": false }
+      ],
       [
         "expo-location",
         {
@@ -104,8 +107,7 @@
           "androidAppId": "ca-app-pub-3940256099942544~3347511713",
           "userTrackingUsageDescription": "Only if you turn on personalized ads in Settings: lets ad partners show ads that fit you. Coinline works the same either way."
         }
-      ],
-      "@sentry/react-native"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Purchases from 'react-native-purchases';
+import { create } from 'zustand';
 
 import { PURCHASES } from '@/config/economy';
 import { ENV } from '@/data/env';
@@ -20,7 +21,6 @@ export const PRODUCTS = {
     get title() {
       return t('services.products.removeAds.title');
     },
-    price: '$4.99',
     get detail() {
       return t('services.products.removeAds.detail');
     },
@@ -30,7 +30,6 @@ export const PRODUCTS = {
     get title() {
       return t('services.products.starterPack.title');
     },
-    price: '$2.99',
     get detail() {
       // In-game cash, in the city's currency (the real-money price stays as the store gives it).
       return t('services.products.starterPack.detail', {
@@ -43,7 +42,6 @@ export const PRODUCTS = {
     get title() {
       return t('services.products.doubleProfits.title');
     },
-    price: '$4.99',
     get detail() {
       return t('services.products.doubleProfits.detail');
     },
@@ -58,6 +56,34 @@ export function storeAvailable(): boolean {
   return !!(Platform.OS === 'ios' ? ENV.revenueCatIosKey : ENV.revenueCatAndroidKey);
 }
 
+/** Prices as the store gives them, in the player's own currency ("4,99 €", "¥800"). */
+const usePrices = create<{ prices: Partial<Record<ProductKey, string>> }>(() => ({ prices: {} }));
+
+/** The localized store price of a product, or null until the store has answered. */
+export function useStorePrice(key: ProductKey): string | null {
+  return usePrices((s) => s.prices[key] ?? null);
+}
+
+/** Ask the store for local prices (retried by the shop when it opens). */
+export async function loadPrices(): Promise<void> {
+  if (!configured) return;
+  try {
+    const keys = Object.keys(PRODUCTS) as ProductKey[];
+    const products = await Purchases.getProducts(
+      keys.map((k) => PRODUCTS[k].id),
+      Purchases.PRODUCT_CATEGORY.NON_SUBSCRIPTION,
+    );
+    const prices: Partial<Record<ProductKey, string>> = {};
+    for (const k of keys) {
+      const p = products.find((x) => x.identifier === PRODUCTS[k].id);
+      if (p) prices[k] = p.priceString;
+    }
+    usePrices.setState({ prices });
+  } catch {
+    // Offline: the shop shows no price yet and asks again next time it opens.
+  }
+}
+
 export async function initPurchases(): Promise<void> {
   if (configured || !storeAvailable()) return;
   try {
@@ -65,11 +91,13 @@ export async function initPurchases(): Promise<void> {
       apiKey: Platform.OS === 'ios' ? ENV.revenueCatIosKey : ENV.revenueCatAndroidKey,
       appUserID: useProfile.getState().installId,
     });
-    configured = true;
-    await syncEntitlements();
   } catch {
-    configured = false;
+    return;
   }
+  configured = true;
+  // Offline at launch must not turn the store off: entitlements and prices are fetched again later.
+  await syncEntitlements().catch(() => undefined);
+  await loadPrices();
 }
 
 /** Apply what the store says the player owns (restores across reinstalls). */

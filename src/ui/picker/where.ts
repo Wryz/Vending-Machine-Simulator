@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { FALLBACK_CITIES, LOCATION_TIMEOUT_MS } from '@/config/cities';
 import { kmBetween, type PickerCity } from '@/data/cityIndex';
@@ -10,10 +10,13 @@ import type { CityInfo } from '@/store/profile';
 const coarse = (n: number) => Math.round(n * 100) / 100;
 
 function timeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let id: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
     p,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
-  ]);
+    new Promise<T>((_, reject) => {
+      id = setTimeout(() => reject(new Error('timeout')), ms);
+    }),
+  ]).finally(() => clearTimeout(id));
 }
 
 /**
@@ -26,6 +29,13 @@ export function useYou(): {
   locate: () => Promise<'ok' | 'denied' | 'failed'>;
 } {
   const [you, setYou] = useState<{ lat: number; lng: number } | null>(null);
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    [],
+  );
   const read = useCallback(async () => {
     const pos =
       (await Location.getLastKnownPositionAsync({ maxAge: 30 * 60_000 })) ??
@@ -33,7 +43,8 @@ export function useYou(): {
         Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest }),
         LOCATION_TIMEOUT_MS,
       ));
-    setYou({ lat: coarse(pos.coords.latitude), lng: coarse(pos.coords.longitude) });
+    if (mounted.current)
+      setYou({ lat: coarse(pos.coords.latitude), lng: coarse(pos.coords.longitude) });
   }, []);
   useEffect(() => {
     void Location.getForegroundPermissionsAsync()

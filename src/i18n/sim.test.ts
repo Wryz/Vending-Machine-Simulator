@@ -252,7 +252,7 @@ describe('spot reasons', () => {
     const missing = found
       .map((x) => norm(x.text))
       // Plural built in code; the catalog has one/other forms.
-      .filter((x) => x !== 'Brightvend has {} machine{} within 250 m.')
+      .filter((x) => x !== 'Brightvend has {} machine{} within {} m.')
       .filter((x) => !leaves.has(x));
     expect(missing).toEqual([]);
   });

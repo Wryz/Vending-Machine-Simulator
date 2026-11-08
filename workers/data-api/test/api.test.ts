@@ -381,7 +381,8 @@ describe('/weather', () => {
   it('uses MET Norway by default (free, no key) with an identifying User-Agent', async () => {
     const fetchFn = stubFetch();
     const res5 = latLngToCell(52.52, 13.4, 5);
-    const res = await call(makeEnv(), `/weather?cell=${res5}`);
+    const built = new FakeBucket().put(`cells/${res5}.meta.json`, '{}');
+    const res = await call(makeEnv(built), `/weather?cell=${res5}`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as WeatherResponse;
     expect(body.source).toContain('MET Norway');
@@ -405,7 +406,9 @@ describe('/weather', () => {
     const fetchFn = stubFetch(openMeteoPayload());
     const res5 = latLngToCell(52.52, 13.4, 5);
     const res = await call(
-      makeEnv(undefined, { OPEN_METEO_API_KEY: 'k' }),
+      makeEnv(new FakeBucket().put(`cells/${res5}.meta.json`, '{}'), {
+        OPEN_METEO_API_KEY: 'k',
+      }),
       `/weather?cell=${res5}`,
     );
     expect(res.status).toBe(200);
@@ -429,6 +432,14 @@ describe('/weather', () => {
     const [cLat, cLng] = cellToLatLng(res5);
     expect(Number(url.searchParams.get('latitude'))).toBe(roundCoord(cLat));
     expect(Number(url.searchParams.get('longitude'))).toBe(roundCoord(cLng));
+  });
+
+  it('refuses a valid cell that is not a built region (no upstream call)', async () => {
+    const fetchFn = stubFetch();
+    const res5 = latLngToCell(-75, 120, 5); // Antarctica: never built
+    const res = await call(makeEnv(), `/weather?cell=${res5}`);
+    expect(res.status).toBe(404);
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it('accepts ?city= and uses the commercial endpoint when a key is set', async () => {

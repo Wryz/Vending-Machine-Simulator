@@ -165,6 +165,12 @@ export interface Delivery {
   leg?: number;
   /** A hired driver's van: collects the cash box too, no fresh-stock bonus, not one of the player's vans. */
   driverId?: string;
+  /**
+   * The placement the van drives to (the machine's spot and `placedAt` when
+   * ordered). A machine picked up and placed elsewhere meanwhile is a
+   * different placement: the stock goes back. Old saves: none (not checked).
+   */
+  to?: { lat: number; lng: number; placedAt: number };
 }
 
 export interface RequestsState {

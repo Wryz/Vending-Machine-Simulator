@@ -80,6 +80,9 @@ export const FIT = {
   selectionRef: 6,
   /** At most this share of stopping customers buy something. */
   maxBuy: 0.95,
+  /** Weather "pull" (how many stop at all, from the stocked products' weather fit) is clamped to this range. */
+  pullMin: 0.5,
+  pullMax: 1.8,
   /** Tag fit multipliers are clamped to this range. */
   min: 0.35,
   max: 1.8,
@@ -120,6 +123,12 @@ export const STAFF = {
   routeIntervalHours: 6,
   /** Items a driver carries per run (warehouse raises this). */
   driverCapacity: 600,
+  /**
+   * Catch-up: most route runs one driver makes in one sim step. Coarse offline
+   * steps (60 min) hold 10 runs at the 6-business-hour interval; runs past
+   * this are skipped, which keeps long catch-ups bounded.
+   */
+  maxRunsPerStep: 12,
   warehouseDriverCapacity: 1_500,
   warehouseRentCentsPerDay: 6_000,
   warehouseBuyCents: 900_000,
@@ -135,6 +144,37 @@ export const OVERHEAD = {
   districtInstallMultiplier: [1, 1.25, 1.6, 2.0],
 } as const;
 
+/** Placing, selling and pricing machines (src/sim/actions.ts). */
+export const PLACEMENT = {
+  /** Two machines (yours or the rival's) can't stand closer than this (m). */
+  minSpacingM: 8,
+  /** Selling a machine refunds this share of its purchase price. */
+  sellRefundShare: 0.4,
+} as const;
+
+/** Price setting limits (src/sim/actions.ts setPrice). */
+export const PRICING = {
+  /** Highest price: this multiple of the suggested price. */
+  maxSuggestedMultiple: 3,
+  /** Lowest price: this multiple of the wholesale price. */
+  minWholesaleMultiple: 0.5,
+  /** Prices snap to this step (cents). */
+  stepCents: 5,
+} as const;
+
+/** One-time permits (company screen). */
+export const PERMITS = {
+  liquorCents: 1_500_000,
+} as const;
+
+/** Research effects not covered elsewhere (src/sim/advance.ts). */
+export const RESEARCH_EFFECTS = {
+  /** Cooler: hot and cold products fit this much better. */
+  coolerHotColdFit: 1.05,
+  /** Cooler: refrigerated machines break down this much as often. */
+  coolerFridgeBreakdown: 0.6,
+} as const;
+
 export const CONTRACT = {
   termsDays: [30, 90, 180] as const,
   /** Longer terms earn a lower commission ask. */
@@ -144,8 +184,10 @@ export const CONTRACT = {
   exclusivityRadiusM: 250,
   commissionMin: 0.1,
   commissionMax: 0.35,
-  /** Renegotiation (chapter-1 unlock) can shave this much, once per contract. */
+  /** Renegotiation (chapter-1 unlock) can shave this much, once per contract (never below commissionMin). */
   renegotiateDiscount: 0.03,
+  /** The venue only renegotiates at or above this mood. */
+  renegotiateMinMood: 0.6,
   /**
    * Venue mood (0..1) moves in REAL hours, not business days. Venues judge
    * service on a human clock: on the 60× business clock an unattended machine
@@ -174,6 +216,11 @@ export const RISK = {
   theftBasePerDay: 0.03,
   theftIsolationWeight: 1.6,
   theftNightWeight: 0.8,
+  /** Theft "night" (local hours): from nightStartHour until nightEndHour. */
+  nightStartHour: 22,
+  nightEndHour: 6,
+  /** Share of breakdowns in refrigerated machines that are fridge failures (the rest jam). */
+  fridgeFailureShare: 0.5,
   /** Fraction of cash box and stock lost on a theft. */
   theftCashLoss: 0.6,
   theftStockLoss: 0.15,
@@ -193,12 +240,17 @@ export const COMPETITION = {
   maxShare: 0.7,
   /** Real convenience stores count as this many machines. */
   storeWeight: 0.6,
+  /** A cell's store count is shared with its neighbors: this share counts at a machine. */
+  storeCellShare: 0.5,
 } as const;
 
 export const VISIBILITY = {
   base: 1.0,
   /** At night an unlit machine is easy to miss; LED panel research fixes it. */
   nightUnlit: 0.8,
+  /** Visibility "night" (local hours): from nightStartHour until nightEndHour. */
+  nightStartHour: 20,
+  nightEndHour: 6,
   ledPanel: 1.12,
 } as const;
 
@@ -256,6 +308,22 @@ export const RIVAL = {
   stealChance: 0.5,
   /** Rival per-machine sales baseline as a share of an equivalent player machine. */
   efficiency: 0.85,
+} as const;
+
+/** The Spot Card's ratings and warnings (src/sim/spot.ts). */
+export const SPOT_CARD = {
+  /**
+   * Customers per business hour (DEMAND_SCALE included, like the sim) that
+   * count as a "decent" spot: 3 stars. 18 before the card used DEMAND_SCALE.
+   */
+  decentCustomersPerHour: 18 * DEMAND_SCALE,
+  /** Below this share of decent: "Few people pass here." */
+  fewPeopleShare: 0.35,
+  /** Nearby places listed within this radius (m). */
+  nearbyRadiusM: 400,
+  /** Theft score thresholds (per-day rate incl. isolation and night share). */
+  theftHighAbove: 0.09,
+  theftMediumAbove: 0.05,
 } as const;
 
 export const PRESTIGE = {

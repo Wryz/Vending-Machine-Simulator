@@ -16,7 +16,6 @@ import { ENV } from '@/data/env';
 import { useLang } from '@/i18n';
 import { bindLanguageToProfile } from '@/i18n/init';
 import { initAds } from '@/services/ads';
-import { initCrashReports, withCrashReports } from '@/services/crashes';
 import { initGameCenter } from '@/services/gameCenter';
 import { sound } from '@/services/audio';
 import { initPurchases } from '@/services/purchases';
@@ -27,7 +26,6 @@ import { CelebrationHost } from '@/ui/CelebrationHost';
 import { ThemeProvider, useTheme } from '@/ui/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
-initCrashReports();
 
 function Navigator() {
   const theme = useTheme();
@@ -69,11 +67,13 @@ function RootLayout() {
 
   useEffect(() => {
     if (!loaded) return;
-    initPurchases();
     // Silent: signs in only if the player already uses Game Center; never prompts.
     initGameCenter();
     // Ads SDK starts after launch and never shows anything on its own (SPEC §9).
-    if (!useProfile.getState().entitlements.removeAds) initAds();
+    // After purchases sync, so a reinstall that owns Remove Ads never sees the consent form.
+    void initPurchases().finally(() => {
+      if (!useProfile.getState().entitlements.removeAds) void initAds();
+    });
   }, [loaded]);
 
   // The native splash still hands off to the animated BrandSplash (same art),
@@ -117,4 +117,4 @@ function App({ lang }: { lang: string }) {
   );
 }
 
-export default withCrashReports(RootLayout);
+export default RootLayout;

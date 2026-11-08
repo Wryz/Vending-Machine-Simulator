@@ -16,6 +16,12 @@ bucket_name = "coinline-data"
 enabled = true
 redact_query_string = true
 
+# No per-request invocation logs: they carry Cloudflare's IP geolocation
+# (request.cf city/postcode/lat-lng), and the privacy policy says location is
+# never logged. Our own console lines (errors, counts, res-5 only) still show.
+[observability.logs]
+invocation_logs = false
+
 # Weather defaults to MET Norway (free, no key). Optional secret to use the
 # commercial Open-Meteo endpoint (customer-api.open-meteo.com) instead:
 #   npx wrangler secret put OPEN_METEO_API_KEY

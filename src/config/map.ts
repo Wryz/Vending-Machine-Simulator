@@ -167,6 +167,9 @@ export const CAMERA = {
   /** The + / − keys: one zoom step each, eased. */
   zoomStep: 1,
   zoomStepMs: 250,
+  /** Tapping a cluster of machines zooms in this much, eased. */
+  clusterZoomStep: 2,
+  clusterZoomMs: 450,
 } as const;
 
 /**

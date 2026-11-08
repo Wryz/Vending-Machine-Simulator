@@ -4,7 +4,7 @@ import { Alert, StyleSheet, View } from 'react-native';
 
 import { getMachineType, type MachineTypeId } from '@/config/machines';
 import { SHEET_OPEN_SHARE } from '@/config/map';
-import { CATEGORY_LABEL } from '@/config/places';
+import { CATEGORY_LABEL, VENUE_CATEGORIES, VENUE_RADIUS_M } from '@/config/places';
 import { TUTORIAL } from '@/config/tutorial';
 import type { PlaceCategory } from '@/data/types';
 import { useT } from '@/i18n';
@@ -100,8 +100,8 @@ function SpotBody({
     () => evaluateSpot(game, world, point, typeId, game.now, placeId),
     [game, world, point, typeId, placeId],
   );
-  /** The place you tapped on the map, if any. */
-  const focus = point.placeId ? spot.nearby.find((p) => p.id === point.placeId) : undefined;
+  /** The place the card is about: the one tapped on the map, then the one picked with "Use". */
+  const focus = placeId ? spot.nearby.find((p) => p.id === placeId) : undefined;
   const hourNow = Math.floor(localTime(game.now, world.city.timeZone, world.city.countryCode).hour);
   const rating = Math.round(spot.rating);
   const canPlace = !spot.districtLocked && !spot.blocked;
@@ -289,14 +289,19 @@ function SpotBody({
                 })}
               </T>
             </View>
-            {p.distanceM <= 120 && p.category !== 'competitor' ? (
+            {p.distanceM <= VENUE_RADIUS_M && VENUE_CATEGORIES.includes(p.category) ? (
               <Chip
                 label={spot.venue.placeId === p.id ? t('spotSheet.host') : t('spotSheet.use')}
                 active={spot.venue.placeId === p.id}
                 onPress={() => setPlaceId(p.id)}
+                accessibilityLabel={`${spot.venue.placeId === p.id ? t('spotSheet.host') : t('spotSheet.use')} · ${p.name}`}
               />
             ) : null}
-            <Chip label={t('spotSheet.report')} onPress={() => report(p.id, p.name)} />
+            <Chip
+              label={t('spotSheet.report')}
+              accessibilityLabel={`${t('spotSheet.report')} · ${p.name}`}
+              onPress={() => report(p.id, p.name)}
+            />
           </Row>
         ))}
         <T size={11} color="#FFE3D4">

@@ -82,6 +82,8 @@ interface Props {
    */
   sales?: readonly LifeSale[];
   onSalesShown?: (ids: string[]) => void;
+  /** The map's last settled view: a remount (style reload) picks up from it. */
+  initialView?: ViewStateChangeEvent | null;
 }
 
 /** A sale at a machine (position and facing, so the customer knows where to stand). */
@@ -203,23 +205,28 @@ export const StreetLifeLayer = memo(
       }
     }, [mapRef, height]);
 
-    useImperativeHandle(
-      ref,
-      () => ({
-        regionDidChange(v) {
-          lastView.current = v;
-          const close = v.zoom >= MAP_LIFE.minZoom;
-          setZoomedIn(close);
-          if (v.zoom >= MAP_LIFE.minZoom - 0.5) setImagesWanted(true);
-          updateConditions();
-          if (close) simRef.current!.setView(lifeViewOf(v, height));
-          if (debounce.current) clearTimeout(debounce.current);
-          debounce.current = setTimeout(queryRoads, MAP_LIFE.roadQueryDebounceMs);
-          emitStats(true);
-        },
-      }),
+    const regionDidChange = useCallback(
+      (v: ViewStateChangeEvent) => {
+        lastView.current = v;
+        const close = v.zoom >= MAP_LIFE.minZoom;
+        setZoomedIn(close);
+        if (v.zoom >= MAP_LIFE.minZoom - 0.5) setImagesWanted(true);
+        updateConditions();
+        if (close) simRef.current!.setView(lifeViewOf(v, height));
+        if (debounce.current) clearTimeout(debounce.current);
+        debounce.current = setTimeout(queryRoads, MAP_LIFE.roadQueryDebounceMs);
+        emitStats(true);
+      },
       [queryRoads, updateConditions, emitStats, height],
     );
+    useImperativeHandle(ref, () => ({ regionDidChange }), [regionDidChange]);
+    // Remounted after a style reload: people come back without waiting for the camera to move.
+    const initialView = props.initialView;
+    useEffect(() => {
+      if (initialView) regionDidChange(initialView);
+      // Once per mount.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
       const sub = AppState.addEventListener('change', (s) => setAppActive(s === 'active'));

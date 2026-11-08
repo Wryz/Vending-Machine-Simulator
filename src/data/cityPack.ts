@@ -1,6 +1,8 @@
 import { File, Paths } from 'expo-file-system';
 import { gunzipSync, strFromU8 } from 'fflate';
 
+import { DATA_CACHE } from '@/config/dataCache';
+
 import { fetchCityPack, fetchCityRoads, fetchRegionPack, fetchRegionRoads } from './api';
 import type { RegionPack, RoadNet } from './types';
 
@@ -27,24 +29,50 @@ export function decodeRoads(bytes: Uint8Array): RoadNet {
   return net;
 }
 
-/** Read `name` from the cache, or download it once (`decode` checks it before caching). */
+/** Read `name` from the cache, or download it (`decode` checks it before caching). */
 async function cached<T>(
   name: string,
   download: () => Promise<Uint8Array>,
   decode: (b: Uint8Array) => T,
 ): Promise<T> {
-  const file = new File(Paths.document, name);
+  // Re-downloadable data lives in Caches (not backed up to iCloud). Packs
+  // saved by older builds in Documents move over on first use.
+  const file = new File(Paths.cache, name);
+  const old = new File(Paths.document, name);
+  if (!file.exists && old.exists) {
+    try {
+      old.moveSync(file);
+    } catch {
+      old.delete();
+    }
+  }
+  let stale: T | null = null;
   if (file.exists) {
     try {
-      return decode(await file.bytes());
+      const value = decode(await file.bytes());
+      const at = file.info().modificationTime ?? 0;
+      if (Date.now() - at < DATA_CACHE.refreshAfterDays * 86_400_000) return value;
+      stale = value;
     } catch {
       // Truncated or from an old schema: drop it and download it again.
       file.delete();
     }
   }
-  const bytes = await download();
+  let bytes: Uint8Array;
+  try {
+    bytes = await download();
+  } catch (e) {
+    if (stale !== null) return stale; // Offline: the old copy still plays.
+    throw e;
+  }
   const value = decode(bytes);
-  file.writeSync(bytes);
+  try {
+    if (file.exists) file.delete();
+    file.create();
+    file.writeSync(bytes);
+  } catch {
+    // Disk full or similar: play from memory; it downloads again next time.
+  }
   return value;
 }
 

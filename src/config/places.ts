@@ -45,6 +45,9 @@ export function distanceDecay(distanceM: number): number {
 export const YOUTH_CATEGORIES: readonly PlaceCategory[] = ['school'];
 export const ALCOHOL_MIN_DISTANCE_M = 300;
 
+/** How close a place must be to host a machine placed at a spot, in meters. */
+export const VENUE_RADIUS_M = 120;
+
 /** Categories a machine can be contracted with (the venue hosts the machine). */
 export const VENUE_CATEGORIES: readonly PlaceCategory[] = [
   'school',

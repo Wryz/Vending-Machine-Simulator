@@ -1,4 +1,14 @@
-import { CASH, CONTRACT, FIT, RISK, RIVAL, SERVICE, STAFF, TIME } from '@/config/economy';
+import {
+  CASH,
+  CONTRACT,
+  FIT,
+  RESEARCH_EFFECTS,
+  RISK,
+  RIVAL,
+  SERVICE,
+  STAFF,
+  TIME,
+} from '@/config/economy';
 import { CHAPTER_GOALS as CHAPTER_GOALS_REF } from '@/config/progression';
 import { SURPRISES } from '@/config/surprises';
 import { getMachineType, type MachineType } from '@/config/machines';
@@ -33,7 +43,9 @@ import { rollRequest, serveRequests, type RequestNews } from './requests';
 import { happens, nextRandom, poisson } from './rng';
 import {
   playerShare,
+  rivalCap,
   rivalDecide,
+  rivalMachineId,
   rivalRevenue,
   rivalSting,
   updateLead,
@@ -264,11 +276,11 @@ function sellStep(
       fitFor(ctx.cache, cell.id, p, traffic, ctx.local.hour) *
       (noBoost ? 1 : tagBoostFactor(p, tagBoost)) *
       w *
-      (cooler && HOT_COLD(p) ? 1.05 : 1);
+      (cooler && HOT_COLD(p) ? RESEARCH_EFFECTS.coolerHotColdFit : 1);
     stocked++;
   }
   if (!stocked) return 0;
-  const pull = Math.min(1.8, Math.max(0.5, weatherSum / stocked));
+  const pull = Math.min(FIT.pullMax, Math.max(FIT.pullMin, weatherSum / stocked));
   const customersPulled = customers * pull;
   const denom = Math.max(stocked, FIT.selectionRef);
   const cardShare = hasResearch(state, 'card-reader', type.family) ? CASH.cardShare : 0;
@@ -391,9 +403,10 @@ function risksStep(
   if (!m.broken) {
     const fridge = type.holds.some((f) => FRIDGE_FAMILIES.has(f));
     const cooler = hasResearch(state, 'cooler', type.family);
-    const rate = type.breakdownPerDay * (fridge && cooler ? 0.6 : 1);
+    const rate =
+      type.breakdownPerDay * (fridge && cooler ? RESEARCH_EFFECTS.coolerFridgeBreakdown : 1);
     if (happens(state, rate, riskDays)) {
-      const kind = fridge && nextRandom(state) < 0.5 ? 'fridge' : 'jam';
+      const kind = fridge && nextRandom(state) < RISK.fridgeFailureShare ? 'fridge' : 'jam';
       const tech = hasResearch(state, 'technician', type.family);
       m.broken = {
         kind,
@@ -406,7 +419,7 @@ function risksStep(
   }
   // Theft & vandalism: loss of cash and stock, never the machine.
   const cell = world.cells.get(m.cellId) ?? EMPTY_CELL;
-  const night = local.hour < 6 || local.hour >= 22;
+  const night = local.hour < RISK.nightEndHour || local.hour >= RISK.nightStartHour;
   let theftRate =
     RISK.theftBasePerDay *
     type.theftRisk *
@@ -467,8 +480,18 @@ function contractStep(
   /** Real hours this step covers (mood runs on real time, see CONTRACT). */
   hours: number,
   report: AdvanceReport,
+  /**
+   * Share of the step the machine stood empty (0..1). Default: judged by
+   * whether it is empty now. Catch-up passes it for machines on a driver's
+   * route, which are refilled several times within a coarse step.
+   */
+  emptyShare?: number,
 ): void {
   if (m.broken) m.mood -= CONTRACT.moodLossBrokenPerHour * hours;
+  else if (emptyShare !== undefined)
+    m.mood +=
+      (CONTRACT.moodRecoverPerHour * (1 - emptyShare) - CONTRACT.moodLossEmptyPerHour * emptyShare) *
+      hours;
   else if (isEmpty(m)) m.mood -= CONTRACT.moodLossEmptyPerHour * hours;
   else m.mood += CONTRACT.moodRecoverPerHour * hours;
   m.mood = Math.min(1, Math.max(0, m.mood));
@@ -500,10 +523,12 @@ function contractStep(
       !m.contract.exclusive &&
       m.venue.category !== 'street' &&
       m.mood < RIVAL.stealMoodBelow &&
-      nextRandom(state) < RIVAL.stealChance;
+      nextRandom(state) < RIVAL.stealChance &&
+      // Its fleet stays within its cap (judged with this machine still yours).
+      state.rival.machines.length < rivalCap(state);
     if (rivalBids) {
       lose(`${RIVAL.name} outbid you`);
-      const rivalId = `r${state.nextId++}`;
+      const rivalId = rivalMachineId(state);
       report.rival.push({ kind: 'steal', rivalId, machineId: m.id });
       state.rival.machines.push({
         id: rivalId,
@@ -602,6 +627,8 @@ export function beginAdvance(
     report.skippedMs = to - s.now - cap;
     s.now = to - cap;
     report.fromAt = s.now;
+    // Rival decisions due in the skipped time are skipped too (not replayed in the first step).
+    if (s.rival.nextDecisionAt < s.now) s.rival.nextDecisionAt = s.now;
   }
   const longGap = to - s.now > 15 * 60_000;
   const fineUntil = s.now + TIME.offlineFineHours * 3_600_000;
@@ -623,10 +650,19 @@ export function beginAdvance(
   );
 
   const from = s.now;
+  const runIntervalMs = businessHoursToMs(STAFF.routeIntervalHours);
+  const trackEmpty = (m: Machine) => {
+    if (m.status === 'active' && isEmpty(m) && !emptyBefore.has(m.id)) {
+      emptyBefore.add(m.id);
+      report.becameEmpty.push(m.id);
+      log(s, 'empty', 'Machine empty', m.id);
+    } else if (!isEmpty(m)) emptyBefore.delete(m.id);
+  };
   const step = () => {
     const lostBefore = report.contractsLost.length;
     const weightBefore = rivalWeight(s);
     const dt = Math.min(stepAt(s.now), to - s.now);
+    const segFrom = s.now;
     const tMid = s.now + dt / 2;
     const tEnd = s.now + dt;
     const local = localTime(tMid, world.city.timeZone, world.city.countryCode);
@@ -653,11 +689,17 @@ export function beginAdvance(
     const rivalsBefore = s.rival.machines.slice();
     // One context per step (only `competitors` changes per machine): no allocation per machine.
     const sellCtx = { local, weather, competitors: 0, t: tMid, bh, cache, salesBonus };
+    // Steps longer than a driver's route interval (offline catch-up) split the
+    // sales of machines on a route at each run, so they're refilled (and their
+    // cash boxes emptied) at about the live cadence instead of once per step.
+    const split = s.drivers.length > 0 && dt > runIntervalMs;
+    const driven = split ? new Set(s.drivers.flatMap((d) => d.machineIds)) : null;
     for (const m of s.machines) {
       if (m.status !== 'active') continue;
       const type = getMachineType(m.typeId);
+      const onRoute = driven?.has(m.id) ?? false;
       sellCtx.competitors = comp.get(m.id) ?? 0;
-      sellStep(s, world, m, type, sellCtx, report);
+      if (!onRoute) sellStep(s, world, m, type, sellCtx, report);
       powerCents += type.powerCentsPerDay * bd;
       costs += risksStep(
         s,
@@ -670,29 +712,61 @@ export function beginAdvance(
         report,
       );
       spoilStep(s, m, tMid, report);
+      if (onRoute) continue;
       contractStep(s, world, m, tMid, dt / 3_600_000, report);
-      if (m.status === 'active' && isEmpty(m) && !emptyBefore.has(m.id)) {
-        emptyBefore.add(m.id);
-        report.becameEmpty.push(m.id);
-        log(s, 'empty', 'Machine empty', m.id);
-      } else if (!isEmpty(m)) emptyBefore.delete(m.id);
+      trackEmpty(m);
     }
 
     // Drivers run their routes on a fixed business-hour interval.
-    for (const d of s.drivers) {
-      let runs = 0;
-      while (d.nextRunAt <= tEnd && runs < 6) {
-        s.now = Math.max(s.now, Math.min(tEnd, d.nextRunAt));
-        // Vans due by now have filled their machines before the next run is planned.
-        for (const news of arriveDeliveries(s, s.now)) report.deliveries.push(news);
-        const spent = dispatchDriver(s, world, d);
-        if (spent > 0) report.driverRuns++;
-        costs += spent;
-        d.nextRunAt += businessHoursToMs(STAFF.routeIntervalHours);
-        runs++;
+    const runsDue = (until: number) => {
+      for (const d of s.drivers) {
+        while (d.nextRunAt <= until && (runs.get(d.id) ?? 0) < STAFF.maxRunsPerStep) {
+          s.now = Math.max(s.now, Math.min(tEnd, d.nextRunAt));
+          // Vans due by now have filled their machines before the next run is planned.
+          for (const news of arriveDeliveries(s, s.now)) report.deliveries.push(news);
+          const spent = dispatchDriver(s, world, d);
+          if (spent > 0) report.driverRuns++;
+          costs += spent;
+          d.nextRunAt += runIntervalMs;
+          runs.set(d.id, (runs.get(d.id) ?? 0) + 1);
+        }
       }
-      if (d.nextRunAt <= tEnd) d.nextRunAt = tEnd + 1;
-    }
+    };
+    const runs = new Map<string, number>();
+    if (driven) {
+      // Segment ends: each run time inside the step, then the step's end.
+      const ends: number[] = [];
+      for (const d of s.drivers)
+        for (let k = 0, at = d.nextRunAt; at < tEnd && k < STAFF.maxRunsPerStep; k++) {
+          ends.push(Math.max(segFrom, at));
+          at += runIntervalMs;
+        }
+      ends.push(tEnd);
+      ends.sort((a, b) => a - b);
+      let from = segFrom;
+      for (const end of ends) {
+        if (end > from) {
+          const len = end - from;
+          const mid = from + len / 2;
+          // Vans that reach their stop in this segment's first half fill it before it sells.
+          for (const news of arriveDeliveries(s, mid)) report.deliveries.push(news);
+          const segCtx = { ...sellCtx, t: mid, bh: businessHours(len) };
+          for (const m of s.machines) {
+            if (m.status !== 'active' || !driven.has(m.id)) continue;
+            const emptyAtStart = isEmpty(m) ? 1 : 0;
+            segCtx.competitors = comp.get(m.id) ?? 0;
+            sellStep(s, world, m, getMachineType(m.typeId), segCtx, report);
+            // Empty part of the time: half credit when it sold out during the segment.
+            const emptyShare = (emptyAtStart + (isEmpty(m) ? 1 : 0)) / 2;
+            contractStep(s, world, m, mid, len / 3_600_000, report, emptyShare);
+          }
+          from = end;
+        }
+        runsDue(end);
+      }
+      for (const m of s.machines) if (m.status === 'active' && driven.has(m.id)) trackEmpty(m);
+    } else runsDue(tEnd);
+    for (const d of s.drivers) if (d.nextRunAt <= tEnd) d.nextRunAt = tEnd + 1;
 
     // Fixed daily costs, prorated.
     const n = activeMachines(s).length;

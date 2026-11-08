@@ -100,9 +100,15 @@ export function PickerGlobe({
         },
         k >= 1,
       );
-      if (k < 1) requestAnimationFrame(step);
+      if (k < 1) frame = requestAnimationFrame(step);
     };
-    requestAnimationFrame(step);
+    let frame = requestAnimationFrame(step);
+    // Unmounting (or a newer fly-to) stops this one.
+    const cleanup = () => {
+      cancelAnimationFrame(frame);
+      if (anim === live.current.anim) live.current.anim++;
+    };
+    return cleanup;
     // Only a new fly-to request (its key) starts an animation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flyTo.key]);

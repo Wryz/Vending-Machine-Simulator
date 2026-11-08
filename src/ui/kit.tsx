@@ -226,11 +226,14 @@ export function Chip({
   color,
   onPress,
   active,
+  accessibilityLabel,
 }: {
   label: string;
   color?: string;
   onPress?: () => void;
   active?: boolean;
+  /** Spoken label when the visible one needs context ("Use · City Hall"). */
+  accessibilityLabel?: string;
 }) {
   const body = (
     <>
@@ -251,7 +254,7 @@ export function Chip({
       tone={active ? 'brand' : 'white'}
       onPress={onPress}
       height={34}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       faceStyle={{ paddingHorizontal: SPACE.m, gap: 6 }}
     >
       {body}

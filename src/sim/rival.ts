@@ -7,7 +7,8 @@ import { baseTraffic, competitionShare } from './demand';
 import { distanceM, offsetPoint } from './geo';
 import { log } from './ledger';
 import { keyedUnit, nextRandom, pick } from './rng';
-import { activeMachines, isEmpty } from './rules';
+import { nextId } from './create';
+import { activeMachines, isEmpty, maxOfflineMs } from './rules';
 import type { GameState, Machine, RivalMachine, World } from './state';
 import { businessHoursToMs, type LocalTime } from './time';
 
@@ -92,6 +93,15 @@ export function nearestMine(
   return best;
 }
 
+/**
+ * A new rival machine id. `rv-` + base 36 can't collide with the other ids
+ * (`r` + base 36 van runs, `m`/`d` machines, drivers, deliveries) nor with
+ * old saves' rival ids (`r` + decimal), which are kept as they are.
+ */
+export function rivalMachineId(state: GameState): string {
+  return nextId(state, 'rv-');
+}
+
 function newRivalMachine(
   state: GameState,
   pos: { lat: number; lng: number },
@@ -99,7 +109,7 @@ function newRivalMachine(
   t: number,
 ): RivalMachine {
   const machine: RivalMachine = {
-    id: `r${state.nextId++}`,
+    id: rivalMachineId(state),
     lat: pos.lat,
     lng: pos.lng,
     cellId,
@@ -226,6 +236,10 @@ export function rivalDecide(state: GameState, world: World, t: number, out?: Riv
     for (let i = 0; i < RIVAL.startFleet; i++) first ??= placeRivalMachine(state, world, t);
     news(out, state, 'ramp', first);
   }
+  // After a long absence (or an old save) don't replay decisions from before
+  // the offline window: at most the cap's worth are caught up.
+  const floor0 = t - maxOfflineMs(state);
+  if (rival.nextDecisionAt < floor0) rival.nextDecisionAt = floor0;
   while (rival.nextDecisionAt <= t) {
     rival.nextDecisionAt += businessHoursToMs(RIVAL.decisionEveryHours);
     const share = playerShare(state);

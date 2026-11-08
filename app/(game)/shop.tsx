@@ -6,7 +6,16 @@ import { t as gt, useT } from '@/i18n';
 import { simError } from '@/i18n/sim';
 import { adsAvailable, showRewarded } from '@/services/ads';
 import { haptic } from '@/services/haptics';
-import { PRODUCTS, buy, restore, storeAvailable, type ProductKey } from '@/services/purchases';
+import {
+  PRODUCTS,
+  buy,
+  loadPrices,
+  restore,
+  syncEntitlements,
+  storeAvailable,
+  useStorePrice,
+  type ProductKey,
+} from '@/services/purchases';
 import { applyAdReward, applyStarterPack } from '@/sim';
 import { useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
@@ -28,17 +37,17 @@ function productDetail(key: ProductKey): string {
 }
 
 function Offer({
+  product,
   title,
   detail,
-  price,
   owned,
   disabled,
   busy,
   onBuy,
 }: {
+  product: ProductKey;
   title: string;
   detail: string;
-  price: string;
   owned: boolean;
   disabled: boolean;
   busy: boolean;
@@ -46,6 +55,7 @@ function Offer({
 }) {
   const theme = useTheme();
   const t = useT();
+  const price = useStorePrice(product) ?? '…';
   return (
     <Paper tone="surface" style={{ gap: SPACE.xs }}>
       <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -89,7 +99,7 @@ function DoubleProfitsOffer({
 }) {
   const theme = useTheme();
   const t = useT();
-  const price = PRODUCTS.doubleProfits.price;
+  const price = useStorePrice('doubleProfits') ?? '…';
   return (
     <Paper tone="surface" style={{ gap: SPACE.s }}>
       <Row style={{ alignItems: 'center', gap: SPACE.m }}>
@@ -130,6 +140,12 @@ export default function Shop() {
   const [busy, setBusy] = useState<ProductKey | 'restore' | 'ad' | null>(null);
   const store = storeAvailable();
   const starterEligible = !!game?.chapterDoneAt[1] && !entitlements.starterPackClaimed;
+
+  // Local prices (and anything bought elsewhere), fetched again in case launch was offline.
+  useEffect(() => {
+    void loadPrices();
+    void syncEntitlements().catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (starterEligible && !useProfile.getState().entitlements.starterPackOffered) {
@@ -224,9 +240,9 @@ export default function Shop() {
             onBuy={() => purchase('doubleProfits')}
           />
           <Offer
+            product="removeAds"
             title={productTitle('removeAds')}
             detail={productDetail('removeAds')}
-            price={PRODUCTS.removeAds.price}
             owned={entitlements.removeAds}
             disabled={!store || busy !== null}
             busy={busy === 'removeAds'}
@@ -234,9 +250,9 @@ export default function Shop() {
           />
           {starterEligible ? (
             <Offer
+              product="starterPack"
               title={productTitle('starterPack')}
               detail={productDetail('starterPack')}
-              price={PRODUCTS.starterPack.price}
               owned={false}
               disabled={!store || busy !== null || !game}
               busy={busy === 'starterPack'}

@@ -11,7 +11,7 @@ import {
 import { edgeCache, type Ctx, type Env } from './env';
 import { roundCoord } from './geo';
 import { METNO, metnoUrl, parseMetno, type MetnoCompact } from '../../../src/data/metno';
-import { badRequest, json } from './http';
+import { badRequest, json, notFound } from './http';
 
 /** WMO weather interpretation code → game condition. */
 export function wmoToCondition(code: number): WeatherCondition {
@@ -68,13 +68,15 @@ export function mapHours(payload: OpenMeteoHourly, now: Date): WeatherHour[] {
   return out;
 }
 
-function resolveRegion(url: URL): { region: string; lat: number; lng: number } | null {
+function resolveRegion(
+  url: URL,
+): { region: string; lat: number; lng: number; cell?: string } | null {
   const cell = url.searchParams.get('cell');
   const city = url.searchParams.get('city');
   if (cell) {
     if (!isValidCell(cell) || getResolution(cell) !== REGION_RES) return null;
     const [lat, lng] = cellToLatLng(cell);
-    return { region: `cell:${cell}`, lat: roundCoord(lat), lng: roundCoord(lng) };
+    return { region: `cell:${cell}`, lat: roundCoord(lat), lng: roundCoord(lng), cell };
   }
   if (city) {
     const c = FALLBACK_CITIES.find((x) => x.id === city);
@@ -93,6 +95,12 @@ export async function weather(url: URL, env: Env, ctx: Ctx): Promise<Response> {
   const cacheKey = new Request(`https://coinline-data-api.internal/weather/${r.region}`);
   const hit = await cache?.match(cacheKey);
   if (hit) return hit;
+
+  // Only regions we serve: any of ~2M res-5 cells would let one script walk
+  // MET Norway through our shared User-Agent and get it throttled for everyone.
+  if (r.cell && !(await env.DATA.head(`cells/${r.cell}.meta.json`))) {
+    return notFound('unknown region');
+  }
 
   // Default: MET Norway (free, no key, commercial use allowed under CC BY 4.0).
   // Open-Meteo is used only with a paid commercial key (its free tier is non-commercial).

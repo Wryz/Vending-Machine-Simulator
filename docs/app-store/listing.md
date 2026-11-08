@@ -20,7 +20,7 @@ Everything App Store Connect asks for, with Apple's limits checked. Prepared on 
 | Marketing URL | https://coinline.pages.dev/ | Optional |
 | Copyright | `2026 <your legal name or company>` | |
 | Price | Free | |
-| Availability | All countries, or start with the US, UK, Canada, Australia | The 9 data-rich cities include New York, LA, Chicago, London, Paris, Tokyo, Seoul, Singapore, Sydney |
+| Availability | All countries, or start with the US, UK, Canada, Australia | Playable cities worldwide (over 1,300 cities and districts from open map data, growing), so every storefront has local cities |
 
 ## Promotional text (170 max, editable without review)
 
@@ -145,7 +145,7 @@ Double Profits is a one-time, non-consumable upgrade. After purchase, every in-g
 ```
 Coinline is a single-player vending business game on a real map. No account or login.
 
-- On first launch the player can "Use my location" (approximate location, asked once, rounded to about 1 km on the device, never stored on a server) to play their own area, or pick one of 9 cities. Denying location simply shows the city list.
+- On first launch the player can "Use my location" (approximate location, asked once, rounded to about 1 km on the device, never stored on a server) to start near them, or spin the globe and pick any city in the list. Denying location simply starts the globe on the phone's time zone.
 - Ads are optional rewarded ads only (for example, "x2 earnings"). They are requested as non-personalized. The App Tracking Transparency prompt appears only if the player turns on "Personalized ads" in Settings.
 - In-app purchases are in Company tab › Shop, with a Restore purchases button. Double Profits (one-time) doubles in-game income from sales.
 - The Starter Pack appears after chapter 1 (about 10 minutes of play: place the first machine, stock it, collect $1,000 in sales).

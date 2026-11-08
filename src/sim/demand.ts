@@ -2,7 +2,7 @@ import { HOURLY_CURVES, TAG_HOUR_BOOST, type Curve, type CurveKey } from '@/conf
 import { COMPETITION, DEMAND_SCALE, FIT, PRICE_RESPONSE, VISIBILITY } from '@/config/economy';
 import { getMachineType, type MachineFamily, type MachineType } from '@/config/machines';
 import { PLACE_WEIGHT, RESIDENTIAL_WEIGHT } from '@/config/places';
-import { PLACE_TAG_AFFINITY } from '@/config/progression';
+import { EVENTS, PLACE_TAG_AFFINITY } from '@/config/progression';
 import type { Product, ProductTag } from '@/config/products';
 import { PLACE_CATEGORIES, type CellData, type WeatherHour } from '@/data/types';
 
@@ -142,7 +142,7 @@ export function visibility(
   let v = VISIBILITY.base;
   // Being right at the venue door helps; across the street less so.
   if (machine.venue.category !== 'street') v *= 1.1 - Math.min(0.25, machine.venue.distanceM / 400);
-  const night = hour < 6 || hour >= 20;
+  const night = hour < VISIBILITY.nightEndHour || hour >= VISIBILITY.nightStartHour;
   if (night)
     v *= hasResearch(state, 'led-panel', type.family) ? VISIBILITY.ledPanel : VISIBILITY.nightUnlit;
   else if (hasResearch(state, 'led-panel', type.family)) v *= 1.03;
@@ -179,8 +179,8 @@ export function eventFactor(
   for (const e of events) {
     if (t < e.startsAt || t >= e.endsAt) continue;
     const d = distanceM({ lat, lng }, e);
-    if (d > 600) continue;
-    const f = 1 + (e.multiplier - 1) * (1 - d / 600);
+    if (d > EVENTS.radiusM) continue;
+    const f = 1 + (e.multiplier - 1) * (1 - d / EVENTS.radiusM);
     if (f > best.factor) best = { factor: f, tagBoost: e.tagBoost, event: e };
   }
   return best;

@@ -154,6 +154,25 @@ function FpsMeter({ onFps }: { onFps?: (fps: number) => void }) {
   return null;
 }
 
+/** Free every geometry, material and texture under `root` (each once). */
+function disposeTree(root: THREE.Object3D): void {
+  const done = new Set<{ dispose(): void }>();
+  const free = (x: { dispose(): void } | null | undefined) => {
+    if (!x || done.has(x)) return;
+    done.add(x);
+    x.dispose();
+  };
+  root.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    free(o.geometry as THREE.BufferGeometry);
+    const mats = (Array.isArray(o.material) ? o.material : [o.material]) as THREE.Material[];
+    for (const m of mats) {
+      for (const v of Object.values(m)) if (v instanceof THREE.Texture) free(v);
+      free(m);
+    }
+  });
+}
+
 /** The machine, its animations and the street around it, in the machine's local frame. */
 function World(props: MachineSceneProps) {
   const {
@@ -197,6 +216,9 @@ function World(props: MachineSceneProps) {
     () => () => {
       world.street.dispose();
       world.fx.dispose();
+      // The machine and its mirror are plain objects (<primitive>), which R3F never frees.
+      disposeTree(world.model.group);
+      disposeTree(world.mirror.group);
     },
     [world],
   );

@@ -1,5 +1,5 @@
 import { getMachineType } from '@/config/machines';
-import { EVENT_TEMPLATES } from '@/config/progression';
+import { EVENT_TEMPLATES, EVENTS } from '@/config/progression';
 import { SURPRISES } from '@/config/surprises';
 
 import type { ActionResult } from './actions';
@@ -10,7 +10,7 @@ import { activeMachines, cashBoxCapacity, isEmpty } from './rules';
 import type { GameState, Machine, SurpriseState, World } from './state';
 import { addDays, isSummer, localTime, localToUtc } from './time';
 
-const MAX_EVENTS_PER_DAY = 6;
+const MAX_EVENTS_PER_DAY = EVENTS.maxPerDay;
 
 /** Deterministic pseudo-random in [0,1) from a key. */
 function keyed(key: string): number {
@@ -24,7 +24,8 @@ function keyed(key: string): number {
 export function generateEventsForDay(state: GameState, world: World, dateKey: string): void {
   if (state.eventDays.includes(dateKey)) return;
   state.eventDays.push(dateKey);
-  if (state.eventDays.length > 14) state.eventDays.splice(0, state.eventDays.length - 14);
+  if (state.eventDays.length > EVENTS.daysRemembered)
+    state.eventDays.splice(0, state.eventDays.length - EVENTS.daysRemembered);
   const { timeZone, countryCode } = world.city;
   const noon = localToUtc(dateKey, 12, timeZone, countryCode);
   const lt = localTime(noon, timeZone, countryCode);

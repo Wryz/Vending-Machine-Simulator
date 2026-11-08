@@ -169,8 +169,10 @@ export function CityPicker({
   const km = (c: PickerCity) =>
     c.km < 1 ? t('picker.here') : t('picker.km', { n: Math.round(c.km).toLocaleString() });
   const here = selected ? status[selected.r] : undefined;
+  // Selling can restart in the city you're in (SPEC §4.8); travelling there is a no-op.
+  const atHome = here === 'playing' && mode !== 'sell';
   const keyLabel = selected
-    ? here === 'playing'
+    ? atHome
       ? t('picker.youreHere')
       : spot && here !== 'saved'
         ? t('picker.startSpot', { city: label(spot.region) })
@@ -413,7 +415,7 @@ export function CityPicker({
         <Key
           tone="brand"
           onPress={onKey}
-          disabled={busy || (!selected && !nearest) || here === 'playing'}
+          disabled={busy || (!selected && !nearest) || atHome}
           accessibilityLabel={keyLabel}
           style={{ marginHorizontal: SPACE.l, marginTop: SPACE.s }}
           faceStyle={styles.keyFace}

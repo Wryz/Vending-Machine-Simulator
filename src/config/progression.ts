@@ -357,6 +357,16 @@ export interface EventTemplate {
   summerOnly?: boolean;
 }
 
+/** Local events (src/sim/events.ts, demand.ts). */
+export const EVENTS = {
+  /** Most events generated per local day. */
+  maxPerDay: 6,
+  /** Local days whose events are remembered (so a day is generated once). */
+  daysRemembered: 14,
+  /** An event lifts demand within this radius (m), fading to nothing at the edge. */
+  radiusM: 600,
+} as const;
+
 export const EVENT_TEMPLATES: readonly EventTemplate[] = [
   {
     id: 'game-night',

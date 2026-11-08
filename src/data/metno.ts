@@ -11,8 +11,8 @@ import type { WeatherCondition, WeatherHour } from './types';
 
 export const METNO = {
   endpoint: 'https://api.met.no/weatherapi/locationforecast/2.0/compact',
-  /** Identifies the app per MET's terms (website as contact). */
-  userAgent: 'Coinline/1.0 (+https://github.com/wryz/vending-machine-simulator)',
+  /** Identifies the app per MET's terms (support page as contact). */
+  userAgent: 'Coinline/1.0 (+https://coinline.pages.dev/support)',
   credit: 'Weather: MET Norway (api.met.no), CC BY 4.0',
   /** Precipitation (mm/h) treated as "full" intensity 1.0. */
   precipFullMm: 6,

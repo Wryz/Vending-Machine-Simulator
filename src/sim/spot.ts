@@ -5,7 +5,7 @@ import {
   type MachineFamily,
   type MachineTypeId,
 } from '@/config/machines';
-import { FIT, RISK } from '@/config/economy';
+import { COMPETITION, DEMAND_SCALE, FIT, RISK, SPOT_CARD } from '@/config/economy';
 import { TUTORIAL } from '@/config/tutorial';
 import { getProduct, PRODUCTS } from '@/config/products';
 import type { CellData, PlaceCategory } from '@/data/types';
@@ -22,6 +22,8 @@ import {
   machineTypeUnlocked,
   nearbyPlaces,
   resolveVenue,
+  rivalWeight,
+  storeCompetitors,
 } from './rules';
 import type { CategoryNumbers } from '@/data/types';
 import type { GameState, Venue, World } from './state';
@@ -65,8 +67,8 @@ const FAMILY_SAMPLE: Record<MachineFamily, MachineTypeId> = {
   alcohol: 'beer-wine',
 };
 
-/** Rough customers/business-hour that counts as a "decent" spot (used for ratings). */
-const DECENT_CUSTOMERS = 18;
+/** Customers/business-hour that counts as a "decent" spot (used for ratings). */
+const DECENT_CUSTOMERS = SPOT_CARD.decentCustomersPerHour;
 
 export function evaluateSpot(
   state: GameState,
@@ -97,9 +99,11 @@ export function evaluateSpot(
   probe.venue = venue;
 
   const local = localTime(t, world.city.timeZone, world.city.countryCode);
-  const yours = activeMachines(state).filter((m) => distanceM(m, p) <= 250).length;
-  const rival = state.rival.machines.filter((m) => distanceM(m, p) <= 250).length;
-  const effective = yours + rival * 1.25 + cell.competitors * 0.3;
+  // Same competition and demand numbers as the sim (rules.competition, demand.customersPerHour).
+  const R = COMPETITION.radiusM;
+  const yours = activeMachines(state).filter((m) => distanceM(m, p) <= R).length;
+  const rival = state.rival.machines.filter((m) => distanceM(m, p) <= R).length;
+  const effective = yours + rivalWeight(state) * rival + storeCompetitors(cell.competitors);
   const compFactor = 1 - competitionShare(effective);
 
   const hourly: number[] = [];
@@ -108,7 +112,11 @@ export function evaluateSpot(
     const traffic = baseTraffic(cell, h + 0.5, local.restDay);
     footfall.push(traffic.total);
     hourly.push(
-      traffic.total * visibility(probe, type, state, h + 0.5) * type.captureRate * compFactor,
+      traffic.total *
+        visibility(probe, type, state, h + 0.5) *
+        type.captureRate *
+        DEMAND_SCALE *
+        compFactor,
     );
   }
   const dailyCustomers = hourly.reduce((a, b) => a + b, 0);
@@ -142,7 +150,7 @@ export function evaluateSpot(
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
 
-  const nearby = nearbyPlaces(world, state, p, 400)
+  const nearby = nearbyPlaces(world, state, p, SPOT_CARD.nearbyRadiusM)
     .slice(0, 12)
     .map((x) => ({
       id: x.id,
@@ -165,7 +173,7 @@ export function evaluateSpot(
   const peakHour = hourly.indexOf(Math.max(...hourly));
   if (dailyCustomers > 0)
     reasons.push({ good: true, text: `Busiest around ${String(peakHour).padStart(2, '0')}:00.` });
-  if (dailyCustomers / 24 < DECENT_CUSTOMERS * 0.35)
+  if (dailyCustomers / 24 < DECENT_CUSTOMERS * SPOT_CARD.fewPeopleShare)
     reasons.push({ good: false, text: 'Few people pass here. Sales will be slow.' });
   if (cell.pop < 300 && Object.keys(cell.nearby).length < 2)
     reasons.push({ good: false, text: 'Almost nothing nearby: no homes or places within 400 m.' });
@@ -188,12 +196,12 @@ export function evaluateSpot(
   if (rival > 0)
     reasons.push({
       good: false,
-      text: `Brightvend has ${rival} machine${rival > 1 ? 's' : ''} within 250 m.`,
+      text: `Brightvend has ${rival} machine${rival > 1 ? 's' : ''} within ${R} m.`,
     });
   const nightShare =
     (hourly
-      .slice(22)
-      .concat(hourly.slice(0, 6))
+      .slice(RISK.nightStartHour)
+      .concat(hourly.slice(0, RISK.nightEndHour))
       .reduce((a, b) => a + b, 0) || 0) / Math.max(1, dailyCustomers);
   const theftScore =
     RISK.theftBasePerDay *
@@ -201,7 +209,11 @@ export function evaluateSpot(
     (1 + RISK.theftIsolationWeight * cell.isolation) *
     (1 + nightShare);
   const theftRisk: SpotReport['theftRisk'] =
-    theftScore > 0.09 ? 'high' : theftScore > 0.05 ? 'medium' : 'low';
+    theftScore > SPOT_CARD.theftHighAbove
+      ? 'high'
+      : theftScore > SPOT_CARD.theftMediumAbove
+        ? 'medium'
+        : 'low';
   if (theftRisk === 'high')
     reasons.push({ good: false, text: 'Isolated at night: higher theft risk.' });
   const best = bestFamilies[0];

@@ -226,6 +226,10 @@ export function Key({
       accessibilityHint={accessibilityHint}
       accessibilityState={{ ...accessibilityState, disabled: !!disabled }}
       disabled={disabled}
+      // Small keys (chips) still take a 44 pt tall touch.
+      hitSlop={
+        height < TOUCH ? { top: (TOUCH - height) / 2, bottom: (TOUCH - height) / 2 } : undefined
+      }
       onPress={() => {
         haptic.select();
         onPress();

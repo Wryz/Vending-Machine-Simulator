@@ -164,6 +164,23 @@ function simOptions(): SimOptions {
   };
 }
 
+/**
+ * Download (or find in the cache) everything a city needs, without touching
+ * the running game. Switching cities calls this first, so a failed download
+ * leaves the player in the city they were in.
+ */
+export async function prefetchCity(city: CityInfo): Promise<boolean> {
+  try {
+    await Promise.all([
+      city.kind === 'fallback' ? loadCityPack(city.id) : loadRegionPack(city.res5 ?? ''),
+      city.kind === 'fallback' ? loadCityRoads(city.id) : loadRegionRoads(city.res5 ?? ''),
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const useGame = create<GameStore>((set, get) => {
   /** Applies a finished advance: ticker, moments, the away report and autosave. */
   const commitAdvance = (

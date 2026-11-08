@@ -168,13 +168,22 @@ export default function MachineCloseup() {
     if (leaving || !cams) return;
     setLeaving(true);
     setPath({ from: cams.to, to: cams.from });
-    setTimeout(() => {
+    // `later` is cleared on unmount: a swipe-back during the dolly must not pop a second screen.
+    later(CLOSEUP_CAMERA.dollyMs * 0.8, () => {
       opacity.value = withTiming(0, { duration: CAMERA.crossfadeMs }, (done) => {
         if (done) runOnJS(finishLeave)();
       });
-    }, CLOSEUP_CAMERA.dollyMs * 0.8);
+    });
   };
+  const gone = useRef(false);
+  useEffect(
+    () => () => {
+      gone.current = true;
+    },
+    [],
+  );
   const finishLeave = () => {
+    if (gone.current) return;
     transition.requestReturn();
     router.back();
   };

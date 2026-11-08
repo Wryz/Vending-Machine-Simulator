@@ -1,4 +1,14 @@
-import { ADS, CONTRACT, PURCHASES, SERVICE, STAFF } from '@/config/economy';
+import {
+  ADS,
+  CONTRACT,
+  OVERHEAD,
+  PERMITS,
+  PLACEMENT,
+  PRICING,
+  PURCHASES,
+  SERVICE,
+  STAFF,
+} from '@/config/economy';
 import {
   ALCOHOL_ALLOWED_COUNTRIES,
   getMachineType,
@@ -89,7 +99,8 @@ export function quotePlacement(state: GameState, world: World, p: PlaceParams) {
   const venue = resolveVenue(world, state, p, p.placeId);
   const district = districtOf(world, p);
   const buy = p.machineId ? 0 : type.purchaseCents;
-  const install = Math.round(type.installCents * [1, 1.25, 1.6, 2][Math.min(3, district - 1)]);
+  const mult = OVERHEAD.districtInstallMultiplier;
+  const install = Math.round(type.installCents * mult[Math.min(mult.length - 1, district - 1)]);
   const commission = commissionAsk(state, venue, p.termDays, p.exclusive);
   return {
     ok: true as const,
@@ -120,9 +131,9 @@ export function placeMachine(
   if (!districtUnlocked(state, district)) return fail('This district unlocks in a later chapter.');
   const blocked = alcoholBlocked(world, state, type, p);
   if (blocked) return fail(blocked);
-  const taken = state.machines.find((m) => m.status === 'active' && distanceM(m, p) < 8);
+  const taken = state.machines.find((m) => m.status === 'active' && distanceM(m, p) < PLACEMENT.minSpacingM);
   if (taken) return fail('Another of your machines is already here.');
-  const rivalExclusive = state.rival.machines.find((r) => distanceM(r, p) < 8);
+  const rivalExclusive = state.rival.machines.find((r) => distanceM(r, p) < PLACEMENT.minSpacingM);
   if (rivalExclusive) return fail('Brightvend already has a machine on this spot.');
   if (venue.category !== 'street') {
     const sameVenue = state.machines.find(
@@ -187,7 +198,7 @@ export function sellMachine(
   if (!m) return fail('Machine not found.');
   if (state.machines.length <= 1) return fail('Keep at least one machine.');
   if (m.status === 'active') collectCash(state, machineId);
-  const refund = Math.round(getMachineType(m.typeId).purchaseCents * 0.4);
+  const refund = Math.round(getMachineType(m.typeId).purchaseCents * PLACEMENT.sellRefundShare);
   state.machines = state.machines.filter((x) => x.id !== machineId);
   for (const d of state.drivers) d.machineIds = d.machineIds.filter((id) => id !== machineId);
   state.cashCents += refund;
@@ -292,10 +303,15 @@ export function fillSlots(state: GameState, m: Machine, lines: readonly RestockL
     }
     if (slot.priceCents <= 0) slot.priceCents = product.suggestedCents;
     const add = Math.max(0, Math.min(l.qty, cap - slot.qty));
+    // Spoilage age: a top-up averages the coil's age by quantity, so one fresh
+    // unit doesn't make old stock new (and an empty coil starts fresh).
+    const old = slot.qty;
+    if (add > 0)
+      slot.stockedAt =
+        old > 0 ? Math.round((slot.stockedAt * old + state.now * add) / (old + add)) : state.now;
     slot.qty += add;
     units += add;
     slot.par = Math.max(slot.par, slot.qty);
-    slot.stockedAt = state.now;
   }
   return units;
 }
@@ -350,10 +366,14 @@ export function setPrice(
   const s = m.slots[slot];
   if (!s || !s.productId) return fail('Empty slot.');
   const p = getProduct(s.productId);
+  const step = PRICING.stepCents;
   const clamped =
     Math.round(
-      Math.min(p.suggestedCents * 3, Math.max(Math.round(p.wholesaleCents * 0.5), priceCents)) / 5,
-    ) * 5;
+      Math.min(
+        p.suggestedCents * PRICING.maxSuggestedMultiple,
+        Math.max(Math.round(p.wholesaleCents * PRICING.minWholesaleMultiple), priceCents),
+      ) / step,
+    ) * step;
   s.priceCents = clamped;
   return { ok: true };
 }
@@ -455,9 +475,9 @@ export function renegotiate(
   if (!m || m.status !== 'active') return fail('Machine not found.');
   if (!state.chapterDoneAt[1]) return fail('Renegotiation unlocks after chapter 1.');
   if (m.contract.renegotiated) return fail('Already renegotiated this contract.');
-  if (m.mood < 0.6) return fail('The venue is not happy enough to renegotiate.');
+  if (m.mood < CONTRACT.renegotiateMinMood) return fail('The venue is not happy enough to renegotiate.');
   m.contract.commission = Math.max(
-    0.1,
+    CONTRACT.commissionMin,
     Math.round((m.contract.commission - CONTRACT.renegotiateDiscount) * 1000) / 1000,
   );
   m.contract.renegotiated = true;
@@ -507,7 +527,8 @@ export function buyWarehouse(state: GameState): ActionResult {
   return { ok: true };
 }
 
-export const LIQUOR_PERMIT_CENTS = 1_500_000;
+/** Re-exported for the company screen; the value lives in config (PERMITS). */
+export const LIQUOR_PERMIT_CENTS = PERMITS.liquorCents;
 
 export function buyLiquorPermit(state: GameState, world: World): ActionResult {
   if (state.liquorPermit) return fail('You already hold a liquor permit.');

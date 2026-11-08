@@ -13,6 +13,7 @@ import {
   ALCOHOL_MIN_DISTANCE_M,
   VENUE_CATEGORIES,
   VENUE_COMMISSION,
+  VENUE_RADIUS_M,
   YOUTH_CATEGORIES,
 } from '@/config/places';
 import { COLLECTIONS, DISTRICTS, PRESTIGE_PERKS } from '@/config/progression';
@@ -145,7 +146,7 @@ export function nearbyPlaces(
 
 /** The venue a spot is attached to: the nearest suitable real place (SPEC §4.5). */
 export function resolveVenue(world: World, state: GameState, p: LatLng, placeId?: string): Venue {
-  const candidates = nearbyPlaces(world, state, p, 120).filter((x) =>
+  const candidates = nearbyPlaces(world, state, p, VENUE_RADIUS_M).filter((x) =>
     (VENUE_CATEGORIES as readonly string[]).includes(x.category),
   );
   const chosen = placeId ? candidates.find((c) => c.id === placeId) : candidates[0];
@@ -244,6 +245,11 @@ function countWithin<T extends LatLng>(
  * chapter-3 ramp (the day-one rival must not stall the tutorial chapters),
  * fully after (it undercuts).
  */
+/** Effective competitors from a cell's real convenience stores (sim and Spot Card). */
+export function storeCompetitors(cellCompetitors: number): number {
+  return cellCompetitors * COMPETITION.storeWeight * COMPETITION.storeCellShare;
+}
+
 export function rivalWeight(state: GameState): number {
   return state.chapter < RIVAL.arrivesChapter
     ? RIVAL.early.competitorWeight
@@ -270,7 +276,7 @@ export function competitorMap(state: GameState, world: World): Map<string, numbe
     let n = countWithin(mineIdx, m, COMPETITION.radiusM, cellDeg, m);
     n += w * countWithin(rivalIdx, m, COMPETITION.radiusM, cellDeg);
     const cell = world.cells.get(m.cellId);
-    if (cell) n += cell.competitors * COMPETITION.storeWeight * 0.5;
+    if (cell) n += storeCompetitors(cell.competitors);
     out.set(m.id, n);
   }
   for (const r of state.rival.machines)
@@ -315,7 +321,7 @@ export function competition(state: GameState, world: World): Competition {
     const p = {
       mine: countWithin(mineIdx, m, R, cellDeg, m),
       rival: countWithin(rivalIdx, m, R, cellDeg),
-      store: cell ? cell.competitors * COMPETITION.storeWeight * 0.5 : 0,
+      store: cell ? storeCompetitors(cell.competitors) : 0,
     };
     parts.set(m.id, p);
     values.set(m.id, valueOf(p));

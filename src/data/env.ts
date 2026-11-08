@@ -19,7 +19,6 @@ export const ENV = {
   admobRewardedAndroid: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID ?? '',
   posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY ?? '',
   /** Sentry crash reports; empty = off (src/services/crashes.ts). */
-  sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
   posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com',
   /**
    * Dev builds only: a route to open at launch, for unattended QA runs, e.g.

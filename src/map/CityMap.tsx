@@ -21,7 +21,7 @@ import {
 
 import { SOUNDSCAPE } from '@/config/audio';
 import { RIVAL } from '@/config/economy';
-import { AREA_NAME, MACHINE_PIN, MACHINE_SPRITE, MAP_POIS } from '@/config/map';
+import { AREA_NAME, CAMERA, MACHINE_PIN, MACHINE_SPRITE, MAP_POIS } from '@/config/map';
 import { MAP_LIFE } from '@/config/mapLife';
 import { getMachineType } from '@/config/machines';
 import { DISTRICTS } from '@/config/progression';
@@ -332,6 +332,8 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
     pitch: Math.round(initial.pitch / 10) * 10,
   });
   const lifeRef = useRef<StreetLifeHandle>(null);
+  /** The last settled view, handed to street life when it remounts. */
+  const lastRegion = useRef<Parameters<StreetLifeHandle['regionDidChange']>[0] | null>(null);
   /** Counts style loads; overlay sources remount on each (see the overlay block below). */
   const [styleGen, setStyleGen] = useState(0);
   const trackView = useCallback((zoom: number, pitch: number) => {
@@ -420,10 +422,12 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
   }, [game, theme]);
 
   // Every named place in the city, tappable at street zoom (the Spot Card opens on it).
-  const hidden = game.hiddenPlaces;
+  // Keyed by content: the game state is a fresh copy every tick, and rebuilding
+  // thousands of features each time would resend them all to the map.
+  const hiddenKey = game.hiddenPlaces.join('|');
   const poiData = useMemo(() => {
     const features: GeoJSON.Feature<GeoJSON.Point>[] = [];
-    const seen = new Set<string>(hidden);
+    const seen = new Set<string>(hiddenKey ? hiddenKey.split('|') : []);
     for (const cell of world.cells.values()) {
       for (const pl of cell.places) {
         if (seen.has(pl.id)) continue;
@@ -436,7 +440,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
       }
     }
     return { type: 'FeatureCollection' as const, features };
-  }, [world, hidden]);
+  }, [world, hiddenKey]);
 
   const heatData = useMemo(() => {
     if (!heat) return null;
@@ -584,6 +588,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           bearing: v.bearing,
         };
         trackView(v.zoom, v.pitch);
+        lastRegion.current = v;
         lifeRef.current?.regionDidChange(v);
         props.onCameraChanged?.(camera.current, !!v.userInteraction);
         lookUpArea();
@@ -835,6 +840,7 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
             onLifeStats={props.onLifeStats}
             sales={lifeSales}
             onSalesShown={salesShown}
+            initialView={lastRegion.current}
           />
 
           <GeoJSONSource
@@ -849,7 +855,16 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
               const r = e.nativeEvent.features.find(
                 (x) => x.properties?.mine === false && x.properties?.id,
               );
-              if (r) props.onRivalPress?.(String(r.properties?.id));
+              if (r) return props.onRivalPress?.(String(r.properties?.id));
+              // A cluster: zoom in on it until the machines split apart.
+              if (e.nativeEvent.features.some((x) => x.properties?.point_count)) {
+                const cur = camera.current;
+                camRef.current?.easeTo({
+                  center: e.nativeEvent.lngLat as [number, number],
+                  zoom: Math.min(MAX_ZOOM, cur.zoom + CAMERA.clusterZoomStep),
+                  duration: CAMERA.clusterZoomMs,
+                });
+              }
             }}
           >
             <Layer

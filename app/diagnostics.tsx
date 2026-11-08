@@ -57,7 +57,9 @@ export default function Diagnostics() {
   const [show3d, setShow3d] = useState(false);
   const [busy, setBusy] = useState(true);
   const [stats, setStats] = useState<SceneStats | null>(null);
-  const { run } = useLocalSearchParams<{ run?: string }>();
+  const params = useLocalSearchParams<{ run?: string }>();
+  // Unattended runs only in development: a web link must not start a benchmark on a player's phone.
+  const run = __DEV__ ? params.run : undefined;
   const auto = useRef<'idle' | 'fps' | 'done'>('idle');
   const log = (s: string) => {
     console.log(`[diag] ${s}`);

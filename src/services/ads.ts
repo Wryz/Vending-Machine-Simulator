@@ -34,27 +34,39 @@ function unitId(): string | null {
   return __DEV__ ? TestIds.REWARDED : null;
 }
 
+/** Whether Google's answer is known this session (offline at launch: asked again later). */
+let consentKnown = false;
+let sdkStarted = false;
+
 export async function initAds(): Promise<void> {
   if (initialized) return;
   initialized = true;
   try {
     const info = await AdsConsent.gatherConsent();
     consentAllowsAds = info.canRequestAds;
+    consentKnown = true;
   } catch {
-    // No consent message set up, or offline: keep the earlier answer.
+    // No consent message set up, or offline: use the answer saved on device,
+    // and if there is none, request no ads until we can ask (never the reverse).
     try {
       consentAllowsAds = (await AdsConsent.getConsentInfo()).canRequestAds;
     } catch {
-      consentAllowsAds = true;
+      consentAllowsAds = false;
     }
+    initialized = false; // Try the consent form again on the next ad.
   }
-  if (!consentAllowsAds) return;
+  await startSdk();
+}
+
+async function startSdk(): Promise<void> {
+  if (sdkStarted || !consentAllowsAds) return;
   try {
     await MobileAds().setRequestConfiguration({
       maxAdContentRating: MaxAdContentRating.MA,
       tagForUnderAgeOfConsent: false,
     });
     await MobileAds().initialize();
+    sdkStarted = true;
   } catch {
     // Ads are optional.
   }
@@ -77,22 +89,27 @@ export async function showPrivacyChoices(): Promise<void> {
   try {
     const info = await AdsConsent.showPrivacyOptionsForm();
     consentAllowsAds = info.canRequestAds;
+    consentKnown = true;
+    await startSdk();
   } catch {
     // Nothing to show (not required here, or offline).
   }
 }
 
 export function adsAvailable(): boolean {
-  return consentAllowsAds && unitId() !== null;
+  // Unknown (offline at launch) still offers the key: tapping it asks for consent first.
+  return (consentAllowsAds || !consentKnown) && unitId() !== null;
 }
 
 /**
  * Show one rewarded ad. Resolves true only if the reward was earned.
  * The caller grants the reward via the sim (`applyAdReward`).
  */
-export function showRewarded(placement: string): Promise<boolean> {
+export async function showRewarded(placement: string): Promise<boolean> {
+  // Launch was offline: ask for consent (and start the SDK) now, before any request.
+  if (!consentKnown) await initAds();
   const id = unitId();
-  if (!id || !consentAllowsAds) return Promise.resolve(false);
+  if (!id || !consentAllowsAds) return false;
   const personalized = useProfile.getState().settings.personalizedAds;
   return new Promise((resolve) => {
     let earned = false;

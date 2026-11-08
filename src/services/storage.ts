@@ -11,11 +11,22 @@ const dir = () => {
   return d;
 };
 
+function parseFile<T>(f: File): T | null {
+  try {
+    return f.exists ? (JSON.parse(f.textSync()) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function readJson<T>(key: string): T | null {
   try {
-    const f = new File(dir(), `${key}.json`);
-    if (!f.exists) return null;
-    return JSON.parse(f.textSync()) as T;
+    const d = dir();
+    const main = parseFile<T>(new File(d, `${key}.json`));
+    if (main !== null) return main;
+    // Killed between deleting the old file and moving the new one in: the
+    // complete new copy is still in the temp file.
+    return parseFile<T>(new File(d, `${key}.json.tmp`));
   } catch {
     return null;
   }
@@ -32,8 +43,10 @@ export function writeJson(key: string, value: unknown): void {
 }
 
 export function removeKey(key: string): void {
-  const f = new File(dir(), `${key}.json`);
-  if (f.exists) f.delete();
+  for (const name of [`${key}.json`, `${key}.json.tmp`]) {
+    const f = new File(dir(), name);
+    if (f.exists) f.delete();
+  }
 }
 
 /** Write a file to the cache dir for sharing (save export). */
