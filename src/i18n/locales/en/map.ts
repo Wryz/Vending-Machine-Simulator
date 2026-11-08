@@ -21,6 +21,10 @@ export default {
     vansOut: 'All your vans are out',
   },
   backTo: 'Back to {city}',
+  areas: {
+    hood: '{name}\nOpens in chapter {n}', // map tag on a locked neighbourhood: its name, then the chapter that opens it
+    ring: 'Opens in chapter {n}', // map tag just outside the open ring (cities without neighbourhood names)
+  },
   a11y: {
     van: 'Delivery van to {venue}',
     store: '{store}, where your van loads',

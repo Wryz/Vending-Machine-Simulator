@@ -23,6 +23,10 @@ export default {
     vansOut: 'Toutes tes camionnettes sont parties',
   },
   backTo: 'Retour à {city}',
+  areas: {
+    hood: '{name}\nOuvre au chapitre {n}',
+    ring: 'Ouvre au chapitre {n}',
+  },
   a11y: {
     van: 'Camionnette de livraison vers {venue}',
     store: '{store}, où ta camionnette charge',

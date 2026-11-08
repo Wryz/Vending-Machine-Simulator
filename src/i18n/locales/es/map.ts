@@ -23,6 +23,10 @@ export default {
     vansOut: 'Todas tus furgonetas están fuera',
   },
   backTo: 'Volver a {city}',
+  areas: {
+    hood: '{name}\nSe abre en el capítulo {n}',
+    ring: 'Se abre en el capítulo {n}',
+  },
   a11y: {
     van: 'Furgoneta de reparto hacia {venue}',
     store: '{store}, donde carga tu furgoneta',

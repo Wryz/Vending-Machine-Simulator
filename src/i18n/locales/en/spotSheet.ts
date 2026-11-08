@@ -6,7 +6,9 @@ export default {
   perHour: 'per hour', // small caption under an LED number (customers)
   perDay: 'per day', // small caption under an LED number (sales)
   yours: '{type} (yours)', // machine type chip for the stored machine you own
-  districtLocked: 'This district unlocks in a later chapter.',
+  districtLocked: 'This area opens in chapter {n}. Your open area is outlined in orange.', // {n} = chapter number
+  lockedType: '🔒 {type} · Ch. {n}', // greyed chip: a machine type that opens in chapter {n}
+  hoodLocked: '{name} opens in chapter {n}. Your open area is outlined in orange.', // {name} = real neighbourhood
   placeMine: 'Place my machine here',
   placeType: 'Place {type}',
   nearby: 'Nearby', // plate heading

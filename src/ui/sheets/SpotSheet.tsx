@@ -12,6 +12,7 @@ import { content } from '@/i18n/content';
 import { logText, simError } from '@/i18n/sim';
 import {
   availableMachineTypes,
+  upcomingFamilies,
   evaluateSpot,
   hidePlace,
   localTime,
@@ -91,6 +92,7 @@ function SpotBody({
   const storedId = machineId || game.machines.find((m) => m.status === 'stored')?.id || '';
   const stored = game.machines.find((m) => m.id === storedId);
   const types = availableMachineTypes(game, world);
+  const upcoming = upcomingFamilies(game, world);
   const [typeId, setTypeId] = useState<MachineTypeId>(
     stored?.typeId ?? types[0]?.id ?? 'used-snack',
   );
@@ -231,7 +233,7 @@ function SpotBody({
         </View>
       </Glass>
 
-      {stored || types.length > 1 ? (
+      {stored || types.length > 1 || upcoming.length ? (
         <Row style={{ flexWrap: 'wrap' }}>
           {stored ? (
             <Chip
@@ -253,10 +255,23 @@ function SpotBody({
                 />
               ),
             )}
+          {/* Families that open later, greyed with their chapter, so you can see what's coming. */}
+          {upcoming.map((u) => (
+            <Chip
+              key={u.type.id}
+              label={t('spotSheet.lockedType', { type: typeName(u.type.id), n: u.chapter })}
+            />
+          ))}
         </Row>
       ) : null}
 
-      {spot.districtLocked ? <T color={theme.alert}>{t('spotSheet.districtLocked')}</T> : null}
+      {spot.districtLocked ? (
+        <T color={theme.alert}>
+          {spot.hood
+            ? t('spotSheet.hoodLocked', { name: spot.hood, n: spot.districtChapter })
+            : t('spotSheet.districtLocked', { n: spot.districtChapter })}
+        </T>
+      ) : null}
       {spot.blocked ? <T color={theme.alert}>{simError(spot.blocked)}</T> : null}
       <Pulse on={guiding && canPlace && !quiet}>
         <Button

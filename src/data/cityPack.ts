@@ -3,7 +3,15 @@ import { gunzipSync, strFromU8 } from 'fflate';
 
 import { DATA_CACHE } from '@/config/dataCache';
 
-import { fetchCityPack, fetchCityRoads, fetchRegionPack, fetchRegionRoads } from './api';
+import {
+  fetchCityPack,
+  fetchCityRoads,
+  fetchRegionHoods,
+  fetchRegionPack,
+  fetchRegionRoads,
+} from './api';
+import type { HoodPoint } from '@/sim/hoods';
+
 import type { RegionPack, RoadNet } from './types';
 
 /**
@@ -87,6 +95,24 @@ export function loadCityPack(cityId: string): Promise<RegionPack> {
 }
 
 /** A region's streets for the vans, or null (offline on first visit): vans then drive straight. */
+/** A region's named neighbourhoods (districts follow them), or null: plain rings then. */
+export function decodeHoods(bytes: Uint8Array): HoodPoint[] {
+  const file = JSON.parse(strFromU8(gunzipSync(bytes))) as { v?: number; hoods?: unknown };
+  if (file.v !== 1 || !Array.isArray(file.hoods))
+    throw new Error('Unsupported neighbourhood file.');
+  return (file.hoods as HoodPoint[]).filter(
+    (h) => typeof h?.n === 'string' && typeof h.a === 'number' && typeof h.o === 'number',
+  );
+}
+
+export async function loadRegionHoods(res5: string): Promise<HoodPoint[] | null> {
+  try {
+    return await cached(`region-${res5}-hoods.json.gz`, () => fetchRegionHoods(res5), decodeHoods);
+  } catch {
+    return null;
+  }
+}
+
 export async function loadRegionRoads(res5: string): Promise<RoadNet | null> {
   try {
     return await cached(`region-${res5}-roads.json.gz`, () => fetchRegionRoads(res5), decodeRoads);

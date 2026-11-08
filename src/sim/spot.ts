@@ -1,5 +1,6 @@
 import { CATEGORY_LABEL, VENUE_CATEGORIES } from '@/config/places';
 import {
+  type MachineType,
   getMachineType,
   MACHINE_TYPES,
   type MachineFamily,
@@ -268,6 +269,28 @@ export function availableMachineTypes(state: GameState, world: World) {
   return MACHINE_TYPES.filter(
     (t) => t.id !== 'used-snack' && machineTypeUnlocked(state, t, world.city.countryCode),
   );
+}
+
+/**
+ * Machine families the player can't buy yet, each with its first type and the
+ * chapter that opens it, so the Spot Card can show what's coming. Families
+ * this country never allows (e.g. alcohol where it's banned) are left out.
+ */
+export function upcomingFamilies(
+  state: GameState,
+  world: World,
+): { type: MachineType; chapter: number }[] {
+  const open = new Set(availableMachineTypes(state, world).map((t) => t.family));
+  open.add(getMachineType('used-snack').family);
+  const later = { ...state, chapter: Number.MAX_SAFE_INTEGER };
+  const out = new Map<string, { type: MachineType; chapter: number }>();
+  for (const t of MACHINE_TYPES) {
+    if (open.has(t.family) || !machineTypeUnlocked(later, t, world.city.countryCode)) continue;
+    const prev = out.get(t.family);
+    if (!prev || t.unlockChapter < prev.chapter)
+      out.set(t.family, { type: t, chapter: t.unlockChapter });
+  }
+  return [...out.values()].sort((a, b) => a.chapter - b.chapter);
 }
 
 export function productName(id: string | null): string {

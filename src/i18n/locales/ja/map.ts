@@ -22,6 +22,10 @@ export default {
     vansOut: 'バンはすべて出ています',
   },
   backTo: '{city}に戻る',
+  areas: {
+    hood: '{name}\n第{n}章で開放',
+    ring: '第{n}章で開放',
+  },
   a11y: {
     van: '{venue}への配送バン',
     store: '{store}（バンの積み込み先）',

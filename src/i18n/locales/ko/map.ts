@@ -22,6 +22,10 @@ export default {
     vansOut: '밴이 모두 나가 있어요',
   },
   backTo: '{city}(으)로 돌아가기',
+  areas: {
+    hood: '{name}\n{n}장에서 열림',
+    ring: '{n}장에서 열림',
+  },
   a11y: {
     van: '{venue}(으)로 가는 배송 밴',
     store: '{store}, 밴이 짐을 싣는 곳',

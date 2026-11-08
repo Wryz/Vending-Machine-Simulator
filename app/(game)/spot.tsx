@@ -227,7 +227,11 @@ export default function SpotCard() {
       </Section>
 
       {spot.districtLocked ? (
-        <T color={theme.alert}>{t('spot.districtLocked')}</T>
+        <T color={theme.alert}>
+          {spot.hood
+            ? t('spotSheet.hoodLocked', { name: spot.hood, n: spot.districtChapter })
+            : t('spotSheet.districtLocked', { n: spot.districtChapter })}
+        </T>
       ) : null}
       {spot.blocked ? <T color={theme.alert}>{simError(spot.blocked)}</T> : null}
       <Button

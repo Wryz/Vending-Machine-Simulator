@@ -22,6 +22,10 @@ export default {
     vansOut: '货车都出去了',
   },
   backTo: '返回{city}',
+  areas: {
+    hood: '{name}\n第 {n} 章开放',
+    ring: '第 {n} 章开放',
+  },
   a11y: {
     van: '开往{venue}的送货车',
     store: '{store}，你的货车在这里装货',

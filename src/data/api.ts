@@ -94,6 +94,8 @@ async function fetchBytes(path: string, timeoutMs = 30_000): Promise<Uint8Array>
 export const fetchRegionPack = (res5: string) => fetchBytes(`/cells/${res5}.bin`);
 /** A region's streets for the delivery vans (gzip RoadNet bytes). */
 export const fetchRegionRoads = (res5: string) => fetchBytes(`/cells/${res5}/roads.bin`);
+/** A region's named neighbourhoods (pipeline/build-hoods.ts), gzip JSON. */
+export const fetchRegionHoods = (res5: string) => fetchBytes(`/cells/${res5}/hoods.bin`);
 /** A former built-in city's pack and streets (saves from before regions). */
 export const fetchCityPack = (cityId: string) =>
   fetchBytes(`/city/${encodeURIComponent(cityId)}/pack`);

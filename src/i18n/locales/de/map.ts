@@ -23,6 +23,10 @@ export default {
     vansOut: 'Alle Lieferwagen sind unterwegs',
   },
   backTo: 'Zurück nach {city}',
+  areas: {
+    hood: '{name}\nAb Kapitel {n}',
+    ring: 'Ab Kapitel {n} offen',
+  },
   a11y: {
     van: 'Lieferwagen zu {venue}',
     store: '{store}, hier lädt dein Lieferwagen',

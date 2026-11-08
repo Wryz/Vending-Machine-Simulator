@@ -24,11 +24,9 @@ import { RIVAL } from '@/config/economy';
 import { AREA_NAME, CAMERA, MACHINE_PIN, MACHINE_SPRITE, MAP_POIS } from '@/config/map';
 import { MAP_LIFE } from '@/config/mapLife';
 import { getMachineType } from '@/config/machines';
-import { DISTRICTS } from '@/config/progression';
 import { cellPolygon } from '@/data/h3';
 import { useLang, useT } from '@/i18n';
 import { content } from '@/i18n/content';
-import { offsetPoint } from '@/sim/geo';
 import type { CellData } from '@/data/types';
 import { baseTraffic, localTime, type GameState, type LocalEvent, type World } from '@/sim';
 import type { Theme } from '@/ui/theme';
@@ -74,6 +72,7 @@ import {
   areaProbeLayer,
   type AreaNames,
 } from './areaName';
+import { chapterAreas } from './chapterAreas';
 import { districtAt } from './districts';
 import { PARK_LAYER_IDS, probeFromFeatures, WATER_LAYER_ID, type EnvProbeResult } from './envProbe';
 import { buildBaseLayers, schemaOf, buildMapLight, buildMapStyle } from './style';
@@ -520,21 +519,14 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
     // Rebuilt only when a van leaves or arrives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeKey]);
-  const district = useMemo(() => {
-    const unlocked = DISTRICTS.filter((d) => d.unlockChapter <= game.chapter);
-    const d = unlocked[unlocked.length - 1];
-    if (!d || d.radiusKm >= 30) return null;
-    const ring: [number, number][] = [];
-    for (let i = 0; i <= 64; i++) {
-      const p = offsetPoint(world.city, (i / 64) * 360, d.radiusKm * 1000);
-      ring.push([p.lng, p.lat]);
-    }
-    return {
-      type: 'Feature' as const,
-      geometry: { type: 'LineString' as const, coordinates: ring },
-      properties: {},
-    };
-  }, [game.chapter, world.city]);
+  // Where machines can go now, and what each later chapter opens (real neighbourhoods when known).
+  const chapterArea = useMemo(
+    () =>
+      chapterAreas(world, game.chapter, (n, name) =>
+        name ? t('map.areas.hood', { name, n }) : t('map.areas.ring', { n }),
+      ),
+    [world, game.chapter, t],
+  );
 
   const sizeStops = iconSizeStops(
     world.city.lat,
@@ -618,20 +610,51 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
           dropped every overlay source (machines, street life, events, district). */}
       {styleGen > 0 ? (
         <Fragment key={styleGen}>
-          {district ? (
-            <GeoJSONSource id="district" data={district}>
-              <Layer
-                id="district-line"
-                type="line"
-                paint={{
-                  'line-color': tod.palette.label,
-                  'line-width': 1.5,
-                  'line-dasharray': [2, 3],
-                  'line-opacity': 0.6,
-                }}
-              />
-            </GeoJSONSource>
-          ) : null}
+          <GeoJSONSource id="areas-locked" data={chapterArea.locked}>
+            <Layer
+              id="areas-locked-fill"
+              type="fill"
+              beforeId="buildings"
+              paint={{ 'fill-color': theme.ink, 'fill-opacity': 0.1 }}
+            />
+            <Layer
+              id="areas-locked-line"
+              type="line"
+              paint={{
+                'line-color': tod.palette.label,
+                'line-width': 1,
+                'line-dasharray': [2, 3],
+                'line-opacity': 0.5,
+              }}
+            />
+          </GeoJSONSource>
+          <GeoJSONSource id="areas-open" data={chapterArea.openEdge}>
+            <Layer
+              id="areas-open-line"
+              type="line"
+              layout={{ 'line-join': 'round' }}
+              paint={{ 'line-color': SKIN.cabinet, 'line-width': 2.5, 'line-opacity': 0.85 }}
+            />
+          </GeoJSONSource>
+          <GeoJSONSource id="areas-tags" data={chapterArea.tags}>
+            <Layer
+              id="areas-tags-label"
+              type="symbol"
+              minzoom={13}
+              layout={{
+                'text-field': ['get', 'label'],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': 11,
+                'text-max-width': 10,
+                'text-optional': true,
+              }}
+              paint={{
+                'text-color': tod.palette.label,
+                'text-halo-color': tod.palette.labelHalo,
+                'text-halo-width': 1.4,
+              }}
+            />
+          </GeoJSONSource>
 
           {/* Restock vans' street routes, warehouse to machine (the van drives along it). */}
           {vanRoutes ? (

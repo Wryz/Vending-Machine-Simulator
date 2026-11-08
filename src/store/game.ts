@@ -3,7 +3,13 @@ import { create } from 'zustand';
 import { getCity, type CityId } from '@/config/cities';
 import { ROADS } from '@/config/deliveries';
 import { PURCHASES, SAVE, TIME } from '@/config/economy';
-import { loadCityPack, loadCityRoads, loadRegionPack, loadRegionRoads } from '@/data/cityPack';
+import {
+  loadCityPack,
+  loadCityRoads,
+  loadRegionHoods,
+  loadRegionPack,
+  loadRegionRoads,
+} from '@/data/cityPack';
 import { cellOf, neighbors } from '@/data/h3';
 import { fetchWeather } from '@/data/api';
 import { syntheticWeather, WeatherBook } from '@/data/weather';
@@ -14,6 +20,8 @@ import { t } from '@/i18n';
 import { content } from '@/i18n/content';
 import { moneyShort } from '@/ui/format';
 import {
+  assignHoods,
+  type HoodPoint,
   advance,
   beginAdvance,
   calibrateCells,
@@ -103,6 +111,7 @@ export function buildWorld(
   pack: RegionPack,
   weather: WeatherBook,
   roads: RoadNet | null = null,
+  hoodPoints: readonly HoodPoint[] | null = null,
 ): World {
   // The street graph is built on the first van route, not while the city opens.
   let graph: RoadGraph | null = null;
@@ -121,6 +130,10 @@ export function buildWorld(
     cells,
     cellOf,
     neighbors,
+    // Districts follow real neighbourhoods, measured from where this city started.
+    hoods:
+      (hoodPoints && assignHoods(hoodPoints, calibrated.cells, city, cellOf(city.lat, city.lng))) ??
+      undefined,
     suppliers: pack.suppliers ?? [],
     route: roads
       ? (a, b) => {
@@ -174,6 +187,7 @@ export async function prefetchCity(city: CityInfo): Promise<boolean> {
     await Promise.all([
       city.kind === 'fallback' ? loadCityPack(city.id) : loadRegionPack(city.res5 ?? ''),
       city.kind === 'fallback' ? loadCityRoads(city.id) : loadRegionRoads(city.res5 ?? ''),
+      city.kind === 'fallback' ? null : loadRegionHoods(city.res5 ?? ''),
     ]);
     return true;
   } catch {
@@ -227,16 +241,17 @@ export const useGame = create<GameStore>((set, get) => {
       const token = ++loadToken;
       set({ status: 'loading', error: null });
       try {
-        const [pack, roads] = await Promise.all([
+        const [pack, roads, hoods] = await Promise.all([
           city.kind === 'fallback' ? loadCityPack(city.id) : loadRegionPack(city.res5 ?? ''),
           city.kind === 'fallback' ? loadCityRoads(city.id) : loadRegionRoads(city.res5 ?? ''),
+          city.kind === 'fallback' ? Promise.resolve(null) : loadRegionHoods(city.res5 ?? ''),
         ]);
         // A newer openCity() started while we were loading: let it win.
         if (token !== loadToken) return;
         // A late answer for an earlier city lands in that city's (discarded) book.
         const book = new WeatherBook();
         weatherBook = book;
-        const world = buildWorld(city, pack, book, roads);
+        const world = buildWorld(city, pack, book, roads, hoods);
         lastWeatherFetch = Date.now();
         fetchWeather(city)
           .then((w) => book.load(w.hours))
