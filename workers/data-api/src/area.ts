@@ -8,6 +8,7 @@ import {
   MIN_CATEGORIES,
   MIN_NAMED_PLACES,
   MIN_RESIDENTS,
+  NEIGHBOUR_REGION_M,
   PLAYABLE_RADIUS_M,
   REGION_RES,
 } from './config';
@@ -66,6 +67,8 @@ export async function areaCheck(url: URL, env: Env): Promise<Response> {
   const centroid = { lat: roundCoord(cLat), lng: roundCoord(cLng) };
   const pack = await env.DATA.head(regionPackKey(res5));
   if (!pack) {
+    const near = await nearestBuiltNeighbour(env, res5, lat, lng);
+    if (near) return near;
     // Counts only: the res-5 cell (~250 km²) is coarse enough to log.
     console.log(`area_check_miss res5=${res5}`);
     return respond({
@@ -118,6 +121,49 @@ export async function areaCheck(url: URL, env: Env): Promise<Response> {
     return respond({ playable: false, cityName, reason: 'not_enough_population', centroid, res5 });
   }
   return respond({ playable: true, cityName, reason: 'ok', centroid, res5 });
+}
+
+/**
+ * The player's own region isn't built, but the city they're in may be: the
+ * closest built neighbouring region (center within NEIGHBOUR_REGION_M) plays
+ * instead, if it has enough places and people as a whole (SPEC §6.2 totals).
+ */
+async function nearestBuiltNeighbour(
+  env: Env,
+  res5: string,
+  lat: number,
+  lng: number,
+): Promise<Response | null> {
+  const candidates = gridDisk(res5, 1)
+    .filter((h) => h !== res5)
+    .map((h) => {
+      const [hLat, hLng] = cellToLatLng(h);
+      return { h, hLat, hLng, d: haversineM(lat, lng, hLat, hLng) };
+    })
+    .filter((c) => c.d <= NEIGHBOUR_REGION_M)
+    .sort((a, b) => a.d - b.d);
+  for (const c of candidates) {
+    if (!(await env.DATA.head(regionPackKey(c.h)))) continue;
+    const meta = await readMeta(env, c.h);
+    const centroid = { lat: roundCoord(c.hLat), lng: roundCoord(c.hLng) };
+    if (meta) {
+      const t = meta.totals;
+      if (
+        t.namedPlaces < MIN_NAMED_PLACES ||
+        t.categories < MIN_CATEGORIES ||
+        t.pop < MIN_RESIDENTS
+      )
+        continue;
+    }
+    return respond({
+      playable: true,
+      cityName: meta?.name ?? null,
+      reason: 'ok',
+      centroid,
+      res5: c.h,
+    });
+  }
+  return null;
 }
 
 async function readMeta(env: Env, res5: string): Promise<RegionMeta | null> {

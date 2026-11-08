@@ -6,6 +6,13 @@
 /** A point within this distance of a fallback city center plays that city. */
 export const CITY_RADIUS_M = 25_000;
 
+/**
+ * Regions are built around cities (pipeline/list-regions.ts), one res-5 cell
+ * each; a player just outside it (same city, next cell) plays the nearest
+ * built neighbour whose center is within this distance.
+ */
+export const NEIGHBOUR_REGION_M = 20_000;
+
 /** SPEC §6.2: thresholds are evaluated within this radius of the start point. */
 export const PLAYABLE_RADIUS_M = 2_000;
 /** SPEC §6.2: at least this many named places… */

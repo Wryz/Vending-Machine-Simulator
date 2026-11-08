@@ -124,6 +124,32 @@ describe('/area/check', () => {
     expect(logged).not.toMatch(/52\.5|13\.4/);
   });
 
+  it('plays the nearest built neighbouring region of the same city', async () => {
+    const own = latLngToCell(52.52, 13.41, 5);
+    const neighbour = gridDisk(own, 1).find((h) => h !== own)!;
+    const [nLat, nLng] = cellToLatLng(neighbour);
+    const env = makeEnv(new FakeBucket().put(`cells/${neighbour}.json.gz`, gz('{}')));
+    const { body } = await check(env, 52.52, 13.41);
+    expect(body.playable).toBe(true);
+    expect(body.res5).toBe(neighbour);
+    expect(body.centroid).toEqual({ lat: roundCoord(nLat), lng: roundCoord(nLng) });
+    // A neighbour too small to play is skipped.
+    const thin: RegionMeta = {
+      schemaVersion: 1,
+      res5: neighbour,
+      name: 'Tiny',
+      generatedAt: '2026-11-08T00:00:00Z',
+      totals: { cells: 1, namedPlaces: 3, categories: 1, pop: 10 },
+      cells: [],
+    };
+    const env2 = makeEnv(
+      new FakeBucket()
+        .put(`cells/${neighbour}.json.gz`, gz('{}'))
+        .put(`cells/${neighbour}.meta.json`, JSON.stringify(thin)),
+    );
+    expect((await check(env2, 52.52, 13.41)).body.reason).toBe('region_not_computed');
+  });
+
   it('rounds coordinates to 2 decimals before any lookup', async () => {
     expect(roundCoord(52.520481)).toBe(52.52);
     expect(roundCoord(-0.004)).toBe(0);
