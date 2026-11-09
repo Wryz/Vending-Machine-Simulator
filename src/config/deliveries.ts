@@ -18,6 +18,11 @@ export const DELIVERY = {
   routeCandidates: 4,
   /** Unloading at each stop of a multi-stop run before driving to the next. */
   unloadMs: 3_000,
+  /**
+   * A driver puts items into the machine one at a time: one every this many
+   * business ms (owner's call, 2026-11-09: 2 s; at 16× that is 8 items a real second).
+   */
+  driverItemBusinessMs: 2_000,
 } as const;
 
 /** The map's "Restock low" key: one van runs to every machine running low. */

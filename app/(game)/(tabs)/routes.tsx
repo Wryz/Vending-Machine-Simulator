@@ -3,7 +3,7 @@ import { Alert, Pressable, View } from 'react-native';
 
 import { DELIVERY } from '@/config/deliveries';
 import { SERVICE, STAFF } from '@/config/economy';
-import { CHAPTER_GOALS, RESEARCH } from '@/config/progression';
+import { CHAPTER_GOALS } from '@/config/progression';
 import { useT, type TKey } from '@/i18n';
 import { simError, venueName } from '@/i18n/sim';
 import { haptic } from '@/services/haptics';
@@ -12,7 +12,6 @@ import {
   autoAssignRoutes,
   type ActionResult,
   buyDriverVan,
-  buyResearch,
   buyVan,
   DRIVERS_CHAPTER,
   driverCapacity,
@@ -21,7 +20,6 @@ import {
   driversUnlocked as driversOpen,
   extendDriver,
   fireDriver,
-  hasResearch,
   hireDriver,
   vanCapacity,
   type Driver,
@@ -29,14 +27,12 @@ import {
   type Machine,
   type World,
 } from '@/sim';
-import { content } from '@/i18n/content';
 import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
 import { duration, money, moneyShort } from '@/ui/format';
 import { LockedCard, StatChip } from '@/ui/hud';
 import { Icon } from '@/ui/icons';
 import { Button, Divider, Mono, Paper, Row, Screen, Section, StatusDot, T } from '@/ui/kit';
-import { LabProgress } from '@/ui/LabProgress';
 import { machineLabel, machineStatus } from '@/ui/machineStatus';
 import { Clipboard } from '@/ui/objects/Clipboard';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
@@ -129,7 +125,7 @@ function Stop({
   );
 }
 
-/** Route clipboard (SPEC §3.6, §8): van, drivers and their routes, auto-reorder. */
+/** Route clipboard (SPEC §3.6, §8): van, drivers and their routes. */
 export default function Routes() {
   const t = useT();
   const theme = useTheme();
@@ -168,8 +164,6 @@ export default function Routes() {
   const unassigned = active.filter((m) => !routeOf.has(m.id));
   const wages =
     game.drivers.filter((d) => d.rentedUntil === undefined).length * STAFF.driverWageCentsPerDay;
-  const autoReorder = hasResearch(game, 'auto-reorder', 'snacks');
-  const autoReorderInfo = RESEARCH.find((r) => r.id === 'auto-reorder');
 
   const toggle = (d: Driver, machineId: string) => {
     const on = d.machineIds.includes(machineId);
@@ -526,64 +520,6 @@ export default function Routes() {
                 </T>
               ) : null}
             </Clipboard>
-          )}
-        </Section>
-
-        <Section title={t('routes.autoReorder.title')}>
-          <T size={13} muted>
-            {t('routes.autoReorder.desc')}
-          </T>
-          {game.chapter < (autoReorderInfo?.unlockChapter ?? 4) ? (
-            <LockedCard
-              icon="box"
-              title={t('routes.autoReorder.title')}
-              chapter={autoReorderInfo?.unlockChapter ?? 4}
-            />
-          ) : (
-            <Paper tone="surface" style={{ gap: SPACE.m }}>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <T weight="bold">{t('routes.autoReorder.title')}</T>
-                <StatChip
-                  icon={autoReorder ? 'star' : 'lock'}
-                  label={
-                    autoReorder ? t('routes.autoReorder.onLabel') : t('routes.autoReorder.offLabel')
-                  }
-                  value={autoReorder ? t('routes.autoReorder.on') : t('routes.autoReorder.off')}
-                  color={autoReorder ? theme.signal : undefined}
-                />
-              </Row>
-              {autoReorder ? null : game.lab?.id === 'auto-reorder' ? (
-                // In the lab: how long until drivers reorder on their own.
-                <LabProgress lab={game.lab} now={game.now} family={null} />
-              ) : (
-                <>
-                  <Button
-                    kind="secondary"
-                    icon={<Icon name="star" size={20} color={theme.ink} />}
-                    label={t('routes.autoReorder.research', {
-                      cost: moneyShort(autoReorderInfo?.costCents ?? 0),
-                    })}
-                    disabled={game.cashCents < (autoReorderInfo?.costCents ?? 0) || !!game.lab}
-                    onPress={() =>
-                      run(
-                        (d) => buyResearch(d, 'auto-reorder'),
-                        t('company.research.startedToast', {
-                          name: content.researchName(
-                            'auto-reorder',
-                            autoReorderInfo?.name ?? t('routes.autoReorder.title'),
-                          ),
-                        }),
-                      )
-                    }
-                  />
-                  {game.lab ? (
-                    <T size={12} muted>
-                      {t('company.research.labBusy')}
-                    </T>
-                  ) : null}
-                </>
-              )}
-            </Paper>
           )}
         </Section>
       </Screen>

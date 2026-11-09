@@ -88,13 +88,4 @@ export default {
     a11y: '{machine} à {place}',
     a11yNote: '{machine} à {place}, {note}',
   },
-  autoReorder: {
-    desc: 'D’habitude, les chauffeurs remplissent chaque spirale à ras bord. Avec ceci, seulement jusqu’au niveau cible que tu fixes, pour ne pas immobiliser argent et place.',
-    title: 'Réassort auto',
-    onLabel: 'Les chauffeurs remplissent chaque spirale à son niveau cible',
-    offLabel: 'Pas encore recherché',
-    on: 'Oui',
-    off: 'Non',
-    research: 'Rechercher · {cost}',
-  },
 } satisfies Shape<typeof en>;

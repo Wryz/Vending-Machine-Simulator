@@ -9,7 +9,11 @@ import {
   STAFF,
   TIME,
 } from '@/config/economy';
-import { CHAPTER_GOALS as CHAPTER_GOALS_REF, type ResearchId } from '@/config/progression';
+import {
+  CHAPTER_GOALS as CHAPTER_GOALS_REF,
+  REMOVED_RESEARCH,
+  type ResearchId,
+} from '@/config/progression';
 import { REQUESTS } from '@/config/requests';
 import { SURPRISES } from '@/config/surprises';
 import { getMachineType, type MachineFamily, type MachineType } from '@/config/machines';
@@ -626,6 +630,19 @@ export interface AdvanceJob {
   done(): boolean;
 }
 
+/** Research removed from the game: drop it from old saves and refund what it cost. */
+export function retireRemovedResearch(s: GameState): void {
+  const research = s.research as Record<string, unknown>;
+  for (const [id, cents] of Object.entries(REMOVED_RESEARCH)) {
+    const inLab = (s.lab as { id: string } | null)?.id === id;
+    if (!(id in research) && !inLab) continue;
+    delete research[id];
+    if (inLab) s.lab = null;
+    s.cashCents += cents;
+    addLedger(s, 'Research', cents);
+  }
+}
+
 export function beginAdvance(
   state: GameState,
   world: World,
@@ -633,6 +650,7 @@ export function beginAdvance(
   opts: SimOptions = {},
 ): AdvanceJob {
   const s = cloneState(state);
+  retireRemovedResearch(s);
   const report = newReport(s.now);
   if (to <= s.now)
     return { state: s, report, run: () => true, progress: () => 1, done: () => true };

@@ -88,13 +88,4 @@ export default {
     a11y: '{machine} en {place}',
     a11yNote: '{machine} en {place}, {note}',
   },
-  autoReorder: {
-    desc: 'Normalmente los conductores llenan cada espiral hasta arriba. Con esto, solo hasta el nivel par que fijes, así lo que se vende poco no ocupa dinero ni espacio.',
-    title: 'Pedido automático',
-    onLabel: 'Los repartidores llenan cada espiral hasta su nivel',
-    offLabel: 'Aún no investigado',
-    on: 'Sí',
-    off: 'No',
-    research: 'Investigar · {cost}',
-  },
 } satisfies Shape<typeof en>;

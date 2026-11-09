@@ -88,13 +88,4 @@ export default {
     a11y: '{machine} bei {place}',
     a11yNote: '{machine} bei {place}, {note}',
   },
-  autoReorder: {
-    desc: 'Fahrer füllen sonst jede Spirale bis oben. Damit füllen sie nur bis zu deinem Sollbestand, so binden Langsamläufer kein Geld und keinen Platz.',
-    title: 'Auto-Nachbestellung',
-    onLabel: 'Fahrer füllen jede Spirale bis zur Sollmenge auf',
-    offLabel: 'Noch nicht erforscht',
-    on: 'An',
-    off: 'Aus',
-    research: 'Erforschen · {cost}',
-  },
 } satisfies Shape<typeof en>;

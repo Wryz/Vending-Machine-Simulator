@@ -31,7 +31,7 @@ export function VanCard({ delivery, driverName }: { delivery: Delivery; driverNa
   const loading = now < delivery.departAt;
   // A later stop of a multi-stop run waits while the van serves the stops before it.
   const elsewhere = loading && (delivery.leg ?? 0) > 0;
-  const left = clockDuration(delivery.arriveAt - now);
+  const left = clockDuration(Math.max(0, delivery.arriveAt - now));
   const store = delivery.from.name ? venueName(delivery.from.name) : '';
   return (
     <View

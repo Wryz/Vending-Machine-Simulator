@@ -88,13 +88,4 @@ export default {
     a11y: '{place}의 {machine}',
     a11yNote: '{place}의 {machine}, {note}',
   },
-  autoReorder: {
-    desc: '기사는 보통 모든 코일을 가득 채워요. 이걸 연구하면 설정한 기준 재고까지만 채워서 잘 안 팔리는 상품에 돈과 공간이 묶이지 않아요.',
-    title: '자동 재주문',
-    onLabel: '기사가 코일마다 기준량까지 채워요',
-    offLabel: '아직 연구하지 않았어요',
-    on: '켬',
-    off: '끔',
-    research: '연구 · {cost}',
-  },
 } satisfies Shape<typeof en>;

@@ -88,13 +88,4 @@ export default {
     a11y: '{place}の{machine}',
     a11yNote: '{place}の{machine}、{note}',
   },
-  autoReorder: {
-    desc: '通常ドライバーは各コイルを満杯まで補充します。これがあると設定した基準在庫までだけ補充するので、売れにくい商品で資金や積載スペースを無駄にしません。',
-    title: '自動発注',
-    onLabel: 'ドライバーが各コイルを基準在庫まで補充',
-    offLabel: 'まだ研究していません',
-    on: 'ON',
-    off: 'OFF',
-    research: '研究 · {cost}',
-  },
 } satisfies Shape<typeof en>;

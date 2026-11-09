@@ -1,4 +1,4 @@
-/** Routes tab (route clipboard): van, drivers and their routes, auto-reorder. */
+/** Routes tab (route clipboard): van, drivers and their routes. */
 export default {
   title: 'Routes',
   emptyTitle: 'Route clipboard',
@@ -86,14 +86,5 @@ export default {
   stop: {
     a11y: '{machine} at {place}',
     a11yNote: '{machine} at {place}, {note}',
-  },
-  autoReorder: {
-    desc: "Drivers normally fill every coil to the top. With this, they fill each coil only to the par level you set, so slow sellers don't tie up cash and van space.",
-    title: 'Auto-reorder',
-    onLabel: 'Drivers refill each coil to its par level',
-    offLabel: 'Not researched yet',
-    on: 'On', // small chip
-    off: 'Off', // small chip
-    research: 'Research · {cost}',
   },
 } as const;

@@ -21,7 +21,7 @@ export interface Slot {
   productId: string | null;
   qty: number;
   priceCents: number;
-  /** Auto-reorder par level (drivers restock to this). */
+  /** Par level (unused since auto-reorder was removed, 2026-11-09; kept for saves). */
   par: number;
   /** When the current batch was stocked (spoilage). */
   stockedAt: number;
@@ -179,6 +179,8 @@ export interface Delivery {
    * different placement: the stock goes back. Old saves: none (not checked).
    */
   to?: { lat: number; lng: number; placedAt: number };
+  /** A driver's stop being unloaded: items put in so far (absent until the van arrives). */
+  unloaded?: number;
 }
 
 export interface RequestsState {

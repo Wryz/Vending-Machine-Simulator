@@ -20,7 +20,6 @@ export default {
         u1: 'Getränke- & Kaffeeautomaten',
         u2: 'Bezirk 2',
         u3: 'Fahrer',
-        u4: 'Nachbestell-Regeln',
       },
     },
     c3: {
@@ -153,10 +152,6 @@ export default {
     'id-check': {
       name: 'Ausweiskontrolle',
       desc: 'Weniger Alkohol-Bußgelder und Vorfälle.',
-    },
-    'auto-reorder': {
-      name: 'Auto-Nachbestellung',
-      desc: 'Fahrer füllen automatisch bis zu deinen Sollmengen auf.',
     },
     'cash-vault': {
       name: 'Größere Kasse',

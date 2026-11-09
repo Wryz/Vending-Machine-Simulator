@@ -20,7 +20,6 @@ export default {
         u1: 'Máquinas de bebidas y café',
         u2: 'Distrito 2',
         u3: 'Repartidores',
-        u4: 'Reglas de repedido',
       },
     },
     c3: {
@@ -153,10 +152,6 @@ export default {
     'id-check': {
       name: 'Control de identidad',
       desc: 'Reduce multas e incidentes con el alcohol.',
-    },
-    'auto-reorder': {
-      name: 'Pedido automático',
-      desc: 'Los repartidores reponen hasta tus niveles automáticamente.',
     },
     'cash-vault': {
       name: 'Caja más grande',

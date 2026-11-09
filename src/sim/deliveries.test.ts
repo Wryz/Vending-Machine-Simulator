@@ -1,9 +1,11 @@
 import { DELIVERY } from '@/config/deliveries';
-import { SERVICE } from '@/config/economy';
+import { SERVICE, TIME } from '@/config/economy';
 
 import {
   advance,
   arriveDeliveries,
+  driverItemMs,
+  driverUnloadMs,
   assignRoute,
   buyVan,
   currentLegs,
@@ -247,9 +249,30 @@ describe('multi-stop van runs', () => {
     expect(vansFree(s)).toBe(vanCount(s));
     // A second run skips machines its van is still driving to.
     expect(dispatchDriver(s, w, driver)).toBe(0);
-    const last = Math.max(...s.deliveries.map((d) => d.arriveAt));
+    // The van stays at each stop while the driver puts items in, one every
+    // 2 business seconds (8 a real second at 16x); the next leg waits for it.
+    const [first, second] = [...s.deliveries].sort((a, b) => (a.leg ?? 0) - (b.leg ?? 0));
+    expect(second.departAt - first.arriveAt).toBe(driverUnloadMs(first.units));
+    expect(driverItemMs()).toBe(2_000 / TIME.salesTimeScale);
+    // On arrival: the cash box is emptied, the items are not in yet.
+    s.now = first.arriveAt;
+    arriveDeliveries(s, first.arriveAt);
+    const m1 = s.machines.find((m) => m.id === first.machineId)!;
+    expect(m1.cashBoxCents).toBe(0);
+    expect(m1.slots.reduce((a, x) => a + x.qty, 0)).toBe(m1.slots.length);
+    // Halfway through unloading: about half the items are in.
+    const half = first.arriveAt + Math.round(driverUnloadMs(first.units) / 2);
+    s.now = half;
+    arriveDeliveries(s, half);
+    const inHalf = m1.slots.reduce((a, x) => a + x.qty, 0) - m1.slots.length;
+    expect(inHalf).toBeGreaterThan(0);
+    expect(inHalf).toBeLessThan(first.units);
+    expect(s.deliveries.some((d) => d.id === first.id)).toBe(true);
+    // Every stop done.
+    const last = Math.max(...s.deliveries.map((d) => d.arriveAt + driverUnloadMs(d.units)));
     s.now = last;
     arriveDeliveries(s, last);
+    expect(s.deliveries).toHaveLength(0);
     for (const m of s.machines) {
       expect(m.slots.reduce((a, x) => a + x.qty, 0)).toBeGreaterThan(m.slots.length);
       expect(m.cashBoxCents).toBe(0);

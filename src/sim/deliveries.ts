@@ -1,5 +1,5 @@
 import { DELIVERY, RESTOCK_RUN, ROADS } from '@/config/deliveries';
-import { SERVICE } from '@/config/economy';
+import { SERVICE, TIME } from '@/config/economy';
 import { getMachineType } from '@/config/machines';
 import { getProduct } from '@/config/products';
 
@@ -15,7 +15,6 @@ import {
 import { nextId } from './create';
 import { distanceM, orderStops } from './geo';
 import { addLedger, log } from './ledger';
-import { hasResearch } from './demand';
 import { driverCapacity, driverOnDuty, slotCapacity, vanCapacity, wholesaleCents } from './rules';
 import type { Delivery, Driver, GameState, Machine, RestockLine, World } from './state';
 
@@ -176,7 +175,22 @@ export interface RunPlan {
  * One van's run: it loads at the warehouse nearest the route by road, then
  * drives stop to stop (nearest next) along the streets, unloading at each.
  */
-export function planRun(state: GameState, world: World, stops: readonly RunStop[]): RunPlan {
+/** Real ms a driver takes to put one item into a machine. */
+export function driverItemMs(): number {
+  return DELIVERY.driverItemBusinessMs / TIME.salesTimeScale;
+}
+
+/** How long a driver's van stays at a stop putting `units` items in. */
+export function driverUnloadMs(units: number): number {
+  return Math.round(units * driverItemMs());
+}
+
+export function planRun(
+  state: GameState,
+  world: World,
+  stops: readonly RunStop[],
+  opts: { driver?: boolean } = {},
+): RunPlan {
   const first = orderStops(
     world.city,
     stops.map((x) => ({ ...x, lat: x.machine.lat, lng: x.machine.lng })),
@@ -190,10 +204,13 @@ export function planRun(state: GameState, world: World, stops: readonly RunStop[
   let clock = DELIVERY.loadMs;
   let roadTotal = 0;
   let wholesaleTotal = 0;
+  // Time spent at the previous stop before driving on: a driver puts each item in.
+  let stay = 0;
   const legs: RunPlan['legs'] = ordered.map((x, i) => {
     const r = routeFor(world, at, x.machine);
     at = x.machine;
-    if (i > 0) clock += DELIVERY.unloadMs;
+    if (i > 0) clock += stay;
+    stay = opts.driver ? driverUnloadMs(x.lines.reduce((a, l) => a + l.qty, 0)) : DELIVERY.unloadMs;
     const departIn = clock;
     clock += driveMsFor(r.roadM);
     roadTotal += r.roadM;
@@ -215,7 +232,8 @@ export function planRun(state: GameState, world: World, stops: readonly RunStop[
     legs,
     wholesaleCents: wholesaleTotal,
     fuelCents: Math.round((roadTotal / 1000) * SERVICE.fuelCentsPerKm),
-    doneIn: clock,
+    // The last stop is done once its items are in (a driver's run).
+    doneIn: clock + (opts.driver ? stay : 0),
   };
 }
 
@@ -391,21 +409,21 @@ export function orderLowRun(
 
 /**
  * A hired driver's route run (SPEC §4.2): their van loads at the warehouse and
- * drives the route, topping each machine up (to par with auto-reorder) and
+ * drives the route, topping each machine up and
  * emptying its cash box. Machines with a van already on the way are skipped.
  * Returns what the run cost (stock plus fuel).
  */
 export function dispatchDriver(state: GameState, world: World, driver: Driver): number {
   let stops = driverStops(state, driver, Infinity);
   if (!stops.length) return 0;
-  let plan = planRun(state, world, stops);
+  let plan = planRun(state, world, stops, { driver: true });
   if (plan.wholesaleCents + plan.fuelCents > state.cashCents) {
     // Short of cash: buy only the stock the cash covers after fuel. Cash-box
     // stops still go (the run is what brings the money in).
     for (let i = 0; i < 3; i++) {
       stops = driverStops(state, driver, Math.max(0, state.cashCents - plan.fuelCents));
       if (!stops.length) return 0;
-      plan = planRun(state, world, stops);
+      plan = planRun(state, world, stops, { driver: true });
       if (plan.wholesaleCents + plan.fuelCents <= Math.max(0, state.cashCents)) break;
     }
     // Fuel may be paid out of the cash boxes the van empties on this run.
@@ -423,7 +441,7 @@ export function dispatchDriver(state: GameState, world: World, driver: Driver): 
 
 /**
  * A driver's stops: each machine on the route without a van on the way, topped
- * up (to par with auto-reorder) while the van has room and `budget` (cents of
+ * up while the van has room and `budget` (cents of
  * wholesale) lasts. A machine with cash in its box is a stop even with no stock.
  */
 function driverStops(state: GameState, driver: Driver, budget: number): RunStop[] {
@@ -435,11 +453,10 @@ function driverStops(state: GameState, driver: Driver, budget: number): RunStop[
     if (!m || m.status !== 'active' || deliveryFor(state, m.id)) continue;
     const type = getMachineType(m.typeId);
     const cap = slotCapacity(state, type);
-    const autoReorder = hasResearch(state, 'auto-reorder', type.family);
     const lines: RestockLine[] = [];
     m.slots.forEach((s, i) => {
       if (!s.productId || capacity <= 0) return;
-      const target = autoReorder && s.par > 0 ? Math.min(cap, s.par) : cap;
+      const target = cap;
       const unit = wholesaleCents(state, getProduct(s.productId));
       const want = Math.min(capacity, Math.max(0, target - s.qty));
       const need = unit > 0 ? Math.min(want, Math.max(0, Math.floor(cash / unit))) : want;
@@ -472,40 +489,79 @@ export function arriveDeliveries(state: GameState, t: number): DeliveryNews[] {
     .filter((d) => d.arriveAt <= t)
     .sort((a, b) => a.arriveAt - b.arriveAt);
   if (!due.length) return news;
-  const gone = new Set(due.map((d) => d.id));
-  state.deliveries = state.deliveries.filter((d) => !gone.has(d.id));
   const now = state.now;
+  const done = new Set<string>();
   try {
-    for (const d of due) arriveOne(state, d, now, news);
+    for (const d of due) if (arriveOne(state, d, now, t, news)) done.add(d.id);
   } finally {
     state.now = now;
   }
+  if (done.size) state.deliveries = state.deliveries.filter((d) => !done.has(d.id));
   return news;
 }
 
-function arriveOne(state: GameState, d: Delivery, now: number, news: DeliveryNews[]): void {
+/**
+ * The first `n` items of a stop's lines, in order (a driver puts them in one
+ * at a time, coil by coil).
+ */
+function firstItems(lines: readonly RestockLine[], from: number, to: number): RestockLine[] {
+  const out: RestockLine[] = [];
+  let seen = 0;
+  for (const l of lines) {
+    const lo = Math.max(from, seen);
+    const hi = Math.min(to, seen + l.qty);
+    if (hi > lo) out.push({ ...l, qty: hi - lo });
+    seen += l.qty;
+  }
+  return out;
+}
+
+/** Handles a van at its machine by `t`. Returns true once the stop is finished. */
+function arriveOne(
+  state: GameState,
+  d: Delivery,
+  now: number,
+  t: number,
+  news: DeliveryNews[],
+): boolean {
   state.now = Math.max(now, d.arriveAt);
-  {
-    const m = state.machines.find((x) => x.id === d.machineId);
-    // Gone, sold, in storage, or picked up and placed somewhere else meanwhile.
-    if (!m || m.status !== 'active' || !samePlacement(d, m)) {
-      state.cashCents += d.wholesaleCents;
-      if (d.wholesaleCents) addLedger(state, 'Wholesale', d.wholesaleCents);
-      news.push({ kind: 'returned', delivery: d });
-      return;
-    }
+  const m = state.machines.find((x) => x.id === d.machineId);
+  // Gone, sold, in storage, or picked up and placed somewhere else meanwhile:
+  // what wasn't put in yet goes back.
+  if (!m || m.status !== 'active' || !samePlacement(d, m)) {
+    const left = d.units > 0 ? (d.units - (d.unloaded ?? 0)) / d.units : 1;
+    const refund = Math.round(d.wholesaleCents * left);
+    state.cashCents += refund;
+    if (refund) addLedger(state, 'Wholesale', refund);
+    news.push({ kind: 'returned', delivery: d });
+    return true;
+  }
+  if (!d.driverId) {
+    // The owner's own van: everything goes in on arrival, with the fresh-stock bonus.
     // Checked when ordered; fillSlots still never goes past a coil's capacity.
     const units = d.lines.length ? fillSlots(state, m, d.lines) : 0;
-    if (d.driverId) {
-      // The driver's stop: no fresh-stock bonus (that is for the owner's own visits).
-      collectCash(state, m.id);
-      if (units > 0) log(state, 'restock', `Driver restocked ${units} items`, m.id, 0);
-    } else {
-      markVisited(state, m);
-      log(state, 'restock', `Restocked ${units} items`, m.id, 0);
-    }
+    markVisited(state, m);
+    log(state, 'restock', `Restocked ${units} items`, m.id, 0);
     news.push({ kind: 'arrived', delivery: d, units });
+    return true;
   }
+  // A driver's stop: empty the cash box on arrival, then put the items in one
+  // at a time (no fresh-stock bonus: that is for the owner's own visits).
+  if (d.unloaded === undefined) {
+    collectCash(state, m.id);
+    d.unloaded = 0;
+  }
+  const per = driverItemMs();
+  const by = d.units > 0 ? Math.min(d.units, Math.floor((t - d.arriveAt) / per)) : 0;
+  if (by > d.unloaded) {
+    state.now = Math.max(state.now, Math.min(t, d.arriveAt + Math.round(by * per)));
+    fillSlots(state, m, firstItems(d.lines, d.unloaded, by));
+    d.unloaded = by;
+  }
+  if (d.unloaded < d.units) return false;
+  if (d.units > 0) log(state, 'restock', `Driver restocked ${d.units} items`, m.id, 0);
+  news.push({ kind: 'arrived', delivery: d, units: d.units });
+  return true;
 }
 
 /** The stop each van is driving to now: per run, the first one not reached yet. */

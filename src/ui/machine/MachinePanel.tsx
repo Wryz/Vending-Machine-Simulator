@@ -23,7 +23,6 @@ import {
   productsFor,
   repairMachine,
   quoteDelivery,
-  setPar,
   setPrice,
   slotCapacity,
   suggestRestock,
@@ -176,7 +175,7 @@ export function MachinePanel({
   const requestOnVan =
     !!request && !!onTheWay?.lines.some((l) => l.productId === request.productId && l.qty > 0);
   const requestStage: RequestStage = requestOnVan
-    ? { kind: 'coming', eta: clockDuration(onTheWay!.arriveAt - game.now) }
+    ? { kind: 'coming', eta: clockDuration(Math.max(0, onTheWay!.arriveAt - game.now)) }
     : onTheWay
       ? { kind: 'vanBusy' }
       : requestLoaded
@@ -651,29 +650,6 @@ export function MachinePanel({
                       ]),
                 ]}
               />
-              {hasResearch(game, 'auto-reorder', type.family) ? (
-                <Row style={{ justifyContent: 'center' }} gap={SPACE.l}>
-                  <Stepper
-                    icon="minus"
-                    label={t('machinePanel.a11y.lowerPar')}
-                    onPress={() =>
-                      useGame.getState().act((d) => setPar(d, machine.id, selected, sel.par - 1))
-                    }
-                  />
-                  <StatChip
-                    icon="box"
-                    label={t('machinePanel.stats.driverPar')}
-                    value={String(sel.par)}
-                  />
-                  <Stepper
-                    icon="plus"
-                    label={t('machinePanel.a11y.raisePar')}
-                    onPress={() =>
-                      useGame.getState().act((d) => setPar(d, machine.id, selected, sel.par + 1))
-                    }
-                  />
-                </Row>
-              ) : null}
             </>
           ) : null}
         </Paper>

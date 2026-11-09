@@ -20,7 +20,6 @@ export default {
         u1: 'Máquinas de bebidas e café',
         u2: 'Distrito 2',
         u3: 'Motoristas',
-        u4: 'Regras de recompra',
       },
     },
     c3: {
@@ -153,10 +152,6 @@ export default {
     'id-check': {
       name: 'Checagem de documento',
       desc: 'Reduz multas e incidentes com álcool.',
-    },
-    'auto-reorder': {
-      name: 'Regras de reposição automática',
-      desc: 'Motoristas repõem até os seus níveis automaticamente.',
     },
     'cash-vault': {
       name: 'Cofre maior',

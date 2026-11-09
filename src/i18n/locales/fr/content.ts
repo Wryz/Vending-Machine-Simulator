@@ -20,7 +20,6 @@ export default {
         u1: 'Distributeurs de boissons et café',
         u2: 'Quartier 2',
         u3: 'Chauffeurs',
-        u4: 'Règles de réassort',
       },
     },
     c3: {
@@ -153,10 +152,6 @@ export default {
     'id-check': {
       name: 'Contrôle d’identité',
       desc: 'Moins d’amendes et d’incidents liés à l’alcool.',
-    },
-    'auto-reorder': {
-      name: 'Réassort automatique',
-      desc: 'Les chauffeurs réapprovisionnent selon tes niveaux cibles.',
     },
     'cash-vault': {
       name: 'Caisse plus grande',

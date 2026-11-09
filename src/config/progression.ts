@@ -28,13 +28,7 @@ export const CHAPTERS: readonly Chapter[] = [
     n: 2,
     title: 'The Route',
     goal: 'Run 5 machines and buy a van',
-    unlocks: [
-      'Telemetry',
-      'Drinks & coffee machines',
-      'District 2',
-      'Drivers',
-      'Auto-reorder rules',
-    ],
+    unlocks: ['Telemetry', 'Drinks & coffee machines', 'District 2', 'Drivers'],
   },
   {
     n: 3,
@@ -162,8 +156,14 @@ export type ResearchId =
   | 'technician'
   | 'smart-pricing'
   | 'id-check'
-  | 'auto-reorder'
   | 'cash-vault';
+
+/**
+ * Research that was removed from the game, with what it cost: old saves that
+ * bought it (or had it in the lab) get the money back. Auto-reorder (2026-11-09,
+ * owner's call) only made drivers fill coils to a par level.
+ */
+export const REMOVED_RESEARCH: Record<string, number> = { 'auto-reorder': 250_000 };
 
 export interface Research {
   id: ResearchId;
@@ -260,15 +260,6 @@ export const RESEARCH: readonly Research[] = [
     costCents: 150_000,
     unlockChapter: 5,
     days: 2,
-  },
-  {
-    id: 'auto-reorder',
-    name: 'Auto-reorder rules',
-    description: 'Drivers restock to your par levels automatically.',
-    costCents: 250_000,
-    unlockChapter: 2,
-    days: 3,
-    global: true,
   },
   {
     id: 'cash-vault',

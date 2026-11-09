@@ -20,7 +20,6 @@ export default {
         u1: '음료·커피 자판기',
         u2: '2구역',
         u3: '기사',
-        u4: '자동 재주문 규칙',
       },
     },
     c3: {
@@ -153,10 +152,6 @@ export default {
     'id-check': {
       name: '신분증 확인',
       desc: '주류 벌금과 사고가 줄어요.',
-    },
-    'auto-reorder': {
-      name: '자동 재주문 규칙',
-      desc: '기사가 적정 재고량까지 자동으로 보충해요.',
     },
     'cash-vault': {
       name: '더 큰 돈통',

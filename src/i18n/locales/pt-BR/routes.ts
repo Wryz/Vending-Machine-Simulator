@@ -88,13 +88,4 @@ export default {
     a11y: '{machine} em {place}',
     a11yNote: '{machine} em {place}, {note}',
   },
-  autoReorder: {
-    desc: 'Normalmente os motoristas enchem cada espiral até o topo. Com isso, só até o nível par que você definir, para itens lentos não prenderem dinheiro e espaço.',
-    title: 'Reposição automática',
-    onLabel: 'Motoristas enchem cada espiral até o nível definido',
-    offLabel: 'Ainda não pesquisado',
-    on: 'Lig.',
-    off: 'Desl.',
-    research: 'Pesquisar · {cost}',
-  },
 } satisfies Shape<typeof en>;

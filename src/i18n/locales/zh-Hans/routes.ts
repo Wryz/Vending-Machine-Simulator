@@ -88,13 +88,4 @@ export default {
     a11y: '{place}的{machine}',
     a11yNote: '{place}的{machine}，{note}',
   },
-  autoReorder: {
-    desc: '司机通常把每个货道补满。研究后只补到你设定的标准库存，滞销商品不会占用资金和货车空间。',
-    title: '自动补货',
-    onLabel: '司机会把每条货道补到标准库存',
-    offLabel: '尚未研发',
-    on: '开',
-    off: '关',
-    research: '研发 · {cost}',
-  },
 } satisfies Shape<typeof en>;

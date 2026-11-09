@@ -20,7 +20,6 @@ export default {
         u1: '饮料和咖啡机',
         u2: '2 区',
         u3: '司机',
-        u4: '自动补货规则',
       },
     },
     c3: {
@@ -153,10 +152,6 @@ export default {
     'id-check': {
       name: '身份验证',
       desc: '减少酒类罚款和事故。',
-    },
-    'auto-reorder': {
-      name: '自动补货规则',
-      desc: '司机自动按你的标准库存补货。',
     },
     'cash-vault': {
       name: '大号钱箱',

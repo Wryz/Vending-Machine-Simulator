@@ -1,7 +1,6 @@
 import { SERVICE, STAFF } from '@/config/economy';
 import { getMachineType, SLOT_ROWS } from '@/config/machines';
 import { getProduct, PRODUCTS } from '@/config/products';
-import { RESEARCH } from '@/config/progression';
 
 import {
   addSlotRow,
@@ -115,13 +114,12 @@ describe('drivers: rent a van or own it (owner, 2026-11-08)', () => {
     return s;
   };
 
-  it('unlock in chapter 2 (and auto-reorder with them), with no van of your own needed', () => {
+  it('unlock in chapter 2, with no van of your own needed', () => {
     const s1 = start(1);
     expect(hireDriver(s1)).toEqual({ ok: false, error: 'Drivers unlock in chapter 2.' });
     const s2 = start(2);
     expect(s2.vanLevel).toBe(0);
     expect(hireDriver(s2).ok).toBe(true);
-    expect(RESEARCH.find((r) => r.id === 'auto-reorder')!.unlockChapter).toBe(2);
   });
 
   it('a rental costs its price, works for a while, then waits for an extension', () => {
@@ -184,5 +182,28 @@ describe('drivers: rent a van or own it (owner, 2026-11-08)', () => {
     expect(hireDriver(t, { own: true }).ok).toBe(true);
     expect(before - t.cashCents).toBe(STAFF.driverOwnCents);
     expect(t.drivers[0].rentedUntil).toBeUndefined();
+  });
+});
+
+describe('removed research (auto-reorder, owner 2026-11-09)', () => {
+  it('drops it from old saves and refunds it, researched or still in the lab', () => {
+    const world = testWorld();
+    const done = placed(world);
+    (done.research as Record<string, string[]>)['auto-reorder'] = ['*'];
+    const cash = done.cashCents;
+    const a = advance(done, world, done.now + 1_000).state;
+    expect('auto-reorder' in a.research).toBe(false);
+    expect(a.cashCents).toBeGreaterThanOrEqual(cash + 250_000 - 10_000);
+
+    const inLab = placed(world);
+    (inLab as { lab: unknown }).lab = {
+      id: 'auto-reorder',
+      key: '*',
+      startedAt: inLab.now,
+      doneAt: inLab.now + 60_000,
+    };
+    const b = advance(inLab, world, inLab.now + 1_000).state;
+    expect(b.lab).toBeNull();
+    expect(b.cashCents).toBeGreaterThanOrEqual(inLab.cashCents + 250_000 - 10_000);
   });
 });

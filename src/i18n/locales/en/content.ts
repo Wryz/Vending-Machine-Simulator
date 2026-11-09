@@ -24,7 +24,6 @@ export default {
         u1: 'Drinks & coffee machines',
         u2: 'District 2',
         u3: 'Drivers',
-        u4: 'Auto-reorder rules',
       },
     },
     c3: {
@@ -160,10 +159,6 @@ export default {
     'id-check': {
       name: 'ID check',
       desc: 'Reduces alcohol fines and incidents.',
-    },
-    'auto-reorder': {
-      name: 'Auto-reorder rules',
-      desc: 'Drivers restock to your par levels automatically.',
     },
     'cash-vault': {
       name: 'Larger cash box',
