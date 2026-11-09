@@ -22,6 +22,7 @@ import { StatChip } from '@/ui/hud';
 import { Button, Mono, Paper, Row, Screen, T } from '@/ui/kit';
 import { markSeen } from '@/ui/markSeen';
 import { researchDoneCount } from '@/ui/moreBadges';
+import { LabProgress } from '@/ui/LabProgress';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
 import { SPACE, TOUCH } from '@/ui/theme';
 
@@ -30,36 +31,6 @@ const FAMILIES = Object.keys(FAMILY_LABEL) as MachineFamily[];
 /** A machine family's display name. */
 function familyLabel(f: MachineFamily): string {
   return t.or(`content.families.${f}`, FAMILY_LABEL[f]);
-}
-
-/** The research in the lab: a bar and the time left (it applies when done). */
-function LabProgress({
-  lab,
-  now,
-  family,
-}: {
-  lab: { startedAt: number; doneAt: number };
-  now: number;
-  family: string | null;
-}) {
-  const t = useT();
-  const theme = useTheme();
-  const share = Math.min(1, Math.max(0, (now - lab.startedAt) / (lab.doneAt - lab.startedAt)));
-  return (
-    <View style={{ gap: 4, marginTop: SPACE.xs }}>
-      <View style={{ height: 8, borderRadius: 4, backgroundColor: theme.line, overflow: 'hidden' }}>
-        <View style={{ width: `${share * 100}%`, height: 8, backgroundColor: theme.signal }} />
-      </View>
-      <T size={12} muted>
-        {family
-          ? t('company.research.inLabFamily', {
-              family,
-              time: duration(Math.max(0, lab.doneAt - now)),
-            })
-          : t('company.research.inLab', { time: duration(Math.max(0, lab.doneAt - now)) })}
-      </T>
-    </View>
-  );
 }
 
 /** A per-family research button with a 44 pt target. */

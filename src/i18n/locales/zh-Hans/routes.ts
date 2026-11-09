@@ -15,6 +15,14 @@ export default {
   },
   vanLevel: '{n} 级',
   van: {
+    desc: '你自己的补货：规划好后，车辆在仓库装货并送到售货机。',
+    levelOf: '等级 {n} / {max}',
+    seeUpgrades: '查看所有升级',
+    hideUpgrades: '隐藏升级',
+    items: '{n} 件',
+    runs: '同时 {n} 辆',
+    current: '当前',
+    owned: '已购买',
     section: '货车',
     itemsPerTrip: '每趟载货',
     chapterGoal: '章节目标：买一辆货车',
@@ -24,6 +32,7 @@ export default {
     upgraded: '货车已升级',
   },
   drivers: {
+    desc: '司机开自己的货车替你跑路线，自动为每台售货机补货和收款。',
     section: '司机',
     clipboard: '路线',
     stopsPerRoute: '每条路线站点数',
@@ -80,6 +89,7 @@ export default {
     a11yNote: '{place}的{machine}，{note}',
   },
   autoReorder: {
+    desc: '司机通常把每个货道补满。研究后只补到你设定的标准库存，滞销商品不会占用资金和货车空间。',
     title: '自动补货',
     onLabel: '司机会把每条货道补到标准库存',
     offLabel: '尚未研发',

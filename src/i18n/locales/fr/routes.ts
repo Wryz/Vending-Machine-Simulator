@@ -15,6 +15,14 @@ export default {
   },
   vanLevel: 'Niveau {n}',
   van: {
+    desc: 'Tes propres livraisons : tu les prépares, ton véhicule charge à l’entrepôt et les apporte au distributeur.',
+    levelOf: 'Niveau {n} sur {max}',
+    seeUpgrades: 'Voir toutes les améliorations',
+    hideUpgrades: 'Masquer les améliorations',
+    items: '{n} articles',
+    runs: '{n} à la fois',
+    current: 'Actuel',
+    owned: 'Acheté',
     section: 'Camionnette',
     itemsPerTrip: 'Articles par trajet',
     chapterGoal: 'Objectif du chapitre : acheter une camionnette',
@@ -24,6 +32,7 @@ export default {
     upgraded: 'Camionnette améliorée',
   },
   drivers: {
+    desc: 'Les chauffeurs font une tournée pour toi dans leur propre camionnette : ils réassortissent et vident chaque distributeur seuls.',
     section: 'Chauffeurs',
     clipboard: 'Tournées',
     stopsPerRoute: 'Arrêts par tournée',
@@ -80,6 +89,7 @@ export default {
     a11yNote: '{machine} à {place}, {note}',
   },
   autoReorder: {
+    desc: 'D’habitude, les chauffeurs remplissent chaque spirale à ras bord. Avec ceci, seulement jusqu’au niveau cible que tu fixes, pour ne pas immobiliser argent et place.',
     title: 'Réassort auto',
     onLabel: 'Les chauffeurs remplissent chaque spirale à son niveau cible',
     offLabel: 'Pas encore recherché',

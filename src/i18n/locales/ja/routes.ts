@@ -15,6 +15,14 @@ export default {
   },
   vanLevel: 'レベル{n}',
   van: {
+    desc: '自分で行う補充：計画すると、車両が倉庫で積み込み、自販機まで運びます。',
+    levelOf: 'レベル {n} / {max}',
+    seeUpgrades: 'すべてのアップグレードを見る',
+    hideUpgrades: 'アップグレードを隠す',
+    items: '{n}個',
+    runs: '同時に{n}台',
+    current: '現在',
+    owned: '購入済み',
     section: 'バン',
     itemsPerTrip: '1回の積載数',
     chapterGoal: '章の目標：バンを購入',
@@ -24,6 +32,7 @@ export default {
     upgraded: 'バンを強化しました',
   },
   drivers: {
+    desc: 'ドライバーは自分のバンでルートを回り、各自販機の補充と回収を自動で行います。',
     section: 'ドライバー',
     clipboard: 'ルート',
     stopsPerRoute: '1ルートの停車数',
@@ -80,6 +89,7 @@ export default {
     a11yNote: '{place}の{machine}、{note}',
   },
   autoReorder: {
+    desc: '通常ドライバーは各コイルを満杯まで補充します。これがあると設定した基準在庫までだけ補充するので、売れにくい商品で資金や積載スペースを無駄にしません。',
     title: '自動発注',
     onLabel: 'ドライバーが各コイルを基準在庫まで補充',
     offLabel: 'まだ研究していません',

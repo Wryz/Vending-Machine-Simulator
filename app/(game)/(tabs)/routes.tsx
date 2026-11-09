@@ -1,7 +1,7 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
+import { DELIVERY } from '@/config/deliveries';
 import { SERVICE, STAFF } from '@/config/economy';
 import { CHAPTER_GOALS, RESEARCH } from '@/config/progression';
 import { useT, type TKey } from '@/i18n';
@@ -12,6 +12,7 @@ import {
   autoAssignRoutes,
   type ActionResult,
   buyDriverVan,
+  buyResearch,
   buyVan,
   DRIVERS_CHAPTER,
   driverCapacity,
@@ -28,12 +29,14 @@ import {
   type Machine,
   type World,
 } from '@/sim';
+import { content } from '@/i18n/content';
 import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
 import { duration, money, moneyShort } from '@/ui/format';
 import { LockedCard, StatChip } from '@/ui/hud';
 import { Icon } from '@/ui/icons';
 import { Button, Divider, Mono, Paper, Row, Screen, Section, StatusDot, T } from '@/ui/kit';
+import { LabProgress } from '@/ui/LabProgress';
 import { machineLabel, machineStatus } from '@/ui/machineStatus';
 import { Clipboard } from '@/ui/objects/Clipboard';
 import { FlashToast, useFlash } from '@/ui/objects/Flash';
@@ -133,6 +136,7 @@ export default function Routes() {
   const game = useGame((s) => s.game);
   const { flash, show } = useFlash();
   const [editing, setEditing] = useState<string | null>(null);
+  const [showVans, setShowVans] = useState(false);
 
   const run = (fn: (d: GameState, w: World) => ActionResult, success: string) => {
     const r = useGame.getState().act(fn);
@@ -197,9 +201,17 @@ export default function Routes() {
         <Section title={t('routes.van.section')}>
           <Paper tone="surface" style={{ gap: SPACE.m }}>
             <Row style={{ justifyContent: 'space-between' }}>
-              <T size={17} weight="bold">
-                {t(VAN_NAMES[Math.min(game.vanLevel, VAN_NAMES.length - 1)]!)}
-              </T>
+              <View style={{ flexShrink: 1 }}>
+                <T size={17} weight="bold">
+                  {t(VAN_NAMES[Math.min(game.vanLevel, VAN_NAMES.length - 1)]!)}
+                </T>
+                <T size={12} muted>
+                  {t('routes.van.levelOf', {
+                    n: game.vanLevel,
+                    max: SERVICE.vanCapacityByLevel.length - 1,
+                  })}
+                </T>
+              </View>
               <Row gap={SPACE.s}>
                 <StatChip
                   icon="box"
@@ -216,6 +228,9 @@ export default function Routes() {
                 ) : null}
               </Row>
             </Row>
+            <T size={13} muted>
+              {t('routes.van.desc')}
+            </T>
             {nextVanCost !== undefined ? (
               <Button
                 kind={game.cashCents >= nextVanCost ? 'primary' : 'secondary'}
@@ -239,10 +254,65 @@ export default function Routes() {
                 onPress={() => run((d) => buyVan(d), t('routes.van.upgraded'))}
               />
             ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showVans }}
+              onPress={() => setShowVans((v) => !v)}
+              style={{ minHeight: TOUCH, justifyContent: 'center' }}
+            >
+              <T size={14} weight="medium" color={theme.brand}>
+                {showVans ? t('routes.van.hideUpgrades') : t('routes.van.seeUpgrades')}
+              </T>
+            </Pressable>
+            {showVans ? (
+              <View style={{ gap: SPACE.s }}>
+                {SERVICE.vanCapacityByLevel.map((items, level) => {
+                  const name = VAN_NAMES[level]
+                    ? t(VAN_NAMES[level]!)
+                    : t('routes.vanLevel', { n: level });
+                  const status =
+                    level === game.vanLevel
+                      ? t('routes.van.current')
+                      : level < game.vanLevel
+                        ? t('routes.van.owned')
+                        : moneyShort(SERVICE.vanUpgradeCostCents[level] ?? 0);
+                  return (
+                    <Row
+                      key={level}
+                      style={{
+                        justifyContent: 'space-between',
+                        opacity: level < game.vanLevel ? 0.6 : 1,
+                      }}
+                    >
+                      <View style={{ flexShrink: 1 }}>
+                        <T size={14} weight={level === game.vanLevel ? 'bold' : 'medium'}>
+                          {`${level}. ${name}`}
+                        </T>
+                        <T size={12} muted>
+                          {`${t('routes.van.items', { n: items })} · ${t('routes.van.runs', {
+                            n: DELIVERY.vansByLevel[level] ?? 1,
+                          })}`}
+                        </T>
+                      </View>
+                      <T
+                        size={13}
+                        weight="bold"
+                        color={level === game.vanLevel ? theme.signal : undefined}
+                      >
+                        {status}
+                      </T>
+                    </Row>
+                  );
+                })}
+              </View>
+            ) : null}
           </Paper>
         </Section>
 
         <Section title={t('routes.drivers.section')}>
+          <T size={13} muted>
+            {t('routes.drivers.desc')}
+          </T>
           {!driversUnlocked ? (
             <LockedCard
               icon="people"
@@ -460,6 +530,9 @@ export default function Routes() {
         </Section>
 
         <Section title={t('routes.autoReorder.title')}>
+          <T size={13} muted>
+            {t('routes.autoReorder.desc')}
+          </T>
           {game.chapter < (autoReorderInfo?.unlockChapter ?? 4) ? (
             <LockedCard
               icon="box"
@@ -479,16 +552,37 @@ export default function Routes() {
                   color={autoReorder ? theme.signal : undefined}
                 />
               </Row>
-              {!autoReorder ? (
-                <Button
-                  kind="secondary"
-                  icon={<Icon name="star" size={20} color={theme.ink} />}
-                  label={t('routes.autoReorder.research', {
-                    cost: moneyShort(autoReorderInfo?.costCents ?? 0),
-                  })}
-                  onPress={() => router.navigate('/company')}
-                />
-              ) : null}
+              {autoReorder ? null : game.lab?.id === 'auto-reorder' ? (
+                // In the lab: how long until drivers reorder on their own.
+                <LabProgress lab={game.lab} now={game.now} family={null} />
+              ) : (
+                <>
+                  <Button
+                    kind="secondary"
+                    icon={<Icon name="star" size={20} color={theme.ink} />}
+                    label={t('routes.autoReorder.research', {
+                      cost: moneyShort(autoReorderInfo?.costCents ?? 0),
+                    })}
+                    disabled={game.cashCents < (autoReorderInfo?.costCents ?? 0) || !!game.lab}
+                    onPress={() =>
+                      run(
+                        (d) => buyResearch(d, 'auto-reorder'),
+                        t('company.research.startedToast', {
+                          name: content.researchName(
+                            'auto-reorder',
+                            autoReorderInfo?.name ?? t('routes.autoReorder.title'),
+                          ),
+                        }),
+                      )
+                    }
+                  />
+                  {game.lab ? (
+                    <T size={12} muted>
+                      {t('company.research.labBusy')}
+                    </T>
+                  ) : null}
+                </>
+              )}
             </Paper>
           )}
         </Section>

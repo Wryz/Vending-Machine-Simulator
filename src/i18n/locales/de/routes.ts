@@ -15,6 +15,14 @@ export default {
   },
   vanLevel: 'Stufe {n}',
   van: {
+    desc: 'Deine eigenen Lieferungen: Du planst sie, dein Fahrzeug lädt im Lager und bringt sie zum Automaten.',
+    levelOf: 'Stufe {n} von {max}',
+    seeUpgrades: 'Alle Upgrades ansehen',
+    hideUpgrades: 'Upgrades ausblenden',
+    items: '{n} Artikel',
+    runs: '{n} gleichzeitig',
+    current: 'Aktuell',
+    owned: 'Gekauft',
     section: 'Van',
     itemsPerTrip: 'Artikel pro Fahrt',
     chapterGoal: 'Kapitelziel: Kauf einen Van',
@@ -24,6 +32,7 @@ export default {
     upgraded: 'Van verbessert',
   },
   drivers: {
+    desc: 'Fahrer fahren eine Route für dich im eigenen Transporter: Sie füllen auf und leeren jeden Automaten selbstständig.',
     section: 'Fahrer',
     clipboard: 'Routen',
     stopsPerRoute: 'Stopps pro Route',
@@ -80,6 +89,7 @@ export default {
     a11yNote: '{machine} bei {place}, {note}',
   },
   autoReorder: {
+    desc: 'Fahrer füllen sonst jede Spirale bis oben. Damit füllen sie nur bis zu deinem Sollbestand, so binden Langsamläufer kein Geld und keinen Platz.',
     title: 'Auto-Nachbestellung',
     onLabel: 'Fahrer füllen jede Spirale bis zur Sollmenge auf',
     offLabel: 'Noch nicht erforscht',

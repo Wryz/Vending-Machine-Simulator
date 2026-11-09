@@ -15,6 +15,14 @@ export default {
   },
   vanLevel: 'Nível {n}',
   van: {
+    desc: 'Suas próprias entregas: você planeja e seu veículo carrega no depósito e leva até a máquina.',
+    levelOf: 'Nível {n} de {max}',
+    seeUpgrades: 'Ver todas as melhorias',
+    hideUpgrades: 'Ocultar melhorias',
+    items: '{n} itens',
+    runs: '{n} ao mesmo tempo',
+    current: 'Atual',
+    owned: 'Comprado',
     section: 'Van',
     itemsPerTrip: 'Itens por viagem',
     chapterGoal: 'Meta do capítulo: comprar uma van',
@@ -24,6 +32,7 @@ export default {
     upgraded: 'Van melhorada',
   },
   drivers: {
+    desc: 'Motoristas fazem uma rota por você na própria van: reabastecem e recolhem cada máquina sozinhos.',
     section: 'Motoristas',
     clipboard: 'Rotas',
     stopsPerRoute: 'Paradas por rota',
@@ -80,6 +89,7 @@ export default {
     a11yNote: '{machine} em {place}, {note}',
   },
   autoReorder: {
+    desc: 'Normalmente os motoristas enchem cada espiral até o topo. Com isso, só até o nível par que você definir, para itens lentos não prenderem dinheiro e espaço.',
     title: 'Reposição automática',
     onLabel: 'Motoristas enchem cada espiral até o nível definido',
     offLabel: 'Ainda não pesquisado',

@@ -15,6 +15,14 @@ export default {
   },
   vanLevel: 'Nivel {n}',
   van: {
+    desc: 'Tus propios repartos: los planeas y tu vehículo carga en el almacén y los lleva a la máquina.',
+    levelOf: 'Nivel {n} de {max}',
+    seeUpgrades: 'Ver todas las mejoras',
+    hideUpgrades: 'Ocultar mejoras',
+    items: '{n} artículos',
+    runs: '{n} a la vez',
+    current: 'Actual',
+    owned: 'Comprado',
     section: 'Camioneta',
     itemsPerTrip: 'Productos por viaje',
     chapterGoal: 'Meta del capítulo: comprar camioneta',
@@ -24,6 +32,7 @@ export default {
     upgraded: 'Camioneta mejorada',
   },
   drivers: {
+    desc: 'Los conductores hacen una ruta por ti en su propia furgoneta: reponen y recogen cada máquina por su cuenta.',
     section: 'Repartidores',
     clipboard: 'Rutas',
     stopsPerRoute: 'Paradas por ruta',
@@ -80,6 +89,7 @@ export default {
     a11yNote: '{machine} en {place}, {note}',
   },
   autoReorder: {
+    desc: 'Normalmente los conductores llenan cada espiral hasta arriba. Con esto, solo hasta el nivel par que fijes, así lo que se vende poco no ocupa dinero ni espacio.',
     title: 'Pedido automático',
     onLabel: 'Los repartidores llenan cada espiral hasta su nivel',
     offLabel: 'Aún no investigado',

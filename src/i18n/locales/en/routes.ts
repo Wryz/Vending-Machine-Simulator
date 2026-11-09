@@ -13,6 +13,14 @@ export default {
   },
   vanLevel: 'Level {n}', // fallback vehicle name
   van: {
+    desc: 'Your own restocks: you plan them, and your vehicle loads at the warehouse and drives them to the machine.',
+    levelOf: 'Level {n} of {max}', // {n} current level, {max} top level
+    seeUpgrades: 'See all upgrades',
+    hideUpgrades: 'Hide upgrades',
+    items: '{n} items',
+    runs: '{n} at once', // vans on the road at once
+    current: 'Current',
+    owned: 'Owned',
     section: 'Van',
     itemsPerTrip: 'Items per trip',
     chapterGoal: 'Chapter goal: buy a van',
@@ -22,6 +30,7 @@ export default {
     upgraded: 'Van upgraded',
   },
   drivers: {
+    desc: 'Drivers run a route for you in their own van: they restock and collect each machine on their own.',
     section: 'Drivers',
     clipboard: 'Routes', // title on the clipboard
     stopsPerRoute: 'Stops per route',
@@ -79,6 +88,7 @@ export default {
     a11yNote: '{machine} at {place}, {note}',
   },
   autoReorder: {
+    desc: "Drivers normally fill every coil to the top. With this, they fill each coil only to the par level you set, so slow sellers don't tie up cash and van space.",
     title: 'Auto-reorder',
     onLabel: 'Drivers refill each coil to its par level',
     offLabel: 'Not researched yet',

@@ -15,6 +15,14 @@ export default {
   },
   vanLevel: '레벨 {n}',
   van: {
+    desc: '직접 하는 보충: 계획하면 차량이 창고에서 싣고 자판기까지 가져다줘요.',
+    levelOf: '레벨 {n} / {max}',
+    seeUpgrades: '모든 업그레이드 보기',
+    hideUpgrades: '업그레이드 숨기기',
+    items: '{n}개',
+    runs: '동시에 {n}대',
+    current: '현재',
+    owned: '구매함',
     section: '밴',
     itemsPerTrip: '1회 적재량',
     chapterGoal: '챕터 목표: 밴 구매',
@@ -24,6 +32,7 @@ export default {
     upgraded: '밴 업그레이드 완료',
   },
   drivers: {
+    desc: '기사는 자기 밴으로 경로를 돌며 각 자판기를 알아서 보충하고 수거해요.',
     section: '기사',
     clipboard: '루트',
     stopsPerRoute: '루트당 정류지',
@@ -80,6 +89,7 @@ export default {
     a11yNote: '{place}의 {machine}, {note}',
   },
   autoReorder: {
+    desc: '기사는 보통 모든 코일을 가득 채워요. 이걸 연구하면 설정한 기준 재고까지만 채워서 잘 안 팔리는 상품에 돈과 공간이 묶이지 않아요.',
     title: '자동 재주문',
     onLabel: '기사가 코일마다 기준량까지 채워요',
     offLabel: '아직 연구하지 않았어요',
