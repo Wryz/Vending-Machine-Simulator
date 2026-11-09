@@ -42,6 +42,7 @@ export default {
     itemsPerDriver: 'Itens por motorista',
     wagePerDay: 'Salário por dia (van própria)',
     none: 'Nenhum motorista ainda.',
+    onRoute: { one: '{n} máquina na rota', other: '{n} máquinas na rota' },
     every: 'Reabastece a cada {time} · {state}',
     noRoute: 'sem rota',
     nextRun: 'próxima saída em {time}',

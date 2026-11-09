@@ -42,6 +42,7 @@ export default {
     itemsPerDriver: 'Articles par chauffeur',
     wagePerDay: 'Salaire par jour (camionnette à toi)',
     none: 'Pas encore de chauffeur.',
+    onRoute: { one: '{n} distributeur sur la tournée', other: '{n} distributeurs sur la tournée' },
     every: 'Réassort toutes les {time} · {state}',
     noRoute: 'sans tournée',
     nextRun: 'prochain passage dans {time}',

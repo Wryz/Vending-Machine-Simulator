@@ -40,6 +40,7 @@ export default {
     itemsPerDriver: 'Items per driver',
     wagePerDay: 'Wage per day (owned van)',
     none: 'No drivers yet.',
+    onRoute: { one: '{n} machine on route', other: '{n} machines on route' },
     every: 'Restocks every {time} · {state}', // {time} like 15 min; {state} is nextRun or onTheRoad
     noRoute: 'no route',
     nextRun: 'next run in {time}',

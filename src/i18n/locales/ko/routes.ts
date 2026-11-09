@@ -42,6 +42,7 @@ export default {
     itemsPerDriver: '기사당 적재량',
     wagePerDay: '하루 급여 (내 밴)',
     none: '아직 기사가 없어요.',
+    onRoute: { one: '경로에 자판기 {n}대', other: '경로에 자판기 {n}대' },
     every: '{time}마다 보충 · {state}',
     noRoute: '루트 없음',
     nextRun: '{time} 후 다음 운행',

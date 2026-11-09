@@ -398,6 +398,9 @@ export default function Routes() {
                           {d.name}
                         </T>
                         <T size={12} color="#5C6066">
+                          {stops.length > 0
+                            ? `${t('routes.drivers.onRoute', { n: stops.length })} · `
+                            : ''}
                           {!onDuty
                             ? t('routes.drivers.parked')
                             : stops.length === 0

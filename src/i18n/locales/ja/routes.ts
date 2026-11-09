@@ -42,6 +42,7 @@ export default {
     itemsPerDriver: '1人の積載数',
     wagePerDay: '日給（所有バン）',
     none: 'ドライバーはまだいません。',
+    onRoute: { one: 'ルート上の自販機 {n}台', other: 'ルート上の自販機 {n}台' },
     every: '{time}ごとに補充 · {state}',
     noRoute: 'ルートなし',
     nextRun: '次の巡回まで{time}',
