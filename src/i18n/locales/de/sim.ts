@@ -36,6 +36,7 @@ export default {
     alreadyRenegotiated: 'Dieser Vertrag wurde schon nachverhandelt.',
     venueUnhappy: 'Der Standort ist nicht zufrieden genug zum Nachverhandeln.',
     unknownUpgrade: 'Unbekanntes Upgrade.',
+    exclusiveLocked: 'Exklusivverträge werden in Kapitel {n} freigeschaltet.',
     unlocksInChapter: 'Wird in Kapitel {n} freigeschaltet.',
     alreadyResearched: 'Schon erforscht.',
     vanMaxed: 'Dein Van ist schon der größte.',

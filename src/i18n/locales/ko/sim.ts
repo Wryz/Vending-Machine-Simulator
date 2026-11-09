@@ -36,6 +36,7 @@ export default {
     alreadyRenegotiated: '이 계약은 이미 재협상했어요.',
     venueUnhappy: '장소 만족도가 낮아 재협상할 수 없어요.',
     unknownUpgrade: '알 수 없는 업그레이드예요.',
+    exclusiveLocked: '독점 계약은 챕터 {n}에서 해금돼요.',
     unlocksInChapter: '챕터 {n}에서 해금돼요.',
     alreadyResearched: '이미 연구했어요.',
     vanMaxed: '이미 가장 큰 밴이에요.',

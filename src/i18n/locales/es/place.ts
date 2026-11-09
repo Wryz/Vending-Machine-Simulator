@@ -3,18 +3,14 @@ import type { Shape } from '../../core';
 import type en from '../en/place';
 
 export default {
-  heading: {
-    n: 'Mira al N',
-    e: 'E',
-    s: 'S',
-    w: 'O',
-  },
   section: {
     term: 'Plazo',
     exclusivity: 'Exclusividad',
-    facing: 'Orientación',
   },
   days: { one: '{n} día', other: '{n} días' },
+  permanent: 'Permanente',
+  permanentNote: 'Tu primera máquina se queda aquí para siempre: sin plazo ni renovaciones.',
+  termChip: '{days} · {pct}',
   termNote:
     'Días hábiles. Plazos más largos bajan la comisión. Los contratos se renuevan mientras el local esté contento.',
   exclusive: 'Mantén a Brightvend fuera de esta cuadra (+{pct} de comisión)',

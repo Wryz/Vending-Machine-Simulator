@@ -435,6 +435,8 @@ describe('service, risks and contracts', () => {
   });
   it('renegotiation needs chapter 1 done and works once', () => {
     const s = startWithPlacedMachine(world);
+    // A pricier ask than the starter's longest-term rate, so there is room to shave.
+    s.machines[0].contract.commission = 0.2;
     expect(renegotiate(s, s.machines[0].id).ok).toBe(false);
     s.chapterDoneAt[1] = s.now;
     const before = s.machines[0].contract.commission;
@@ -642,7 +644,7 @@ describe('misc actions', () => {
     expect(pickUpMachine(s, id).ok).toBe(true);
     expect(s.machines[0].status).toBe('stored');
     expect(sellMachine(s, id).ok).toBe(false); // keep at least one
-    s.chapter = 2;
+    s.chapter = 3;
     s.cashCents = 1e7;
     const p = offsetPoint(decentSpot(), 45, 80);
     s = withClone(s, (d) =>

@@ -31,6 +31,7 @@ export default {
         u2: 'Almacén',
         u3: 'Llega Brightvend',
         u4: 'Sucursales en tu estado o provincia',
+        u5: 'Contratos exclusivos',
       },
     },
     c4: {

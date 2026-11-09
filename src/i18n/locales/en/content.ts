@@ -35,6 +35,7 @@ export default {
         u2: 'Warehouse',
         u3: 'Brightvend arrives',
         u4: 'Branches in your state or province',
+        u5: 'Exclusive contracts',
       },
     },
     c4: {

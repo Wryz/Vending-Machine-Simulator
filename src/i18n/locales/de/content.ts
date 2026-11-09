@@ -31,6 +31,7 @@ export default {
         u2: 'Lager',
         u3: 'Brightvend kommt',
         u4: 'Filialen in deinem Bundesland',
+        u5: 'Exklusivverträge',
       },
     },
     c4: {

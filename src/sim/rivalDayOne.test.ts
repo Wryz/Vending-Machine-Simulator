@@ -255,7 +255,7 @@ describe('contract steals', () => {
       let s = pastTutorial(placed(world, seed));
       s.chapter = 3;
       s.cashCents = 1_000_000;
-      // A neighbour that keeps its contract: the stolen spot competes with it.
+      // A second machine whose contract the rival bids for; the starter next door keeps its spot.
       const near = offsetPoint(decentSpot(), 90, 40);
       s = withClone(s, (d) => {
         const r = placeMachine(d, world, {
@@ -275,7 +275,8 @@ describe('contract steals', () => {
       }).state;
       expect(s.machines.filter((m) => m.status === 'active')).toHaveLength(2);
       const ramped = advance(s, world, s.now + MIN).state;
-      const m = ramped.machines[0];
+      // The bought machine's contract ends (the free starter's is permanent).
+      const m = ramped.machines.find((x) => x.typeId === 'snack')!;
       m.mood = RIVAL.stealMoodBelow / 2;
       m.contract.endsAt = ramped.now + MIN / 2;
       const one = advance(ramped, world, ramped.now + MIN);

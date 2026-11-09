@@ -31,6 +31,7 @@ export default {
         u2: '倉庫',
         u3: 'Brightvend参入',
         u4: '州・県内に支店',
+        u5: '独占契約',
       },
     },
     c4: {

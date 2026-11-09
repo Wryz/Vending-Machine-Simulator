@@ -21,6 +21,7 @@ export default {
     cashBox: 'Kasse',
     commission: 'Standortprovision',
     contract: 'Vertrag',
+    permanent: 'Unbefristet',
     renewing: 'verlängert',
     mood: 'Laune am Standort {pct} %',
     moodLabel: 'Laune des Standorts',

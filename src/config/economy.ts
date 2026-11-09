@@ -217,10 +217,20 @@ export const RESEARCH_EFFECTS = {
 
 export const CONTRACT = {
   termsDays: [30, 90, 180] as const,
-  /** Longer terms earn a lower commission ask. */
-  termDiscount: { 30: 0, 90: 0.02, 180: 0.04 } as Record<number, number>,
+  /**
+   * Longer terms earn a lower commission ask (points off the venue's cut; raised
+   * 2026-11-09 so the term clearly matters: was 0 / 2 / 4).
+   */
+  termDiscount: { 30: 0, 90: 0.03, 180: 0.06 } as Record<number, number>,
+  /**
+   * The free starter machine's contract is permanent (owner's call, 2026-11-09):
+   * no term, never up for renewal, priced like the longest term.
+   */
+  permanentTermDays: 0,
   /** Exclusivity: rival can't place within the radius; costs extra commission. */
   exclusivityCommission: 0.04,
+  /** Exclusive contracts open in this chapter (when Brightvend expands, owner 2026-11-09). */
+  exclusivityChapter: 3,
   exclusivityRadiusM: 250,
   commissionMin: 0.1,
   commissionMax: 0.35,

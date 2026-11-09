@@ -336,7 +336,12 @@ export function MachinePanel({
     {
       icon: 'clock',
       label: t('machinePanel.stats.contract'),
-      value: contractLeft > 0 ? shortDuration(contractLeft) : t('machinePanel.stats.renewing'),
+      value:
+        machine.contract.termDays === CONTRACT.permanentTermDays
+          ? t('machinePanel.stats.permanent')
+          : contractLeft > 0
+            ? shortDuration(contractLeft)
+            : t('machinePanel.stats.renewing'),
     },
     {
       icon: 'smile',

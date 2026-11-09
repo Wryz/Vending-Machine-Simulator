@@ -63,6 +63,8 @@ import {
   competition,
   driverOnDuty,
   isEmpty,
+  isStarterType,
+  PERMANENT_ENDS_AT,
   maxOfflineMs,
   machineFresh,
   overheadCentsPerDay,
@@ -526,6 +528,11 @@ function contractStep(
     }
   } else m.lowMoodSince = null;
 
+  if (isStarterType(m.typeId) && m.contract.endsAt !== PERMANENT_ENDS_AT) {
+    // The starter machine's contract is permanent (older saves: from now on).
+    m.contract.termDays = CONTRACT.permanentTermDays;
+    m.contract.endsAt = PERMANENT_ENDS_AT;
+  }
   if (t >= m.contract.endsAt) {
     // Contract bids start with the rival's chapter-3 ramp.
     const rivalBids =

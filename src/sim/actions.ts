@@ -37,7 +37,9 @@ import {
   districtOf,
   districtUnlocked,
   driverOnDuty,
+  isStarterType,
   machineTypeUnlocked,
+  PERMANENT_ENDS_AT,
   nextSlotRow,
   productAllowed,
   resolveVenue,
@@ -103,8 +105,12 @@ export function quotePlacement(state: GameState, world: World, p: PlaceParams) {
   const buy = p.machineId ? 0 : type.purchaseCents;
   const mult = OVERHEAD.districtInstallMultiplier;
   const install = Math.round(type.installCents * mult[Math.min(mult.length - 1, district - 1)]);
-  const commission = commissionAsk(state, venue, p.termDays, p.exclusive);
+  // The free starter machine signs for good, priced like the longest term.
+  const permanent = isStarterType(typeId);
+  const termDays = permanent ? Math.max(...CONTRACT.termsDays) : p.termDays;
+  const commission = commissionAsk(state, venue, termDays, p.exclusive);
   return {
+    permanent,
     ok: true as const,
     type,
     venue,
@@ -124,8 +130,10 @@ export function placeMachine(
   const q = quotePlacement(state, world, p);
   if (!q.ok) return q;
   const { type, venue, district } = q;
-  if (!(CONTRACT.termsDays as readonly number[]).includes(p.termDays))
+  if (!q.permanent && !(CONTRACT.termsDays as readonly number[]).includes(p.termDays))
     return fail('Pick a contract term.');
+  if (p.exclusive && state.chapter < CONTRACT.exclusivityChapter)
+    return fail(`Exclusive contracts unlock in chapter ${CONTRACT.exclusivityChapter}.`);
   if (!p.machineId && !machineTypeUnlocked(state, type, world.city.countryCode))
     return fail(`${type.name} is locked.`);
   if (!p.machineId && state.chapter < 2 && state.machines.length >= 2)
@@ -168,9 +176,9 @@ export function placeMachine(
   machine.venue = venue;
   machine.contract = {
     commission: q.commission,
-    termDays: p.termDays,
+    termDays: q.permanent ? CONTRACT.permanentTermDays : p.termDays,
     startedAt: now,
-    endsAt: now + businessDaysToMs(p.termDays),
+    endsAt: q.permanent ? PERMANENT_ENDS_AT : now + businessDaysToMs(p.termDays),
     exclusive: p.exclusive,
     renegotiated: false,
   };

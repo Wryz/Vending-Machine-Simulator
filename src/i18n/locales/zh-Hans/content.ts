@@ -31,6 +31,7 @@ export default {
         u2: '仓库',
         u3: 'Brightvend 进城',
         u4: '在你的州或省开分店',
+        u5: '独家合同',
       },
     },
     c4: {

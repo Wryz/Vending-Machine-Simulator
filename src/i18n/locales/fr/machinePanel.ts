@@ -21,6 +21,7 @@ export default {
     cashBox: 'Caisse',
     commission: 'Commission du lieu',
     contract: 'Contrat',
+    permanent: 'Permanent',
     renewing: 'renouvellement',
     mood: 'Humeur du lieu {pct} %',
     moodLabel: 'Humeur du lieu',

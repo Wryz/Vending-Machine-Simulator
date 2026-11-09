@@ -40,6 +40,7 @@ export const CHAPTERS: readonly Chapter[] = [
       'Warehouse',
       'Brightvend arrives',
       'Branches in your state or province',
+      'Exclusive contracts',
     ],
   },
   {

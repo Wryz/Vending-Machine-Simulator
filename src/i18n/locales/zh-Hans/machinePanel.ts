@@ -21,6 +21,7 @@ export default {
     cashBox: '钱箱',
     commission: '场所佣金',
     contract: '合同',
+    permanent: '永久',
     renewing: '续约中',
     mood: '场所满意度 {pct}%',
     moodLabel: '场地心情',

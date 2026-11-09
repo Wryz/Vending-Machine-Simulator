@@ -1,4 +1,4 @@
-import { SERVICE, STAFF } from '@/config/economy';
+import { CONTRACT, SERVICE, STAFF } from '@/config/economy';
 import { getMachineType, SLOT_ROWS } from '@/config/machines';
 import { getProduct, PRODUCTS } from '@/config/products';
 
@@ -14,7 +14,9 @@ import {
   newGame,
   nextSlotRow,
   pickUpMachine,
+  PERMANENT_ENDS_AT,
   placeMachine,
+  quotePlacement,
   startSlots,
   storedMachine,
   wholesaleCents,
@@ -23,6 +25,7 @@ import {
   type World,
 } from './index';
 import { decentSpot, NOON_NY, testWorld } from './__fixtures__/world';
+import { offsetPoint } from './geo';
 
 const MIN = 60_000;
 
@@ -205,5 +208,45 @@ describe('removed research (auto-reorder, owner 2026-11-09)', () => {
     const b = advance(inLab, world, inLab.now + 1_000).state;
     expect(b.lab).toBeNull();
     expect(b.cashCents).toBeGreaterThanOrEqual(inLab.cashCents + 250_000 - 10_000);
+  });
+});
+
+describe('contracts (owner 2026-11-09)', () => {
+  it('the free starter machine signs for good: no term, never up for renewal', () => {
+    const world = testWorld();
+    const s = placed(world);
+    const m = s.machines[0];
+    expect(m.contract.termDays).toBe(CONTRACT.permanentTermDays);
+    expect(m.contract.endsAt).toBe(PERMANENT_ENDS_AT);
+    // Priced like the longest term.
+    const q = quotePlacement(s, world, {
+      typeId: 'snack',
+      ...decentSpot(),
+      heading: 180,
+      termDays: 30,
+      exclusive: false,
+    });
+    expect(q.ok && q.permanent).toBe(false);
+  });
+
+  it('exclusive contracts open in chapter 3', () => {
+    const world = testWorld();
+    const s = placed(world);
+    s.chapter = 2;
+    s.cashCents = 1e7;
+    const params = {
+      typeId: 'snack' as const,
+      ...offsetPoint(decentSpot(), 45, 80),
+      heading: 0,
+      termDays: 90,
+      exclusive: true,
+    };
+    expect(withClone(s, (d) => placeMachine(d, world, params)).result.ok).toBe(false);
+    s.chapter = CONTRACT.exclusivityChapter;
+    expect(withClone(s, (d) => placeMachine(d, world, params)).result.ok).toBe(true);
+  });
+
+  it('longer terms clearly lower the commission', () => {
+    expect(CONTRACT.termDiscount[180] - CONTRACT.termDiscount[30]).toBeGreaterThanOrEqual(0.05);
   });
 });

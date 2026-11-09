@@ -36,6 +36,7 @@ export default {
     alreadyRenegotiated: '这份合同已经重谈过了。',
     venueUnhappy: '场所满意度不够，无法重谈。',
     unknownUpgrade: '未知升级。',
+    exclusiveLocked: '独家合同在第 {n} 章解锁。',
     unlocksInChapter: '第 {n} 章解锁。',
     alreadyResearched: '已经研发过了。',
     vanMaxed: '你的货车已经是最大的了。',

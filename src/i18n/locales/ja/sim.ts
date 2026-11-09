@@ -36,6 +36,7 @@ export default {
     alreadyRenegotiated: 'この契約は再交渉済みです。',
     venueUnhappy: '設置先の機嫌が足りず、再交渉できません。',
     unknownUpgrade: '不明な強化です。',
+    exclusiveLocked: '独占契約は第{n}章で解放されます。',
     unlocksInChapter: '第{n}章で解放されます。',
     alreadyResearched: '研究済みです。',
     vanMaxed: 'バンは既に最大です。',

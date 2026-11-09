@@ -21,6 +21,7 @@ export default {
     cashBox: 'Cofre',
     commission: 'Comissão do local',
     contract: 'Contrato',
+    permanent: 'Permanente',
     renewing: 'renovando',
     mood: 'Humor do local {pct}%',
     moodLabel: 'Humor do local',

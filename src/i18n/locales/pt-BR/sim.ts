@@ -36,6 +36,7 @@ export default {
     alreadyRenegotiated: 'Este contrato já foi renegociado.',
     venueUnhappy: 'O local não está satisfeito o bastante para renegociar.',
     unknownUpgrade: 'Melhoria desconhecida.',
+    exclusiveLocked: 'Contratos exclusivos liberam no capítulo {n}.',
     unlocksInChapter: 'Libera no capítulo {n}.',
     alreadyResearched: 'Já pesquisado.',
     vanMaxed: 'Sua van já é a maior.',

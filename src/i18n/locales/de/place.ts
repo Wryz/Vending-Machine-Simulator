@@ -3,18 +3,14 @@ import type { Shape } from '../../core';
 import type en from '../en/place';
 
 export default {
-  heading: {
-    n: 'Nach N',
-    e: 'O',
-    s: 'S',
-    w: 'W',
-  },
   section: {
     term: 'Laufzeit',
     exclusivity: 'Exklusivität',
-    facing: 'Ausrichtung',
   },
   days: { one: '{n} Tag', other: '{n} Tage' },
+  permanent: 'Unbefristet',
+  permanentNote: 'Dein erster Automat bleibt hier für immer: keine Laufzeit, keine Verlängerung.',
+  termChip: '{days} · {pct}',
   termNote:
     'Geschäftstage. Längere Laufzeiten senken die Provision. Verträge verlängern sich, solange der Standort zufrieden ist.',
   exclusive: 'Brightvend aus diesem Block fernhalten (+{pct} Provision)',

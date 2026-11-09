@@ -21,6 +21,7 @@ export default {
     cashBox: '金庫',
     commission: '設置先の手数料',
     contract: '契約',
+    permanent: '無期限',
     renewing: '更新中',
     mood: '設置先の機嫌 {pct}%',
     moodLabel: '設置先の機嫌',

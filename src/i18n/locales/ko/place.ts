@@ -3,18 +3,14 @@ import type { Shape } from '../../core';
 import type en from '../en/place';
 
 export default {
-  heading: {
-    n: '북쪽',
-    e: '동',
-    s: '남',
-    w: '서',
-  },
   section: {
     term: '기간',
     exclusivity: '독점',
-    facing: '방향',
   },
   days: { one: '{n}일', other: '{n}일' },
+  permanent: '영구',
+  permanentNote: '첫 자판기는 여기에 계속 둘 수 있어요. 기간도 갱신도 없어요.',
+  termChip: '{days} · {pct}',
   termNote: '영업일 기준. 기간이 길수록 수수료가 낮아져요. 장소가 만족하면 계약이 갱신돼요.',
   exclusive: '이 블록에서 Brightvend 막기 (수수료 +{pct})',
   exclusiveA11y: '독점 계약',

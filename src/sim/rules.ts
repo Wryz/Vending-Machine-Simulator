@@ -6,6 +6,7 @@ import {
   RIVAL,
   SERVICE,
   STAFF,
+  START,
   TIME,
 } from '@/config/economy';
 import {
@@ -218,6 +219,14 @@ export function resolveVenue(world: World, state: GameState, p: LatLng, placeId?
 }
 
 /** Commission the venue asks for a term (SPEC §4.5: 10–35%). */
+/** The free starter machine: its contract is permanent. */
+export function isStarterType(typeId: string): boolean {
+  return typeId === START.starterMachineType;
+}
+
+/** When a permanent contract "ends": never. */
+export const PERMANENT_ENDS_AT = Number.MAX_SAFE_INTEGER;
+
 export function commissionAsk(
   state: GameState,
   venue: Venue,

@@ -3,18 +3,14 @@ import type { Shape } from '../../core';
 import type en from '../en/place';
 
 export default {
-  heading: {
-    n: '北向き',
-    e: '東',
-    s: '南',
-    w: '西',
-  },
   section: {
     term: '期間',
     exclusivity: '独占契約',
-    facing: '向き',
   },
   days: { one: '{n}日', other: '{n}日' },
+  permanent: '無期限',
+  permanentNote: '最初の自販機はここにずっと置けます。期間も更新もありません。',
+  termChip: '{days} · {pct}',
   termNote:
     '営業日数です。期間が長いほど手数料が下がります。設置先の機嫌が良ければ契約は更新されます。',
   exclusive: 'この区画からBrightvendを締め出す（手数料 +{pct}）',

@@ -39,6 +39,7 @@ export default {
     alreadyRenegotiated: 'Already renegotiated this contract.',
     venueUnhappy: 'The venue is not happy enough to renegotiate.',
     unknownUpgrade: 'Unknown upgrade.',
+    exclusiveLocked: 'Exclusive contracts unlock in chapter {n}.',
     unlocksInChapter: 'Unlocks in chapter {n}.',
     alreadyResearched: 'Already researched.',
     vanMaxed: 'Your van is already the biggest.',

@@ -31,6 +31,7 @@ export default {
         u2: 'Entrepôt',
         u3: 'Arrivée de Brightvend',
         u4: 'Succursales dans ta région administrative',
+        u5: 'Contrats exclusifs',
       },
     },
     c4: {

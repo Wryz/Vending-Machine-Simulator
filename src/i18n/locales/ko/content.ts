@@ -31,6 +31,7 @@ export default {
         u2: '창고',
         u3: 'Brightvend 등장',
         u4: '주·도 안에 지점',
+        u5: '독점 계약',
       },
     },
     c4: {

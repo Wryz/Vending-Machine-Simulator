@@ -31,6 +31,7 @@ export default {
         u2: 'Depósito',
         u3: 'Chegada da Brightvend',
         u4: 'Filiais no seu estado ou província',
+        u5: 'Contratos exclusivos',
       },
     },
     c4: {

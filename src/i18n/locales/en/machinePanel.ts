@@ -18,6 +18,7 @@ export default {
     cashBox: 'Cash box',
     commission: 'Venue commission',
     contract: 'Contract',
+    permanent: 'Permanent', // contract with no end (the free starter machine)
     renewing: 'renewing', // contract time left when it is renewing now
     mood: 'Venue mood {pct}%',
     moodLabel: 'Venue mood',

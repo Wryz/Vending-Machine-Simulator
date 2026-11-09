@@ -21,6 +21,7 @@ export default {
     cashBox: '돈통',
     commission: '장소 수수료',
     contract: '계약',
+    permanent: '영구',
     renewing: '갱신 중',
     mood: '장소 만족도 {pct}%',
     moodLabel: '설치처 기분',

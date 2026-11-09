@@ -8,7 +8,13 @@ import type { MachineTypeId } from '@/config/machines';
 import { useT } from '@/i18n';
 import { content } from '@/i18n/content';
 import { simError, venueName } from '@/i18n/sim';
-import { headingFacing, placeMachine, quotePlacement, type PlaceParams } from '@/sim';
+import {
+  commissionAsk,
+  headingFacing,
+  placeMachine,
+  quotePlacement,
+  type PlaceParams,
+} from '@/sim';
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
 import { track } from '@/services/analytics';
@@ -20,12 +26,10 @@ import { GuideLine, useTutorialStep } from '@/ui/guide';
 import { ContractSheet } from '@/ui/objects/ContractSheet';
 import { SPACE } from '@/ui/theme';
 
-const HEADINGS = [
-  { key: 'n', deg: 0 },
-  { key: 'e', deg: 90 },
-  { key: 's', deg: 180 },
-  { key: 'w', deg: 270 },
-] as const;
+/** Exclusive contracts open in chapter 3 (before that the switch is hidden). */
+function canExclusiveNow(chapter: number): boolean {
+  return chapter >= CONTRACT.exclusivityChapter;
+}
 
 /** Place a machine: choose the term and sign the location contract (SPEC §4.5). */
 export default function Place() {
@@ -55,17 +59,15 @@ export default function Place() {
     }
     return null;
   }, [world, lat, lng, p.placeId]);
-  // Default: face away from the venue door, towards passers-by.
-  const [heading, setHeading] = useState<number>(() =>
-    venuePlace ? Math.round(headingFacing(venuePlace, { lat, lng })) : 180,
-  );
+  // The machine faces away from the venue door, towards passers-by (no choice to make).
+  const heading = venuePlace ? Math.round(headingFacing(venuePlace, { lat, lng })) : 180;
 
   const params: PlaceParams = {
     lat,
     lng,
     heading,
     termDays,
-    exclusive,
+    exclusive: exclusive && canExclusiveNow(game.chapter),
     placeId: p.placeId || undefined,
     machineId: p.machineId || undefined,
     typeId: p.machineId ? undefined : p.typeId,
@@ -73,6 +75,10 @@ export default function Place() {
   const quote = quotePlacement(game, world, params);
   if (!quote.ok) return <Toast text={simError(quote.error)} tone="error" />;
   const afford = game.cashCents >= quote.totalCents;
+  const canExclusive = canExclusiveNow(game.chapter);
+  // The commission each term would get (the chips show it so the term's cost is clear).
+  const termCommission = (d: number) =>
+    commissionAsk(game, quote.venue, d, exclusive && canExclusive);
 
   const sign = (): boolean => {
     const res = useGame.getState().act((d, w) => placeMachine(d, w, params));
@@ -106,44 +112,43 @@ export default function Place() {
     >
       {guiding && afford ? <GuideLine text={t('coach.guide.sign')} /> : null}
       <Section title={t('place.section.term')}>
-        <Row>
-          {CONTRACT.termsDays.map((d) => (
-            <Chip
-              key={d}
-              label={t('place.days', { n: d })}
-              active={termDays === d}
-              onPress={() => setTermDays(d)}
+        {quote.permanent ? (
+          <T size={14}>{t('place.permanentNote')}</T>
+        ) : (
+          <>
+            <Row style={{ flexWrap: 'wrap' }}>
+              {CONTRACT.termsDays.map((d) => (
+                <Chip
+                  key={d}
+                  label={t('place.termChip', {
+                    days: t('place.days', { n: d }),
+                    pct: pct(termCommission(d), 1),
+                  })}
+                  active={termDays === d}
+                  onPress={() => setTermDays(d)}
+                />
+              ))}
+            </Row>
+            <T size={12} muted>
+              {t('place.termNote')}
+            </T>
+          </>
+        )}
+      </Section>
+      {canExclusive ? (
+        <Section title={t('place.section.exclusivity')}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <T size={14} style={{ flex: 1 }}>
+              {t('place.exclusive', { pct: pct(CONTRACT.exclusivityCommission) })}
+            </T>
+            <Switch
+              value={exclusive}
+              onValueChange={setExclusive}
+              accessibilityLabel={t('place.exclusiveA11y')}
             />
-          ))}
-        </Row>
-        <T size={12} muted>
-          {t('place.termNote')}
-        </T>
-      </Section>
-      <Section title={t('place.section.exclusivity')}>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <T size={14} style={{ flex: 1 }}>
-            {t('place.exclusive', { pct: pct(CONTRACT.exclusivityCommission) })}
-          </T>
-          <Switch
-            value={exclusive}
-            onValueChange={setExclusive}
-            accessibilityLabel={t('place.exclusiveA11y')}
-          />
-        </Row>
-      </Section>
-      <Section title={t('place.section.facing')}>
-        <Row>
-          {HEADINGS.map((h) => (
-            <Chip
-              key={h.deg}
-              label={t(`place.heading.${h.key}`)}
-              active={Math.round(heading) === h.deg}
-              onPress={() => setHeading(h.deg)}
-            />
-          ))}
-        </Row>
-      </Section>
+          </Row>
+        </Section>
+      ) : null}
       <ContractSheet
         venue={venueName(quote.venue.name)}
         terms={[
@@ -152,11 +157,18 @@ export default function Place() {
             value: content.machineType(quote.type.id, quote.type.name),
           },
           { label: t('place.contract.commission'), value: pct(quote.commission, 1) },
-          { label: t('place.contract.term'), value: t('place.days', { n: termDays }) },
           {
-            label: t('place.contract.exclusive'),
-            value: exclusive ? t('place.contract.yes') : t('place.contract.no'),
+            label: t('place.contract.term'),
+            value: quote.permanent ? t('place.permanent') : t('place.days', { n: termDays }),
           },
+          ...(canExclusive
+            ? [
+                {
+                  label: t('place.contract.exclusive'),
+                  value: exclusive ? t('place.contract.yes') : t('place.contract.no'),
+                },
+              ]
+            : []),
           { label: t('place.contract.price'), value: money(quote.buyCents) },
           { label: t('place.contract.install'), value: money(quote.installCents) },
         ]}
