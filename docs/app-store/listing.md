@@ -178,3 +178,62 @@ Brand care: only machines at non-chain venues sell in these captures, so no real
 To retake the video: dev build on the iPhone 17 Pro Max Simulator, Metro started with
 `EXPO_PUBLIC_QA_ROUTE='/qa?city=london&machines=3&stockOnly=2&cash=1840&sales=9&saleAt=m2&focusAt=m2&focusAfter=6000'`,
 record with `xcrun simctl io <udid> recordVideo --codec=h264`, then encode as in `preview` above (scale to 886 wide, crop to 1920, 30 fps, add `anullsrc` audio). Hide the dev menu with `defaults write app.coinline.vending EXDevMenuShowFloatingActionButton -bool NO` (and `EXDevMenuShowsAtLaunch NO`).
+
+## Creative assets, custom product pages and tests (2026-11-08)
+
+### Creative assets (Asset Library)
+
+`node scripts/brand/build-creative-assets.mjs` builds them from the raw captures in `screenshots/` and writes `creative/<set>-header.png` (21:9, 3840×1646, no text) and `creative/<set>-search.png` (3:2, 3840×2560, one headline). PNG because the upload field only takes PNG; no alpha. Key content stays inside Apple's safe areas (header x 1097–2743, y 493–1154; search x 836–3004, y 765–1795). All 8 are in the Asset Library.
+
+| Set | Phones (left, centre, right) | Search headline | Used on |
+|---|---|---|---|
+| `main` | vans, customers, globe | Run vending machines on a real map | Default page: **add with the next version**. 1.0 is in review, so its Header and Search Results slots are locked |
+| `real-map` | spot, globe, customers | Start in any city on Earth | CPP "Real map - any city" |
+| `tycoon` | machine, company, research | Grow one machine into an empire | CPP "Idle tycoon - grow an empire" |
+| `routes` | machine, vans, spot | Vans drive your city's real streets | CPP "Vans and routes - real streets" |
+
+### Custom product pages (saved, not submitted)
+
+Each is a copy of the 1.0 page (same 8 screenshots, English (U.S.)) with its own header, search art, promotional text and screenshot order. They show "Ready to Submit"; press **Add for Review** on each when you want them live (they can go with the next version or on their own). Each has its own public URL (Copy Link) for ads and social posts.
+
+| Page | First screenshots | Promotional text |
+|---|---|---|
+| Real map - any city | globe, spot, customers | Spin the globe and start in any of nearly 2,000 real cities, or right where you are. Find the busiest corner and watch customers walk up to buy. |
+| Idle tycoon - grow an empire | company, research, customers | Grow one used vending machine into a global empire. Set prices, restock by van, research upgrades, and your machines keep selling while you're away. |
+| Vans and routes - real streets | vans, stock and prices, customers | Order stock and watch your van load at a nearby warehouse, then drive your city's real streets to the machine. Hire drivers to run routes for you. |
+
+No deep links: the app has no routes worth opening directly from the store.
+
+### Product page optimization (after release)
+
+App Store Connect only allows a test once the app is "Ready for Distribution". Suggested first test, 3 treatments against the default (screenshots only, all locales, 50% traffic, about 4 weeks):
+
+1. **Map first:** globe, spot, customers (the `real-map` order).
+2. **Tycoon first:** company, research, customers (the `tycoon` order).
+3. **Vans first:** vans, stock and prices, customers (the `routes` order).
+
+Later: an alternate app icon test needs the icons in a build (`ios.alternateIcons`), so it's a code change.
+
+### Featuring nomination (not saved)
+
+Nominations needs an expected publish date, which only you can set. Type **App Launch**, name "Coinline 1.0 launch", description:
+
+```
+Coinline is a single-player vending business game played on real maps of nearly 2,000 cities worldwide, built from open map data. Each spot sells like the real place: who lives and walks by, nearby offices, schools and stations, the city's real local time and live weather. Players place machines, watch low-poly customers walk up and buy, send restock vans along the city's actual streets, and grow from one used machine to branches on other continents across eight chapters. Bright, flat-shaded low-poly art that follows each city's real day and night. No account needed, saves stay on the device, approximate location only (never stored on a server). Ads are optional rewarded only, never forced. Localized in English, German, Spanish, French, Japanese, Korean, Brazilian Portuguese and Simplified Chinese. Supports Game Center leaderboards and achievements.
+```
+
+Apple asks for launch nominations well ahead (ideally months); after launch, nominate updates (App Enhancements) instead.
+
+### App Accessibility (not declared)
+
+These labels show on the product page and say every common task works with the feature. From the code, none clearly qualifies yet:
+- **Dark Interface:** the menus are bright by default (`settings.theme: 'city'`); dark only when the player picks "System".
+- **Larger Text:** text scaling is capped at 1.3–1.6× (`maxFontSizeMultiplier`); Apple's bar is 200%.
+- **Reduced Motion:** honoured in some places (splash, guide, contract sheet, vans, bubbles), not checked across the game.
+- **VoiceOver / Voice Control:** about 100 labels in the UI, but the 3D map (placing machines, picking spots) isn't verified with VoiceOver.
+- **Captions / Audio Descriptions:** not applicable (no video or dialogue).
+Test on a device before declaring any; "Not declared" is safer than a wrong claim.
+
+### In-App Events
+
+None: the game has no time-limited events yet. Seasonal content (SPEC §2) would be the first candidate.
