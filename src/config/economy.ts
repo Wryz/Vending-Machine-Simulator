@@ -6,16 +6,16 @@
  * city's real local time. The *business clock* runs faster: one real minute
  * simulates `salesTimeScale` business minutes of trade. Every "per day" value
  * below (power, wages, contract terms, breakdown rates) is per business day,
- * i.e. 24 h / salesTimeScale of real time (60 real minutes at 24×).
+ * i.e. 24 h / salesTimeScale of real time (90 real minutes at 16×).
  *
  * Why: a 1:1 clock makes chapter 1 take weeks. 60× (until 2026-11-08) sold a
  * full machine in ~10 minutes and felt like money printing; 12× (briefly) felt
  * slow; 16× (2026-11-08) felt a little slow too, so the owner sped it up to 24×
- * (2026-11-08). This one knob sets the pace; see SPEC §4.8 and
+ * (2026-11-08), then went back to 16× (2026-11-09). This one knob sets the pace; see SPEC §4.8 and
  * docs/spikes/M1-REPORT.md.
  */
 export const TIME = {
-  salesTimeScale: 24,
+  salesTimeScale: 16,
   /** Live tick length (real ms). */
   liveTickMs: 60_000,
   /** Offline catch-up step (real minutes) — SPEC §5.1: 15-minute buckets. */

@@ -299,13 +299,14 @@ describe('sales loop', () => {
       const s = startWithPlacedMachine(w);
       s.machines[0].slots.forEach((slot) => {
         slot.productId = 'clearpeak-water';
-        slot.qty = 8;
+        slot.qty = 30;
         slot.priceCents = 150;
       });
       return s;
     };
-    const unitsHot = advance(mk(hot), hot, NOON_NY + 4 * MIN).report.units;
-    const unitsMild = advance(mk(mild), mild, NOON_NY + 4 * MIN).report.units;
+    // Long enough at 16× for the difference to beat the noise; stock never runs out.
+    const unitsHot = advance(mk(hot), hot, NOON_NY + 10 * MIN).report.units;
+    const unitsMild = advance(mk(mild), mild, NOON_NY + 10 * MIN).report.units;
     expect(unitsHot).toBeGreaterThan(unitsMild * 1.3);
   });
 });
