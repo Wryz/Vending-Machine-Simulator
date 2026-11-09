@@ -12,6 +12,7 @@ import {
   autoAssignRoutes,
   type ActionResult,
   buyDriverVan,
+  businessHoursToMs,
   buyVan,
   DRIVERS_CHAPTER,
   driverCapacity,
@@ -31,7 +32,7 @@ import { useGame } from '@/store/game';
 import { useTheme } from '@/ui/ThemeProvider';
 import { duration, money, moneyShort } from '@/ui/format';
 import { LockedCard, StatChip } from '@/ui/hud';
-import { Icon } from '@/ui/icons';
+import { Icon, type IconName } from '@/ui/icons';
 import { Button, Divider, Mono, Paper, Row, Screen, Section, StatusDot, T } from '@/ui/kit';
 import { machineLabel, machineStatus } from '@/ui/machineStatus';
 import { Clipboard } from '@/ui/objects/Clipboard';
@@ -122,6 +123,33 @@ function Stop({
         </T>
       </Row>
     </Pressable>
+  );
+}
+
+/** A number with what it means underneath (on the paper clipboard). */
+function Fact({
+  icon,
+  value,
+  caption,
+  ink,
+}: {
+  icon: IconName;
+  value: string;
+  caption: string;
+  ink: string;
+}) {
+  return (
+    <View accessible accessibilityLabel={`${caption}: ${value}`} style={{ maxWidth: 104, gap: 2 }}>
+      <Row gap={4}>
+        <Icon name={icon} size={16} color={ink} />
+        <T size={15} weight="bold" color={ink}>
+          {value}
+        </T>
+      </Row>
+      <T size={11} color="#5C6066">
+        {caption}
+      </T>
+    </View>
   );
 }
 
@@ -315,31 +343,36 @@ export default function Routes() {
             />
           ) : (
             <Clipboard title={t('routes.drivers.clipboard')}>
-              <Row style={{ flexWrap: 'wrap' }}>
-                <StatChip
+              <Row style={{ flexWrap: 'wrap', alignItems: 'flex-start' }} gap={SPACE.m}>
+                <Fact
                   icon="route"
-                  label={t('routes.drivers.stopsPerRoute')}
-                  value={`≤${STAFF.stopsPerRoute}`}
+                  value={String(STAFF.stopsPerRoute)}
+                  caption={t('routes.drivers.stopsPerRoute')}
+                  ink={ink}
                 />
-                <StatChip
+                <Fact
                   icon="clock"
-                  label={t('routes.drivers.runEvery')}
-                  value={t('routes.drivers.hours', { n: STAFF.routeIntervalHours })}
+                  value={duration(businessHoursToMs(STAFF.routeIntervalHours))}
+                  caption={t('routes.drivers.runsEvery')}
+                  ink={ink}
                 />
-                <StatChip
+                <Fact
                   icon="box"
-                  label={t('routes.drivers.itemsPerDriver')}
                   value={String(driverCapacity(game))}
+                  caption={t('routes.drivers.itemsPerDriver')}
+                  ink={ink}
                 />
-                <StatChip
+                <Fact
                   icon="clock"
-                  label={t('routes.drivers.rentChip', { time: rentFor })}
                   value={moneyShort(STAFF.driverRentCents)}
+                  caption={t('routes.drivers.rentChip', { time: rentFor })}
+                  ink={ink}
                 />
-                <StatChip
+                <Fact
                   icon="coin"
-                  label={t('routes.drivers.wagePerDay')}
                   value={moneyShort(STAFF.driverWageCentsPerDay)}
+                  caption={t('routes.drivers.wagePerDay')}
+                  ink={ink}
                 />
               </Row>
               {game.drivers.length === 0 ? (
@@ -398,6 +431,44 @@ export default function Routes() {
                         </Mono>
                       )}
                     </Row>
+                    {(isEditing ? active : stops).map((m) => {
+                      const owner = routeOf.get(m.id);
+                      const checked = d.machineIds.includes(m.id);
+                      const note =
+                        owner && owner.id !== d.id
+                          ? t('routes.drivers.otherRoute', { name: owner.name })
+                          : undefined;
+                      return (
+                        <Stop
+                          key={m.id}
+                          machine={m}
+                          game={game}
+                          checked={checked}
+                          note={note}
+                          disabled={isEditing && !checked && full}
+                          onToggle={isEditing ? () => toggle(d, m.id) : undefined}
+                        />
+                      );
+                    })}
+                    {isEditing && active.length === 0 ? (
+                      <T size={13} color="#5C6066">
+                        {t('routes.drivers.placeFirst')}
+                      </T>
+                    ) : null}
+                    <Row gap={SPACE.s} style={{ marginTop: SPACE.xs }}>
+                      <Button
+                        style={{ flex: 1 }}
+                        kind="secondary"
+                        label={isEditing ? t('routes.drivers.done') : t('routes.drivers.editRoute')}
+                        onPress={() => setEditing(isEditing ? null : d.id)}
+                      />
+                      <Button
+                        kind="quiet"
+                        label={t('routes.drivers.letGo')}
+                        onPress={() => confirmFire(d)}
+                        accessibilityHint={t('routes.drivers.letGoHint', { name: d.name })}
+                      />
+                    </Row>
                     {rented ? (
                       <Row gap={SPACE.s}>
                         <Button
@@ -437,44 +508,6 @@ export default function Routes() {
                         />
                       </Row>
                     ) : null}
-                    {(isEditing ? active : stops).map((m) => {
-                      const owner = routeOf.get(m.id);
-                      const checked = d.machineIds.includes(m.id);
-                      const note =
-                        owner && owner.id !== d.id
-                          ? t('routes.drivers.otherRoute', { name: owner.name })
-                          : undefined;
-                      return (
-                        <Stop
-                          key={m.id}
-                          machine={m}
-                          game={game}
-                          checked={checked}
-                          note={note}
-                          disabled={isEditing && !checked && full}
-                          onToggle={isEditing ? () => toggle(d, m.id) : undefined}
-                        />
-                      );
-                    })}
-                    {isEditing && active.length === 0 ? (
-                      <T size={13} color="#5C6066">
-                        {t('routes.drivers.placeFirst')}
-                      </T>
-                    ) : null}
-                    <Row gap={SPACE.s} style={{ marginTop: SPACE.xs }}>
-                      <Button
-                        style={{ flex: 1 }}
-                        kind="secondary"
-                        label={isEditing ? t('routes.drivers.done') : t('routes.drivers.editRoute')}
-                        onPress={() => setEditing(isEditing ? null : d.id)}
-                      />
-                      <Button
-                        kind="quiet"
-                        label={t('routes.drivers.letGo')}
-                        onPress={() => confirmFire(d)}
-                        accessibilityHint={t('routes.drivers.letGoHint', { name: d.name })}
-                      />
-                    </Row>
                   </View>
                 );
               })}
@@ -484,25 +517,6 @@ export default function Routes() {
                   {t('routes.drivers.unassigned', { n: unassigned.length })}
                 </T>
               ) : null}
-              <Row gap={SPACE.s}>
-                <Button
-                  style={{ flex: 1 }}
-                  label={t('routes.drivers.rent', { cost: moneyShort(STAFF.driverRentCents) })}
-                  disabled={game.cashCents < STAFF.driverRentCents}
-                  accessibilityHint={t('routes.drivers.rentHint', { time: rentFor })}
-                  onPress={() => run((d) => hireDriver(d), t('routes.drivers.hired'))}
-                />
-                <Button
-                  style={{ flex: 1 }}
-                  kind="secondary"
-                  label={t('routes.drivers.own', { cost: moneyShort(STAFF.driverOwnCents) })}
-                  disabled={game.cashCents < STAFF.driverOwnCents}
-                  accessibilityHint={t('routes.drivers.ownHint')}
-                  onPress={() =>
-                    run((d) => hireDriver(d, { own: true }), t('routes.drivers.hired'))
-                  }
-                />
-              </Row>
               {game.drivers.length > 0 ? (
                 <Button
                   kind="secondary"
@@ -521,6 +535,25 @@ export default function Routes() {
               ) : null}
             </Clipboard>
           )}
+          {driversUnlocked ? (
+            <Row gap={SPACE.s}>
+              <Button
+                style={{ flex: 1 }}
+                label={t('routes.drivers.rent', { cost: moneyShort(STAFF.driverRentCents) })}
+                disabled={game.cashCents < STAFF.driverRentCents}
+                accessibilityHint={t('routes.drivers.rentHint', { time: rentFor })}
+                onPress={() => run((d) => hireDriver(d), t('routes.drivers.hired'))}
+              />
+              <Button
+                style={{ flex: 1 }}
+                kind="secondary"
+                label={t('routes.drivers.own', { cost: moneyShort(STAFF.driverOwnCents) })}
+                disabled={game.cashCents < STAFF.driverOwnCents}
+                accessibilityHint={t('routes.drivers.ownHint')}
+                onPress={() => run((d) => hireDriver(d, { own: true }), t('routes.drivers.hired'))}
+              />
+            </Row>
+          ) : null}
         </Section>
       </Screen>
       <FlashToast flash={flash} />

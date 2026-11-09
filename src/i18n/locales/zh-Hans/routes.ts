@@ -36,6 +36,7 @@ export default {
     section: '司机',
     clipboard: '路线',
     stopsPerRoute: '每条路线站点数',
+    runsEvery: '出车间隔',
     runEvery: '出车间隔（营业时间）',
     hours: '{n} 小时',
     itemsPerDriver: '每名司机载货',

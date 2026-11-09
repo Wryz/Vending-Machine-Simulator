@@ -36,6 +36,7 @@ export default {
     section: '기사',
     clipboard: '루트',
     stopsPerRoute: '루트당 정류지',
+    runsEvery: '출발 간격',
     runEvery: '운행 간격 (영업시간)',
     hours: '{n}시간',
     itemsPerDriver: '기사당 적재량',

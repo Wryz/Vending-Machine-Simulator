@@ -36,6 +36,7 @@ export default {
     section: 'Motoristas',
     clipboard: 'Rotas',
     stopsPerRoute: 'Paradas por rota',
+    runsEvery: 'Sai a cada',
     runEvery: 'Sai a cada (horário comercial)',
     hours: '{n} h',
     itemsPerDriver: 'Itens por motorista',

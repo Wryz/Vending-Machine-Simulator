@@ -34,6 +34,7 @@ export default {
     section: 'Drivers',
     clipboard: 'Routes', // title on the clipboard
     stopsPerRoute: 'Stops per route',
+    runsEvery: 'Runs every', // caption under a real-time duration, e.g. 22 min
     runEvery: 'Run every (business hours)',
     hours: '{n} h', // small chip
     itemsPerDriver: 'Items per driver',

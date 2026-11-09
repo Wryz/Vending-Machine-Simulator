@@ -36,6 +36,7 @@ export default {
     section: 'Fahrer',
     clipboard: 'Routen',
     stopsPerRoute: 'Stopps pro Route',
+    runsEvery: 'Fährt alle',
     runEvery: 'Fährt alle (Geschäftszeit)',
     hours: '{n} h',
     itemsPerDriver: 'Artikel pro Fahrer',

@@ -36,6 +36,7 @@ export default {
     section: 'Chauffeurs',
     clipboard: 'Tournées',
     stopsPerRoute: 'Arrêts par tournée',
+    runsEvery: 'Tourne toutes les',
     runEvery: 'Passage toutes les (heures ouvrées)',
     hours: '{n} h',
     itemsPerDriver: 'Articles par chauffeur',

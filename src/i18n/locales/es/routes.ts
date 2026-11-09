@@ -36,6 +36,7 @@ export default {
     section: 'Repartidores',
     clipboard: 'Rutas',
     stopsPerRoute: 'Paradas por ruta',
+    runsEvery: 'Sale cada',
     runEvery: 'Sale cada (horas hábiles)',
     hours: '{n} h',
     itemsPerDriver: 'Productos por repartidor',

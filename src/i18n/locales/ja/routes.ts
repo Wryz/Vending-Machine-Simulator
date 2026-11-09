@@ -36,6 +36,7 @@ export default {
     section: 'ドライバー',
     clipboard: 'ルート',
     stopsPerRoute: '1ルートの停車数',
+    runsEvery: '出発の間隔',
     runEvery: '巡回間隔（営業時間）',
     hours: '{n}時間',
     itemsPerDriver: '1人の積載数',
