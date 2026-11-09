@@ -10,7 +10,13 @@ import { simError, venueName } from '@/i18n/sim';
 import { adsAvailable, showRewarded } from '@/services/ads';
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
-import { activeMachines, applyAdReward, collectAll, type GameState } from '@/sim';
+import {
+  activeMachines,
+  applyAdReward,
+  collectAll,
+  type AdvanceReport,
+  type GameState,
+} from '@/sim';
 import { useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
@@ -31,6 +37,23 @@ function venueNames(game: GameState | null, ids: string[]): string[] {
     return m ? `${venueName(m.venue.name)} (${machineLabel(m)})` : gt('report.soldMachine');
   });
   return [...new Set(names)];
+}
+
+/**
+ * What the time away earned: sales minus the venues' cut (taken when the cash
+ * box is collected, estimated per machine) minus running costs. Cash on hand
+ * alone is misleading: sales wait in the cash boxes until collected.
+ */
+function earnings(
+  report: AdvanceReport,
+  game: GameState | null,
+): { venueCutCents: number; profitCents: number } {
+  let venueCutCents = 0;
+  for (const [id, v] of Object.entries(report.perMachine)) {
+    const m = game?.machines.find((x) => x.id === id);
+    venueCutCents += Math.round(v.cents * (m?.contract.commission ?? 0));
+  }
+  return { venueCutCents, profitCents: report.salesCents - venueCutCents - report.costsCents };
 }
 
 function Issue({ title, items, color }: { title: string; items: string[]; color: string }) {
@@ -99,7 +122,7 @@ export default function Report() {
   }, [report]);
 
   useEffect(() => {
-    if (report && report.cashDeltaCents > 0) sound.play('coins');
+    if (report && earnings(report, useGame.getState().game).profitCents > 0) sound.play('coins');
   }, [report]);
 
   const done = () => {
@@ -128,18 +151,21 @@ export default function Report() {
   const tz = world?.city.timeZone ?? 'UTC';
   const leftAt = report.fromAt - report.skippedMs;
   const away = report.toAt - leftAt;
-  const bonus = Math.max(0, report.cashDeltaCents);
+  const { venueCutCents, profitCents } = earnings(report, game);
+  const bonus = Math.max(0, profitCents);
   const canDouble = !removeAds && adsAvailable() && bonus > 0 && !doubled;
 
   const lines: ReceiptLine[] = [
     { label: t('report.line.sales'), value: money(report.salesCents) },
     { label: t('report.line.items'), value: report.units.toLocaleString(t.lang) },
-    {
-      label: t('report.line.costs'),
-      value: money(-report.costsCents),
-      tone: report.costsCents > 0 ? 'bad' : 'muted',
-    },
   ];
+  if (venueCutCents > 0)
+    lines.push({ label: t('report.line.venueCut'), value: money(-venueCutCents), tone: 'bad' });
+  lines.push({
+    label: t('report.line.costs'),
+    value: money(-report.costsCents),
+    tone: report.costsCents > 0 ? 'bad' : 'muted',
+  });
   if (report.driverRuns > 0)
     lines.push({
       label: t('report.line.driverRuns'),
@@ -232,9 +258,9 @@ export default function Report() {
           subtitle={`${clock(leftAt, tz)} – ${clock(report.toAt, tz)} · ${duration(away)}`}
           lines={lines}
           total={{
-            label: t('report.cashChange'),
-            value: money(report.cashDeltaCents, { sign: true }),
-            tone: report.cashDeltaCents >= 0 ? 'good' : 'bad',
+            label: t('report.profit'),
+            value: money(profitCents, { sign: true }),
+            tone: profitCents >= 0 ? 'good' : 'bad',
           }}
           footer={
             report.skippedMs > 0

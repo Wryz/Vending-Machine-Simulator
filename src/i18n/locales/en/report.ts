@@ -16,13 +16,14 @@ export default {
   line: {
     sales: 'Sales', // receipt line, short
     items: 'Items sold', // receipt line, short
+    venueCut: 'Venue cut', // receipt line, short: the venues share of sales
     costs: 'Costs', // receipt line, short
     driverRuns: 'Driver runs', // receipt line, short
     breakdowns: 'Breakdowns', // receipt line, short
     thefts: 'Thefts', // receipt line, short
     spoiled: 'Spoiled items', // receipt line, short
   },
-  cashChange: 'Cash change', // receipt total line
+  profit: 'Profit', // receipt total line: sales minus venue cut and costs
   footerCapped: 'Offline cap reached. {time} not counted.',
   footerThanks: 'Thank you for your business.',
   bestSpots: 'Best spots', // receipt heading, short
