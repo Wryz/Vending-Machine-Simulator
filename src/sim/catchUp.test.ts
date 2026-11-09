@@ -6,7 +6,6 @@ import {
   assignRoute,
   buyVan,
   businessDaysToMs,
-  businessHoursToMs,
   dispatchDriver,
   evaluateSpot,
   fillSlots,
@@ -232,7 +231,7 @@ describe('offline catch-up with a driver', () => {
     expect(away.state.machines[0].mood).toBeGreaterThan(0.5);
     // Driver runs at about the live cadence (every route interval of business hours).
     expect(away.report.driverRuns).toBeGreaterThan(
-      span / businessHoursToMs(STAFF.routeIntervalHours) / 2,
+      span / (STAFF.routeIntervalMinutes * 60_000) / 2,
     );
 
     // The same day played live (short advances: 1-minute ticks).

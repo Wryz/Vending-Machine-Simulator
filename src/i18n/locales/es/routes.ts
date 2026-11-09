@@ -42,7 +42,7 @@ export default {
     itemsPerDriver: 'Productos por repartidor',
     wagePerDay: 'Sueldo por día (camioneta propia)',
     none: 'Aún no hay repartidores.',
-    stops: '{stops}/{max} paradas · {state}',
+    every: 'Repone cada {time} · {state}',
     noRoute: 'sin ruta',
     nextRun: 'próximo viaje en {time}',
     onTheRoad: 'en camino',

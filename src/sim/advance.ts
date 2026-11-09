@@ -685,7 +685,7 @@ export function beginAdvance(
   );
 
   const from = s.now;
-  const runIntervalMs = businessHoursToMs(STAFF.routeIntervalHours);
+  const runIntervalMs = STAFF.routeIntervalMinutes * 60_000;
   const trackEmpty = (m: Machine) => {
     if (m.status === 'active' && isEmpty(m) && !emptyBefore.has(m.id)) {
       emptyBefore.add(m.id);

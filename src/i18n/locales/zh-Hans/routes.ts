@@ -42,7 +42,7 @@ export default {
     itemsPerDriver: '每名司机载货',
     wagePerDay: '每日工资（自有货车）',
     none: '还没有司机。',
-    stops: '{stops}/{max} 站 · {state}',
+    every: '每 {time} 补货一次 · {state}',
     noRoute: '无路线',
     nextRun: '{time}后出车',
     onTheRoad: '在路上',

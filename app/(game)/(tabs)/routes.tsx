@@ -12,7 +12,6 @@ import {
   autoAssignRoutes,
   type ActionResult,
   buyDriverVan,
-  businessHoursToMs,
   buyVan,
   DRIVERS_CHAPTER,
   driverCapacity,
@@ -352,7 +351,7 @@ export default function Routes() {
                 />
                 <Fact
                   icon="clock"
-                  value={duration(businessHoursToMs(STAFF.routeIntervalHours))}
+                  value={duration(STAFF.routeIntervalMinutes * 60_000)}
                   caption={t('routes.drivers.runsEvery')}
                   ink={ink}
                 />
@@ -399,17 +398,17 @@ export default function Routes() {
                           {d.name}
                         </T>
                         <T size={12} color="#5C6066">
-                          {t('routes.drivers.stops', {
-                            stops: stops.length,
-                            max: STAFF.stopsPerRoute,
-                            state: !onDuty
-                              ? t('routes.drivers.parked')
-                              : stops.length === 0
-                                ? t('routes.drivers.noRoute')
-                                : nextRun > 60_000
-                                  ? t('routes.drivers.nextRun', { time: duration(nextRun) })
-                                  : t('routes.drivers.onTheRoad'),
-                          })}
+                          {!onDuty
+                            ? t('routes.drivers.parked')
+                            : stops.length === 0
+                              ? t('routes.drivers.noRoute')
+                              : t('routes.drivers.every', {
+                                  time: duration(STAFF.routeIntervalMinutes * 60_000),
+                                  state:
+                                    nextRun > 60_000
+                                      ? t('routes.drivers.nextRun', { time: duration(nextRun) })
+                                      : t('routes.drivers.onTheRoad'),
+                                })}
                         </T>
                         <T
                           size={12}

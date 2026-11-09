@@ -42,7 +42,7 @@ export default {
     itemsPerDriver: 'Artikel pro Fahrer',
     wagePerDay: 'Lohn pro Tag (eigener Van)',
     none: 'Noch keine Fahrer.',
-    stops: '{stops}/{max} Stopps · {state}',
+    every: 'Füllt alle {time} auf · {state}',
     noRoute: 'keine Route',
     nextRun: 'nächste Fahrt in {time}',
     onTheRoad: 'unterwegs',

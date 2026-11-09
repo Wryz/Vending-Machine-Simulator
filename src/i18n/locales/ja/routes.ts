@@ -42,7 +42,7 @@ export default {
     itemsPerDriver: '1人の積載数',
     wagePerDay: '日給（所有バン）',
     none: 'ドライバーはまだいません。',
-    stops: '停車 {stops}/{max} · {state}',
+    every: '{time}ごとに補充 · {state}',
     noRoute: 'ルートなし',
     nextRun: '次の巡回まで{time}',
     onTheRoad: '巡回中',

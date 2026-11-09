@@ -42,7 +42,7 @@ export default {
     itemsPerDriver: 'Articles par chauffeur',
     wagePerDay: 'Salaire par jour (camionnette à toi)',
     none: 'Pas encore de chauffeur.',
-    stops: '{stops}/{max} arrêts · {state}',
+    every: 'Réassort toutes les {time} · {state}',
     noRoute: 'sans tournée',
     nextRun: 'prochain passage dans {time}',
     onTheRoad: 'sur la route',

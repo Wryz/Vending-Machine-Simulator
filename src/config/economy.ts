@@ -156,8 +156,11 @@ export const STAFF = {
   driverWageCentsPerDay: 9_000,
   /** Stops a driver can run per route. */
   stopsPerRoute: 8,
-  /** Business hours between a driver's route runs. */
-  routeIntervalHours: 6,
+  /**
+   * Real minutes between a driver's route runs (owner's call, 2026-11-09: every
+   * 15 real minutes; was 6 business hours, about 22 minutes at 16×).
+   */
+  routeIntervalMinutes: 15,
   /** Items a driver carries per run (warehouse raises this). */
   driverCapacity: 600,
   /**
