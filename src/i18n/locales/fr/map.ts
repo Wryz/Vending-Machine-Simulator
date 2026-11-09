@@ -22,14 +22,18 @@ export default {
     cancel: 'Pas maintenant',
     vansOut: 'Toutes tes camionnettes sont parties',
   },
+  collected: {
+    one: '{amount} récupérés dans {n} distributeur',
+    other: '{amount} récupérés dans {n} distributeurs',
+  },
   backTo: 'Retour à {city}',
   areas: {
     hood: '{name}\nOuvre au chapitre {n}',
     ring: 'Ouvre au chapitre {n}',
   },
   clockAhead: {
-    title: 'L\'horloge de ton téléphone avançait',
-    body: 'Ta ville attend que l\'heure réelle la rattrape, environ {time}. Ensuite les machines revendent.',
+    title: "L'horloge de ton téléphone avançait",
+    body: "Ta ville attend que l'heure réelle la rattrape, environ {time}. Ensuite les machines revendent.",
   },
   a11y: {
     van: 'Camionnette de livraison vers {venue}',
@@ -38,6 +42,7 @@ export default {
     view3d: 'Vue 3D',
     topDown: 'Vue de dessus',
     busyStreets: 'Rues animées',
+    cashBubble: 'De l’argent attend. Touche pour vider tous les distributeurs.',
     myMachines: 'Mes distributeurs',
     zoomIn: 'Zoom avant',
     zoomOut: 'Zoom arrière',

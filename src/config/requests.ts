@@ -9,6 +9,8 @@ import type { CurveKey } from './curves';
  * Rolled only during live play. Times are real ms (1 real min ≈ 1 business hour).
  */
 export const REQUESTS = {
+  /** Off (owner's call, 2026-11-08): no request bubbles; the map bubble is for collecting cash. */
+  enabled: false,
   /** Gap between two new requests, uniformly in [min, max]. */
   gapMinMs: 90_000,
   gapMaxMs: 4 * 60_000,

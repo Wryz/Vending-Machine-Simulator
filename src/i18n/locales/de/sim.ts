@@ -31,6 +31,7 @@ export default {
     pricesLocked: 'Preise festlegen ist ab Kapitel 2 möglich.',
     emptySlot: 'Leeres Fach.',
     nothingToRepair: 'Nichts zu reparieren.',
+    nothingToCollect: 'Nichts einzusammeln.',
     renegotiationLocked: 'Nachverhandeln ist ab Kapitel 2 möglich.',
     alreadyRenegotiated: 'Dieser Vertrag wurde schon nachverhandelt.',
     venueUnhappy: 'Der Standort ist nicht zufrieden genug zum Nachverhandeln.',

@@ -31,6 +31,7 @@ export default {
     pricesLocked: '価格設定は第1章クリア後に解放されます。',
     emptySlot: '空のスロットです。',
     nothingToRepair: '修理するものはありません。',
+    nothingToCollect: '回収するものはありません。',
     renegotiationLocked: '再交渉は第1章クリア後に解放されます。',
     alreadyRenegotiated: 'この契約は再交渉済みです。',
     venueUnhappy: '設置先の機嫌が足りず、再交渉できません。',

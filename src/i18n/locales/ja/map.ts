@@ -21,6 +21,7 @@ export default {
     cancel: 'あとで',
     vansOut: 'バンはすべて出ています',
   },
+  collected: { one: '自販機{n}台から{amount}を回収', other: '自販機{n}台から{amount}を回収' },
   backTo: '{city}に戻る',
   areas: {
     hood: '{name}\n第{n}章で開放',
@@ -37,6 +38,7 @@ export default {
     view3d: '3D表示',
     topDown: '真上から表示',
     busyStreets: '人通りの多い道',
+    cashBubble: '売上がたまっています。タップですべての自販機から回収。',
     myMachines: '自分の自販機',
     zoomIn: 'ズームイン',
     zoomOut: 'ズームアウト',

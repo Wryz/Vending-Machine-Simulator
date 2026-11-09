@@ -133,7 +133,9 @@ export function placeMachine(
   if (!districtUnlocked(state, district)) return fail('This district unlocks in a later chapter.');
   const blocked = alcoholBlocked(world, state, type, p);
   if (blocked) return fail(blocked);
-  const taken = state.machines.find((m) => m.status === 'active' && distanceM(m, p) < PLACEMENT.minSpacingM);
+  const taken = state.machines.find(
+    (m) => m.status === 'active' && distanceM(m, p) < PLACEMENT.minSpacingM,
+  );
   if (taken) return fail('Another of your machines is already here.');
   const rivalExclusive = state.rival.machines.find((r) => distanceM(r, p) < PLACEMENT.minSpacingM);
   if (rivalExclusive) return fail('Brightvend already has a machine on this spot.');
@@ -458,6 +460,36 @@ export function collectCash(
   return { ok: true, grossCents: gross, netCents: net, commissionCents: commission, pulledItem };
 }
 
+/**
+ * Collect every active machine's cash box at once (the cash bubble on the map).
+ * Same payout rules as collectCash, machine by machine.
+ */
+export function collectAll(state: GameState): ActionResult<{
+  machines: number;
+  grossCents: number;
+  netCents: number;
+  commissionCents: number;
+  pulledItems: string[];
+}> {
+  let machines = 0;
+  let grossCents = 0;
+  let netCents = 0;
+  let commissionCents = 0;
+  const pulledItems: string[] = [];
+  for (const m of state.machines) {
+    if (m.status !== 'active' || m.cashBoxCents <= 0) continue;
+    const r = collectCash(state, m.id);
+    if (!r.ok) continue;
+    machines += 1;
+    grossCents += r.grossCents;
+    netCents += r.netCents;
+    commissionCents += r.commissionCents;
+    if (r.pulledItem) pulledItems.push(r.pulledItem);
+  }
+  if (machines === 0) return fail('Nothing to collect.');
+  return { ok: true, machines, grossCents, netCents, commissionCents, pulledItems };
+}
+
 export function repairMachine(state: GameState, machineId: string): ActionResult {
   const m = getMachine(state, machineId);
   if (!m || !m.broken) return fail('Nothing to repair.');
@@ -477,7 +509,8 @@ export function renegotiate(
   if (!m || m.status !== 'active') return fail('Machine not found.');
   if (!state.chapterDoneAt[1]) return fail('Renegotiation unlocks after chapter 1.');
   if (m.contract.renegotiated) return fail('Already renegotiated this contract.');
-  if (m.mood < CONTRACT.renegotiateMinMood) return fail('The venue is not happy enough to renegotiate.');
+  if (m.mood < CONTRACT.renegotiateMinMood)
+    return fail('The venue is not happy enough to renegotiate.');
   m.contract.commission = Math.max(
     CONTRACT.commissionMin,
     Math.round((m.contract.commission - CONTRACT.renegotiateDiscount) * 1000) / 1000,

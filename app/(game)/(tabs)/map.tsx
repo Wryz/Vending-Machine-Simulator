@@ -14,6 +14,7 @@ import { WeatherOverlay } from '@/map/WeatherOverlay';
 import {
   activeMachines,
   baseTraffic,
+  collectAll,
   featureUnlocked,
   localTime,
   lowMachines,
@@ -27,7 +28,7 @@ import {
   visibleEvents,
 } from '@/sim';
 import type { SoundscapeEnv } from '@/audio/soundscape';
-import { soundscape } from '@/services/audio';
+import { sound, soundscape } from '@/services/audio';
 import { track } from '@/services/analytics';
 import { haptic } from '@/services/haptics';
 import { cityKey, useProfile } from '@/store/profile';
@@ -50,6 +51,7 @@ import { Icon } from '@/ui/icons';
 import { LowRunCard } from '@/ui/LowRunCard';
 import { sfx } from '@/ui/sfx';
 import { Key } from '@/ui/skin';
+import { money } from '@/ui/format';
 import { SPACE } from '@/ui/theme';
 
 /** A sale shows in its own pill under the money panel for this long. */
@@ -475,6 +477,17 @@ export default function MapScreen() {
     const timer = setTimeout(() => setPlaceNote(null), 2600);
     return () => clearTimeout(timer);
   }, [placeNote]);
+  // A cash bubble: collect every machine at once.
+  const onCashPress = () => {
+    lastMachinePress.current = Date.now();
+    cancelMapPress();
+    const res = useGame.getState().act((d) => collectAll(d));
+    if (!res.ok) return;
+    sound.play('coins');
+    haptic.success();
+    setPlaceNote(t('map.collected', { amount: money(res.netCents), n: res.machines }));
+    track('collect_all', { machines: res.machines, count: Math.round(res.grossCents / 100) });
+  };
   const onPlaceKey = () => {
     if (!canPlace) {
       haptic.error();
@@ -539,7 +552,7 @@ export default function MapScreen() {
         onMachinePress={onMachinePress}
         onRivalPress={onRivalPress}
         onDealPress={(id) => takeDeal(id)}
-        onRequestPress={onMachinePress}
+        onCashPress={onCashPress}
         onAreaName={setArea}
         onCameraChanged={(c, byUser) => {
           cameraNow.current = c;

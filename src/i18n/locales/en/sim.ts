@@ -34,6 +34,7 @@ export default {
     pricesLocked: 'Price setting unlocks after chapter 1.',
     emptySlot: 'Empty slot.',
     nothingToRepair: 'Nothing to repair.',
+    nothingToCollect: 'Nothing to collect.',
     renegotiationLocked: 'Renegotiation unlocks after chapter 1.',
     alreadyRenegotiated: 'Already renegotiated this contract.',
     venueUnhappy: 'The venue is not happy enough to renegotiate.',

@@ -22,6 +22,10 @@ export default {
     cancel: 'Agora não',
     vansOut: 'Todas as suas vans estão fora',
   },
+  collected: {
+    one: '{amount} recolhidos de {n} máquina',
+    other: '{amount} recolhidos de {n} máquinas',
+  },
   backTo: 'Voltar para {city}',
   areas: {
     hood: '{name}\nAbre no capítulo {n}',
@@ -38,6 +42,7 @@ export default {
     view3d: 'Vista 3D',
     topDown: 'Vista de cima',
     busyStreets: 'Ruas movimentadas',
+    cashBubble: 'Tem dinheiro esperando. Toque para recolher de todas as máquinas.',
     myMachines: 'Minhas máquinas',
     zoomIn: 'Aproximar',
     zoomOut: 'Afastar',

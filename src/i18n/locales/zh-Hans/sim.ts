@@ -31,6 +31,7 @@ export default {
     pricesLocked: '第 1 章后解锁自主定价。',
     emptySlot: '货道是空的。',
     nothingToRepair: '没有需要维修的。',
+    nothingToCollect: '没有可收取的现金。',
     renegotiationLocked: '第 1 章后解锁重谈合同。',
     alreadyRenegotiated: '这份合同已经重谈过了。',
     venueUnhappy: '场所满意度不够，无法重谈。',

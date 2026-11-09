@@ -31,6 +31,7 @@ export default {
     pricesLocked: 'Definir preços é liberado após o capítulo 1.',
     emptySlot: 'Espiral vazia.',
     nothingToRepair: 'Nada para consertar.',
+    nothingToCollect: 'Nada para recolher.',
     renegotiationLocked: 'Renegociar é liberado após o capítulo 1.',
     alreadyRenegotiated: 'Este contrato já foi renegociado.',
     venueUnhappy: 'O local não está satisfeito o bastante para renegociar.',

@@ -31,6 +31,7 @@ export default {
     pricesLocked: 'Los precios se desbloquean tras el capítulo 1.',
     emptySlot: 'Casilla vacía.',
     nothingToRepair: 'No hay nada que reparar.',
+    nothingToCollect: 'No hay nada que recoger.',
     renegotiationLocked: 'Renegociar se desbloquea tras el capítulo 1.',
     alreadyRenegotiated: 'Ya renegociaste este contrato.',
     venueUnhappy: 'El local no está lo bastante contento para renegociar.',

@@ -20,13 +20,18 @@ export default {
     cancel: 'Not now',
     vansOut: 'All your vans are out',
   },
+  /** After tapping a cash bubble: {amount} money, {n} machines emptied. */
+  collected: {
+    one: 'Collected {amount} from {n} machine',
+    other: 'Collected {amount} from {n} machines',
+  },
   backTo: 'Back to {city}',
   areas: {
     hood: '{name}\nOpens in chapter {n}', // map tag on a locked neighbourhood: its name, then the chapter that opens it
     ring: 'Opens in chapter {n}', // map tag just outside the open ring (cities without neighbourhood names)
   },
   clockAhead: {
-    title: 'Your phone\'s clock was ahead',
+    title: "Your phone's clock was ahead",
     body: 'Your city waits for real time to catch up, about {time}. Machines start selling again after that.', // {time} like "2 h 10 min"
   },
   a11y: {
@@ -36,6 +41,7 @@ export default {
     view3d: '3D view',
     topDown: 'Top-down view',
     busyStreets: 'Busy streets',
+    cashBubble: 'Cash waiting. Tap to collect from every machine.',
     myMachines: 'My machines',
     zoomIn: 'Zoom in',
     zoomOut: 'Zoom out',

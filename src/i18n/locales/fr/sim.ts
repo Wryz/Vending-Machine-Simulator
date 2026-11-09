@@ -31,6 +31,7 @@ export default {
     pricesLocked: 'Le choix des prix se débloque après le chapitre 1.',
     emptySlot: 'Case vide.',
     nothingToRepair: 'Rien à réparer.',
+    nothingToCollect: 'Rien à récupérer.',
     renegotiationLocked: 'La renégociation se débloque après le chapitre 1.',
     alreadyRenegotiated: 'Contrat déjà renégocié.',
     venueUnhappy: 'Le lieu n’est pas assez content pour renégocier.',

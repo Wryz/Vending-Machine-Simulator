@@ -4,6 +4,10 @@ import type en from '../en/report';
 
 export default {
   title: 'Pendant ton absence…',
+  awayFor: 'Tu étais absent {time}',
+  inMachines: 'En attente dans tes distributeurs',
+  collect: 'Récupérer {amount}',
+  collected: '{amount} récupérés',
   nothing: 'Rien à signaler.',
   done: 'OK',
   soldMachine: 'Un distributeur vendu',

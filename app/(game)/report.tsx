@@ -10,7 +10,7 @@ import { simError, venueName } from '@/i18n/sim';
 import { adsAvailable, showRewarded } from '@/services/ads';
 import { haptic } from '@/services/haptics';
 import { sound } from '@/services/audio';
-import { applyAdReward, type GameState } from '@/sim';
+import { activeMachines, applyAdReward, collectAll, type GameState } from '@/sim';
 import { useGame } from '@/store/game';
 import { useProfile } from '@/store/profile';
 import { useTheme } from '@/ui/ThemeProvider';
@@ -72,6 +72,13 @@ export default function Report() {
   const { flash, show } = useFlash();
   const [doubled, setDoubled] = useState(false);
   const [busy, setBusy] = useState(false);
+  // What the machines hold now, after commission: what Collect pays.
+  const waitingCents = game
+    ? activeMachines(game).reduce(
+        (a, m) => a + m.cashBoxCents - Math.round(m.cashBoxCents * m.contract.commission),
+        0,
+      )
+    : 0;
 
   // The report is read when the player closes the sheet (Done or a swipe). Not on
   // unmount: the navigator remounts once at launch when the language is applied, and
@@ -163,6 +170,15 @@ export default function Report() {
       cents: v.cents,
     }));
 
+  // Empty every machine's cash box from here (owner's call, 2026-11-08).
+  const collect = () => {
+    const r = useGame.getState().act((d) => collectAll(d));
+    if (!r.ok) return show(simError(r.error), 'error');
+    haptic.success();
+    sound.play('coins');
+    show(t('report.collected', { amount: money(r.netCents) }), 'success');
+  };
+
   const doubleIt = async () => {
     setBusy(true);
     const earned = await showRewarded('double-offline');
@@ -194,6 +210,23 @@ export default function Report() {
         <T size={20} weight="bold" accessibilityRole="header">
           {t('report.title')}
         </T>
+        <T size={16} muted>
+          {t('report.awayFor', { time: duration(away) })}
+        </T>
+        {waitingCents > 0 ? (
+          <View style={{ gap: SPACE.s }}>
+            <T size={13} muted>
+              {t('report.inMachines')}
+            </T>
+            <T size={32} weight="bold">
+              {money(waitingCents)}
+            </T>
+            <Button
+              label={t('report.collect', { amount: money(waitingCents) })}
+              onPress={collect}
+            />
+          </View>
+        ) : null}
         <Receipt
           title={world ? content.city(world.city.id, world.city.name) : 'Coinline'}
           subtitle={`${clock(leftAt, tz)} – ${clock(report.toAt, tz)} · ${duration(away)}`}
@@ -271,7 +304,11 @@ export default function Report() {
             onPress={doubleIt}
           />
         ) : null}
-        <Button label={t('report.done')} onPress={done} />
+        <Button
+          kind={waitingCents > 0 ? 'secondary' : undefined}
+          label={t('report.done')}
+          onPress={done}
+        />
         <Spacer h={SPACE.s} />
       </ScrollView>
       <FlashToast flash={flash} />

@@ -53,7 +53,7 @@ import {
 import { PIN_ICON_OFFSET, PIN_IMAGES, PIN_SIZE } from './pinImages';
 import { SalePops, type SalePop } from './life/SalePops';
 import { DeliveryVans } from './DeliveryVans';
-import { RequestBubbles } from './RequestBubbles';
+import { CashBubbles } from './CashBubbles';
 import { SurpriseMarkers } from './SurpriseMarkers';
 import { StreetLifeLayer, type LifeStats, type StreetLifeHandle } from './life/StreetLifeLayer';
 import {
@@ -158,8 +158,8 @@ interface Props {
   onPlacePress?(place: { id: string; lat: number; lng: number }): void;
   /** A venue-deal badge was tapped (accept the offer). */
   onDealPress?(dealId: string): void;
-  /** A customer request bubble was tapped (open that machine). */
-  onRequestPress?(machineId: string): void;
+  /** A cash bubble was tapped (collect every machine). */
+  onCashPress?(): void;
   /** `byUser` is true when a gesture moved the camera (not a fly-to or the initial load). */
   onCameraChanged?(c: MapCameraState, byUser: boolean): void;
   /** Neighbourhood and district nearest the center (null = none known). */
@@ -1041,12 +1041,12 @@ export const CityMap = forwardRef<CityMapHandle, Props>(function CityMap(props, 
       />
       {/* Restock vans driving from the store to the machine. */}
       <DeliveryVans game={game} zoom={view.zoom} />
-      {/* Customer requests: what someone nearby wants from this machine. */}
-      <RequestBubbles
+      {/* Cash waiting: tap any coin bubble to collect every machine. */}
+      <CashBubbles
         game={game}
         zoom={view.zoom}
         machineHeightPt={machineHeightPt(view.zoom, world.city.lat)}
-        onPress={props.onRequestPress}
+        onPress={props.onCashPress}
       />
     </Map>
   );

@@ -4,6 +4,10 @@ import type en from '../en/report';
 
 export default {
   title: 'Mientras no estabas…',
+  awayFor: 'Estuviste fuera {time}',
+  inMachines: 'Esperando en tus máquinas',
+  collect: 'Recoger {amount}',
+  collected: 'Recogiste {amount}',
   nothing: 'Nada que informar.',
   done: 'Listo',
   soldMachine: 'Una máquina que vendiste',

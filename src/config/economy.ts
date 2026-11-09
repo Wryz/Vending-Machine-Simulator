@@ -101,6 +101,14 @@ export const FIT = {
   max: 1.8,
 } as const;
 
+/** The coin bubble over machines on the map; tapping any one collects every machine (owner's call, 2026-11-08). */
+export const CASH_BUBBLE = {
+  /** Show it once a machine's cash box holds at least this much. */
+  minCents: 500,
+  /** Hidden when zoomed out further than this. */
+  minZoom: 13,
+} as const;
+
 export const SERVICE = {
   /** Van capacity in items per level (level 0 = car boot). */
   vanCapacityByLevel: [120, 300, 600, 1200],

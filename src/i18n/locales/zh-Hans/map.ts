@@ -21,6 +21,7 @@ export default {
     cancel: '以后再说',
     vansOut: '货车都出去了',
   },
+  collected: { one: '从 {n} 台售货机收取了 {amount}', other: '从 {n} 台售货机收取了 {amount}' },
   backTo: '返回{city}',
   areas: {
     hood: '{name}\n第 {n} 章开放',
@@ -37,6 +38,7 @@ export default {
     view3d: '3D 视图',
     topDown: '俯视图',
     busyStreets: '热闹街道',
+    cashBubble: '有现金待收。点按即可从所有售货机收取。',
     myMachines: '我的售货机',
     zoomIn: '放大',
     zoomOut: '缩小',

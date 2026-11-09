@@ -22,6 +22,10 @@ export default {
     cancel: 'Nicht jetzt',
     vansOut: 'Alle Lieferwagen sind unterwegs',
   },
+  collected: {
+    one: '{amount} aus {n} Automat eingesammelt',
+    other: '{amount} aus {n} Automaten eingesammelt',
+  },
   backTo: 'Zurück nach {city}',
   areas: {
     hood: '{name}\nAb Kapitel {n}',
@@ -38,6 +42,7 @@ export default {
     view3d: '3D-Ansicht',
     topDown: 'Draufsicht',
     busyStreets: 'Belebte Straßen',
+    cashBubble: 'Geld wartet. Tippen, um alle Automaten zu leeren.',
     myMachines: 'Meine Automaten',
     zoomIn: 'Vergrößern',
     zoomOut: 'Verkleinern',

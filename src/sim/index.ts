@@ -55,6 +55,7 @@ export const restockMachine = recorded('restockMachine', ActionsRaw.restockMachi
 export const setPrice = recorded('setPrice', ActionsRaw.setPrice);
 export const setPar = recorded('setPar', ActionsRaw.setPar);
 export const collectCash = recorded('collectCash', ActionsRaw.collectCash);
+export const collectAll = recorded('collectAll', ActionsRaw.collectAll);
 export const repairMachine = recorded('repairMachine', ActionsRaw.repairMachine);
 export const renegotiate = recorded('renegotiate', ActionsRaw.renegotiate);
 export const rotateMachine = recorded('rotateMachine', ActionsRaw.rotateMachine);

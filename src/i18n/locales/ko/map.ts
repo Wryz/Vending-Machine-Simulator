@@ -21,6 +21,7 @@ export default {
     cancel: '나중에',
     vansOut: '밴이 모두 나가 있어요',
   },
+  collected: { one: '자판기 {n}대에서 {amount} 수거', other: '자판기 {n}대에서 {amount} 수거' },
   backTo: '{city}(으)로 돌아가기',
   areas: {
     hood: '{name}\n{n}장에서 열림',
@@ -37,6 +38,7 @@ export default {
     view3d: '3D 보기',
     topDown: '위에서 보기',
     busyStreets: '붐비는 거리',
+    cashBubble: '현금이 쌓였어요. 탭하면 모든 자판기에서 수거해요.',
     myMachines: '내 자판기',
     zoomIn: '확대',
     zoomOut: '축소',

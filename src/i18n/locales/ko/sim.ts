@@ -31,6 +31,7 @@ export default {
     pricesLocked: '가격 설정은 챕터 1 이후 해금돼요.',
     emptySlot: '빈 칸이에요.',
     nothingToRepair: '수리할 게 없어요.',
+    nothingToCollect: '수거할 게 없어요.',
     renegotiationLocked: '재협상은 챕터 1 이후 해금돼요.',
     alreadyRenegotiated: '이 계약은 이미 재협상했어요.',
     venueUnhappy: '장소 만족도가 낮아 재협상할 수 없어요.',

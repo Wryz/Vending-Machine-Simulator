@@ -10,6 +10,7 @@ import {
   TIME,
 } from '@/config/economy';
 import { CHAPTER_GOALS as CHAPTER_GOALS_REF, type ResearchId } from '@/config/progression';
+import { REQUESTS } from '@/config/requests';
 import { SURPRISES } from '@/config/surprises';
 import { getMachineType, type MachineFamily, type MachineType } from '@/config/machines';
 import { getProduct, type Product } from '@/config/products';
@@ -494,7 +495,8 @@ function contractStep(
   if (m.broken) m.mood -= CONTRACT.moodLossBrokenPerHour * hours;
   else if (emptyShare !== undefined)
     m.mood +=
-      (CONTRACT.moodRecoverPerHour * (1 - emptyShare) - CONTRACT.moodLossEmptyPerHour * emptyShare) *
+      (CONTRACT.moodRecoverPerHour * (1 - emptyShare) -
+        CONTRACT.moodLossEmptyPerHour * emptyShare) *
       hours;
   else if (isEmpty(m)) m.mood -= CONTRACT.moodLossEmptyPerHour * hours;
   else m.mood += CONTRACT.moodRecoverPerHour * hours;
@@ -845,10 +847,14 @@ export function beginAdvance(
         report.salesCents += surprise.cents ?? 0;
         report.units += surprise.units ?? 0;
       }
-      const request = rollRequest(s, world, tMid);
-      if (request) report.requests.push(request);
+      if (REQUESTS.enabled) {
+        const request = rollRequest(s, world, tMid);
+        if (request) report.requests.push(request);
+      }
     }
     expireSurprises(s, tEnd);
+    // Requests turned off: drop any left over from an older save.
+    if (!REQUESTS.enabled) s.requests.open.length = 0;
     for (const news of serveRequests(s, tEnd, { salesBonus })) {
       report.requests.push(news);
       if (news.kind === 'served') {
