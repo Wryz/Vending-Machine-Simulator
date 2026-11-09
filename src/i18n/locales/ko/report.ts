@@ -7,7 +7,6 @@ export default {
   awayFor: '{time} 동안 자리를 비웠어요',
   inMachines: '자판기에 쌓인 현금',
   collect: '{amount} 수거',
-  collected: '{amount} 수거했어요',
   nothing: '보고할 내용이 없어요.',
   done: '완료',
   soldMachine: '판매한 자판기',

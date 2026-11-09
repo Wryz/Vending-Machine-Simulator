@@ -7,7 +7,6 @@ export default {
   awayFor: '{time}留守にしていました',
   inMachines: '自販機にたまっている売上',
   collect: '{amount}を回収',
-  collected: '{amount}を回収しました',
   nothing: '報告することはありません。',
   done: 'OK',
   soldMachine: '売却した自販機',

@@ -202,7 +202,8 @@ export default function Report() {
     if (!r.ok) return show(simError(r.error), 'error');
     haptic.success();
     sound.play('coins');
-    show(t('report.collected', { amount: money(r.netCents) }), 'success');
+    // Collecting ends the receipt: close it instead of showing it again without the button.
+    done();
   };
 
   const doubleIt = async () => {

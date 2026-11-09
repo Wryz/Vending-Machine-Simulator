@@ -7,7 +7,6 @@ export default {
   inMachines: 'Waiting in your machines',
   /** Main button: empty every machine's cash box. */
   collect: 'Collect {amount}',
-  collected: 'Collected {amount}',
   nothing: 'Nothing to report.',
   done: 'Done',
   soldMachine: 'A machine you sold',

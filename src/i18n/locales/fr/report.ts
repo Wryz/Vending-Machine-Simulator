@@ -7,7 +7,6 @@ export default {
   awayFor: 'Tu étais absent {time}',
   inMachines: 'En attente dans tes distributeurs',
   collect: 'Récupérer {amount}',
-  collected: '{amount} récupérés',
   nothing: 'Rien à signaler.',
   done: 'OK',
   soldMachine: 'Un distributeur vendu',

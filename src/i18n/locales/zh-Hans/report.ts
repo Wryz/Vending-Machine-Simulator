@@ -7,7 +7,6 @@ export default {
   awayFor: '你离开了 {time}',
   inMachines: '售货机里待收的现金',
   collect: '收取 {amount}',
-  collected: '已收取 {amount}',
   nothing: '没有新动态。',
   done: '完成',
   soldMachine: '你已卖掉的售货机',

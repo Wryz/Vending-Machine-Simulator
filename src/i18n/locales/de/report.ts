@@ -7,7 +7,6 @@ export default {
   awayFor: 'Du warst {time} weg',
   inMachines: 'In deinen Automaten',
   collect: '{amount} einsammeln',
-  collected: '{amount} eingesammelt',
   nothing: 'Nichts Neues.',
   done: 'Fertig',
   soldMachine: 'Ein verkaufter Automat',
